@@ -52,4 +52,4 @@ final class TodayStateProvider
   }
 }
 
-String _$todayStateHash() => r'797e59b6f79a02a93d496b342ec45db1a9c08a04';
+String _$todayStateHash() => r'858009e7312308fd2809fa52ca6ea7adb9f9d5c4';
