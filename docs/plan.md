@@ -29,11 +29,18 @@
 **Routes:** `today`/`move`/`rituals`/`you`; stubs `quickActions` `/quick-actions` (U06), `newEntry` `/entry/new` (U07), `askPal` `/pal` (U16), `spendingDetail` `/today/spending` (U09). Access via `AppRoute.<name>`.
 **Key providers:** `entry/goals/ritual/routine/workoutRepositoryProvider`, `settingsRepositoryProvider`, `pal/health/email/notification/hapticsServiceProvider` (mocks), `appSettingsControllerProvider` (theme), `todayStateProvider`.
 
-**>>> AT CHECKPOINT 1 (foundation review) — awaiting human Chrome verification before fan-out. <<<**
+**Wave 1 integrated → `master` `ee21c46`** (47 tests green, analyze clean, web build OK):
+✅ U06 Quick Actions · ✅ U07 New Entry + `Keypad` · ✅ U08 Rituals · ✅ U09 Spending (reusable `DetailScreen`, tracker-parametrized) · ✅ U11 Exercise Library + seed expansion · ✅ U17 Onboarding + redirect gate.
+- Added routes: `quickActions`, `newEntry`, `rituals`→RitualsScreen, `manageRituals` (stub `/rituals/manage`), `spendingDetail`→`DetailScreen`, `exerciseLibrary` `/library`, `onboarding` `/onboarding`. Remaining stubs: `move`/`you` placeholders, `moveDetail`/`ritualsDetail`/`askPal`.
+- Added providers: `ritualsControllerProvider`, `detailData(DetailTracker)`/`spendingDetail`, `exercises`.
 
-**Next (after CP1):** parallel batch U06 / U08 / U09 / U11 in worktrees → merge → U07, U10 → Phase C workout chain.
+**DONE:** U01–U09, U11, U17.  **REMAINING:** U10, U12–U16, U18–U21 (+U21b builders), backend U22–U24, native U25–U27.
 
-**Git:** baseline `4ee45cd` (U01+U02). Parallel fan-out (Phase B+) uses worktree branches merged to `master`.
+**Next wave (parallel from `ee21c46`):** U10 Move tab · U16 Ask Pal (also wires U07 "Type it" NL parse) · U18 Monthly Review · U19 You/profile. Then serial workout chain U12→U13→U14→U15 (needs U10+U11), then U20 Email (needs U19), then U21 polish + U21b builders.
+
+**Dispatch lesson:** agents must run `flutter test` directly (NOT wrapped in PowerShell `Out-String`/buffered capture) — one agent blinded itself to a test error and looped (the U11 `!timersPending` incident).
+
+**Git:** baseline `4ee45cd` → foundation `18146dc` → wave-1 integrated `ee21c46`. Fan-out uses worktree branches merged to `master`; wave-1 worktrees removed.
 
 **Locked decisions (from review, `plan-review.md` — no blockers found):**
 - **U02 storage:** use **real `drift` + `drift_flutter`**, with `sqlite3.wasm` and **`drift_worker.dart.js`** (exact filename) vendored into `loop/web/`, version-matched to `pubspec.lock`. `flutter run -d chrome` serves wasm fine; OPFS degrades gracefully. In-memory / `sqflite_common_ffi` shim = documented fallback only, not default.
