@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import 'screens/entry/new_entry_sheet.dart';
 import 'screens/quick_actions/quick_actions_overlay.dart';
 import 'screens/shell/loop_shell.dart';
 import 'screens/today/today_screen.dart';
@@ -146,7 +147,7 @@ GoRouter createRouter({String initialLocation = '/today'}) {
         path: AppRoute.newEntry.path,
         name: AppRoute.newEntry.name,
         parentNavigatorKey: _rootNavigatorKey,
-        builder: (context, state) => const _DetailStub(title: 'New Entry'),
+        builder: (context, state) => const NewEntrySheet(),
       ),
       GoRoute(
         path: AppRoute.askPal.path,
