@@ -24,7 +24,11 @@ void main() {
 
   testWidgets('FAB opens the Quick Actions overlay with 6 tiles; tap-outside closes',
       (WidgetTester tester) async {
-    SharedPreferences.setMockInitialValues({});
+    // onboardingComplete=true so the U17 first-run gate lets the app boot
+    // straight to Today (rather than redirecting to onboarding).
+    SharedPreferences.setMockInitialValues({
+      'settings.onboardingComplete': true,
+    });
     final prefs = await SharedPreferences.getInstance();
     final db = LoopDatabase.forTesting(NativeDatabase.memory());
     await Seeder(db).seedIfNeeded();
