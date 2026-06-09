@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import 'screens/quick_actions/quick_actions_overlay.dart';
 import 'screens/shell/loop_shell.dart';
 import 'screens/today/today_screen.dart';
 import 'theme/app_colors.dart';
@@ -120,11 +121,26 @@ GoRouter createRouter({String initialLocation = '/today'}) {
       ),
 
       // --- Modal / focus routes above the shell (full-screen for now) ---
+      // U06 — Quick Actions overlay: a transparent, non-opaque page above the
+      // shell so the dim backdrop shows the tabs behind it, with a scale-up +
+      // backdrop-fade entrance driven by the route animation.
       GoRoute(
         path: AppRoute.quickActions.path,
         name: AppRoute.quickActions.name,
         parentNavigatorKey: _rootNavigatorKey,
-        builder: (context, state) => const _DetailStub(title: 'Quick Actions'),
+        pageBuilder: (context, state) => CustomTransitionPage<void>(
+          key: state.pageKey,
+          opaque: false,
+          barrierDismissible: false,
+          fullscreenDialog: true,
+          transitionDuration: const Duration(milliseconds: 280),
+          reverseTransitionDuration: const Duration(milliseconds: 200),
+          // Feed the route's primary animation into the overlay so it drives
+          // its own backdrop fade + grid scale-up entrance.
+          transitionsBuilder: (context, animation, secondary, child) =>
+              QuickActionsOverlay(animation: animation),
+          child: const QuickActionsOverlay(),
+        ),
       ),
       GoRoute(
         path: AppRoute.newEntry.path,
