@@ -23,7 +23,11 @@ void main() {
   testWidgets(
       'Today renders rings, 3-up summary tiles, and timeline from live data',
       (WidgetTester tester) async {
-    SharedPreferences.setMockInitialValues({});
+    // onboardingComplete=true so the U17 first-run gate doesn't redirect this
+    // full-app boot away from Today.
+    SharedPreferences.setMockInitialValues({
+      'settings.onboardingComplete': true,
+    });
     final prefs = await SharedPreferences.getInstance();
     final db = LoopDatabase.forTesting(NativeDatabase.memory());
     addTearDown(db.close);

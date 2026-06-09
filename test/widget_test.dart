@@ -11,7 +11,11 @@ import 'package:loop/data/seed/seeder.dart';
 void main() {
   testWidgets('App root boots to the Today tab on seeded data',
       (WidgetTester tester) async {
-    SharedPreferences.setMockInitialValues({});
+    // onboardingComplete=true so the U17 first-run gate lets the app boot
+    // straight to Today (rather than redirecting to onboarding).
+    SharedPreferences.setMockInitialValues({
+      'settings.onboardingComplete': true,
+    });
     final prefs = await SharedPreferences.getInstance();
     final db = LoopDatabase.forTesting(NativeDatabase.memory());
     await Seeder(db).seedIfNeeded();
