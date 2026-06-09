@@ -467,7 +467,7 @@ final class HealthServiceProvider
   }
 }
 
-String _$healthServiceHash() => r'37e4f7e16384e04f243876f93197643b5acfb79a';
+String _$healthServiceHash() => r'd2c11ce387285c3464a050a8ea381cad1851f4e2';
 
 @ProviderFor(emailSyncService)
 const emailSyncServiceProvider = EmailSyncServiceProvider._();

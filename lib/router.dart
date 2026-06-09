@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import 'screens/rituals/rituals_screen.dart';
 import 'screens/shell/loop_shell.dart';
 import 'screens/today/today_screen.dart';
 import 'theme/app_colors.dart';
@@ -20,6 +21,9 @@ enum AppRoute {
   spendingDetail('spendingDetail', 'spending'), // U09 -> /today/spending
   moveDetail('moveDetail', 'move-detail'), //       -> /today/move-detail
   ritualsDetail('ritualsDetail', 'rituals-detail'), //  /today/rituals-detail
+
+  // Rituals sub-routes.
+  manageRituals('manageRituals', 'manage'), //   U21b -> /rituals/manage
 
   // Modal sheets / focus routes (stubbed; built in later units).
   quickActions('quickActions', '/quick-actions'), // U06
@@ -99,8 +103,16 @@ GoRouter createRouter({String initialLocation = '/today'}) {
               GoRoute(
                 path: AppRoute.rituals.path,
                 name: AppRoute.rituals.name,
-                builder: (context, state) =>
-                    const PlaceholderScreen(label: 'Rituals'),
+                builder: (context, state) => const RitualsScreen(),
+                routes: [
+                  GoRoute(
+                    path: AppRoute.manageRituals.path,
+                    name: AppRoute.manageRituals.name,
+                    // TODO U21b: Rituals Builder (add/edit/reorder rituals).
+                    builder: (context, state) =>
+                        const _DetailStub(title: 'Manage rituals'),
+                  ),
+                ],
               ),
             ],
           ),
