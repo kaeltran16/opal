@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'controllers/spending_controller.dart';
 import 'screens/detail/detail_screen.dart';
 import 'screens/entry/new_entry_sheet.dart';
+import 'screens/library/exercise_library_screen.dart';
 import 'screens/quick_actions/quick_actions_overlay.dart';
 import 'screens/rituals/rituals_screen.dart';
 import 'screens/shell/loop_shell.dart';
@@ -32,7 +33,8 @@ enum AppRoute {
   // Modal sheets / focus routes (stubbed; built in later units).
   quickActions('quickActions', '/quick-actions'), // U06
   newEntry('newEntry', '/entry/new'), //            U07
-  askPal('askPal', '/pal'); //                      U16
+  askPal('askPal', '/pal'), //                      U16
+  exerciseLibrary('exerciseLibrary', '/library'); // U11
 
   const AppRoute(this.name, this.path);
 
@@ -168,6 +170,12 @@ GoRouter createRouter({String initialLocation = '/today'}) {
         name: AppRoute.askPal.name,
         parentNavigatorKey: _rootNavigatorKey,
         builder: (context, state) => const _DetailStub(title: 'Ask Pal'),
+      ),
+      GoRoute(
+        path: AppRoute.exerciseLibrary.path,
+        name: AppRoute.exerciseLibrary.name,
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const ExerciseLibraryScreen(),
       ),
     ],
   );

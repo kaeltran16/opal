@@ -62,4 +62,30 @@ class RoutineRepository {
 
   Future<void> deleteById(String id) =>
       (_db.delete(_db.routines)..where((t) => t.id.equals(id))).go();
+
+  // --- Exercise catalog reads (U11 Exercise Library; U12/U13 reuse) ----------
+
+  /// All catalog [Exercise]s, name-ascending. Reactive: re-emits on any
+  /// exercise insert/update/delete.
+  Stream<List<Exercise>> watchExercises() {
+    final q = _db.select(_db.exercises)
+      ..orderBy([(t) => OrderingTerm.asc(t.name)]);
+    return q.watch().map((rows) => rows.map((r) => r.toModel()).toList());
+  }
+
+  /// One-shot fetch of the whole exercise catalog, name-ascending.
+  Future<List<Exercise>> getAllExercises() async {
+    final q = _db.select(_db.exercises)
+      ..orderBy([(t) => OrderingTerm.asc(t.name)]);
+    final rows = await q.get();
+    return rows.map((r) => r.toModel()).toList();
+  }
+
+  /// One-shot fetch of a single catalog exercise, or null.
+  Future<Exercise?> getExerciseById(String id) async {
+    final row = await (_db.select(_db.exercises)
+          ..where((t) => t.id.equals(id)))
+        .getSingleOrNull();
+    return row?.toModel();
+  }
 }

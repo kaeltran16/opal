@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../data/db/database.dart';
 import '../data/repositories/repositories.dart';
+import '../models/models.dart';
 import '../services/services.dart';
 import '../theme/app_colors.dart';
 
@@ -59,6 +60,12 @@ RoutineRepository routineRepository(Ref ref) =>
 @Riverpod(keepAlive: true)
 WorkoutRepository workoutRepository(Ref ref) =>
     WorkoutRepository(ref.watch(loopDatabaseProvider));
+
+/// The exercise catalog (name-ascending), streamed from [RoutineRepository].
+/// Powers the Exercise Library (U11); U12/U13 reuse the same source.
+@riverpod
+Stream<List<Exercise>> exercises(Ref ref) =>
+    ref.watch(routineRepositoryProvider).watchExercises();
 
 @Riverpod(keepAlive: true)
 SettingsRepository settingsRepository(Ref ref) =>

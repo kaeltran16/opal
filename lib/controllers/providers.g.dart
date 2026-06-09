@@ -339,6 +339,53 @@ final class WorkoutRepositoryProvider
 
 String _$workoutRepositoryHash() => r'c97103f9acf7574b8a484ef162d790c62a8850c9';
 
+/// The exercise catalog (name-ascending), streamed from [RoutineRepository].
+/// Powers the Exercise Library (U11); U12/U13 reuse the same source.
+
+@ProviderFor(exercises)
+const exercisesProvider = ExercisesProvider._();
+
+/// The exercise catalog (name-ascending), streamed from [RoutineRepository].
+/// Powers the Exercise Library (U11); U12/U13 reuse the same source.
+
+final class ExercisesProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<List<Exercise>>,
+          List<Exercise>,
+          Stream<List<Exercise>>
+        >
+    with $FutureModifier<List<Exercise>>, $StreamProvider<List<Exercise>> {
+  /// The exercise catalog (name-ascending), streamed from [RoutineRepository].
+  /// Powers the Exercise Library (U11); U12/U13 reuse the same source.
+  const ExercisesProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'exercisesProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$exercisesHash();
+
+  @$internal
+  @override
+  $StreamProviderElement<List<Exercise>> $createElement(
+    $ProviderPointer pointer,
+  ) => $StreamProviderElement(pointer);
+
+  @override
+  Stream<List<Exercise>> create(Ref ref) {
+    return exercises(ref);
+  }
+}
+
+String _$exercisesHash() => r'ee2f8f9130f459ff475ccb109de3daa27b5b38b3';
+
 @ProviderFor(settingsRepository)
 const settingsRepositoryProvider = SettingsRepositoryProvider._();
 

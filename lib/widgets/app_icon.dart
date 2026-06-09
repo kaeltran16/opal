@@ -42,6 +42,15 @@ const Map<String, IconData> _sfMap = {
   'house.fill': CupertinoIcons.house_fill,
   'delete.left.fill': CupertinoIcons.delete_left,
   'slider.horizontal.3': CupertinoIcons.slider_horizontal_3,
+  // Exercise-catalog glyphs (U11). Closest Material substitutes for preview;
+  // map back to true SF Symbols on a real iOS build.
+  'figure.strengthtraining.traditional': Icons.fitness_center,
+  'figure.strengthtraining.functional': Icons.sports_gymnastics,
+  'figure.pullup': Icons.sports_gymnastics,
+  'figure.core.training': Icons.self_improvement,
+  'figure.rower': Icons.rowing,
+  'figure.indoor.cycle': Icons.directions_bike,
+  'figure.stair.stepper': Icons.stairs,
 };
 
 IconData iconForSf(String name) => _sfMap[name] ?? CupertinoIcons.circle;
