@@ -6,6 +6,7 @@ import 'screens/detail/detail_screen.dart';
 import 'screens/entry/new_entry_sheet.dart';
 import 'screens/library/exercise_library_screen.dart';
 import 'screens/onboarding/onboarding_screen.dart';
+import 'screens/pal/ask_pal_screen.dart';
 import 'screens/quick_actions/quick_actions_overlay.dart';
 import 'screens/rituals/rituals_screen.dart';
 import 'screens/shell/loop_shell.dart';
@@ -193,7 +194,7 @@ GoRouter createRouter({
         path: AppRoute.askPal.path,
         name: AppRoute.askPal.name,
         parentNavigatorKey: _rootNavigatorKey,
-        builder: (context, state) => const _DetailStub(title: 'Ask Pal'),
+        builder: (context, state) => const AskPalScreen(),
       ),
       GoRoute(
         path: AppRoute.exerciseLibrary.path,

@@ -9,11 +9,17 @@ import 'package:loop/data/db/database.dart';
 import 'package:loop/data/repositories/repositories.dart';
 import 'package:loop/models/models.dart';
 import 'package:loop/screens/entry/new_entry_sheet.dart';
+import 'package:loop/services/services.dart';
 import 'package:loop/theme/app_colors.dart';
 
 /// Pumps the [NewEntrySheet] inside a ProviderScope + GoRouter so that
-/// `context.pop()` resolves and the theme extension is available.
-Future<EntryRepository> _pumpSheet(WidgetTester tester, LoopDatabase db) async {
+/// `context.pop()` resolves and the theme extension is available. An optional
+/// [pal] override swaps in a fast mock for the "Type it" parse flow.
+Future<EntryRepository> _pumpSheet(
+  WidgetTester tester,
+  LoopDatabase db, {
+  PalService? pal,
+}) async {
   final router = GoRouter(
     initialLocation: '/host',
     routes: [
@@ -32,7 +38,10 @@ Future<EntryRepository> _pumpSheet(WidgetTester tester, LoopDatabase db) async {
 
   await tester.pumpWidget(
     ProviderScope(
-      overrides: [loopDatabaseProvider.overrideWithValue(db)],
+      overrides: [
+        loopDatabaseProvider.overrideWithValue(db),
+        if (pal != null) palServiceProvider.overrideWithValue(pal),
+      ],
       child: MaterialApp.router(
         theme: ThemeData.light().copyWith(
           extensions: [AppColors.light(AppAccent.blue)],
@@ -101,5 +110,52 @@ void main() {
     await tester.tap(find.text('Add'));
     await tester.pumpAndSettle();
     expect(await repo.getAll(), isEmpty);
+  });
+
+  testWidgets('"Type it" parses "coffee 5" and pre-fills an expense',
+      (WidgetTester tester) async {
+    final db = LoopDatabase.forTesting(NativeDatabase.memory());
+    addTearDown(db.close);
+
+    final repo = await _pumpSheet(
+      tester,
+      db,
+      pal: MockPalService(latency: const Duration(milliseconds: 20)),
+    );
+
+    // Open the "Type it" field (it sits at the bottom of the scrollable list,
+    // which lazily builds — scroll it into view first).
+    final typeIt = find.text('Type it');
+    await tester.scrollUntilVisible(
+      typeIt,
+      120,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(typeIt);
+    await tester.pumpAndSettle();
+
+    // Enter natural-language text and submit to parse.
+    await tester.enterText(find.byType(TextField).last, 'coffee 5');
+    await tester.tap(find.text('Parse'));
+    await tester.pump(); // dismiss the modal, kick off parse
+    await tester.pump(const Duration(milliseconds: 40)); // fake latency
+    await tester.pumpAndSettle();
+
+    // The mock parses "coffee 5" → a money expense of $5 with category Coffee,
+    // pre-filled into the sheet (the amount shows in the fixed display).
+    expect(find.text('\$5.00'), findsOneWidget);
+
+    // Tapping Add writes the pre-filled entry, proving type/amount/category all
+    // flowed from the parse into the form.
+    await tester.tap(find.text('Add'));
+    await tester.pumpAndSettle();
+
+    final all = await repo.getAll();
+    expect(all, hasLength(1));
+    final e = all.single;
+    expect(e.type, EntryType.money);
+    expect(e.amount, closeTo(-5, 1e-9));
+    expect(e.category, 'Coffee');
   });
 }

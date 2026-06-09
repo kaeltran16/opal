@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../controllers/providers.dart';
 import '../../models/models.dart';
+import '../../services/services.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_text.dart';
 import '../../widgets/app_icon.dart';
@@ -74,6 +75,9 @@ class _NewEntrySheetState extends ConsumerState<NewEntrySheet> {
   final TextEditingController _noteCtrl = TextEditingController();
 
   bool _saving = false;
+
+  /// True while a "Type it" natural-language parse is in flight.
+  bool _parsing = false;
 
   static const _picks = <_QuickPick>[
     _QuickPick(
@@ -240,6 +244,59 @@ class _NewEntrySheetState extends ConsumerState<NewEntrySheet> {
     });
   }
 
+  // --- "Type it" natural-language parse (U16) --------------------------------
+
+  /// Opens the NL-entry field, then parses the text via [PalService.parse] and
+  /// pre-fills the sheet's type/amount/category/title.
+  Future<void> _openTypeIt() async {
+    if (_parsing) return;
+    final text = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: const Color(0x00000000),
+      builder: (context) => const _TypeItInput(),
+    );
+    if (text == null || text.trim().isEmpty || !mounted) return;
+
+    setState(() => _parsing = true);
+    final draft = await ref.read(palServiceProvider).parse(text.trim());
+    if (!mounted) return;
+    setState(() {
+      _parsing = false;
+      _applyParsed(draft);
+    });
+  }
+
+  /// Maps a [ParsedEntryDraft] onto the sheet's fields. Money amounts are
+  /// stored as a positive buffer (the sign is applied on save).
+  void _applyParsed(ParsedEntryDraft draft) {
+    switch (draft.type) {
+      case EntryType.money:
+        _kind = _Kind.expense;
+        final amount = draft.amount;
+        _buffer = amount == null
+            ? ''
+            : () {
+                final mag = amount.abs();
+                return mag % 1 == 0
+                    ? mag.toStringAsFixed(0)
+                    : mag.toStringAsFixed(2);
+              }();
+        _categoryCtrl.text = draft.category ?? '';
+        if (draft.title != null) _titleCtrl.text = draft.title!;
+      case EntryType.move:
+        _kind = _Kind.workout;
+        final mins = draft.durationMinutes;
+        _buffer = mins == null ? '' : mins.toString();
+        if (draft.title != null) _titleCtrl.text = draft.title!;
+      case EntryType.rituals:
+        _kind = _Kind.ritual;
+        _buffer = '';
+        if (draft.title != null) _titleCtrl.text = draft.title!;
+    }
+    if (draft.note != null) _noteCtrl.text = draft.note!;
+  }
+
   // --- save ------------------------------------------------------------------
 
   Future<void> _add() async {
@@ -403,8 +460,13 @@ class _NewEntrySheetState extends ConsumerState<NewEntrySheet> {
                   ),
                   const SizedBox(height: 16),
 
-                  // "✨ Type it" — disabled until U16 (NL parse).
-                  _TypeItButton(accent: c.accent),
+                  // "✨ Type it" — natural-language entry (U16). Opens a field,
+                  // sends it to PalService.parse(), and pre-fills the form.
+                  _TypeItButton(
+                    accent: c.accent,
+                    parsing: _parsing,
+                    onTap: _openTypeIt,
+                  ),
                 ],
               ),
             ),
@@ -655,17 +717,25 @@ class _RitualTitleField extends StatelessWidget {
   }
 }
 
-/// The "✨ Type it" natural-language entry button — present but disabled.
-// TODO U16 (NL parse): wire to PalService.parse() and enable.
+/// The "✨ Type it" natural-language entry button (U16). Tapping opens a text
+/// field; the text is parsed by [PalService.parse] and pre-fills the sheet.
 class _TypeItButton extends StatelessWidget {
-  const _TypeItButton({required this.accent});
+  const _TypeItButton({
+    required this.accent,
+    required this.parsing,
+    required this.onTap,
+  });
+
   final Color accent;
+  final bool parsing;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    return Opacity(
-      opacity: 0.5,
+    return GestureDetector(
+      onTap: parsing ? null : onTap,
+      behavior: HitTestBehavior.opaque,
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
@@ -676,15 +746,126 @@ class _TypeItButton extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const AppIcon('sparkles', size: 15),
+            if (parsing)
+              SizedBox(
+                width: 15,
+                height: 15,
+                child: CircularProgressIndicator(strokeWidth: 2, color: accent),
+              )
+            else
+              AppIcon('sparkles', size: 15, color: accent),
             const SizedBox(width: 6),
             Text(
-              'Type it',
+              parsing ? 'Reading…' : 'Type it',
               style: AppFonts.sf(
                 size: 15,
                 weight: FontWeight.w500,
                 color: c.ink2,
                 letterSpacing: -0.24,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// A modal input for the "Type it" flow: a free-text field that returns its
+/// trimmed contents on submit, e.g. "coffee 5" or "ran 30".
+class _TypeItInput extends StatefulWidget {
+  const _TypeItInput();
+
+  @override
+  State<_TypeItInput> createState() => _TypeItInputState();
+}
+
+class _TypeItInputState extends State<_TypeItInput> {
+  final TextEditingController _ctrl = TextEditingController();
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  void _submit() => Navigator.of(context).pop(_ctrl.text);
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    final insets = MediaQuery.viewInsetsOf(context);
+    return Padding(
+      padding: EdgeInsets.only(bottom: insets.bottom),
+      child: Container(
+        margin: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+        decoration: BoxDecoration(
+          color: c.surface,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                AppIcon('sparkles', size: 16, color: c.accent),
+                const SizedBox(width: 8),
+                Text(
+                  'Type it',
+                  style: AppFonts.sf(
+                    size: 17,
+                    weight: FontWeight.w600,
+                    color: c.ink,
+                    letterSpacing: -0.43,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: c.fill,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: TextField(
+                controller: _ctrl,
+                autofocus: true,
+                textInputAction: TextInputAction.done,
+                onSubmitted: (_) => _submit(),
+                cursorColor: c.accent,
+                style: AppFonts.sf(size: 17, color: c.ink, letterSpacing: -0.43),
+                decoration: InputDecoration(
+                  isDense: true,
+                  border: InputBorder.none,
+                  hintText: 'e.g. "coffee 5" or "ran 30 min"',
+                  hintStyle:
+                      AppFonts.sf(size: 17, color: c.ink4, letterSpacing: -0.43),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            GestureDetector(
+              onTap: _submit,
+              behavior: HitTestBehavior.opaque,
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                decoration: BoxDecoration(
+                  color: c.accent,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  'Parse',
+                  style: AppFonts.sf(
+                    size: 16,
+                    weight: FontWeight.w600,
+                    color: const Color(0xFFFFFFFF),
+                    letterSpacing: -0.31,
+                  ),
+                ),
               ),
             ),
           ],
