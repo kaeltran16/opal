@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import 'controllers/spending_controller.dart';
+import 'screens/detail/detail_screen.dart';
 import 'screens/entry/new_entry_sheet.dart';
 import 'screens/quick_actions/quick_actions_overlay.dart';
 import 'screens/rituals/rituals_screen.dart';
@@ -68,7 +70,7 @@ GoRouter createRouter({String initialLocation = '/today'}) {
                     path: AppRoute.spendingDetail.path,
                     name: AppRoute.spendingDetail.name,
                     builder: (context, state) =>
-                        const _DetailStub(title: 'Spending'),
+                        const DetailScreen(tracker: DetailTracker.money),
                   ),
                   GoRoute(
                     path: AppRoute.moveDetail.path,
