@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import 'controllers/providers.dart';
 import 'router.dart';
@@ -15,7 +16,11 @@ class LoopApp extends ConsumerStatefulWidget {
 }
 
 class _LoopAppState extends ConsumerState<LoopApp> {
-  final _router = createRouter();
+  late final GoRouter _router = createRouter(
+    // First-run gate reads the live onboarding flag on every navigation.
+    isOnboardingComplete: () =>
+        ref.read(settingsRepositoryProvider).onboardingComplete,
+  );
 
   @override
   Widget build(BuildContext context) {

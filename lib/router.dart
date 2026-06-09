@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import 'screens/onboarding/onboarding_screen.dart';
 import 'screens/shell/loop_shell.dart';
 import 'screens/today/today_screen.dart';
 import 'theme/app_colors.dart';
@@ -24,7 +25,10 @@ enum AppRoute {
   // Modal sheets / focus routes (stubbed; built in later units).
   quickActions('quickActions', '/quick-actions'), // U06
   newEntry('newEntry', '/entry/new'), //            U07
-  askPal('askPal', '/pal'); //                      U16
+  askPal('askPal', '/pal'), //                      U16
+
+  // First-run onboarding (U17), full-screen above the shell.
+  onboarding('onboarding', '/onboarding');
 
   const AppRoute(this.name, this.path);
 
@@ -40,10 +44,30 @@ final _youNavigatorKey = GlobalKey<NavigatorState>();
 
 /// Builds the app router. Kept as a function so tests can supply their own
 /// `initialLocation` if needed.
-GoRouter createRouter({String initialLocation = '/today'}) {
+///
+/// [isOnboardingComplete] is read on every navigation by the first-run gate
+/// (see the `redirect` below). It defaults to `() => true` so existing call
+/// sites / tests that don't care about onboarding are unaffected; `app.dart`
+/// passes the live `SettingsRepository.onboardingComplete` getter.
+GoRouter createRouter({
+  String initialLocation = '/today',
+  bool Function() isOnboardingComplete = _alwaysComplete,
+}) {
   return GoRouter(
     navigatorKey: _rootNavigatorKey,
     initialLocation: initialLocation,
+    // --- U17 first-run gate (isolated; merge-safe) -------------------------
+    // While onboarding is incomplete, force every route to /onboarding; once
+    // complete, bounce away from /onboarding to Today. Returns null (no
+    // redirect) in all other cases so unrelated navigation is untouched.
+    redirect: (context, state) {
+      final complete = isOnboardingComplete();
+      final atOnboarding = state.matchedLocation == AppRoute.onboarding.path;
+      if (!complete) return atOnboarding ? null : AppRoute.onboarding.path;
+      if (atOnboarding) return AppRoute.today.path;
+      return null;
+    },
+    // -----------------------------------------------------------------------
     routes: [
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) =>
@@ -138,9 +162,21 @@ GoRouter createRouter({String initialLocation = '/today'}) {
         parentNavigatorKey: _rootNavigatorKey,
         builder: (context, state) => const _DetailStub(title: 'Ask Pal'),
       ),
+
+      // --- U17 first-run onboarding (full-screen, above the shell) ---
+      GoRoute(
+        path: AppRoute.onboarding.path,
+        name: AppRoute.onboarding.name,
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const OnboardingScreen(),
+      ),
     ],
   );
 }
+
+/// Default gate predicate: when no `SettingsRepository` is supplied (tests,
+/// stand-alone use) the app behaves as if onboarding is already done.
+bool _alwaysComplete() => true;
 
 /// Temporary full-screen stub for routes whose screens arrive in later units.
 /// Provides a back affordance so navigation is testable now.
