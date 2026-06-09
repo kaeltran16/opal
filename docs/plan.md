@@ -24,9 +24,16 @@
 - U01 — `lib/models/` (9 entities + `enums.dart` + barrel), caller-supplied `String` ids, enums persist via `.wire` tokens, computed `Workout.totalVolumeKg`/`prCount`.
 - U02 — real `drift` + `drift_flutter`; `lib/data/{db,repositories,seed}/`; `sqlite3.wasm` 2.9.4 + `drift_worker.dart.js` (drift 2.31.0) vendored in `web/`; 32 tests green, analyze clean, web build OK. Repos take `LoopDatabase` (+ optional `Uuid`); `Seeder(db).seedIfNeeded()` at startup. Drift row classes are `*Row` (e.g. `EntryRow`) to avoid clashing with model names.
 
-**Next: U03+U04+U05 batched in one agent** (serial foundation chain). Then Checkpoint 1.
+**U03 ✅ · U04 ✅ · U05 ✅** — Riverpod 3.x (codegen) + service interfaces/mocks + `SettingsRepository`; go_router `StatefulShellRoute` (Today/Move/Rituals/You + FAB); Today on live drift data. 35 tests, analyze clean, web build OK.
 
-**Git:** repo initialized; baseline committed after U02. Parallel fan-out (Phase B+) uses worktree branches merged to `master`.
+**Routes:** `today`/`move`/`rituals`/`you`; stubs `quickActions` `/quick-actions` (U06), `newEntry` `/entry/new` (U07), `askPal` `/pal` (U16), `spendingDetail` `/today/spending` (U09). Access via `AppRoute.<name>`.
+**Key providers:** `entry/goals/ritual/routine/workoutRepositoryProvider`, `settingsRepositoryProvider`, `pal/health/email/notification/hapticsServiceProvider` (mocks), `appSettingsControllerProvider` (theme), `todayStateProvider`.
+
+**>>> AT CHECKPOINT 1 (foundation review) — awaiting human Chrome verification before fan-out. <<<**
+
+**Next (after CP1):** parallel batch U06 / U08 / U09 / U11 in worktrees → merge → U07, U10 → Phase C workout chain.
+
+**Git:** baseline `4ee45cd` (U01+U02). Parallel fan-out (Phase B+) uses worktree branches merged to `master`.
 
 **Locked decisions (from review, `plan-review.md` — no blockers found):**
 - **U02 storage:** use **real `drift` + `drift_flutter`**, with `sqlite3.wasm` and **`drift_worker.dart.js`** (exact filename) vendored into `loop/web/`, version-matched to `pubspec.lock`. `flutter run -d chrome` serves wasm fine; OPFS degrades gracefully. In-memory / `sqflite_common_ffi` shim = documented fallback only, not default.

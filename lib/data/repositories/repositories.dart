@@ -8,4 +8,5 @@ export 'entry_repository.dart';
 export 'goals_repository.dart';
 export 'ritual_repository.dart';
 export 'routine_repository.dart';
+export 'settings_repository.dart';
 export 'workout_repository.dart';

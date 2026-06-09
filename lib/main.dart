@@ -1,45 +1,31 @@
-import 'package:flutter/material.dart';
-import 'theme/app_colors.dart';
-import 'screens/home_shell.dart';
+import 'package:flutter/widgets.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-void main() => runApp(const LoopApp());
+import 'app.dart';
+import 'controllers/providers.dart';
+import 'data/seed/seeder.dart';
 
-class LoopApp extends StatefulWidget {
-  const LoopApp({super.key});
+/// Composition root: loads `shared_preferences`, builds the `ProviderScope`
+/// (real DB + mock services for now), seeds the DB once, and runs the app.
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
 
-  @override
-  State<LoopApp> createState() => _LoopAppState();
-}
+  final prefs = await SharedPreferences.getInstance();
 
-class _LoopAppState extends State<LoopApp> {
-  Brightness _brightness = Brightness.light;
-  AppAccent _accent = AppAccent.blue;
+  final container = ProviderContainer(
+    overrides: [
+      sharedPreferencesProvider.overrideWithValue(prefs),
+    ],
+  );
 
-  ThemeData _buildTheme() {
-    final colors = _brightness == Brightness.dark
-        ? AppColors.dark(_accent)
-        : AppColors.light(_accent);
-    return ThemeData(
-      useMaterial3: true,
-      brightness: _brightness,
-      scaffoldBackgroundColor: colors.bg,
-      fontFamily: null, // resolves to SF on iOS; system fallback elsewhere
-      extensions: [colors],
-    );
-  }
+  // Seed first-run content before the first frame.
+  await Seeder(container.read(loopDatabaseProvider)).seedIfNeeded();
 
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Loop',
-      debugShowCheckedModeBanner: false,
-      theme: _buildTheme(),
-      home: HomeShell(
-        brightness: _brightness,
-        accent: _accent,
-        onBrightness: (b) => setState(() => _brightness = b),
-        onAccent: (a) => setState(() => _accent = a),
-      ),
-    );
-  }
+  runApp(
+    UncontrolledProviderScope(
+      container: container,
+      child: const LoopApp(),
+    ),
+  );
 }
