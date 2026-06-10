@@ -48,11 +48,17 @@ class HealthKitService implements HealthService {
 
   @override
   Future<bool> requestPermissions() async {
-    await _ensureConfigured();
-    // HealthKit never reveals READ-denial for privacy reasons, so a `true`
-    // here means "the prompt completed", not "data exists". Reads still return
-    // gracefully-empty results when the user declined — handled downstream.
-    return _health.requestAuthorization(_types, permissions: _permissions);
+    try {
+      await _ensureConfigured();
+      // HealthKit never reveals READ-denial for privacy reasons, so a `true`
+      // here means "the prompt completed", not "data exists". Reads still
+      // return gracefully-empty results when the user declined — handled below.
+      return await _health.requestAuthorization(_types, permissions: _permissions);
+    } catch (_) {
+      // HealthKit unavailable (e.g. the simulator before the HealthKit
+      // capability is added) — treat as not-granted rather than throwing.
+      return false;
+    }
   }
 
   @override
@@ -84,15 +90,23 @@ class HealthKitService implements HealthService {
     required DateTime from,
     required DateTime to,
   }) async {
-    await _ensureConfigured();
-
-    final points = _health.removeDuplicates(
-      await _health.getHealthDataFromTypes(
-        types: _types,
-        startTime: from,
-        endTime: to,
-      ),
-    );
+    final List<HealthDataPoint> points;
+    try {
+      await _ensureConfigured();
+      points = _health.removeDuplicates(
+        await _health.getHealthDataFromTypes(
+          types: _types,
+          startTime: from,
+          endTime: to,
+        ),
+      );
+    } catch (_) {
+      // HealthKit unavailable or the read threw (e.g. the simulator without the
+      // HealthKit entitlement, or permission not yet granted). Degrade to an
+      // empty day so the rest of the screen — money / rituals, all DB-backed —
+      // still renders instead of erroring the whole Today stream.
+      return HealthSample(date: day, moveMinutes: 0, activeEnergyKcal: 0);
+    }
 
     var moveMinutes = 0.0;
     var activeEnergy = 0.0;
