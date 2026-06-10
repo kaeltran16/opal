@@ -49,6 +49,9 @@ dependencies:
   # Navigation (U04): declarative routing + StatefulShellRoute tab nav.
   go_router: ^16.0.0
 
+  # Charts (U15): 8-week workout volume bar chart.
+  fl_chart: ^0.69.0
+
   # Settings persistence (U03): accent / brightness / onboarding flag.
   shared_preferences: ^2.3.0
 

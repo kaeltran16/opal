@@ -182,15 +182,15 @@ void main() {
     expect(find.text('Export data'), findsOneWidget);
     expect(find.text('About'), findsOneWidget);
 
-    // --- Integrations row → email stub ('/email') ---
+    // --- Integrations row → Email sync Intro ('/email', U20) ---
     await tester.scrollUntilVisible(find.text('Integrations'), -200,
         scrollable: list);
     await tester.tap(find.text('Integrations'));
     await tester.pumpAndSettle();
-    expect(find.text('Email sync — coming soon'), findsOneWidget);
+    expect(find.text('Stop logging card charges by hand.'), findsOneWidget);
 
-    // Back to the profile screen via the stub's back button.
-    await tester.tap(find.byIcon(Icons.arrow_back_ios_new));
+    // Back to the profile screen via the Intro nav's "Settings" leading.
+    await tester.tap(find.text('Settings'));
     await tester.pumpAndSettle();
     expect(find.text('Integrations'), findsOneWidget);
 

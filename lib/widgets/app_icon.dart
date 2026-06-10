@@ -19,6 +19,8 @@ const Map<String, IconData> _sfMap = {
   'fork.knife': Icons.restaurant,
   'basket.fill': Icons.shopping_basket,
   'plus': CupertinoIcons.plus,
+  'play.fill': CupertinoIcons.play_fill,
+  'star.fill': CupertinoIcons.star_fill,
   'magnifyingglass': CupertinoIcons.search,
   'chevron.left': CupertinoIcons.chevron_back,
   'chevron.right': CupertinoIcons.chevron_forward,

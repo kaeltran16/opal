@@ -3,8 +3,12 @@ import 'package:go_router/go_router.dart';
 
 import 'controllers/spending_controller.dart';
 import 'screens/detail/detail_screen.dart';
+import 'screens/email/email_dashboard_screen.dart';
+import 'screens/email/email_intro_screen.dart';
+import 'screens/email/email_setup_screen.dart';
 import 'screens/entry/new_entry_sheet.dart';
 import 'screens/library/exercise_library_screen.dart';
+import 'screens/move/move_screen.dart';
 import 'screens/onboarding/onboarding_screen.dart';
 import 'screens/pal/ask_pal_screen.dart';
 import 'screens/profile/profile_screen.dart';
@@ -12,6 +16,9 @@ import 'screens/quick_actions/quick_actions_overlay.dart';
 import 'screens/review/monthly_review_screen.dart';
 import 'screens/rituals/rituals_screen.dart';
 import 'screens/shell/loop_shell.dart';
+import 'screens/workout/active_session_screen.dart';
+import 'screens/workout/start_workout_screen.dart';
+import 'screens/workout/workout_detail_screen.dart';
 import 'screens/today/today_screen.dart';
 import 'theme/app_colors.dart';
 import 'theme/app_text.dart';
@@ -31,6 +38,14 @@ enum AppRoute {
   moveDetail('moveDetail', 'move-detail'), //       -> /today/move-detail
   ritualsDetail('ritualsDetail', 'rituals-detail'), //  /today/rituals-detail
 
+  // Move sub-routes.
+  startWorkout('startWorkout', 'start'), //   U12 -> /move/start
+  workoutDetail('workoutDetail', 'workout/:id'), // U15 -> /move/workout/:id
+
+  // Workout focus routes (full-screen, above the shell — no tab bar).
+  activeSession('activeSession', '/session/:routineId'), // U13
+  postWorkout('postWorkout', '/post-workout'), //          U14 (stub)
+
   // Rituals sub-routes.
   manageRituals('manageRituals', 'manage'), //   U21b -> /rituals/manage
 
@@ -40,7 +55,9 @@ enum AppRoute {
   askPal('askPal', '/pal'), //                      U16
   exerciseLibrary('exerciseLibrary', '/library'), // U11
   monthlyReview('monthlyReview', '/monthly-review'), // U18
-  emailSync('emailSync', '/email'), //              U20 (stub for now)
+  emailSync('emailSync', '/email'), //              U20 Intro
+  emailSetup('emailSetup', 'setup'), //             U20 -> /email/setup
+  emailDashboard('emailDashboard', 'dashboard'), //  U20 -> /email/dashboard
 
   // First-run onboarding (U17), full-screen above the shell.
   onboarding('onboarding', '/onboarding');
@@ -126,8 +143,20 @@ GoRouter createRouter({
               GoRoute(
                 path: AppRoute.move.path,
                 name: AppRoute.move.name,
-                builder: (context, state) =>
-                    const PlaceholderScreen(label: 'Move'),
+                builder: (context, state) => const MoveScreen(),
+                routes: [
+                  GoRoute(
+                    path: AppRoute.startWorkout.path,
+                    name: AppRoute.startWorkout.name,
+                    builder: (context, state) => const StartWorkoutScreen(),
+                  ),
+                  GoRoute(
+                    path: AppRoute.workoutDetail.path,
+                    name: AppRoute.workoutDetail.name,
+                    builder: (context, state) => WorkoutDetailScreen(
+                        workoutId: state.pathParameters['id']!),
+                  ),
+                ],
               ),
             ],
           ),
@@ -205,6 +234,23 @@ GoRouter createRouter({
         parentNavigatorKey: _rootNavigatorKey,
         builder: (context, state) => const ExerciseLibraryScreen(),
       ),
+      // U13 — Active workout session (focus route, no tab bar).
+      GoRoute(
+        path: AppRoute.activeSession.path,
+        name: AppRoute.activeSession.name,
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) =>
+            ActiveSessionScreen(routineId: state.pathParameters['routineId']!),
+      ),
+      // U14 — Post-workout summary (focus route). Stub until U14 lands; the
+      // active session navigates here on Finish.
+      GoRoute(
+        path: AppRoute.postWorkout.path,
+        name: AppRoute.postWorkout.name,
+        parentNavigatorKey: _rootNavigatorKey,
+        // TODO U14: Post-workout summary (celebration + Save to timeline).
+        builder: (context, state) => const _DetailStub(title: 'Workout saved'),
+      ),
       // U18 — Monthly Review (root-level; no screen links here yet).
       GoRoute(
         path: AppRoute.monthlyReview.path,
@@ -214,12 +260,26 @@ GoRouter createRouter({
       ),
       // Email sync intro — real screens land in U20; stub for now so the
       // profile Integrations row has a stable deep-link target.
+      // U20 — Email sync: Intro → Setup → Dashboard. Profile Integrations row
+      // deep-links to the Intro; Setup/Dashboard nest so the /email prefix and
+      // back-stack stay natural.
       GoRoute(
         path: AppRoute.emailSync.path,
         name: AppRoute.emailSync.name,
         parentNavigatorKey: _rootNavigatorKey,
-        // TODO U20: Email sync Intro/Setup/Dashboard screens.
-        builder: (context, state) => const _DetailStub(title: 'Email sync'),
+        builder: (context, state) => const EmailIntroScreen(),
+        routes: [
+          GoRoute(
+            path: AppRoute.emailSetup.path,
+            name: AppRoute.emailSetup.name,
+            builder: (context, state) => const EmailSetupScreen(),
+          ),
+          GoRoute(
+            path: AppRoute.emailDashboard.path,
+            name: AppRoute.emailDashboard.name,
+            builder: (context, state) => const EmailDashboardScreen(),
+          ),
+        ],
       ),
 
       // --- U17 first-run onboarding (full-screen, above the shell) ---

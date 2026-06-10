@@ -40,13 +40,18 @@
 - Added providers: `askPalControllerProvider`, `monthlyReviewControllerProvider`, `profileControllerProvider`.
 - Only merge conflict was `router.dart` (all additive — kept both sides). Codegen regen was byte-identical to committed `.g.dart`. Wave-2 worktrees + branches removed.
 
-**DONE:** U01–U09, U11, U16, U17, U18, U19.  **REMAINING:** U10, U12–U15, U20–U21 (+U21b builders), backend U22–U24, native U25–U27.
+**Waves 3 + 4 integrated → `master`** (73 tests green, analyze clean, web build OK). Built in-place (no worktrees — per user rule) by fan-out agents owning disjoint feature files; orchestrator did all shared-file wiring (`router.dart`, `providers.dart` codegen, `pubspec.yaml`) + central verification.
+- **Wave 3:** ✅ U10 Move tab (`move`→`MoveScreen`; movement summary from `MockHealthService`, recent workouts, other-activity; sub-routes `startWorkout`/`workoutDetail`) · ✅ U13-engine (`workout_session.dart` — pure, Timer-free `WorkoutSession`: set logging, rest countdown, PR detection, `finish()`; 10 unit tests) · ✅ U20 Email Sync (`emailSync`→`EmailIntroScreen` + `emailSetup`/`emailDashboard`; all driven by `MockEmailSyncService`).
+- **Wave 4:** ✅ U12 Start picker (`startWorkout`→`StartWorkoutScreen`; Pal's-pick via `suggestWorkout()`) · ✅ U13-UI (`workoutSessionControllerProvider(routineId)` Notifier wraps the engine with a real rest `Timer` + haptics at 10s/0s; `activeSession` focus route `/session/:routineId`) · ✅ U15 Workout detail (`workoutDetail` `/move/workout/:id`; 8-week `fl_chart` volume bars, per-exercise set tables, Pal note).
+- Added: `fl_chart` dep; `RoutineRepository.getAll()`; `app_icon` `play.fill`/`star.fill`. New providers: `moveStateProvider`, `startWorkoutProvider`/`palPickControllerProvider`, `workoutSessionControllerProvider`, `workoutDetailProvider`/`workoutNoteProvider`, `emailSyncController`/`syncStatusProvider`/`emailDashboardControllerProvider`. `postWorkout` `/post-workout` stub added (U14 target).
 
-**Next wave:** U10 Move tab (not started — `unit/u10-move-tab` worktree empty at `f096b29`; **blocks** the workout chain). Then serial workout chain U12→U13→U14→U15 (needs U10+U11), then U20 Email (U19 done, unblocked), then U21 polish + U21b builders.
+**DONE:** U01–U13, U15, U16–U20.  **REMAINING:** U14 (post-workout summary — `postWorkout` route stubbed, `WorkoutSession.finish()` ready), U21 polish, U21b builders, backend U22–U24, native U25–U27.
 
-**Dispatch lesson:** agents must run `flutter test` directly (NOT wrapped in PowerShell `Out-String`/buffered capture) — one agent blinded itself to a test error and looped (the U11 `!timersPending` incident).
+**Next wave:** U14 Post-Workout Summary (consumes `finish()`; SF-5: save writes `Workout` + linked move `Entry`), then U21 polish + U21b builders.
 
-**Git:** baseline `4ee45cd` → foundation `18146dc` → wave-1 integrated `ee21c46` → wave-2 integrated `c68f13b`. Fan-out uses worktree branches merged to `master`; wave-1 + wave-2 worktrees removed (`unit/u10-move-tab` worktree retained for next unit).
+**Dispatch lessons:** (1) agents must run `flutter test` directly (NOT wrapped in PowerShell `Out-String`/buffered capture). (2) **No-worktree parallelism:** agents must NOT touch shared files (`router.dart`/`providers.dart`/`pubspec.yaml`) or run `build_runner`/`flutter test` — the orchestrator owns those (concurrent codegen corrupts the shared `.dart_tool`). (3) Riverpod 3.x: use `AsyncValue.asData?.value`, not `.valueOrNull`. (4) Widget tests with a **local** router + an autoDispose drift stream provider leak drift's zero-duration `StreamQueryStore.markAsClosed` timer at teardown — end the test with `await tester.pumpWidget(const SizedBox()); await tester.pump(Duration.zero);` to flush it (tests using `createRouter` with keepAlive providers don't hit this).
+
+**Git:** baseline `4ee45cd` → foundation `18146dc` → wave-1 `ee21c46` → wave-2 `c68f13b` → waves 3+4 (this commit). Built directly on `master`; the stale `unit/u10-move-tab` worktree at `f096b29` is unused (worktrees abandoned per user rule).
 
 **Locked decisions (from review, `plan-review.md` — no blockers found):**
 - **U02 storage:** use **real `drift` + `drift_flutter`**, with `sqlite3.wasm` and **`drift_worker.dart.js`** (exact filename) vendored into `loop/web/`, version-matched to `pubspec.lock`. `flutter run -d chrome` serves wasm fine; OPFS degrades gracefully. In-memory / `sqflite_common_ffi` shim = documented fallback only, not default.

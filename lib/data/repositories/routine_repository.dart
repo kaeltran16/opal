@@ -25,6 +25,19 @@ class RoutineRepository {
     });
   }
 
+  /// One-shot fetch of all routines (alphabetical), each with its exercise
+  /// slots in order.
+  Future<List<Routine>> getAll() async {
+    final rows = await (_db.select(_db.routines)
+          ..orderBy([(t) => OrderingTerm.asc(t.name)]))
+        .get();
+    final result = <Routine>[];
+    for (final row in rows) {
+      result.add(routineFromRow(row, await _loadExercises(row.id)));
+    }
+    return result;
+  }
+
   /// One-shot fetch of a single routine (with exercises), or null.
   Future<Routine?> getById(String id) async {
     final row = await (_db.select(_db.routines)
