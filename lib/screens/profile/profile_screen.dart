@@ -195,10 +195,28 @@ class _ProfileBody extends StatelessWidget {
               title: 'Integrations',
               subtitle: 'Email sync',
               value: 'Off',
-              last: true,
               // Targets the U20 email-intro stub; the row shows "Off" until an
               // EmailAccount exists.
               onTap: () => context.pushNamed(AppRoute.emailSync.name),
+            ),
+            ListRow(
+              icon: 'arrow.triangle.2.circlepath',
+              iconBg: c.money,
+              title: 'Subscriptions',
+              onTap: () => context.pushNamed(AppRoute.subscriptions.name),
+            ),
+            ListRow(
+              icon: 'calendar',
+              iconBg: c.money,
+              title: 'Bills',
+              onTap: () => context.pushNamed(AppRoute.bills.name),
+            ),
+            ListRow(
+              icon: 'chart.bar.fill',
+              iconBg: c.rituals,
+              title: 'Weekly review',
+              last: true,
+              onTap: () => context.pushNamed(AppRoute.weeklyReview.name),
             ),
           ],
         ),

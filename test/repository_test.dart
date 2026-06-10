@@ -234,14 +234,61 @@ void main() {
   });
 
   group('RitualRepository', () {
-    test('watchRituals emits in display order', () async {
+    test('watchRoutines emits in display order, with ordered steps', () async {
       final repo = RitualRepository(db);
-      await repo.insert(const Ritual(
-          id: 'b', title: 'Second', icon: 'x', order: 1));
-      await repo.insert(const Ritual(
-          id: 'a', title: 'First', icon: 'x', order: 0));
-      final rituals = await repo.watchRituals().first;
-      expect(rituals.map((r) => r.title), ['First', 'Second']);
+      await repo.upsertRoutine(const RitualRoutine(
+        id: 'b',
+        name: 'Second',
+        time: '1:00 PM',
+        tone: RitualTone.midday,
+        icon: 'sun.max.fill',
+        blurb: '',
+        order: 1,
+      ));
+      await repo.upsertRoutine(const RitualRoutine(
+        id: 'a',
+        name: 'First',
+        time: '7:00 AM',
+        tone: RitualTone.morning,
+        icon: 'sunrise.fill',
+        blurb: '',
+        order: 0,
+        steps: [
+          RitualStep(id: 'a-0', title: 'Step one', note: '', icon: 'drop.fill'),
+          RitualStep(id: 'a-1', title: 'Step two', note: '', icon: 'drop.fill'),
+        ],
+      ));
+      final routines = await repo.watchRoutines().first;
+      expect(routines.map((r) => r.name), ['First', 'Second']);
+      expect(routines.first.steps.map((s) => s.title), ['Step one', 'Step two']);
+    });
+
+    test('upsertRoutine replaces the full step set', () async {
+      final repo = RitualRepository(db);
+      await repo.upsertRoutine(const RitualRoutine(
+        id: 'm',
+        name: 'M',
+        time: '7:00 AM',
+        tone: RitualTone.morning,
+        icon: 'sunrise.fill',
+        blurb: '',
+        steps: [
+          RitualStep(id: 'm-0', title: 'Old', note: '', icon: 'drop.fill'),
+        ],
+      ));
+      await repo.upsertRoutine(const RitualRoutine(
+        id: 'm',
+        name: 'M',
+        time: '7:00 AM',
+        tone: RitualTone.morning,
+        icon: 'sunrise.fill',
+        blurb: '',
+        steps: [
+          RitualStep(id: 'm-0b', title: 'New', note: '', icon: 'drop.fill'),
+        ],
+      ));
+      final routines = await repo.watchRoutines().first;
+      expect(routines.single.steps.map((s) => s.title), ['New']);
     });
   });
 
@@ -270,8 +317,9 @@ void main() {
       final today = await EntryRepository(db).watchToday().first;
       expect(today, isNotEmpty);
 
-      final rituals = await RitualRepository(db).watchRituals().first;
-      expect(rituals, hasLength(5));
+      final routines = await RitualRepository(db).watchRoutines().first;
+      expect(routines, hasLength(3));
+      expect(routines.first.steps, isNotEmpty);
 
       final workouts = await WorkoutRepository(db).watchWorkouts().first;
       expect(workouts, isNotEmpty);
@@ -289,14 +337,16 @@ void main() {
       final seeder = Seeder(db);
       await seeder.seedIfNeeded();
       final afterFirst = (await EntryRepository(db).getAll()).length;
-      final ritualsFirst = (await RitualRepository(db).watchRituals().first).length;
+      final routinesFirst =
+          (await RitualRepository(db).watchRoutines().first).length;
 
       await seeder.seedIfNeeded();
       final afterSecond = (await EntryRepository(db).getAll()).length;
-      final ritualsSecond = (await RitualRepository(db).watchRituals().first).length;
+      final routinesSecond =
+          (await RitualRepository(db).watchRoutines().first).length;
 
       expect(afterSecond, afterFirst);
-      expect(ritualsSecond, ritualsFirst);
+      expect(routinesSecond, routinesFirst);
     });
   });
 }

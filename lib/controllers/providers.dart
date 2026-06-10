@@ -58,6 +58,18 @@ RitualRepository ritualRepository(Ref ref) =>
     RitualRepository(ref.watch(loopDatabaseProvider));
 
 @Riverpod(keepAlive: true)
+BillRepository billRepository(Ref ref) =>
+    BillRepository(ref.watch(loopDatabaseProvider));
+
+@Riverpod(keepAlive: true)
+SubscriptionRepository subscriptionRepository(Ref ref) =>
+    SubscriptionRepository(ref.watch(loopDatabaseProvider));
+
+@Riverpod(keepAlive: true)
+PalNoteRepository palNoteRepository(Ref ref) =>
+    PalNoteRepository(ref.watch(loopDatabaseProvider));
+
+@Riverpod(keepAlive: true)
 RoutineRepository routineRepository(Ref ref) =>
     RoutineRepository(ref.watch(loopDatabaseProvider));
 

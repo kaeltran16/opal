@@ -54,6 +54,20 @@ const Map<String, IconData> _sfMap = {
   'figure.rower': Icons.rowing,
   'figure.indoor.cycle': Icons.directions_bike,
   'figure.stair.stepper': Icons.stairs,
+  'figure.mixed.cardio': Icons.sports_gymnastics,
+  // Handoff #2 additions (Pal composer, ritual routines, money utilities,
+  // weekly plan, routine generator). Closest preview substitutes.
+  'arrow.up': CupertinoIcons.arrow_up,
+  'arrow.clockwise': CupertinoIcons.arrow_clockwise,
+  'arrow.triangle.2.circlepath': CupertinoIcons.arrow_2_circlepath,
+  'sunrise.fill': CupertinoIcons.sunrise_fill,
+  'sun.max.fill': CupertinoIcons.sun_max_fill,
+  'moon.stars.fill': CupertinoIcons.moon_stars_fill,
+  'drop.fill': CupertinoIcons.drop_fill,
+  'bolt.fill': CupertinoIcons.bolt_fill,
+  'leaf.fill': Icons.eco,
+  'music.note': CupertinoIcons.music_note,
+  'square.grid.2x2.fill': CupertinoIcons.square_grid_2x2_fill,
 };
 
 IconData iconForSf(String name) => _sfMap[name] ?? CupertinoIcons.circle;

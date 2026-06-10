@@ -38,7 +38,9 @@ class LoopShell extends StatelessWidget {
             child: LoopTabBar(
               active: activeId,
               onTab: (id) => _goBranch(_tabIds.indexOf(id)),
-              onFab: () => context.pushNamed(AppRoute.quickActions.name),
+              // Handoff #2: the FAB now opens the unified Pal composer (the
+              // single input surface) instead of the old Quick-Actions menu.
+              onFab: () => context.pushNamed(AppRoute.palComposer.name),
             ),
           ),
           // Preview-only tweaks affordance (not part of the shipping design).

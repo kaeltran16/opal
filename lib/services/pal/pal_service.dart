@@ -120,6 +120,74 @@ class WorkoutSuggestion {
       Object.hash(title, rationale, routineId, estimatedMinutes, focus);
 }
 
+/// One generated set in a [GeneratedRoutineDraft] exercise. Strength sets carry
+/// [reps] (+ optional [weightKg]); cardio sets carry [durationMinutes].
+class GeneratedSetDraft {
+  const GeneratedSetDraft({this.reps, this.weightKg, this.durationMinutes});
+
+  final int? reps;
+  final double? weightKg;
+  final int? durationMinutes;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is GeneratedSetDraft &&
+          other.reps == reps &&
+          other.weightKg == weightKg &&
+          other.durationMinutes == durationMinutes;
+
+  @override
+  int get hashCode => Object.hash(reps, weightKg, durationMinutes);
+}
+
+/// One exercise (by catalog [exerciseId]) plus its generated [sets].
+class GeneratedExerciseDraft {
+  const GeneratedExerciseDraft({required this.exerciseId, required this.sets});
+
+  final String exerciseId;
+  final List<GeneratedSetDraft> sets;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is GeneratedExerciseDraft &&
+          other.exerciseId == exerciseId &&
+          _setsEqual(other.sets, sets);
+
+  @override
+  int get hashCode => Object.hash(exerciseId, Object.hashAll(sets));
+}
+
+bool _setsEqual(List<GeneratedSetDraft> a, List<GeneratedSetDraft> b) {
+  if (a.length != b.length) return false;
+  for (var i = 0; i < a.length; i++) {
+    if (a[i] != b[i]) return false;
+  }
+  return true;
+}
+
+/// An AI-generated routine returned by [PalService.generateRoutine] for the
+/// Routine Generator screen (the `/routine` seam). The screen reviews it and,
+/// on save, persists a real [Routine] via the repository.
+class GeneratedRoutineDraft {
+  const GeneratedRoutineDraft({
+    required this.name,
+    required this.tag,
+    required this.exercises,
+    this.estimatedMinutes,
+    this.rationale,
+  });
+
+  final String name;
+  final RoutineTag tag;
+  final List<GeneratedExerciseDraft> exercises;
+  final int? estimatedMinutes;
+
+  /// One-sentence explanation of the design ("compound → isolation").
+  final String? rationale;
+}
+
 /// The Pal AI interface. All methods are async to model network latency.
 abstract interface class PalService {
   /// `/chat`: continue a conversation given prior [history] and the new
@@ -138,4 +206,11 @@ abstract interface class PalService {
 
   /// A short post-workout note for the summary/detail screens (U14/U15).
   Future<String> postWorkoutNote(Workout workout);
+
+  /// `/routine`: build an ordered routine from a free-text [goal], drawing only
+  /// from the [available] exercise catalog. Powers the Routine Generator.
+  Future<GeneratedRoutineDraft> generateRoutine(
+    String goal,
+    List<Exercise> available,
+  );
 }

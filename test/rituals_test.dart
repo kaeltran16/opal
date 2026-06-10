@@ -1,16 +1,15 @@
+import 'dart:async';
+
 import 'package:drift/native.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:opal/controllers/providers.dart';
+import 'package:opal/controllers/rituals_controller.dart';
 import 'package:opal/data/db/database.dart';
 import 'package:opal/data/repositories/repositories.dart';
 import 'package:opal/models/models.dart';
-import 'package:opal/router.dart';
 import 'package:opal/services/services.dart';
-import 'package:opal/theme/app_colors.dart';
-import 'package:opal/widgets/controls.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// A [HapticsService] that records how many times each method was called, so the
@@ -25,82 +24,145 @@ class _SpyHaptics implements HapticsService {
   Future<void> success() async {}
 }
 
+/// A two-step morning routine for the toggle/complete tests.
+const _morning = RitualRoutine(
+  id: 'morning',
+  name: 'Morning',
+  time: '7:00 AM',
+  tone: RitualTone.morning,
+  icon: 'sunrise.fill',
+  blurb: 'Ease into the day',
+  streak: 4,
+  order: 0,
+  steps: [
+    RitualStep(
+      id: 'morning-step-0',
+      title: 'Glass of water',
+      note: 'Before coffee.',
+      icon: 'drop.fill',
+    ),
+    RitualStep(
+      id: 'morning-step-1',
+      title: 'Wash my face',
+      note: 'Cold rinse.',
+      icon: 'drop.fill',
+    ),
+  ],
+);
+
+/// Awaits the next [RitualsState] emission satisfying [test] (a drift write
+/// re-runs the underlying `watchToday` query asynchronously, so `.future` —
+/// which caches the first emission — can't be re-read after a mutation).
+Future<RitualsState> _waitFor(
+  ProviderContainer c,
+  bool Function(RitualsState) test,
+) async {
+  final current = c.read(ritualsControllerProvider).value;
+  if (current != null && test(current)) return current;
+  final completer = Completer<RitualsState>();
+  final sub = c.listen(ritualsControllerProvider, (_, next) {
+    final v = next.value;
+    if (v != null && test(v) && !completer.isCompleted) completer.complete(v);
+  });
+  try {
+    return await completer.future.timeout(const Duration(seconds: 2));
+  } finally {
+    sub.close();
+  }
+}
+
 void main() {
-  testWidgets(
-      'Rituals tab: tapping a check writes a ritual Entry and increments the count',
-      (WidgetTester tester) async {
+  test(
+      'toggleStep writes a ritual Entry and progress reflects it; toggling off '
+      'removes it', () async {
     SharedPreferences.setMockInitialValues({});
     final prefs = await SharedPreferences.getInstance();
     final db = LoopDatabase.forTesting(NativeDatabase.memory());
     addTearDown(db.close);
 
-    // Seed three rituals in display order.
     final rituals = RitualRepository(db);
-    await rituals.insert(
-        const Ritual(id: 'r-pages', title: 'Morning pages', icon: 'book.closed.fill', order: 0, streak: 4));
-    await rituals.insert(
-        const Ritual(id: 'r-read', title: 'Read', icon: 'books.vertical.fill', order: 1));
-    await rituals.insert(
-        const Ritual(id: 'r-water', title: 'Drink water', icon: 'sparkles', order: 2));
-
     final entries = EntryRepository(db);
+    await rituals.upsertRoutine(_morning);
+
     final haptics = _SpyHaptics();
+    final container = ProviderContainer(overrides: [
+      sharedPreferencesProvider.overrideWithValue(prefs),
+      loopDatabaseProvider.overrideWithValue(db),
+      hapticsServiceProvider.overrideWithValue(haptics),
+    ]);
+    addTearDown(container.dispose);
+    // keep the autoDispose streaming controller alive across awaits.
+    container.listen(ritualsControllerProvider, (_, _) {});
 
-    // Start the router directly on the Rituals tab so the screen is mounted.
-    final router = createRouter(initialLocation: '/rituals');
-    final colors = AppColors.light(AppAccent.indigo);
+    final notifier = container.read(ritualsControllerProvider.notifier);
 
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          sharedPreferencesProvider.overrideWithValue(prefs),
-          loopDatabaseProvider.overrideWithValue(db),
-          hapticsServiceProvider.overrideWithValue(haptics),
-        ],
-        child: MaterialApp.router(
-          debugShowCheckedModeBanner: false,
-          theme: ThemeData(useMaterial3: true, extensions: [colors]),
-          routerConfig: router,
-        ),
-      ),
-    );
-    await tester.pumpAndSettle();
+    // initial emission: nothing done.
+    var state = await container.read(ritualsControllerProvider.future);
+    final routine = state.routines.firstWhere((r) => r.id == 'morning');
+    expect(state.doneCount('morning'), 0);
+    expect(state.doneSteps, 0);
+    expect(state.totalSteps, 2);
+    expect(state.upNext?.id, 'morning');
+    expect((await entries.getAll()).where((x) => x.type == EntryType.rituals),
+        isEmpty);
 
-    // The progress card starts at "0 / 3" (rendered as one rich Text).
-    expect(find.text('0 / 3'), findsOneWidget);
-
-    // Helper: read all entries via a real-async drift Future (drift queries
-    // need uncontrolled async, so wrap in runAsync).
-    Future<List<Entry>> allEntries() async =>
-        (await tester.runAsync(() => entries.getAll()))!;
-
-    // No ritual entries logged yet.
-    var all = await allEntries();
-    expect(all.where((e) => e.type == EntryType.rituals), isEmpty);
-
-    // Tap the first ritual's CheckButton.
-    final checks = find.byType(CheckButton);
-    expect(checks, findsNWidgets(3));
-    await tester.tap(checks.first);
-    await tester.pumpAndSettle();
-
-    // A ritual-type Entry was written (so the Today rituals ring updates).
-    all = await allEntries();
-    final ritualEntries = all.where((e) => e.type == EntryType.rituals).toList();
-    expect(ritualEntries, hasLength(1));
-    expect(ritualEntries.single.ritualId, 'r-pages');
-    expect(ritualEntries.single.source, EntrySource.manual);
-
-    // Light haptic fired (no-op in production on web).
+    // toggle step 0 on → a ritual Entry is written, haptic fires.
+    await notifier.toggleStep(routine, 0);
+    var all = await entries.getAll();
+    final logged = all.where((e) => e.type == EntryType.rituals).toList();
+    expect(logged, hasLength(1));
+    expect(logged.single.ritualId, 'morning-step-0');
+    expect(logged.single.source, EntrySource.manual);
     expect(haptics.lightCount, 1);
 
-    // The count card now reads "1 / 3".
-    expect(find.text('1 / 3'), findsOneWidget);
+    // controller state reflects the completion.
+    state = await _waitFor(container, (s) => s.isStepDone('morning', 0));
+    expect(state.doneCount('morning'), 1);
+    expect(state.firstIncompleteStep(routine), 1);
 
-    // Tapping again removes today's entry (toggle off) — count back to 0.
-    await tester.tap(find.byType(CheckButton).first);
-    await tester.pumpAndSettle();
-    all = await allEntries();
+    // toggle step 0 off → entry removed, progress back to 0.
+    await notifier.toggleStep(routine, 0);
+    all = await entries.getAll();
     expect(all.where((e) => e.type == EntryType.rituals), isEmpty);
+    state = await _waitFor(container, (s) => s.doneCount('morning') == 0);
+    expect(state.doneCount('morning'), 0);
+  });
+
+  test('completeStep marks done once and is idempotent (never un-checks)',
+      () async {
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
+    final db = LoopDatabase.forTesting(NativeDatabase.memory());
+    addTearDown(db.close);
+
+    final rituals = RitualRepository(db);
+    final entries = EntryRepository(db);
+    await rituals.upsertRoutine(_morning);
+
+    final container = ProviderContainer(overrides: [
+      sharedPreferencesProvider.overrideWithValue(prefs),
+      loopDatabaseProvider.overrideWithValue(db),
+      hapticsServiceProvider.overrideWithValue(_SpyHaptics()),
+    ]);
+    addTearDown(container.dispose);
+    container.listen(ritualsControllerProvider, (_, _) {});
+
+    final notifier = container.read(ritualsControllerProvider.notifier);
+    final state = await container.read(ritualsControllerProvider.future);
+    final routine = state.routines.firstWhere((r) => r.id == 'morning');
+
+    // complete both steps → routine is complete, upNext clears.
+    await notifier.completeStep(routine, 0);
+    await notifier.completeStep(routine, 1);
+    var s = await _waitFor(container, (s) => s.isComplete(routine));
+    expect(s.upNext, isNull);
+
+    // completing an already-done step is a no-op (no duplicate entry).
+    await notifier.completeStep(routine, 0);
+    final ritualEntries =
+        (await entries.getAll()).where((e) => e.type == EntryType.rituals);
+    expect(ritualEntries, hasLength(2));
+    s = await _waitFor(container, (s) => s.doneCount('morning') == 2);
+    expect(s.doneCount('morning'), 2);
   });
 }

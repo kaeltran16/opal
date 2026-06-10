@@ -7,47 +7,66 @@ import 'providers.dart';
 
 part 'rituals_controller.g.dart';
 
-/// The fully-computed Rituals view model: the day's rituals (in display order)
-/// plus the set of ritual ids already completed today (derived from the live
-/// ritual-type [Entry] stream). The screen is dumb — all math lives here.
+/// The Rituals view model: the three time-of-day [RitualRoutine]s plus the set
+/// of completed step indices per routine for today. Completion is derived from
+/// today's ritual-type [Entry] rows (each step completion is one entry, keyed
+/// by `Entry.ritualId == step.id`), so the Today rituals ring and the Rituals
+/// tab/player always agree. The screen is dumb — all math lives here.
 class RitualsState {
   const RitualsState({
-    required this.rituals,
-    required this.completedIds,
-    this.entryIdsByRitual = const {},
+    required this.routines,
+    required this.progress,
+    this.entryIdByStepId = const {},
   });
 
-  /// Today's rituals, in display order.
-  final List<Ritual> rituals;
+  /// Today's routines, display-ordered.
+  final List<RitualRoutine> routines;
 
-  /// Ids of rituals that have a ritual-type [Entry] logged today.
-  final Set<String> completedIds;
+  /// `routineId -> {completed step indices}` for today.
+  final Map<String, Set<int>> progress;
 
-  /// Today's ritual-[Entry] ids, grouped by `ritualId`, so toggle-off can
-  /// delete the exact rows without re-querying a stream.
-  final Map<String, List<String>> entryIdsByRitual;
+  /// `stepId -> entryId`, so toggling a step off deletes the exact row without
+  /// re-querying the stream.
+  final Map<String, String> entryIdByStepId;
 
-  /// Number completed today.
-  int get doneCount => rituals.where((r) => completedIds.contains(r.id)).length;
+  Set<int> doneFor(String routineId) => progress[routineId] ?? const {};
 
-  /// Total rituals for the day.
-  int get totalCount => rituals.length;
+  int doneCount(String routineId) => doneFor(routineId).length;
 
-  /// Completion fraction (0..1); 0 when there are no rituals.
-  double get progress => totalCount == 0 ? 0 : doneCount / totalCount;
+  bool isStepDone(String routineId, int index) =>
+      doneFor(routineId).contains(index);
 
-  /// Best current streak across the day's rituals (for the subtitle).
-  int get bestStreak =>
-      rituals.isEmpty ? 0 : rituals.map((r) => r.streak).reduce((a, b) => a > b ? a : b);
+  /// A routine is complete when every step is checked (empty routines never).
+  bool isComplete(RitualRoutine r) =>
+      r.steps.isNotEmpty && doneCount(r.id) >= r.steps.length;
 
-  bool isDone(String ritualId) => completedIds.contains(ritualId);
+  /// Steps remaining in [r].
+  int stepsLeft(RitualRoutine r) =>
+      (r.steps.length - doneCount(r.id)).clamp(0, r.steps.length);
+
+  int get totalSteps => routines.fold(0, (s, r) => s + r.steps.length);
+
+  int get doneSteps => routines.fold(0, (s, r) => s + doneCount(r.id));
+
+  /// The first routine with an incomplete step — the up-next hero target.
+  /// Null when everything is done.
+  RitualRoutine? get upNext {
+    for (final r in routines) {
+      if (doneCount(r.id) < r.steps.length) return r;
+    }
+    return null;
+  }
+
+  /// Index of the first incomplete step in [r] (or `steps.length` if complete).
+  int firstIncompleteStep(RitualRoutine r) {
+    for (var i = 0; i < r.steps.length; i++) {
+      if (!isStepDone(r.id, i)) return i;
+    }
+    return r.steps.length;
+  }
 }
 
-/// Streams the Rituals view model and owns the toggle action.
-///
-/// Combines the live rituals stream with today's ritual-type entries so the
-/// per-ritual completion state stays in sync with the Today rings (both read
-/// the same [Entry] rows).
+/// Streams the Rituals view model and owns the step toggle / complete actions.
 @riverpod
 class RitualsController extends _$RitualsController {
   @override
@@ -55,56 +74,76 @@ class RitualsController extends _$RitualsController {
     final ritualRepo = ref.watch(ritualRepositoryProvider);
     final entryRepo = ref.watch(entryRepositoryProvider);
 
-    // Re-emit whenever today's entries change; re-read rituals each tick
-    // (small list, cheap) so a newly-added ritual shows up immediately.
+    // Re-emit whenever today's entries change; re-read routines each tick
+    // (small list, cheap) so builder edits show up immediately.
     await for (final entries in entryRepo.watchToday()) {
-      final rituals = await ritualRepo.getAll();
-      final completed = <String>{};
-      final byRitual = <String, List<String>>{};
-      for (final e in entries) {
-        if (e.type == EntryType.rituals && e.ritualId != null) {
-          completed.add(e.ritualId!);
-          (byRitual[e.ritualId!] ??= <String>[]).add(e.id);
+      final routines = await ritualRepo.getAll();
+
+      // stepId -> (routineId, stepIndex).
+      final lookup = <String, (String, int)>{};
+      for (final r in routines) {
+        for (var i = 0; i < r.steps.length; i++) {
+          lookup[r.steps[i].id] = (r.id, i);
         }
       }
+
+      final progress = <String, Set<int>>{};
+      final entryIdByStepId = <String, String>{};
+      for (final e in entries) {
+        if (e.type == EntryType.rituals && e.ritualId != null) {
+          final loc = lookup[e.ritualId!];
+          if (loc != null) {
+            (progress[loc.$1] ??= <int>{}).add(loc.$2);
+            entryIdByStepId[e.ritualId!] = e.id;
+          }
+        }
+      }
+
       yield RitualsState(
-        rituals: rituals,
-        completedIds: completed,
-        entryIdsByRitual: byRitual,
+        routines: routines,
+        progress: progress,
+        entryIdByStepId: entryIdByStepId,
       );
     }
   }
 
-  /// Toggles [ritual]'s completion for today.
-  ///
-  /// When not yet done, writes a ritual-type [Entry] (so the Today rituals ring
-  /// updates) and fires a light haptic (no-op on web). When already done,
-  /// removes today's matching entry. The live stream drives the UI update.
-  Future<void> toggle(Ritual ritual) async {
+  /// Toggles step [stepIndex] of [routine] for today: writes a ritual [Entry]
+  /// (so the Today rituals ring updates) + a light haptic when newly done;
+  /// deletes today's matching entry when already done.
+  Future<void> toggleStep(RitualRoutine routine, int stepIndex) async {
+    if (stepIndex < 0 || stepIndex >= routine.steps.length) return;
+    final step = routine.steps[stepIndex];
     final entryRepo = ref.read(entryRepositoryProvider);
-    final current = state.value;
-    final alreadyDone = current?.isDone(ritual.id) ?? false;
+    final existingEntryId = state.value?.entryIdByStepId[step.id];
 
-    if (alreadyDone) {
-      // Remove today's matching ritual entry/entries (ids tracked in state, so
-      // no extra stream query is needed).
-      final ids = current?.entryIdsByRitual[ritual.id] ?? const <String>[];
-      for (final id in ids) {
-        await entryRepo.deleteById(id);
-      }
+    if (existingEntryId != null) {
+      await entryRepo.deleteById(existingEntryId);
       return;
     }
+    await _logStep(routine, step);
+  }
 
-    await entryRepo.insert(
-      Entry(
-        id: '',
-        timestamp: DateTime.now(),
-        type: EntryType.rituals,
-        title: ritual.title,
-        ritualId: ritual.id,
-        source: EntrySource.manual,
-      ),
-    );
+  /// Marks step [stepIndex] done if not already (the guided player's "Mark
+  /// done" — never un-checks). No-op when already complete.
+  Future<void> completeStep(RitualRoutine routine, int stepIndex) async {
+    if (stepIndex < 0 || stepIndex >= routine.steps.length) return;
+    final step = routine.steps[stepIndex];
+    if (state.value?.entryIdByStepId.containsKey(step.id) ?? false) return;
+    await _logStep(routine, step);
+  }
+
+  Future<void> _logStep(RitualRoutine routine, RitualStep step) async {
+    await ref.read(entryRepositoryProvider).insert(
+          Entry(
+            id: '',
+            timestamp: DateTime.now(),
+            type: EntryType.rituals,
+            title: step.title,
+            detail: routine.name,
+            ritualId: step.id,
+            source: EntrySource.manual,
+          ),
+        );
     await ref.read(hapticsServiceProvider).light();
   }
 }

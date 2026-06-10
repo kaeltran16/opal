@@ -8,27 +8,15 @@ part of 'rituals_controller.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
-/// Streams the Rituals view model and owns the toggle action.
-///
-/// Combines the live rituals stream with today's ritual-type entries so the
-/// per-ritual completion state stays in sync with the Today rings (both read
-/// the same [Entry] rows).
+/// Streams the Rituals view model and owns the step toggle / complete actions.
 
 @ProviderFor(RitualsController)
 const ritualsControllerProvider = RitualsControllerProvider._();
 
-/// Streams the Rituals view model and owns the toggle action.
-///
-/// Combines the live rituals stream with today's ritual-type entries so the
-/// per-ritual completion state stays in sync with the Today rings (both read
-/// the same [Entry] rows).
+/// Streams the Rituals view model and owns the step toggle / complete actions.
 final class RitualsControllerProvider
     extends $StreamNotifierProvider<RitualsController, RitualsState> {
-  /// Streams the Rituals view model and owns the toggle action.
-  ///
-  /// Combines the live rituals stream with today's ritual-type entries so the
-  /// per-ritual completion state stays in sync with the Today rings (both read
-  /// the same [Entry] rows).
+  /// Streams the Rituals view model and owns the step toggle / complete actions.
   const RitualsControllerProvider._()
     : super(
         from: null,
@@ -48,13 +36,9 @@ final class RitualsControllerProvider
   RitualsController create() => RitualsController();
 }
 
-String _$ritualsControllerHash() => r'5a49a7a46f5b95c111e4da51f7a817626930c6a3';
+String _$ritualsControllerHash() => r'58498d71b39a35597cf455bd0312b2fc700f8cd9';
 
-/// Streams the Rituals view model and owns the toggle action.
-///
-/// Combines the live rituals stream with today's ritual-type entries so the
-/// per-ritual completion state stays in sync with the Today rings (both read
-/// the same [Entry] rows).
+/// Streams the Rituals view model and owns the step toggle / complete actions.
 
 abstract class _$RitualsController extends $StreamNotifier<RitualsState> {
   Stream<RitualsState> build();

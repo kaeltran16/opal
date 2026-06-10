@@ -8,19 +8,20 @@ part of 'rituals_builder_controller.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
-/// Streams all rituals (in display order) and owns add/edit/delete/reorder for
+/// Streams all routines (in display order) and owns add/edit/delete/reorder for
 /// the Rituals Builder. Mirrors [RitualsController]'s streaming idiom; writes go
 /// straight through [RitualRepository] and the live stream drives the UI.
 
 @ProviderFor(RitualsBuilderController)
 const ritualsBuilderControllerProvider = RitualsBuilderControllerProvider._();
 
-/// Streams all rituals (in display order) and owns add/edit/delete/reorder for
+/// Streams all routines (in display order) and owns add/edit/delete/reorder for
 /// the Rituals Builder. Mirrors [RitualsController]'s streaming idiom; writes go
 /// straight through [RitualRepository] and the live stream drives the UI.
 final class RitualsBuilderControllerProvider
-    extends $StreamNotifierProvider<RitualsBuilderController, List<Ritual>> {
-  /// Streams all rituals (in display order) and owns add/edit/delete/reorder for
+    extends
+        $StreamNotifierProvider<RitualsBuilderController, List<RitualRoutine>> {
+  /// Streams all routines (in display order) and owns add/edit/delete/reorder for
   /// the Rituals Builder. Mirrors [RitualsController]'s streaming idiom; writes go
   /// straight through [RitualRepository] and the live stream drives the UI.
   const RitualsBuilderControllerProvider._()
@@ -43,25 +44,26 @@ final class RitualsBuilderControllerProvider
 }
 
 String _$ritualsBuilderControllerHash() =>
-    r'fa2ae635dcb10c0045d30f68fc6d7966116ed11f';
+    r'0a7d2e16d9e7b275af6f27d67cf005450b97398f';
 
-/// Streams all rituals (in display order) and owns add/edit/delete/reorder for
+/// Streams all routines (in display order) and owns add/edit/delete/reorder for
 /// the Rituals Builder. Mirrors [RitualsController]'s streaming idiom; writes go
 /// straight through [RitualRepository] and the live stream drives the UI.
 
 abstract class _$RitualsBuilderController
-    extends $StreamNotifier<List<Ritual>> {
-  Stream<List<Ritual>> build();
+    extends $StreamNotifier<List<RitualRoutine>> {
+  Stream<List<RitualRoutine>> build();
   @$mustCallSuper
   @override
   void runBuild() {
     final created = build();
-    final ref = this.ref as $Ref<AsyncValue<List<Ritual>>, List<Ritual>>;
+    final ref =
+        this.ref as $Ref<AsyncValue<List<RitualRoutine>>, List<RitualRoutine>>;
     final element =
         ref.element
             as $ClassProviderElement<
-              AnyNotifier<AsyncValue<List<Ritual>>, List<Ritual>>,
-              AsyncValue<List<Ritual>>,
+              AnyNotifier<AsyncValue<List<RitualRoutine>>, List<RitualRoutine>>,
+              AsyncValue<List<RitualRoutine>>,
               Object?,
               Object?
             >;

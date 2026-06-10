@@ -8,14 +8,24 @@ import 'screens/email/email_intro_screen.dart';
 import 'screens/email/email_setup_screen.dart';
 import 'screens/entry/new_entry_sheet.dart';
 import 'screens/library/exercise_library_screen.dart';
+import 'screens/money/bills_screen.dart';
+import 'screens/money/subscriptions_screen.dart';
 import 'screens/move/move_screen.dart';
+import 'screens/move/weekly_plan_screen.dart';
 import 'screens/onboarding/onboarding_screen.dart';
 import 'screens/pal/ask_pal_screen.dart';
+import 'screens/pal/pal_composer_screen.dart';
+import 'screens/pal/pal_inbox_screen.dart';
 import 'screens/profile/profile_screen.dart';
 import 'screens/quick_actions/quick_actions_overlay.dart';
+import 'screens/reflect/evening_close_out_screen.dart';
+import 'screens/reflect/streak_celebration_screen.dart';
 import 'screens/review/monthly_review_screen.dart';
+import 'screens/review/weekly_review_screen.dart';
 import 'screens/rituals/rituals_builder_screen.dart';
+import 'screens/rituals/routine_player_screen.dart';
 import 'screens/rituals/rituals_screen.dart';
+import 'screens/workout/routine_generator_screen.dart';
 import 'screens/settings/about_screen.dart';
 import 'screens/settings/budgets_goals_screen.dart';
 import 'screens/settings/export_data_screen.dart';
@@ -75,6 +85,21 @@ enum AppRoute {
   emailSync('emailSync', '/email'), //              U20 Intro
   emailSetup('emailSetup', 'setup'), //             U20 -> /email/setup
   emailDashboard('emailDashboard', 'dashboard'), //  U20 -> /email/dashboard
+
+  // --- Handoff #2 (Wave 6) ---
+  // Pal composer — the unified FAB input surface (replaces Quick Actions menu).
+  palComposer('palComposer', '/pal-composer'),
+  palInbox('palInbox', '/pal-inbox'),
+  eveningCloseOut('eveningCloseOut', '/close-out'),
+  streakCelebration('streakCelebration', '/streak'),
+  weeklyReview('weeklyReview', '/weekly-review'),
+  subscriptions('subscriptions', '/subscriptions'),
+  bills('bills', '/bills'),
+  // Move sub-routes (nest under /move so back returns to the Move tab).
+  weeklyPlan('weeklyPlan', 'weekly-plan'), //          -> /move/weekly-plan
+  routineGenerator('routineGenerator', 'routine-generator'), // /move/routine-generator
+  // Rituals guided player — full-screen above the shell (no tab bar).
+  routinePlayer('routinePlayer', '/rituals/player/:routineId'),
 
   // First-run onboarding (U17), full-screen above the shell.
   onboarding('onboarding', '/onboarding');
@@ -180,6 +205,17 @@ GoRouter createRouter({
                     name: AppRoute.routineEditor.name,
                     builder: (context, state) => RoutineEditorScreen(
                         routineId: state.uri.queryParameters['routineId']),
+                  ),
+                  // Handoff #2 — Weekly Plan (24) + AI Routine Generator.
+                  GoRoute(
+                    path: AppRoute.weeklyPlan.path,
+                    name: AppRoute.weeklyPlan.name,
+                    builder: (context, state) => const WeeklyPlanScreen(),
+                  ),
+                  GoRoute(
+                    path: AppRoute.routineGenerator.path,
+                    name: AppRoute.routineGenerator.name,
+                    builder: (context, state) => const RoutineGeneratorScreen(),
                   ),
                 ],
               ),
@@ -339,6 +375,100 @@ GoRouter createRouter({
             builder: (context, state) => const EmailDashboardScreen(),
           ),
         ],
+      ),
+
+      // --- Handoff #2 (Wave 6) routes, all above the shell ---
+      // Pal composer: the unified input surface. Presented over a dim,
+      // tap-to-dismiss backdrop; optional `?seed=` pre-fills + expands it.
+      GoRoute(
+        path: AppRoute.palComposer.path,
+        name: AppRoute.palComposer.name,
+        parentNavigatorKey: _rootNavigatorKey,
+        pageBuilder: (context, state) {
+          final seed = state.uri.queryParameters['seed'];
+          return CustomTransitionPage<void>(
+            key: state.pageKey,
+            opaque: false,
+            barrierDismissible: true,
+            barrierColor: const Color(0x66000000),
+            fullscreenDialog: true,
+            transitionDuration: const Duration(milliseconds: 320),
+            reverseTransitionDuration: const Duration(milliseconds: 220),
+            transitionsBuilder: (context, animation, secondary, child) {
+              final curved = CurvedAnimation(
+                parent: animation,
+                curve: const Cubic(0.22, 1, 0.36, 1),
+                reverseCurve: Curves.easeInCubic,
+              );
+              return SlideTransition(
+                position: Tween<Offset>(
+                  begin: const Offset(0, 1),
+                  end: Offset.zero,
+                ).animate(curved),
+                child: child,
+              );
+            },
+            child: Material(
+              type: MaterialType.transparency,
+              child: Align(
+                alignment: Alignment.bottomCenter,
+                child: PalComposerSheet(seed: seed),
+              ),
+            ),
+          );
+        },
+      ),
+      // Rituals guided player — full-screen overlay (no tab bar).
+      GoRoute(
+        path: AppRoute.routinePlayer.path,
+        name: AppRoute.routinePlayer.name,
+        parentNavigatorKey: _rootNavigatorKey,
+        pageBuilder: (context, state) => _fadePage(
+          state.pageKey,
+          RoutinePlayerScreen(routineId: state.pathParameters['routineId']!),
+        ),
+      ),
+      GoRoute(
+        path: AppRoute.palInbox.path,
+        name: AppRoute.palInbox.name,
+        parentNavigatorKey: _rootNavigatorKey,
+        pageBuilder: (context, state) =>
+            _sheetPage(state.pageKey, const PalInboxScreen()),
+      ),
+      GoRoute(
+        path: AppRoute.eveningCloseOut.path,
+        name: AppRoute.eveningCloseOut.name,
+        parentNavigatorKey: _rootNavigatorKey,
+        pageBuilder: (context, state) =>
+            _sheetPage(state.pageKey, const EveningCloseOutScreen()),
+      ),
+      GoRoute(
+        path: AppRoute.streakCelebration.path,
+        name: AppRoute.streakCelebration.name,
+        parentNavigatorKey: _rootNavigatorKey,
+        pageBuilder: (context, state) =>
+            _fadePage(state.pageKey, const StreakCelebrationScreen()),
+      ),
+      GoRoute(
+        path: AppRoute.weeklyReview.path,
+        name: AppRoute.weeklyReview.name,
+        parentNavigatorKey: _rootNavigatorKey,
+        pageBuilder: (context, state) =>
+            _sheetPage(state.pageKey, const WeeklyReviewScreen()),
+      ),
+      GoRoute(
+        path: AppRoute.subscriptions.path,
+        name: AppRoute.subscriptions.name,
+        parentNavigatorKey: _rootNavigatorKey,
+        pageBuilder: (context, state) =>
+            _sheetPage(state.pageKey, const SubscriptionsScreen()),
+      ),
+      GoRoute(
+        path: AppRoute.bills.path,
+        name: AppRoute.bills.name,
+        parentNavigatorKey: _rootNavigatorKey,
+        pageBuilder: (context, state) =>
+            _sheetPage(state.pageKey, const BillsScreen()),
       ),
 
       // --- U17 first-run onboarding (full-screen, above the shell) ---

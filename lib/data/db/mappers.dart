@@ -185,30 +185,151 @@ Routine routineFromRow(RoutineRow row, List<RoutineExercise> exercises) =>
     );
 
 // ---------------------------------------------------------------------------
-// Ritual
+// RitualRoutine + RitualStep
 // ---------------------------------------------------------------------------
 
-extension RitualRowMapper on RitualRow {
-  Ritual toModel() => Ritual(
+extension RitualStepRowMapper on RitualStepRow {
+  RitualStep toModel() => RitualStep(
         id: id,
         title: title,
+        note: note,
         icon: icon,
-        cadence: Cadence.fromWire(cadence),
-        reminderTime: reminderTime,
-        order: position,
-        streak: streak,
       );
 }
 
-extension RitualModelMapper on Ritual {
-  RitualsCompanion toCompanion() => RitualsCompanion(
+extension RitualStepModelMapper on RitualStep {
+  RitualStepsCompanion toCompanion(String routineId, int position) =>
+      RitualStepsCompanion(
         id: Value(id),
+        routineId: Value(routineId),
         title: Value(title),
+        note: Value(note),
         icon: Value(icon),
-        cadence: Value(cadence.wire),
-        reminderTime: Value(reminderTime),
-        position: Value(order),
+        position: Value(position),
+      );
+}
+
+extension RitualRoutineModelMapper on RitualRoutine {
+  RitualRoutinesCompanion toCompanion() => RitualRoutinesCompanion(
+        id: Value(id),
+        name: Value(name),
+        time: Value(time),
+        tone: Value(tone.wire),
+        icon: Value(icon),
+        blurb: Value(blurb),
         streak: Value(streak),
+        position: Value(order),
+      );
+}
+
+/// Builds a [RitualRoutine] from its row + already-loaded ordered steps.
+RitualRoutine ritualRoutineFromRow(
+  RitualRoutineRow row,
+  List<RitualStep> steps,
+) =>
+    RitualRoutine(
+      id: row.id,
+      name: row.name,
+      time: row.time,
+      tone: RitualTone.fromWire(row.tone),
+      icon: row.icon,
+      blurb: row.blurb,
+      streak: row.streak,
+      order: row.position,
+      steps: steps,
+    );
+
+// ---------------------------------------------------------------------------
+// Bill
+// ---------------------------------------------------------------------------
+
+extension BillRowMapper on BillRow {
+  Bill toModel() => Bill(
+        id: id,
+        name: name,
+        payee: payee,
+        category: category,
+        amount: amount,
+        dueDate: dueDate,
+        autoPay: autoPay,
+        icon: icon,
+        color: color,
+      );
+}
+
+extension BillModelMapper on Bill {
+  BillsCompanion toCompanion() => BillsCompanion(
+        id: Value(id),
+        name: Value(name),
+        payee: Value(payee),
+        category: Value(category),
+        amount: Value(amount),
+        dueDate: Value(dueDate),
+        autoPay: Value(autoPay),
+        icon: Value(icon),
+        color: Value(color),
+      );
+}
+
+// ---------------------------------------------------------------------------
+// Subscription
+// ---------------------------------------------------------------------------
+
+extension SubscriptionRowMapper on SubscriptionRow {
+  Subscription toModel() => Subscription(
+        id: id,
+        name: name,
+        category: category,
+        amount: amount,
+        nextChargeDate: nextChargeDate,
+        icon: icon,
+        color: color,
+        detectedFromEmail: detectedFromEmail,
+      );
+}
+
+extension SubscriptionModelMapper on Subscription {
+  SubscriptionsCompanion toCompanion() => SubscriptionsCompanion(
+        id: Value(id),
+        name: Value(name),
+        category: Value(category),
+        amount: Value(amount),
+        nextChargeDate: Value(nextChargeDate),
+        icon: Value(icon),
+        color: Value(color),
+        detectedFromEmail: Value(detectedFromEmail),
+      );
+}
+
+// ---------------------------------------------------------------------------
+// PalNote
+// ---------------------------------------------------------------------------
+
+extension PalNoteRowMapper on PalNoteRow {
+  PalNote toModel() => PalNote(
+        id: id,
+        createdAt: createdAt,
+        kind: NoteKind.fromWire(kind),
+        category: EntryType.fromWire(category),
+        icon: icon,
+        title: title,
+        body: body,
+        actionLabel: actionLabel,
+        unread: unread,
+      );
+}
+
+extension PalNoteModelMapper on PalNote {
+  PalNotesCompanion toCompanion() => PalNotesCompanion(
+        id: Value(id),
+        createdAt: Value(createdAt),
+        kind: Value(kind.wire),
+        category: Value(category.wire),
+        icon: Value(icon),
+        title: Value(title),
+        body: Value(body),
+        actionLabel: Value(actionLabel),
+        unread: Value(unread),
       );
 }
 

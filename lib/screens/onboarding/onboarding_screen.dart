@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../controllers/providers.dart';
+import '../../data/seed/seed_data.dart';
 import '../../models/models.dart';
 import '../../router.dart';
 import '../../theme/app_colors.dart';
@@ -72,7 +73,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     await _finish();
   }
 
-  /// Persists Goals + selected Rituals, then flips the onboarding flag.
+  /// Persists Goals, ensures the default ritual routines exist, then flips the
+  /// onboarding flag.
   Future<void> _finish() async {
     setState(() => _saving = true);
 
@@ -86,18 +88,11 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       dailyRitualTarget: 5,
     ));
 
-    // Insert the chosen rituals in display order; ids are auto-assigned.
-    final chosen = _suggestedRituals
-        .where((r) => _selectedRituals.contains(r.title))
-        .toList();
-    for (var i = 0; i < chosen.length; i++) {
-      final r = chosen[i];
-      await rituals.insert(Ritual(
-        id: '',
-        title: r.title,
-        icon: r.icon,
-        order: i,
-      ));
+    // Rituals are now the three time-of-day routines (Morning / Midday /
+    // Evening). Seed them idempotently so onboarding is self-sufficient even
+    // when the DB seeder hasn't run; the step-4 picks express intent only.
+    for (final routine in SeedData.ritualRoutines()) {
+      await rituals.upsertRoutine(routine);
     }
 
     await settings.setOnboardingComplete(true);

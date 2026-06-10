@@ -93,12 +93,12 @@ class MonthlyStats {
       ];
 }
 
-/// Folds the month's [entries] + [rituals] into the four [MonthlyStats] values.
+/// Folds the month's [entries] + [routines] into the four [MonthlyStats] values.
 /// Extracted from the provider so it can be tested directly with fixtures.
 MonthlyStats buildMonthlyStats(
   DateTime month,
   List<Entry> entries,
-  List<Ritual> rituals,
+  List<RitualRoutine> routines,
 ) {
   var spent = 0.0;
   var moveMinutes = 0;
@@ -113,7 +113,7 @@ MonthlyStats buildMonthlyStats(
         ritualsKept += 1;
     }
   }
-  final longestStreak = rituals.fold<int>(
+  final longestStreak = routines.fold<int>(
       0, (max, r) => r.streak > max ? r.streak : max);
   return MonthlyStats(
     month: DateTime(month.year, month.month),
@@ -136,8 +136,8 @@ Stream<MonthlyStats> monthlyStats(Ref ref) async* {
   final end = DateTime(now.year, now.month + 1);
 
   await for (final entries in entriesRepo.watchEntriesInRange(start, end)) {
-    final rituals = await ritualRepo.getAll();
-    yield buildMonthlyStats(start, entries, rituals);
+    final routines = await ritualRepo.getAll();
+    yield buildMonthlyStats(start, entries, routines);
   }
 }
 

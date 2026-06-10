@@ -96,11 +96,11 @@ void main() {
     expect(goals.dailyMoveMinutes, 45);
     expect(goals.dailyRitualTarget, 5);
 
-    // The 5 default-on rituals were inserted (Stretch is off by default).
-    final rituals = await RitualRepository(h.db).getAll();
-    expect(rituals.length, 5);
-    final titles = rituals.map((r) => r.title).toSet();
-    expect(titles, contains('Morning pages'));
-    expect(titles, isNot(contains('Stretch')));
+    // The three default time-of-day ritual routines were seeded.
+    final routines = await RitualRepository(h.db).getAll();
+    expect(routines.length, 3);
+    final names = routines.map((r) => r.name).toSet();
+    expect(names, contains('Morning'));
+    expect(routines.first.steps, isNotEmpty);
   });
 }

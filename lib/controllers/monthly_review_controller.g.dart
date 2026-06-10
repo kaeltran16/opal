@@ -53,7 +53,7 @@ final class MonthlyStatsProvider
   }
 }
 
-String _$monthlyStatsHash() => r'b897646ada80a126ba7129b6b456626e972f2b14';
+String _$monthlyStatsHash() => r'7334167d7c8a78742d745dc56cbe3924d63673f0';
 
 /// Drives the narrative card: holds the Pal-written review text with a loading
 /// state, and re-requests it on [regenerate]. The narrative is the only async,

@@ -131,6 +131,13 @@ class _Body extends ConsumerWidget {
               onTap: () => context.pushNamed(AppRoute.routineEditor.name),
             ),
             ListRow(
+              icon: 'sparkles',
+              iconBg: c.rituals,
+              title: 'Generate with Pal',
+              subtitle: 'Describe a goal, Pal builds it',
+              onTap: () => context.pushNamed(AppRoute.routineGenerator.name),
+            ),
+            ListRow(
               icon: 'dumbbell.fill',
               iconBg: c.move,
               title: 'Exercise library',

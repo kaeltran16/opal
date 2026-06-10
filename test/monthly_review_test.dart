@@ -44,6 +44,12 @@ class _SequencedPalService implements PalService {
 
   @override
   Future<String> postWorkoutNote(Workout workout) async => '';
+
+  @override
+  Future<GeneratedRoutineDraft> generateRoutine(
+          String goal, List<Exercise> available) async =>
+      const GeneratedRoutineDraft(
+          name: '', tag: RoutineTag.custom, exercises: []);
 }
 
 Widget _wrap(Widget child) {
@@ -107,12 +113,26 @@ void main() {
         source: EntrySource.manual,
       ),
     ];
-    final rituals = [
-      const Ritual(id: 'r1', title: 'Meditate', icon: 'sparkles', streak: 4),
-      const Ritual(id: 'r2', title: 'Read', icon: 'book.closed.fill', streak: 12),
+    final routines = [
+      const RitualRoutine(
+          id: 'morning',
+          name: 'Morning',
+          time: '7:00 AM',
+          tone: RitualTone.morning,
+          icon: 'sunrise.fill',
+          blurb: '',
+          streak: 4),
+      const RitualRoutine(
+          id: 'evening',
+          name: 'Evening',
+          time: '9:30 PM',
+          tone: RitualTone.evening,
+          icon: 'moon.stars.fill',
+          blurb: '',
+          streak: 12),
     ];
 
-    final s = buildMonthlyStats(month, entries, rituals);
+    final s = buildMonthlyStats(month, entries, routines);
     expect(s.totalSpent, 36); // 6 + 30 (income excluded)
     expect(s.moveMinutes, 75); // 30 + 45
     expect(s.ritualsKept, 1);
@@ -133,8 +153,14 @@ void main() {
     addTearDown(db.close);
 
     final rituals = RitualRepository(db);
-    await rituals.insert(
-        const Ritual(id: 'r1', title: 'Read', icon: 'book.closed.fill', streak: 9));
+    await rituals.upsertRoutine(const RitualRoutine(
+        id: 'morning',
+        name: 'Morning',
+        time: '7:00 AM',
+        tone: RitualTone.morning,
+        icon: 'sunrise.fill',
+        blurb: '',
+        streak: 9));
 
     final entries = EntryRepository(db);
     await entries.insert(Entry(

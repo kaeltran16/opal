@@ -60,11 +60,11 @@ class ProfileStats {
       );
 }
 
-/// Folds [entries] (all-time) + [rituals] into the this-year [ProfileStats].
+/// Folds [entries] (all-time) + [routines] into the this-year [ProfileStats].
 /// Extracted from the provider so it can be tested directly with fixtures.
 ProfileStats buildProfileStats(
   List<Entry> entries,
-  List<Ritual> rituals, {
+  List<RitualRoutine> routines, {
   DateTime? now,
 }) {
   final today = now ?? DateTime.now();
@@ -89,9 +89,9 @@ ProfileStats buildProfileStats(
     }
   }
 
-  final longestStreak = rituals.isEmpty
+  final longestStreak = routines.isEmpty
       ? 0
-      : rituals.map((r) => r.streak).reduce((a, b) => a > b ? a : b);
+      : routines.map((r) => r.streak).reduce((a, b) => a > b ? a : b);
 
   return ProfileStats(
     totalSpent: totalSpent,
@@ -111,7 +111,7 @@ Stream<ProfileStats> profileStats(Ref ref) async* {
   final ritualRepo = ref.watch(ritualRepositoryProvider);
 
   await for (final entries in entryRepo.watchAll()) {
-    final rituals = await ritualRepo.getAll();
-    yield buildProfileStats(entries, rituals);
+    final routines = await ritualRepo.getAll();
+    yield buildProfileStats(entries, routines);
   }
 }

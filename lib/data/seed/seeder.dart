@@ -16,10 +16,10 @@ class Seeder {
 
   /// Marker key written once the initial seed completes.
   ///
-  /// Bumped to `v2` for U11's expanded exercise catalog (~21 exercises across
-  /// Push/Pull/Legs/Core/Cardio) + sample routines, so existing DBs seeded
-  /// under `initial_seed_v1` re-run the seed and pick up the richer content.
-  static const String _markerKey = 'initial_seed_v2';
+  /// Bumped to `v3` for Handoff #2: the flat rituals are replaced by the three
+  /// time-of-day ritual routines (+ steps), and Bills/Subscriptions/PalNotes
+  /// arrive — so DBs seeded under `initial_seed_v2` re-run and pick them up.
+  static const String _markerKey = 'initial_seed_v3';
 
   /// Seeds the DB if it hasn't been seeded yet. Safe to call on every launch.
   Future<void> seedIfNeeded() async {
@@ -46,9 +46,28 @@ class Seeder {
       // tripping primary-key conflicts on the stable seed ids.
       const replace = InsertMode.insertOrReplace;
 
-      // Rituals.
-      for (final r in SeedData.rituals()) {
-        await _db.into(_db.rituals).insert(r.toCompanion(), mode: replace);
+      // Ritual routines + their ordered steps.
+      for (final routine in SeedData.ritualRoutines()) {
+        await _db
+            .into(_db.ritualRoutines)
+            .insert(routine.toCompanion(), mode: replace);
+        for (var i = 0; i < routine.steps.length; i++) {
+          await _db.into(_db.ritualSteps).insert(
+                routine.steps[i].toCompanion(routine.id, i),
+                mode: replace,
+              );
+        }
+      }
+
+      // Bills, subscriptions, Pal notes.
+      for (final b in SeedData.bills()) {
+        await _db.into(_db.bills).insert(b.toCompanion(), mode: replace);
+      }
+      for (final s in SeedData.subscriptions()) {
+        await _db.into(_db.subscriptions).insert(s.toCompanion(), mode: replace);
+      }
+      for (final n in SeedData.palNotes()) {
+        await _db.into(_db.palNotes).insert(n.toCompanion(), mode: replace);
       }
 
       // Exercises (catalog) — must precede routines/workouts (FK targets).
