@@ -34,13 +34,19 @@
 - Added routes: `quickActions`, `newEntry`, `rituals`→RitualsScreen, `manageRituals` (stub `/rituals/manage`), `spendingDetail`→`DetailScreen`, `exerciseLibrary` `/library`, `onboarding` `/onboarding`. Remaining stubs: `move`/`you` placeholders, `moveDetail`/`ritualsDetail`/`askPal`.
 - Added providers: `ritualsControllerProvider`, `detailData(DetailTracker)`/`spendingDetail`, `exercises`.
 
-**DONE:** U01–U09, U11, U17.  **REMAINING:** U10, U12–U16, U18–U21 (+U21b builders), backend U22–U24, native U25–U27.
+**Wave 2 integrated → `master` `c68f13b`** (53 tests green, analyze clean):
+✅ U16 Ask Pal chat + NL parse (wires U07 "Type it") · ✅ U18 Monthly Review · ✅ U19 You/profile + settings.
+- Routes now real: `askPal`→`AskPalScreen`, `you`→`ProfileScreen`. Added: `monthlyReview` `/monthly-review`→`MonthlyReviewScreen`, `emailSync` `/email` (stub for U20, target for Profile→Integrations row).
+- Added providers: `askPalControllerProvider`, `monthlyReviewControllerProvider`, `profileControllerProvider`.
+- Only merge conflict was `router.dart` (all additive — kept both sides). Codegen regen was byte-identical to committed `.g.dart`. Wave-2 worktrees + branches removed.
 
-**Next wave (parallel from `ee21c46`):** U10 Move tab · U16 Ask Pal (also wires U07 "Type it" NL parse) · U18 Monthly Review · U19 You/profile. Then serial workout chain U12→U13→U14→U15 (needs U10+U11), then U20 Email (needs U19), then U21 polish + U21b builders.
+**DONE:** U01–U09, U11, U16, U17, U18, U19.  **REMAINING:** U10, U12–U15, U20–U21 (+U21b builders), backend U22–U24, native U25–U27.
+
+**Next wave:** U10 Move tab (not started — `unit/u10-move-tab` worktree empty at `f096b29`; **blocks** the workout chain). Then serial workout chain U12→U13→U14→U15 (needs U10+U11), then U20 Email (U19 done, unblocked), then U21 polish + U21b builders.
 
 **Dispatch lesson:** agents must run `flutter test` directly (NOT wrapped in PowerShell `Out-String`/buffered capture) — one agent blinded itself to a test error and looped (the U11 `!timersPending` incident).
 
-**Git:** baseline `4ee45cd` → foundation `18146dc` → wave-1 integrated `ee21c46`. Fan-out uses worktree branches merged to `master`; wave-1 worktrees removed.
+**Git:** baseline `4ee45cd` → foundation `18146dc` → wave-1 integrated `ee21c46` → wave-2 integrated `c68f13b`. Fan-out uses worktree branches merged to `master`; wave-1 + wave-2 worktrees removed (`unit/u10-move-tab` worktree retained for next unit).
 
 **Locked decisions (from review, `plan-review.md` — no blockers found):**
 - **U02 storage:** use **real `drift` + `drift_flutter`**, with `sqlite3.wasm` and **`drift_worker.dart.js`** (exact filename) vendored into `loop/web/`, version-matched to `pubspec.lock`. `flutter run -d chrome` serves wasm fine; OPFS degrades gracefully. In-memory / `sqflite_common_ffi` shim = documented fallback only, not default.
