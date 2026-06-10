@@ -8,6 +8,7 @@ import 'screens/library/exercise_library_screen.dart';
 import 'screens/onboarding/onboarding_screen.dart';
 import 'screens/pal/ask_pal_screen.dart';
 import 'screens/quick_actions/quick_actions_overlay.dart';
+import 'screens/review/monthly_review_screen.dart';
 import 'screens/rituals/rituals_screen.dart';
 import 'screens/shell/loop_shell.dart';
 import 'screens/today/today_screen.dart';
@@ -37,6 +38,7 @@ enum AppRoute {
   newEntry('newEntry', '/entry/new'), //            U07
   askPal('askPal', '/pal'), //                      U16
   exerciseLibrary('exerciseLibrary', '/library'), // U11
+  monthlyReview('monthlyReview', '/monthly-review'), // U18
 
   // First-run onboarding (U17), full-screen above the shell.
   onboarding('onboarding', '/onboarding');
@@ -201,6 +203,13 @@ GoRouter createRouter({
         name: AppRoute.exerciseLibrary.name,
         parentNavigatorKey: _rootNavigatorKey,
         builder: (context, state) => const ExerciseLibraryScreen(),
+      ),
+      // U18 — Monthly Review (root-level; no screen links here yet).
+      GoRoute(
+        path: AppRoute.monthlyReview.path,
+        name: AppRoute.monthlyReview.name,
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const MonthlyReviewScreen(),
       ),
 
       // --- U17 first-run onboarding (full-screen, above the shell) ---
