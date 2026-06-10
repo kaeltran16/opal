@@ -7,9 +7,9 @@ APP_USER=opal
 APP_DIR=/opt/opal-api
 DOMAIN=opal.kael.life
 
-echo "==> Installing Node 20 + build tools"
-if ! command -v node >/dev/null || [ "$(node -v | cut -d. -f1 | tr -d v)" -lt 20 ]; then
-  curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+echo "==> Installing Node 24 + build tools"
+if ! command -v node >/dev/null || [ "$(node -v | cut -d. -f1 | tr -d v)" -lt 24 ]; then
+  curl -fsSL https://deb.nodesource.com/setup_24.x | bash -
   apt-get install -y nodejs
 fi
 apt-get install -y build-essential python3 rsync curl

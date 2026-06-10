@@ -43,7 +43,7 @@ droplet and runs `npm ci && npm run build && systemctl restart opal-api`.
 First-time droplet setup (run once):
 
 1. **Host service** — copy `server/scripts/bootstrap.sh` to the droplet and run
-   it as root. It installs Node 20 + build tools, creates the `opal` user and
+   it as root. It installs Node 24 + build tools, creates the `opal` user and
    `/opt/opal-api`, installs the systemd unit, and writes `.env`.
 2. **nginx wiring** — issue a cert for `opal.kael.life` via the existing certbot,
    add the `server` block from `nginx-opal.conf.example` to the nginx config and
