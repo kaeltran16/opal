@@ -31,19 +31,22 @@ npm test               # Vitest, no network
 
 ## Deploy (DigitalOcean droplet)
 
-1. Install Node 20+, Caddy. Create user `loop`, dir `/opt/loop-pal`.
-2. Copy the repo's `server/` to `/opt/loop-pal`, `npm ci`, `npm run build`.
-3. `cp .env.example .env`, fill secrets. `SQLITE_PATH=/opt/loop-pal/loop.sqlite`.
-4. `cp loop-pal.service.example /etc/systemd/system/loop-pal.service`; `systemctl enable --now loop-pal`.
-5. `cp Caddyfile.example /etc/caddy/Caddyfile` (set your domain); `systemctl reload caddy`.
-6. Verify: `curl https://pal.example.com/healthz` → `ok`.
+Deploys are automated via GitHub Actions (`.github/workflows/deploy.yml`): every
+push to `main` touching `server/**` runs tests, then rsyncs the source to the
+droplet and runs `npm ci && npm run build && systemctl restart opal-api`.
+
+First-time droplet setup (run once): copy `server/scripts/bootstrap.sh` to the
+droplet and run it as root. It installs Node 20, Caddy, creates the `opal` user
+and `/opt/opal-api`, installs the systemd unit + Caddyfile, and writes `.env`.
+
+Verify: `curl https://opal.kael.life/healthz` → `ok`.
 
 ## Client wiring
 
 Build the Flutter app with:
 
 ```
---dart-define=PAL_BASE_URL=https://pal.example.com
+--dart-define=PAL_BASE_URL=https://opal.kael.life
 --dart-define=PAL_PROVISIONING_KEY=<same as server PAL_PROVISIONING_KEY>
 ```
 

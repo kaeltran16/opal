@@ -1,14 +1,14 @@
 [Unit]
-Description=Loop Pal LLM proxy
+Description=opal-api backend
 After=network.target
 
 [Service]
 Type=simple
-WorkingDirectory=/opt/loop-pal
-EnvironmentFile=/opt/loop-pal/.env
+WorkingDirectory=/opt/opal-api
+EnvironmentFile=/opt/opal-api/.env
 ExecStart=/usr/bin/node dist/server.js
 Restart=on-failure
-User=loop
+User=opal
 
 [Install]
 WantedBy=multi-user.target

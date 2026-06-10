@@ -1,4 +1,5 @@
-# Replace pal.example.com with your droplet's domain. Caddy auto-provisions TLS.
-pal.example.com {
+# Production site for the opal-api backend. Caddy auto-provisions TLS via
+# Let's Encrypt (requires opal.kael.life to resolve to this host, DNS-only).
+opal.kael.life {
     reverse_proxy 127.0.0.1:8080
 }
