@@ -3,11 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:loop/controllers/providers.dart';
-import 'package:loop/controllers/routine_editor_controller.dart';
-import 'package:loop/data/db/database.dart';
-import 'package:loop/data/seed/seeder.dart';
-import 'package:loop/models/models.dart';
+import 'package:opal/controllers/providers.dart';
+import 'package:opal/controllers/routine_editor_controller.dart';
+import 'package:opal/data/db/database.dart';
+import 'package:opal/data/seed/seeder.dart';
+import 'package:opal/models/models.dart';
 
 /// Builds a ProviderContainer with the standard in-memory overrides used
 /// across the suite.

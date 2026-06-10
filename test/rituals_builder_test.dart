@@ -2,11 +2,11 @@ import 'package:drift/native.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:loop/controllers/providers.dart';
-import 'package:loop/controllers/rituals_builder_controller.dart';
-import 'package:loop/data/db/database.dart';
-import 'package:loop/data/repositories/repositories.dart';
-import 'package:loop/models/models.dart';
+import 'package:opal/controllers/providers.dart';
+import 'package:opal/controllers/rituals_builder_controller.dart';
+import 'package:opal/data/db/database.dart';
+import 'package:opal/data/repositories/repositories.dart';
+import 'package:opal/models/models.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {

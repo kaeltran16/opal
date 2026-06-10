@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:loop/controllers/providers.dart';
-import 'package:loop/services/services.dart';
+import 'package:opal/controllers/providers.dart';
+import 'package:opal/services/services.dart';
 
 void main() {
   test('palServiceProvider defaults to MockPalService when PAL_BASE_URL is unset', () {

@@ -1,11 +1,11 @@
 {
-    "name": "loop",
-    "short_name": "loop",
+    "name": "Opal",
+    "short_name": "Opal",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "Opal — money, movement, and the little rituals that hold your day together.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

@@ -3,14 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:loop/controllers/providers.dart';
-import 'package:loop/data/db/database.dart';
-import 'package:loop/data/repositories/routine_repository.dart';
-import 'package:loop/data/seed/seeder.dart';
-import 'package:loop/models/models.dart';
-import 'package:loop/screens/library/exercise_library_screen.dart';
-import 'package:loop/theme/app_colors.dart';
-import 'package:loop/widgets/inset_section.dart';
+import 'package:opal/controllers/providers.dart';
+import 'package:opal/data/db/database.dart';
+import 'package:opal/data/repositories/routine_repository.dart';
+import 'package:opal/data/seed/seeder.dart';
+import 'package:opal/models/models.dart';
+import 'package:opal/screens/library/exercise_library_screen.dart';
+import 'package:opal/theme/app_colors.dart';
+import 'package:opal/widgets/inset_section.dart';
 
 /// Pumps the Exercise Library wrapped in a MaterialApp carrying the AppColors
 /// ThemeExtension (so `context.colors` resolves) + a ProviderScope whose DB is

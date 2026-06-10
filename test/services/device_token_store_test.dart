@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:loop/services/pal/device_token_store.dart';
+import 'package:opal/services/pal/device_token_store.dart';
 
 class _FakeSecureStore implements TokenSecureStore {
   final Map<String, String> _m = {};

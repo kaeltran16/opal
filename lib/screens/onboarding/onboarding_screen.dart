@@ -261,7 +261,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         1 => 'Set a daily\nbudget',
         2 => 'Pick a\nmove goal',
         3 => 'Choose your\nrituals',
-        _ => 'Welcome to\nExpensePal',
+        _ => 'Welcome to\nOpal',
       };
 
   String _body(int step) => switch (step) {

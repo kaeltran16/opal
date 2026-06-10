@@ -3,14 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:loop/controllers/providers.dart';
-import 'package:loop/data/db/database.dart';
-import 'package:loop/data/repositories/repositories.dart';
-import 'package:loop/models/models.dart';
-import 'package:loop/router.dart';
-import 'package:loop/services/services.dart';
-import 'package:loop/theme/app_colors.dart';
-import 'package:loop/widgets/controls.dart';
+import 'package:opal/controllers/providers.dart';
+import 'package:opal/data/db/database.dart';
+import 'package:opal/data/repositories/repositories.dart';
+import 'package:opal/models/models.dart';
+import 'package:opal/router.dart';
+import 'package:opal/services/services.dart';
+import 'package:opal/theme/app_colors.dart';
+import 'package:opal/widgets/controls.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// A [HapticsService] that records how many times each method was called, so the

@@ -1,6 +1,6 @@
-# loop
+# Opal
 
-A new Flutter project.
+One app for money, movement, and the little rituals that hold your day together.
 
 ## Getting Started
 

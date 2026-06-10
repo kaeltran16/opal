@@ -2,8 +2,8 @@ import 'package:flutter/material.dart' show Brightness;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:loop/data/repositories/settings_repository.dart';
-import 'package:loop/theme/app_colors.dart';
+import 'package:opal/data/repositories/settings_repository.dart';
+import 'package:opal/theme/app_colors.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

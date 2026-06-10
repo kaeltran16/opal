@@ -4,13 +4,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 
-import 'package:loop/controllers/post_workout_controller.dart';
-import 'package:loop/controllers/providers.dart';
-import 'package:loop/data/db/database.dart';
-import 'package:loop/data/seed/seeder.dart';
-import 'package:loop/models/models.dart';
-import 'package:loop/screens/workout/post_workout_screen.dart';
-import 'package:loop/theme/app_colors.dart';
+import 'package:opal/controllers/post_workout_controller.dart';
+import 'package:opal/controllers/providers.dart';
+import 'package:opal/data/db/database.dart';
+import 'package:opal/data/seed/seeder.dart';
+import 'package:opal/models/models.dart';
+import 'package:opal/screens/workout/post_workout_screen.dart';
+import 'package:opal/theme/app_colors.dart';
 
 void main() {
   // ---------------------------------------------------------------------------

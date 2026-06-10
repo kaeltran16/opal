@@ -227,7 +227,7 @@ class _ProfileBody extends StatelessWidget {
               icon: 'gearshape.fill',
               iconBg: c.ink3,
               title: 'About',
-              value: 'Loop 1.0',
+              value: 'Opal 1.0',
               chevron: false,
               last: true,
               // TODO: About screen (later unit).

@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:loop/models/models.dart';
+import 'package:opal/models/models.dart';
 
 void main() {
   group('Entry', () {

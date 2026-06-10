@@ -4,14 +4,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:loop/controllers/profile_controller.dart';
-import 'package:loop/controllers/providers.dart';
-import 'package:loop/data/db/database.dart';
-import 'package:loop/data/repositories/repositories.dart';
-import 'package:loop/models/models.dart';
-import 'package:loop/router.dart';
-import 'package:loop/theme/app_colors.dart';
-import 'package:loop/widgets/inset_section.dart';
+import 'package:opal/controllers/profile_controller.dart';
+import 'package:opal/controllers/providers.dart';
+import 'package:opal/data/db/database.dart';
+import 'package:opal/data/repositories/repositories.dart';
+import 'package:opal/models/models.dart';
+import 'package:opal/router.dart';
+import 'package:opal/theme/app_colors.dart';
+import 'package:opal/widgets/inset_section.dart';
 
 /// A timestamp this year at [month]/[day] so the entries land in the year-stats
 /// window the profile screen aggregates over.

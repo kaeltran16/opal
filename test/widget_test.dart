@@ -3,10 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:loop/app.dart';
-import 'package:loop/controllers/providers.dart';
-import 'package:loop/data/db/database.dart';
-import 'package:loop/data/seed/seeder.dart';
+import 'package:opal/app.dart';
+import 'package:opal/controllers/providers.dart';
+import 'package:opal/data/db/database.dart';
+import 'package:opal/data/seed/seeder.dart';
 
 void main() {
   testWidgets('App root boots to the Today tab on seeded data',

@@ -1,9 +1,9 @@
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:loop/data/db/database.dart';
-import 'package:loop/data/repositories/repositories.dart';
-import 'package:loop/data/seed/seeder.dart';
-import 'package:loop/models/models.dart';
+import 'package:opal/data/db/database.dart';
+import 'package:opal/data/repositories/repositories.dart';
+import 'package:opal/data/seed/seeder.dart';
+import 'package:opal/models/models.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

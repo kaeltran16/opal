@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:loop/controllers/workout_session.dart';
-import 'package:loop/models/models.dart';
+import 'package:opal/controllers/workout_session.dart';
+import 'package:opal/models/models.dart';
 
 /// Two-exercise routine: bench (3 sets @ 50×6), row (2 sets @ 40×8), rest 90s.
 Routine _routine() => Routine(

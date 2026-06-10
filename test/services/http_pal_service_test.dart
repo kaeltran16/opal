@@ -2,8 +2,8 @@ import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
-import 'package:loop/models/models.dart';
-import 'package:loop/services/pal/http_pal_service.dart';
+import 'package:opal/models/models.dart';
+import 'package:opal/services/pal/http_pal_service.dart';
 
 void main() {
   // A token store stub that hands back a fixed token and counts clears.

@@ -3,10 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 
-import 'package:loop/controllers/providers.dart';
-import 'package:loop/screens/pal/ask_pal_screen.dart';
-import 'package:loop/services/services.dart';
-import 'package:loop/theme/app_colors.dart';
+import 'package:opal/controllers/providers.dart';
+import 'package:opal/screens/pal/ask_pal_screen.dart';
+import 'package:opal/services/services.dart';
+import 'package:opal/theme/app_colors.dart';
 
 /// Pumps [AskPalScreen] inside a ProviderScope + GoRouter (so `context.pop()`
 /// resolves) with a fast, seeded [MockPalService] so the reply is deterministic.

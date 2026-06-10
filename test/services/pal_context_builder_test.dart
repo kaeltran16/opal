@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:loop/models/models.dart';
-import 'package:loop/services/pal/pal_context_builder.dart';
+import 'package:opal/models/models.dart';
+import 'package:opal/services/pal/pal_context_builder.dart';
 
 void main() {
   final goals = const Goals(dailyBudget: 60, dailyMoveMinutes: 30, dailyRitualTarget: 5);

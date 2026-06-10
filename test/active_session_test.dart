@@ -4,12 +4,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 
-import 'package:loop/controllers/providers.dart';
-import 'package:loop/data/db/database.dart';
-import 'package:loop/data/seed/seeder.dart';
-import 'package:loop/screens/workout/active_session_screen.dart';
-import 'package:loop/services/services.dart';
-import 'package:loop/theme/app_colors.dart';
+import 'package:opal/controllers/providers.dart';
+import 'package:opal/data/db/database.dart';
+import 'package:opal/data/seed/seeder.dart';
+import 'package:opal/screens/workout/active_session_screen.dart';
+import 'package:opal/services/services.dart';
+import 'package:opal/theme/app_colors.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Records haptic calls so the wiring (medium @10s, success @0s) is observable.

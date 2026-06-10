@@ -26,7 +26,7 @@ class _LoopAppState extends ConsumerState<LoopApp> {
   Widget build(BuildContext context) {
     final settings = ref.watch(appSettingsControllerProvider);
     return MaterialApp.router(
-      title: 'Loop',
+      title: 'Opal',
       debugShowCheckedModeBanner: false,
       theme: _buildTheme(settings.brightness, settings.accent),
       routerConfig: _router,

@@ -3,14 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:loop/controllers/monthly_review_controller.dart';
-import 'package:loop/controllers/providers.dart';
-import 'package:loop/data/db/database.dart';
-import 'package:loop/data/repositories/repositories.dart';
-import 'package:loop/models/models.dart';
-import 'package:loop/screens/review/monthly_review_screen.dart';
-import 'package:loop/services/pal/pal_service.dart';
-import 'package:loop/theme/app_colors.dart';
+import 'package:opal/controllers/monthly_review_controller.dart';
+import 'package:opal/controllers/providers.dart';
+import 'package:opal/data/db/database.dart';
+import 'package:opal/data/repositories/repositories.dart';
+import 'package:opal/models/models.dart';
+import 'package:opal/screens/review/monthly_review_screen.dart';
+import 'package:opal/services/pal/pal_service.dart';
+import 'package:opal/theme/app_colors.dart';
 
 /// A timestamp on the [day]th of the current month at [hour]:00.
 DateTime _thisMonthAt(int day, int hour) {

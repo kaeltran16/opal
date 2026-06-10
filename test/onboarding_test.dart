@@ -2,12 +2,12 @@ import 'package:drift/native.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:loop/app.dart';
-import 'package:loop/controllers/providers.dart';
-import 'package:loop/data/db/database.dart';
-import 'package:loop/data/repositories/repositories.dart';
-import 'package:loop/screens/onboarding/onboarding_screen.dart';
-import 'package:loop/screens/today/today_screen.dart';
+import 'package:opal/app.dart';
+import 'package:opal/controllers/providers.dart';
+import 'package:opal/data/db/database.dart';
+import 'package:opal/data/repositories/repositories.dart';
+import 'package:opal/screens/onboarding/onboarding_screen.dart';
+import 'package:opal/screens/today/today_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Boots [LoopApp] with an in-memory DB + mock prefs. [onboardingComplete]
@@ -43,7 +43,7 @@ void main() {
 
     expect(find.byType(OnboardingScreen), findsOneWidget);
     expect(find.byType(TodayScreen), findsNothing);
-    expect(find.text('Welcome to\nExpensePal'), findsOneWidget);
+    expect(find.text('Welcome to\nOpal'), findsOneWidget);
   });
 
   testWidgets('with onboardingComplete=true the gate redirects to Today',
