@@ -1,0 +1,23 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "opal (mock backend)",
+      "request": "launch",
+      "type": "dart"
+    },
+    {
+      "name": "opal (prod backend)",
+      "request": "launch",
+      "type": "dart",
+      "toolArgs": ["--dart-define-from-file=dart_defines/prod.json"]
+    },
+    {
+      "name": "opal (prod backend, profile)",
+      "request": "launch",
+      "type": "dart",
+      "flutterMode": "profile",
+      "toolArgs": ["--dart-define-from-file=dart_defines/prod.json"]
+    }
+  ]
+}

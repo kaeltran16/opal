@@ -43,3 +43,7 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Backend dart-define secrets: real values are local-only; only *.example.json is tracked
+/dart_defines/*.json
+!/dart_defines/*.example.json

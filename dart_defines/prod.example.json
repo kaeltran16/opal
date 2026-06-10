@@ -1,0 +1,4 @@
+{
+  "PAL_BASE_URL": "https://opal.kael.life",
+  "PAL_PROVISIONING_KEY": "<same value as the droplet /opt/opal-api/.env PAL_PROVISIONING_KEY>"
+}
