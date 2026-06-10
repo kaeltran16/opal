@@ -1,9 +1,19 @@
-# Loop Pal proxy (U22)
+# Loop Pal proxy (U22) + email IMAP worker (U24)
 
-Stateless LLM proxy for the Loop app's `PalService`. Forwards to **OpenRouter**
-(OpenAI-compatible chat completions) with the handoff prompts. Per-device bearer
-tokens (SQLite) gate the endpoints. See
-`docs/superpowers/specs/2026-06-10-backend-llm-proxy-design.md`.
+Stateless backend for the Loop app. Two concerns:
+
+- **Pal LLM proxy** — forwards to **OpenRouter** (OpenAI-compatible chat
+  completions) with the handoff prompts (`PalService`). See
+  `docs/superpowers/specs/2026-06-10-backend-llm-proxy-design.md`.
+- **Email receipt import** — a live IMAP scan + LLM receipt extraction
+  (`EmailSyncService`). **Pull model**: the client holds the IMAP app-password in
+  the device keychain and sends it per request; the server stores **no
+  credentials and no email state** (dedup is the client's job, by `sourceRef`).
+  Sender filtering + Message-ID dedup are deterministic; field extraction is the
+  model. A scheduled background scan + APNs push is intentionally **out of
+  scope** here (device/Mac-gated, like the native HealthKit work).
+
+Per-device bearer tokens (SQLite) gate every `/v1/*` endpoint except `/v1/register`.
 
 The model is configurable via `PAL_MODEL` (any OpenRouter slug). The default is a
 cheap, fast model; `/parse` and `/suggest-workout` ask the model for JSON and the
@@ -55,3 +65,17 @@ Without `PAL_BASE_URL` the app stays on `MockPalService`.
 
 `POST /v1/{chat,parse,review,suggest-workout,post-workout-note}` (Bearer token),
 `POST /v1/register` (provisioning key → token), `GET /healthz`.
+
+**Email (Bearer token):**
+
+- `POST /v1/email/test` — `{ host, port, address, appPassword }` → `{ ok }`.
+  Verifies the IMAP login. A rejected app-password returns `{ ok: false }` (not an error).
+- `POST /v1/email/sync` — `{ host, port, address, appPassword, senderFilters[], since }`
+  (`since` = epoch ms of the client's last sync, or `null` for a default 7-day
+  window) → `{ items: [{ id, merchant, amount, receivedAt, category }] }`.
+  `amount` is negative (expense); `id` is the email Message-ID. A bad
+  app-password mid-sync returns **422** (distinct from the bearer-token **401**,
+  which the client retries by re-registering).
+
+Email creds are never persisted server-side; the same `OPENROUTER_API_KEY`
+powers receipt extraction.

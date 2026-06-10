@@ -3,15 +3,21 @@ import rateLimit from '@fastify/rate-limit'
 import { z } from 'zod'
 import { extractBearer } from './auth.js'
 import { OpenRouterError, type Pal } from './pal.js'
+import { ImapAuthError, type ImapCreds } from './imap.js'
+import type { EmailWorker } from './email.js'
 import type { TokenStore } from './store.js'
-import { registerBody, chatBody, parseBody, reviewBody, suggestBody, postWorkoutBody } from './schemas.js'
+import { registerBody, chatBody, parseBody, reviewBody, suggestBody, postWorkoutBody, emailTestBody, emailSyncBody } from './schemas.js'
 
 export interface AppDeps {
   pal: Pal
+  worker: EmailWorker
   store: TokenStore
   provisioningKey: string
   corsOrigins: string[]
 }
+
+// first-sync window when the client has no prior sync time
+const DEFAULT_SYNC_WINDOW_MS = 7 * 24 * 60 * 60 * 1000
 
 export function buildApp(deps: AppDeps): FastifyInstance {
   const app = Fastify({ logger: false })
@@ -67,6 +73,42 @@ export function buildApp(deps: AppDeps): FastifyInstance {
   app.post('/v1/review', guard(reviewBody, async (b) => ({ text: await deps.pal.review(b.context) })))
   app.post('/v1/suggest-workout', guard(suggestBody, async (b) => deps.pal.suggestWorkout(b.another, b.context)))
   app.post('/v1/post-workout-note', guard(postWorkoutBody, async (b) => ({ note: await deps.pal.postWorkoutNote(b.context) })))
+
+  // Email routes map IMAP auth failures to 401 (bad app-password) vs. 502 (LLM/IMAP transport).
+  const emailGuard = <T>(schema: z.ZodType<T>, handler: (body: T) => Promise<unknown>) =>
+    async (req: FastifyRequest, reply: FastifyReply) => {
+      const parsed = schema.safeParse(req.body)
+      if (!parsed.success) return reply.code(400).send({ error: { code: 'bad_request', message: 'invalid body' } })
+      try {
+        return await handler(parsed.data)
+      } catch (err) {
+        // 422 (not 401) so it never collides with the bearer-token 401 the client retries.
+        if (err instanceof ImapAuthError) {
+          return reply.code(422).send({ error: { code: 'imap_auth', message: 'imap authentication failed' } })
+        }
+        const status = err instanceof OpenRouterError ? 502 : 500
+        req.log?.error?.(err)
+        return reply.code(status).send({ error: { code: 'upstream', message: 'email sync failed' } })
+      }
+    }
+
+  const credsOf = (b: { host: string; port: number; address: string; appPassword: string }): ImapCreds =>
+    ({ host: b.host, port: b.port, address: b.address, appPassword: b.appPassword })
+
+  app.post('/v1/email/test', emailGuard(emailTestBody, async (b) => {
+    try {
+      await deps.worker.test(credsOf(b))
+      return { ok: true }
+    } catch (err) {
+      if (err instanceof ImapAuthError) return { ok: false } // expected outcome, not an error
+      throw err
+    }
+  }))
+
+  app.post('/v1/email/sync', emailGuard(emailSyncBody, async (b) => {
+    const since = new Date(b.since ?? Date.now() - DEFAULT_SYNC_WINDOW_MS)
+    return { items: await deps.worker.sync(credsOf(b), b.senderFilters ?? [], since) }
+  }))
 
   return app
 }

@@ -7,6 +7,7 @@ library;
 
 export 'email/email_sync_service.dart';
 export 'email/mock_email_sync_service.dart';
+export 'email/real_email_sync_service.dart';
 export 'haptics/haptics_service.dart';
 export 'haptics/platform_haptics_service.dart';
 export 'health/health_kit_service.dart';

@@ -66,6 +66,34 @@ class EmailAccount {
     );
   }
 
+  /// Serialise for local persistence (the password is never included — only
+  /// [appPasswordRef], the secure-storage key). Used by `RealEmailSyncService`
+  /// to survive app restarts.
+  Map<String, Object?> toJson() => {
+        'address': address,
+        'provider': provider.wire,
+        'appPasswordRef': appPasswordRef,
+        'imapHost': imapHost,
+        'imapPort': imapPort,
+        'lastSyncedAt': lastSyncedAt?.toIso8601String(),
+        'autoSyncInterval': autoSyncInterval,
+        'senderFilters': senderFilters,
+      };
+
+  factory EmailAccount.fromJson(Map<String, Object?> json) => EmailAccount(
+        address: json['address']! as String,
+        provider: Provider.fromWire(json['provider']! as String),
+        appPasswordRef: json['appPasswordRef']! as String,
+        imapHost: json['imapHost'] as String? ?? 'imap.gmail.com',
+        imapPort: (json['imapPort'] as num?)?.toInt() ?? 993,
+        lastSyncedAt: json['lastSyncedAt'] == null
+            ? null
+            : DateTime.parse(json['lastSyncedAt']! as String),
+        autoSyncInterval: (json['autoSyncInterval'] as num?)?.toInt() ?? 15,
+        senderFilters:
+            (json['senderFilters'] as List?)?.cast<String>() ?? const [],
+      );
+
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||

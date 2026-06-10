@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { buildApp } from './app.js'
+import { ImapAuthError } from './imap.js'
 import { TokenStore } from './store.js'
 
 function fakePal() {
@@ -12,13 +13,28 @@ function fakePal() {
   }
 }
 
+function fakeWorker(overrides: Partial<{ test: () => Promise<void>; sync: () => Promise<unknown[]> }> = {}) {
+  return {
+    test: overrides.test ?? (async () => {}),
+    sync:
+      overrides.sync ??
+      (async () => [
+        { id: 'msg-1', merchant: 'Amazon', amount: -42.99, receivedAt: '2026-06-09T10:00:00.000Z', category: 'Shopping' },
+      ]),
+  }
+}
+
 describe('app', () => {
   let app: ReturnType<typeof buildApp>
   let store: TokenStore
 
-  beforeEach(async () => {
+  function build(worker = fakeWorker()) {
     store = new TokenStore(':memory:')
-    app = buildApp({ pal: fakePal() as never, store, provisioningKey: 'secret', corsOrigins: [] })
+    return buildApp({ pal: fakePal() as never, worker: worker as never, store, provisioningKey: 'secret', corsOrigins: [] })
+  }
+
+  beforeEach(async () => {
+    app = build()
     await app.ready()
   })
 
@@ -78,5 +94,59 @@ describe('app', () => {
     })
     expect(res.statusCode).toBe(200)
     expect(res.json().reply).toBe('reply text')
+  })
+
+  const creds = { host: 'imap.gmail.com', port: 993, address: 'a@b.com', appPassword: 'pw' }
+
+  it('rejects email routes without a valid token', async () => {
+    const res = await app.inject({ method: 'POST', url: '/v1/email/sync', payload: creds })
+    expect(res.statusCode).toBe(401)
+  })
+
+  it('email/test returns ok:true on a good connection', async () => {
+    const token = store.issue('d1')
+    const res = await app.inject({
+      method: 'POST', url: '/v1/email/test',
+      headers: { authorization: `Bearer ${token}` }, payload: creds,
+    })
+    expect(res.statusCode).toBe(200)
+    expect(res.json().ok).toBe(true)
+  })
+
+  it('email/test returns ok:false on a bad app-password (no 5xx)', async () => {
+    app = build(fakeWorker({ test: async () => { throw new ImapAuthError('nope') } }))
+    await app.ready()
+    const token = store.issue('d1')
+    const res = await app.inject({
+      method: 'POST', url: '/v1/email/test',
+      headers: { authorization: `Bearer ${token}` }, payload: creds,
+    })
+    expect(res.statusCode).toBe(200)
+    expect(res.json().ok).toBe(false)
+  })
+
+  it('email/sync returns parsed receipt items', async () => {
+    const token = store.issue('d1')
+    const res = await app.inject({
+      method: 'POST', url: '/v1/email/sync',
+      headers: { authorization: `Bearer ${token}` },
+      payload: { ...creds, senderFilters: [], since: null },
+    })
+    expect(res.statusCode).toBe(200)
+    const items = res.json().items as Array<{ merchant: string; amount: number }>
+    expect(items).toHaveLength(1)
+    expect(items[0].merchant).toBe('Amazon')
+    expect(items[0].amount).toBeLessThan(0)
+  })
+
+  it('email/sync maps an IMAP auth failure to 422 (distinct from the bearer 401)', async () => {
+    app = build(fakeWorker({ sync: async () => { throw new ImapAuthError('nope') } }))
+    await app.ready()
+    const token = store.issue('d1')
+    const res = await app.inject({
+      method: 'POST', url: '/v1/email/sync',
+      headers: { authorization: `Bearer ${token}` }, payload: creds,
+    })
+    expect(res.statusCode).toBe(422)
   })
 })

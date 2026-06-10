@@ -118,10 +118,12 @@ class EmailDashboardController extends _$EmailDashboardController {
   }
 
   /// Runs a sync; the staged [SyncStatus] is emitted via the service's stream
-  /// (read through [syncStatusProvider]). On completion, the returned imports
-  /// replace the list and the last-sync time advances.
+  /// (read through [syncStatusProvider]). On completion the returned imports are
+  /// materialised as timeline [Entry]s (deduped by `sourceRef` so re-syncs don't
+  /// double-import), the imports list updates, and the last-sync time advances.
   Future<void> syncNow() async {
     final items = await ref.read(emailSyncServiceProvider).syncNow();
+    await _persistImports(items);
     final service = ref.read(emailSyncServiceProvider);
     state = state.copyWith(
       imports: items,
@@ -129,6 +131,17 @@ class EmailDashboardController extends _$EmailDashboardController {
       lastSyncAt: DateTime.now(),
     );
     await ref.read(hapticsServiceProvider).success(); // sync complete
+  }
+
+  /// Writes each import as a money [Entry] (`source: email`), skipping any whose
+  /// message-id was already imported. This is the "push structured entries back"
+  /// step — without it, synced receipts never reach Today/Spending.
+  Future<void> _persistImports(List<EmailImportItem> items) async {
+    final entries = ref.read(entryRepositoryProvider);
+    for (final item in items) {
+      if (await entries.existsBySourceRef(item.id)) continue;
+      await entries.insert(item.toEntry());
+    }
   }
 
   /// Removes the account (service emits [SyncStatus.idle]) and clears state.

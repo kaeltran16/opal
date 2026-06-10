@@ -238,9 +238,29 @@ HealthService healthService(Ref ref) {
   return MockHealthService();
 }
 
+/// Real IMAP-backed sync (U24) when `PAL_BASE_URL` is set; [MockEmailSyncService]
+/// otherwise (tests, backend-less preview). Shares the proxy's http client +
+/// device-token store with [palService].
 @Riverpod(keepAlive: true)
 EmailSyncService emailSyncService(Ref ref) {
-  final service = MockEmailSyncService();
+  if (_palBaseUrl.isEmpty) {
+    final service = MockEmailSyncService();
+    ref.onDispose(service.dispose);
+    return service;
+  }
+
+  final httpClient = _HttpClientHolder.instance;
+  final tokens = TokenProvider(
+    token: () => _deviceTokens(httpClient).token(),
+    clear: () => _deviceTokens(httpClient).clear(),
+  );
+  final service = RealEmailSyncService(
+    baseUrl: _palBaseUrl,
+    httpClient: httpClient,
+    tokens: tokens,
+    secure: const FlutterTokenSecureStore(),
+    prefs: ref.watch(sharedPreferencesProvider),
+  );
   ref.onDispose(service.dispose);
   return service;
 }

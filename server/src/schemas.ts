@@ -49,3 +49,17 @@ export const postWorkoutContext = z.object({
   prExercises: z.array(z.string()), lastSessionVolumeKg: z.number().nullable(), daysAgoLastSession: z.number().nullable(),
 })
 export const postWorkoutBody = z.object({ context: postWorkoutContext })
+
+const imapCreds = {
+  host: z.string().min(1),
+  port: z.number().int().positive(),
+  address: z.string().min(1),
+  appPassword: z.string().min(1),
+}
+export const emailTestBody = z.object(imapCreds)
+export const emailSyncBody = z.object({
+  ...imapCreds,
+  senderFilters: z.array(z.string()).default([]),
+  // epoch ms of the client's last sync; null = first sync (default window applied server-side)
+  since: z.number().nullable().default(null),
+})

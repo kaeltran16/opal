@@ -1,17 +1,56 @@
+import 'dart:async';
+
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart' hide Provider;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:opal/controllers/email_sync_controller.dart';
 import 'package:opal/controllers/providers.dart';
 import 'package:opal/data/db/database.dart';
+import 'package:opal/data/repositories/repositories.dart';
+import 'package:opal/models/models.dart';
 import 'package:opal/screens/email/email_intro_screen.dart';
 import 'package:opal/screens/email/email_nav.dart';
 import 'package:opal/screens/email/email_setup_screen.dart';
 import 'package:opal/services/services.dart';
 import 'package:opal/theme/app_colors.dart';
+
+/// A no-op [HapticsService] for container-only controller tests.
+class _NoHaptics implements HapticsService {
+  @override
+  Future<void> light() async {}
+  @override
+  Future<void> medium() async {}
+  @override
+  Future<void> success() async {}
+}
+
+/// Returns a fixed import list on every [syncNow] so the dedup-on-re-sync path
+/// is exercised. Other members are inert.
+class _StubSyncService implements EmailSyncService {
+  _StubSyncService(this._items);
+  final List<EmailImportItem> _items;
+  final _controller = StreamController<SyncStatus>.broadcast();
+
+  @override
+  Stream<SyncStatus> get status => _controller.stream;
+  @override
+  bool get isConnected => true;
+  @override
+  EmailAccount? get account => const EmailAccount(
+      address: 'me@gmail.com', provider: Provider.gmail, appPasswordRef: '');
+  @override
+  Future<bool> testConnection(EmailAccount a, String p) async => true;
+  @override
+  Future<void> connect(EmailAccount a, String p) async {}
+  @override
+  Future<List<EmailImportItem>> syncNow() async => _items;
+  @override
+  Future<void> disconnect() async {}
+}
 
 /// Pumps a screen inside a minimal GoRouter + ProviderScope harness with the
 /// standard overrides (db, prefs, the real mock email service). Uses a local
@@ -124,5 +163,52 @@ void main() {
     expect(tester.takeException(), isNull);
     expect(find.text('Gmail setup'), findsOneWidget);
     expect(find.byType(TextField), findsWidgets);
+  });
+
+  // --- Container: syncNow materialises imports as Entries, deduped by ref -----
+  test('Dashboard syncNow writes imports as Entries and dedupes on re-sync',
+      () async {
+    final db = LoopDatabase.forTesting(NativeDatabase.memory());
+    addTearDown(db.close);
+
+    final items = [
+      EmailImportItem(
+          id: 'msg-1',
+          merchant: 'Amazon',
+          amount: -42.99,
+          receivedAt: DateTime(2026, 6, 9, 10),
+          category: 'Shopping'),
+      EmailImportItem(
+          id: 'msg-2',
+          merchant: 'Uber',
+          amount: -18.40,
+          receivedAt: DateTime(2026, 6, 9, 5),
+          category: 'Transport'),
+    ];
+
+    final container = ProviderContainer(overrides: [
+      loopDatabaseProvider.overrideWithValue(db),
+      emailSyncServiceProvider.overrideWithValue(_StubSyncService(items)),
+      hapticsServiceProvider.overrideWithValue(_NoHaptics()),
+    ]);
+    addTearDown(container.dispose);
+    // pin the autoDispose controller so it survives the awaits below
+    container.listen(emailDashboardControllerProvider, (_, _) {});
+
+    final dash = container.read(emailDashboardControllerProvider.notifier);
+    final entries = EntryRepository(db);
+
+    await dash.syncNow();
+    var all = await entries.getAll();
+    expect(all, hasLength(2));
+    final amazon = all.firstWhere((e) => e.title == 'Amazon');
+    expect(amazon.type, EntryType.money);
+    expect(amazon.source, EntrySource.email);
+    expect(amazon.sourceRef, 'msg-1');
+
+    // Re-syncing the same message-ids must not create duplicate entries.
+    await dash.syncNow();
+    all = await entries.getAll();
+    expect(all, hasLength(2));
   });
 }

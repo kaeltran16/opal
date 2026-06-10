@@ -55,6 +55,16 @@ class EntryRepository {
     return id;
   }
 
+  /// Whether an entry with this [sourceRef] already exists. Used to dedup
+  /// email imports (`sourceRef` = the email message-id) so re-syncs don't
+  /// re-import the same receipt.
+  Future<bool> existsBySourceRef(String sourceRef) async {
+    final q = _db.select(_db.entries)
+      ..where((t) => t.sourceRef.equals(sourceRef))
+      ..limit(1);
+    return (await q.get()).isNotEmpty;
+  }
+
   /// Upserts [entry] (insert or replace by id).
   Future<void> upsert(Entry entry) =>
       _db.into(_db.entries).insertOnConflictUpdate(entry.toCompanion());
