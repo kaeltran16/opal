@@ -29,7 +29,7 @@ class QuickActionsOverlay extends StatelessWidget {
     _ActionSpec('Log expense', 'dollarsign.circle.fill', 'money'),
     _ActionSpec('Log workout', 'dumbbell.fill', 'move'),
     _ActionSpec('Start workout', 'figure.run', 'move'),
-    _ActionSpec('Complete ritual', 'sparkles', 'rituals'),
+    _ActionSpec('Complete routine', 'sparkles', 'rituals'),
     _ActionSpec('Ask Pal', 'heart.fill', 'accent'),
     _ActionSpec('Voice entry', 'paperplane.fill', 'accent'),
   ];
@@ -52,8 +52,8 @@ class QuickActionsOverlay extends StatelessWidget {
             queryParameters: {'kind': 'workout'});
       case 'Start workout':
         context.pushNamed(AppRoute.startWorkout.name); // U12 -> /move/start
-      case 'Complete ritual':
-        context.goNamed(AppRoute.rituals.name); // switch to the Rituals tab
+      case 'Complete routine':
+        context.goNamed(AppRoute.rituals.name); // switch to the Routines tab
       case 'Voice entry':
         // Voice/NL capture lands on Ask Pal until a dedicated capture exists.
         context.pushNamed(AppRoute.askPal.name);

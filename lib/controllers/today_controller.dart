@@ -15,24 +15,21 @@ class TimelineBucket {
 }
 
 /// The fully-computed Today view model: ring fractions, the three summary-tile
-/// values, and the timeline buckets — all derived from live repository +
-/// health data. The screen is dumb; all math lives here so it is testable.
+/// values, and the timeline buckets — all derived from live repository data.
+/// The screen is dumb; all math lives here so it is testable.
 class TodayState {
   const TodayState({
     required this.entries,
     required this.goals,
-    required this.moveMinutes,
-    required this.activeEnergyKcal,
-    this.avgHeartRate,
   });
 
   final List<Entry> entries;
   final Goals goals;
 
-  /// From HealthService (move-minutes for the day).
-  final int moveMinutes;
-  final int activeEnergyKcal;
-  final int? avgHeartRate;
+  /// Move-minutes for the day: sum of the duration of logged move entries.
+  int get moveMinutes => entries
+      .where((e) => e.type == EntryType.move)
+      .fold<int>(0, (s, e) => s + (e.duration ?? 0));
 
   /// Total spent today (absolute value of expense amounts).
   double get moneySpent => entries
@@ -73,27 +70,22 @@ class TodayState {
   }
 }
 
-/// Streams the Today view model: combines the live entries + goals streams with
-/// the day's health sample. Re-emits whenever the DB changes.
+/// The live goals row (defaults until set). Watched by [todayState] so a
+/// goals-only edit (budget/targets in Settings) re-emits Today on its own.
+@riverpod
+Stream<Goals> goalsStream(Ref ref) =>
+    ref.watch(goalsRepositoryProvider).watchGoals();
+
+/// Streams the Today view model from the live entries + goals streams.
+/// Re-emits whenever either changes: the entries `await for` drives entry
+/// edits, and watching [goalsStreamProvider] rebuilds this provider on a
+/// goals-only edit.
 @riverpod
 Stream<TodayState> todayState(Ref ref) async* {
   final entriesRepo = ref.watch(entryRepositoryProvider);
-  final goalsRepo = ref.watch(goalsRepositoryProvider);
-  final health = ref.watch(healthServiceProvider);
+  final goals = ref.watch(goalsStreamProvider).asData?.value ?? const Goals();
 
-  final sample = await health.todaySample();
-
-  // Drive off the live entries stream; re-read goals each tick (single row,
-  // cheap) so budget/target edits show up immediately. GoalsRepository.get()
-  // already falls back to Goals() defaults when unset.
   await for (final entries in entriesRepo.watchToday()) {
-    final goals = await goalsRepo.get();
-    yield TodayState(
-      entries: entries,
-      goals: goals,
-      moveMinutes: sample.moveMinutes,
-      activeEnergyKcal: sample.activeEnergyKcal,
-      avgHeartRate: sample.avgHeartRate,
-    );
+    yield TodayState(entries: entries, goals: goals);
   }
 }

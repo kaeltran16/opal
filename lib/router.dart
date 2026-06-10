@@ -8,8 +8,6 @@ import 'screens/email/email_intro_screen.dart';
 import 'screens/email/email_setup_screen.dart';
 import 'screens/entry/new_entry_sheet.dart';
 import 'screens/library/exercise_library_screen.dart';
-import 'screens/money/bills_screen.dart';
-import 'screens/money/subscriptions_screen.dart';
 import 'screens/move/move_screen.dart';
 import 'screens/move/weekly_plan_screen.dart';
 import 'screens/onboarding/onboarding_screen.dart';
@@ -28,8 +26,8 @@ import 'screens/rituals/rituals_screen.dart';
 import 'screens/workout/routine_generator_screen.dart';
 import 'screens/settings/about_screen.dart';
 import 'screens/settings/budgets_goals_screen.dart';
+import 'screens/settings/appearance_screen.dart';
 import 'screens/settings/export_data_screen.dart';
-import 'screens/settings/health_screen.dart';
 import 'screens/settings/notifications_screen.dart';
 import 'screens/settings/privacy_screen.dart';
 import 'screens/shell/loop_shell.dart';
@@ -71,7 +69,7 @@ enum AppRoute {
   // You / Settings sub-routes (push within the You tab, tab bar stays).
   budgetsGoals('budgetsGoals', 'budgets'), //       -> /you/budgets
   notificationSettings('notificationSettings', 'notifications'), // /you/notifications
-  healthSettings('healthSettings', 'health'), //    -> /you/health
+  appearance('appearance', 'appearance'), //        -> /you/appearance
   privacy('privacy', 'privacy'), //                 -> /you/privacy
   exportData('exportData', 'export'), //            -> /you/export
   about('about', 'about'), //                       -> /you/about
@@ -93,8 +91,6 @@ enum AppRoute {
   eveningCloseOut('eveningCloseOut', '/close-out'),
   streakCelebration('streakCelebration', '/streak'),
   weeklyReview('weeklyReview', '/weekly-review'),
-  subscriptions('subscriptions', '/subscriptions'),
-  bills('bills', '/bills'),
   // Move sub-routes (nest under /move so back returns to the Move tab).
   weeklyPlan('weeklyPlan', 'weekly-plan'), //          -> /move/weekly-plan
   routineGenerator('routineGenerator', 'routine-generator'), // /move/routine-generator
@@ -259,9 +255,9 @@ GoRouter createRouter({
                     builder: (context, state) => const NotificationsScreen(),
                   ),
                   GoRoute(
-                    path: AppRoute.healthSettings.path,
-                    name: AppRoute.healthSettings.name,
-                    builder: (context, state) => const HealthSettingsScreen(),
+                    path: AppRoute.appearance.path,
+                    name: AppRoute.appearance.name,
+                    builder: (context, state) => const AppearanceScreen(),
                   ),
                   GoRoute(
                     path: AppRoute.privacy.path,
@@ -456,21 +452,6 @@ GoRouter createRouter({
         pageBuilder: (context, state) =>
             _sheetPage(state.pageKey, const WeeklyReviewScreen()),
       ),
-      GoRoute(
-        path: AppRoute.subscriptions.path,
-        name: AppRoute.subscriptions.name,
-        parentNavigatorKey: _rootNavigatorKey,
-        pageBuilder: (context, state) =>
-            _sheetPage(state.pageKey, const SubscriptionsScreen()),
-      ),
-      GoRoute(
-        path: AppRoute.bills.path,
-        name: AppRoute.bills.name,
-        parentNavigatorKey: _rootNavigatorKey,
-        pageBuilder: (context, state) =>
-            _sheetPage(state.pageKey, const BillsScreen()),
-      ),
-
       // --- U17 first-run onboarding (full-screen, above the shell) ---
       GoRoute(
         path: AppRoute.onboarding.path,

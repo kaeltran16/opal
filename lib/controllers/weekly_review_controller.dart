@@ -35,8 +35,8 @@ class WeekStat {
 /// Fixed values matching the prototype; kept here so the screen stays dumb.
 const List<WeekStat> kWeeklyReviewStats = [
   WeekStat(label: 'Spent', value: '\$435', sub: 'of \$595', colorToken: 'money'),
-  WeekStat(label: 'Moved', value: '296', sub: 'of 420 min', colorToken: 'move'),
-  WeekStat(label: 'Rituals', value: '26', sub: 'of 35', colorToken: 'rituals'),
+  WeekStat(label: 'Workout', value: '296', sub: 'of 420 min', colorToken: 'move'),
+  WeekStat(label: 'Routines', value: '26', sub: 'of 35', colorToken: 'rituals'),
 ];
 
 /// Drives the Pal-written weekly narrative: holds the review text with a loading

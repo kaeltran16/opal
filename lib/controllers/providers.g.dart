@@ -611,55 +611,6 @@ final class PalServiceProvider
 
 String _$palServiceHash() => r'0e208184538329ea10fccc61e3f65259940bfc89';
 
-/// Real HealthKit data on iOS (U27); canned [MockHealthService] on
-/// web/tests/desktop so Today (U05) and Move (U10) still render.
-
-@ProviderFor(healthService)
-const healthServiceProvider = HealthServiceProvider._();
-
-/// Real HealthKit data on iOS (U27); canned [MockHealthService] on
-/// web/tests/desktop so Today (U05) and Move (U10) still render.
-
-final class HealthServiceProvider
-    extends $FunctionalProvider<HealthService, HealthService, HealthService>
-    with $Provider<HealthService> {
-  /// Real HealthKit data on iOS (U27); canned [MockHealthService] on
-  /// web/tests/desktop so Today (U05) and Move (U10) still render.
-  const HealthServiceProvider._()
-    : super(
-        from: null,
-        argument: null,
-        retry: null,
-        name: r'healthServiceProvider',
-        isAutoDispose: false,
-        dependencies: null,
-        $allTransitiveDependencies: null,
-      );
-
-  @override
-  String debugGetCreateSourceHash() => _$healthServiceHash();
-
-  @$internal
-  @override
-  $ProviderElement<HealthService> $createElement($ProviderPointer pointer) =>
-      $ProviderElement(pointer);
-
-  @override
-  HealthService create(Ref ref) {
-    return healthService(ref);
-  }
-
-  /// {@macro riverpod.override_with_value}
-  Override overrideWithValue(HealthService value) {
-    return $ProviderOverride(
-      origin: this,
-      providerOverride: $SyncValueProvider<HealthService>(value),
-    );
-  }
-}
-
-String _$healthServiceHash() => r'5d477c9118828ba73fb80cdcb9c3cebe41e45291';
-
 /// Real IMAP-backed sync (U24) when `PAL_BASE_URL` is set; [MockEmailSyncService]
 /// otherwise (tests, backend-less preview). Shares the proxy's http client +
 /// device-token store with [palService].

@@ -8,14 +8,59 @@ part of 'today_controller.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
-/// Streams the Today view model: combines the live entries + goals streams with
-/// the day's health sample. Re-emits whenever the DB changes.
+/// The live goals row (defaults until set). Watched by [todayState] so a
+/// goals-only edit (budget/targets in Settings) re-emits Today on its own.
+
+@ProviderFor(goalsStream)
+const goalsStreamProvider = GoalsStreamProvider._();
+
+/// The live goals row (defaults until set). Watched by [todayState] so a
+/// goals-only edit (budget/targets in Settings) re-emits Today on its own.
+
+final class GoalsStreamProvider
+    extends $FunctionalProvider<AsyncValue<Goals>, Goals, Stream<Goals>>
+    with $FutureModifier<Goals>, $StreamProvider<Goals> {
+  /// The live goals row (defaults until set). Watched by [todayState] so a
+  /// goals-only edit (budget/targets in Settings) re-emits Today on its own.
+  const GoalsStreamProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'goalsStreamProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$goalsStreamHash();
+
+  @$internal
+  @override
+  $StreamProviderElement<Goals> $createElement($ProviderPointer pointer) =>
+      $StreamProviderElement(pointer);
+
+  @override
+  Stream<Goals> create(Ref ref) {
+    return goalsStream(ref);
+  }
+}
+
+String _$goalsStreamHash() => r'7bdb2c2e9e4d0a113140641c242ed65d89263c2d';
+
+/// Streams the Today view model from the live entries + goals streams.
+/// Re-emits whenever either changes: the entries `await for` drives entry
+/// edits, and watching [goalsStreamProvider] rebuilds this provider on a
+/// goals-only edit.
 
 @ProviderFor(todayState)
 const todayStateProvider = TodayStateProvider._();
 
-/// Streams the Today view model: combines the live entries + goals streams with
-/// the day's health sample. Re-emits whenever the DB changes.
+/// Streams the Today view model from the live entries + goals streams.
+/// Re-emits whenever either changes: the entries `await for` drives entry
+/// edits, and watching [goalsStreamProvider] rebuilds this provider on a
+/// goals-only edit.
 
 final class TodayStateProvider
     extends
@@ -25,8 +70,10 @@ final class TodayStateProvider
           Stream<TodayState>
         >
     with $FutureModifier<TodayState>, $StreamProvider<TodayState> {
-  /// Streams the Today view model: combines the live entries + goals streams with
-  /// the day's health sample. Re-emits whenever the DB changes.
+  /// Streams the Today view model from the live entries + goals streams.
+  /// Re-emits whenever either changes: the entries `await for` drives entry
+  /// edits, and watching [goalsStreamProvider] rebuilds this provider on a
+  /// goals-only edit.
   const TodayStateProvider._()
     : super(
         from: null,
@@ -52,4 +99,4 @@ final class TodayStateProvider
   }
 }
 
-String _$todayStateHash() => r'858009e7312308fd2809fa52ca6ea7adb9f9d5c4';
+String _$todayStateHash() => r'44a83932629ff08a262a339bfd705f516b696fce';

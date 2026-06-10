@@ -8,24 +8,24 @@ part of 'move_controller.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
-/// Streams the Move view model: combines today's health sample (awaited once)
-/// with the live workouts stream, plus the routines and non-workout move
-/// entries re-read each tick. Re-emits whenever the workouts table changes.
+/// Streams the Move view model off the live workouts stream, plus the routines
+/// and non-workout move entries re-read each tick. Re-emits whenever the
+/// workouts table changes.
 
 @ProviderFor(moveState)
 const moveStateProvider = MoveStateProvider._();
 
-/// Streams the Move view model: combines today's health sample (awaited once)
-/// with the live workouts stream, plus the routines and non-workout move
-/// entries re-read each tick. Re-emits whenever the workouts table changes.
+/// Streams the Move view model off the live workouts stream, plus the routines
+/// and non-workout move entries re-read each tick. Re-emits whenever the
+/// workouts table changes.
 
 final class MoveStateProvider
     extends
         $FunctionalProvider<AsyncValue<MoveState>, MoveState, Stream<MoveState>>
     with $FutureModifier<MoveState>, $StreamProvider<MoveState> {
-  /// Streams the Move view model: combines today's health sample (awaited once)
-  /// with the live workouts stream, plus the routines and non-workout move
-  /// entries re-read each tick. Re-emits whenever the workouts table changes.
+  /// Streams the Move view model off the live workouts stream, plus the routines
+  /// and non-workout move entries re-read each tick. Re-emits whenever the
+  /// workouts table changes.
   const MoveStateProvider._()
     : super(
         from: null,
@@ -51,4 +51,4 @@ final class MoveStateProvider
   }
 }
 
-String _$moveStateHash() => r'c30c39c76349ac890b505c4bfb7ca53db5c7d578';
+String _$moveStateHash() => r'2348241cdf103e867d25be4cf73da906d373a1d1';

@@ -8,7 +8,6 @@ import 'package:opal/controllers/providers.dart';
 import 'package:opal/data/db/database.dart';
 import 'package:opal/data/repositories/repositories.dart';
 import 'package:opal/models/models.dart';
-import 'package:opal/services/services.dart';
 import 'package:opal/widgets/activity_rings.dart';
 import 'package:opal/widgets/summary_tile.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -71,23 +70,23 @@ void main() {
       category: 'Dining',
       source: EntrySource.email,
     ));
-
-    // Health: fixed 30 move-minutes today.
-    final health = MockHealthService(
-      today: HealthSample(
-        date: DateTime.now(),
-        moveMinutes: 30,
-        activeEnergyKcal: 300,
-        avgHeartRate: 70,
-      ),
-    );
+    // Move: a 30-minute logged workout today → move ring 30/60 (move-minutes
+    // are now derived from logged move entries, not HealthKit).
+    await entries.insert(Entry(
+      id: 'e-run',
+      timestamp: _todayAt(18, 0),
+      type: EntryType.move,
+      title: 'Evening run',
+      detail: '30 min',
+      duration: 30,
+      source: EntrySource.manual,
+    ));
 
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
           sharedPreferencesProvider.overrideWithValue(prefs),
           loopDatabaseProvider.overrideWithValue(db),
-          healthServiceProvider.overrideWithValue(health),
         ],
         child: const LoopApp(),
       ),
@@ -147,21 +146,11 @@ void main() {
       dailyRitualTarget: 4,
     ));
 
-    final health = MockHealthService(
-      today: HealthSample(
-        date: DateTime.now(),
-        moveMinutes: 0,
-        activeEnergyKcal: 0,
-        avgHeartRate: 0,
-      ),
-    );
-
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
           sharedPreferencesProvider.overrideWithValue(prefs),
           loopDatabaseProvider.overrideWithValue(db),
-          healthServiceProvider.overrideWithValue(health),
         ],
         child: const LoopApp(),
       ),

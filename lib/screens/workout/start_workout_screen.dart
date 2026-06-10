@@ -39,7 +39,7 @@ class StartWorkoutScreen extends ConsumerWidget {
       error: (e, _) => Center(
         child: Padding(
           padding: const EdgeInsets.all(24),
-          child: Text("Couldn't load routines.\n$e",
+          child: Text("Couldn't load workouts.\n$e",
               textAlign: TextAlign.center,
               style: AppFonts.sf(size: 15, color: c.ink3, letterSpacing: -0.24)),
         ),
@@ -67,7 +67,7 @@ class _Body extends ConsumerWidget {
       children: [
         LargeTitleNavBar(
           title: 'Start workout',
-          subtitle: 'Pick a routine or freestyle',
+          subtitle: 'Pick a workout or freestyle',
           leading: GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTap: () => Navigator.of(context).maybePop(),
@@ -126,7 +126,7 @@ class _Body extends ConsumerWidget {
             ListRow(
               icon: 'plus',
               iconBg: c.accent,
-              title: 'New routine',
+              title: 'New workout',
               subtitle: 'Build from scratch',
               onTap: () => context.pushNamed(AppRoute.routineEditor.name),
             ),

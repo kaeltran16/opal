@@ -36,7 +36,7 @@ class MoveScreen extends ConsumerWidget {
       error: (e, _) => Center(
         child: Padding(
           padding: const EdgeInsets.all(24),
-          child: Text("Couldn't load Move.\n$e",
+          child: Text("Couldn't load Workout.\n$e",
               textAlign: TextAlign.center,
               style: AppFonts.sf(size: 15, color: c.ink3, letterSpacing: -0.24)),
         ),
@@ -56,9 +56,8 @@ class _MoveBody extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 110),
       children: [
         const LargeTitleNavBar(
-          title: 'Move',
+          title: 'Workout',
           subtitle: 'Gym, cardio, daily movement',
-          trailing: NavIconButton(name: 'ellipsis', semanticLabel: 'More options'),
         ),
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 4, 16, 18),
@@ -110,10 +109,12 @@ class _WeekHero extends StatelessWidget {
           const SizedBox(height: 14),
           Row(
             children: [
-              _HeroStat(value: '${state.moveMinutes}', unit: 'min', label: 'MOVE'),
+              _HeroStat(value: '${state.moveMinutes}', unit: 'min', label: 'WORKOUT'),
               _heroDivider,
               _HeroStat(
-                  value: '${state.activeEnergyKcal}',
+                  value: state.activeEnergyKcal == null
+                      ? '—'
+                      : '${state.activeEnergyKcal}',
                   unit: 'kcal',
                   label: 'ENERGY'),
               _heroDivider,
@@ -274,8 +275,9 @@ class _QuickLinks extends StatelessWidget {
         ListRow(
           icon: 'books.vertical.fill',
           iconBg: c.move,
-          title: 'My routines',
+          title: 'My workouts',
           value: '$routineCount',
+          onTap: () => context.pushNamed(AppRoute.startWorkout.name),
         ),
         ListRow(
           icon: 'dumbbell.fill',
@@ -294,6 +296,7 @@ class _QuickLinks extends StatelessWidget {
           iconBg: c.rituals,
           title: 'History & trends',
           value: 'All time',
+          chevron: false,
           last: true,
         ),
       ],

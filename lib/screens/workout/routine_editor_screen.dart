@@ -44,7 +44,7 @@ class RoutineEditorScreen extends ConsumerWidget {
         error: (e, _) => Center(
           child: Padding(
             padding: const EdgeInsets.all(24),
-            child: Text("Couldn't load routine.\n$e",
+            child: Text("Couldn't load workout.\n$e",
                 textAlign: TextAlign.center,
                 style:
                     AppFonts.sf(size: 15, color: c.ink3, letterSpacing: -0.24)),
@@ -81,7 +81,7 @@ class _Body extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           LargeTitleNavBar(
-            title: state.isEditing ? 'Edit routine' : 'New routine',
+            title: state.isEditing ? 'Edit workout' : 'New workout',
             subtitle: state.isEditing ? draft.name : 'Build from scratch',
             leading: GestureDetector(
               behavior: HitTestBehavior.opaque,
@@ -219,7 +219,7 @@ class _NameFieldState extends State<_NameField> {
             isDense: true,
             border: InputBorder.none,
             contentPadding: EdgeInsets.zero,
-            hintText: 'Routine name',
+            hintText: 'Workout name',
             hintStyle:
                 AppFonts.sf(size: 17, color: c.ink3, letterSpacing: -0.43),
           ),

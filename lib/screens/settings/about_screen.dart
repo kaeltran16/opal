@@ -62,7 +62,7 @@ class AboutScreen extends StatelessWidget {
             ),
           ),
           InsetSection(
-            footer: 'A calm tracker for money, movement, and rituals.',
+            footer: 'A calm tracker for money, workouts, and routines.',
             children: [
               ListRow(
                 title: 'Version',

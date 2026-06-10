@@ -130,13 +130,13 @@ class _NewEntrySheetState extends ConsumerState<NewEntrySheet> {
       kind: _Kind.ritual,
       icon: 'sparkles',
       title: 'Morning pages',
-      label: 'Ritual',
+      label: 'Routine',
     ),
     _QuickPick(
       kind: _Kind.ritual,
       icon: 'book.closed.fill',
       title: 'Read 20 min',
-      label: 'Ritual',
+      label: 'Routine',
     ),
   ];
 
@@ -167,7 +167,7 @@ class _NewEntrySheetState extends ConsumerState<NewEntrySheet> {
         return '${v.toStringAsFixed(0)} min';
       case _Kind.ritual:
         final t = _titleCtrl.text.trim();
-        return t.isEmpty ? 'New ritual' : t;
+        return t.isEmpty ? 'New routine' : t;
     }
   }
 
@@ -429,7 +429,7 @@ class _NewEntrySheetState extends ConsumerState<NewEntrySheet> {
                 options: const [
                   (_Kind.expense, 'Expense'),
                   (_Kind.workout, 'Workout'),
-                  (_Kind.ritual, 'Ritual'),
+                  (_Kind.ritual, 'Routine'),
                 ],
                 value: _kind,
                 onChanged: _selectKind,
@@ -723,7 +723,7 @@ class _RitualTitleField extends StatelessWidget {
         decoration: InputDecoration(
           isDense: true,
           border: InputBorder.none,
-          hintText: 'Ritual title',
+          hintText: 'Routine title',
           hintStyle:
               AppFonts.sf(size: 17, color: c.ink4, letterSpacing: -0.43),
         ),

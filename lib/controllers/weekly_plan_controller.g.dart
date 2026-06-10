@@ -8,20 +8,23 @@ part of 'weekly_plan_controller.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
-/// The hardcoded "Week of Apr 21" schedule. Mon→Sun: completed = 3 of 5
-/// workouts, 290 min planned.
+/// The week schedule, anchored to the CURRENT week. Mon→Sun: completed = 3 of 5
+/// workouts, 290 min planned. Dates are derived relative to today so the plan
+/// always shows this week; per-day content/status is fixed.
 
 @ProviderFor(weeklyPlanController)
 const weeklyPlanControllerProvider = WeeklyPlanControllerProvider._();
 
-/// The hardcoded "Week of Apr 21" schedule. Mon→Sun: completed = 3 of 5
-/// workouts, 290 min planned.
+/// The week schedule, anchored to the CURRENT week. Mon→Sun: completed = 3 of 5
+/// workouts, 290 min planned. Dates are derived relative to today so the plan
+/// always shows this week; per-day content/status is fixed.
 
 final class WeeklyPlanControllerProvider
     extends $FunctionalProvider<WeeklyPlan, WeeklyPlan, WeeklyPlan>
     with $Provider<WeeklyPlan> {
-  /// The hardcoded "Week of Apr 21" schedule. Mon→Sun: completed = 3 of 5
-  /// workouts, 290 min planned.
+  /// The week schedule, anchored to the CURRENT week. Mon→Sun: completed = 3 of 5
+  /// workouts, 290 min planned. Dates are derived relative to today so the plan
+  /// always shows this week; per-day content/status is fixed.
   const WeeklyPlanControllerProvider._()
     : super(
         from: null,
@@ -56,4 +59,4 @@ final class WeeklyPlanControllerProvider
 }
 
 String _$weeklyPlanControllerHash() =>
-    r'2aec6d54721734907750de113a23559ea7da68f6';
+    r'd31b80a2ae4610790e7cb39bc56c276d5f81bb98';

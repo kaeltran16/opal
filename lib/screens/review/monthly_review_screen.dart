@@ -32,10 +32,10 @@ class MonthlyReviewScreen extends ConsumerWidget {
   static const _patterns = <(String, String)>[
     (
       'Mornings set the tone',
-      'On days you finished morning rituals, you spent about 32% less.',
+      'On days you finished morning routines, you spent about 32% less.',
     ),
     (
-      'Movement is your anchor',
+      'Workouts are your anchor',
       'Your longest training streak lined up with your calmest spending week.',
     ),
     (

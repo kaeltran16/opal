@@ -319,7 +319,7 @@ class _ExerciseRow extends StatelessWidget {
       subtitle: _meta,
       value: pr,
       valueColor: c.ink2,
-      chevron: true,
+      chevron: false,
       last: last,
     );
   }

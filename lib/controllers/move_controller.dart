@@ -28,7 +28,7 @@ class RecentSession {
   double get volumeTonnes => workout.totalVolumeKg / 1000;
 }
 
-/// The fully-computed Move view model: today's health summary, the recent
+/// The fully-computed Move view model: today's logged move minutes, the recent
 /// sessions (newest 3, decorated), the non-workout movement entries, and the
 /// quick-link counts. The screen is dumb; all derivation lives here so it is
 /// testable.
@@ -43,9 +43,11 @@ class MoveState {
     this.suggestedRoutineName,
   });
 
-  /// From HealthService (today's movement summary).
+  /// Sum of today's logged move-entry durations (minutes).
   final int moveMinutes;
-  final int activeEnergyKcal;
+
+  /// No data source after health removal; always null for now.
+  final int? activeEnergyKcal;
   final int? avgHeartRate;
 
   /// The three newest workouts, decorated for the recent-sessions cards.
@@ -78,17 +80,14 @@ String relativeDateLabel(DateTime startedAt, DateTime now) {
   return '${days}d ago';
 }
 
-/// Streams the Move view model: combines today's health sample (awaited once)
-/// with the live workouts stream, plus the routines and non-workout move
-/// entries re-read each tick. Re-emits whenever the workouts table changes.
+/// Streams the Move view model off the live workouts stream, plus the routines
+/// and non-workout move entries re-read each tick. Re-emits whenever the
+/// workouts table changes.
 @riverpod
 Stream<MoveState> moveState(Ref ref) async* {
   final workoutRepo = ref.watch(workoutRepositoryProvider);
   final entryRepo = ref.watch(entryRepositoryProvider);
   final routineRepo = ref.watch(routineRepositoryProvider);
-  final health = ref.watch(healthServiceProvider);
-
-  final sample = await health.todaySample();
 
   // Drive off the live workouts stream; re-read routines + entries each tick
   // (small tables) so counts and the cardio classification stay current.
@@ -117,10 +116,18 @@ Stream<MoveState> moveState(Ref ref) async* {
         .where((e) => e.type == EntryType.move && e.workoutId == null)
         .toList();
 
+    final today = DateTime(now.year, now.month, now.day);
+    final moveMinutes = entries
+        .where((e) =>
+            e.type == EntryType.move &&
+            DateTime(e.timestamp.year, e.timestamp.month, e.timestamp.day) ==
+                today)
+        .fold<int>(0, (sum, e) => sum + (e.duration ?? 0));
+
     yield MoveState(
-      moveMinutes: sample.moveMinutes,
-      activeEnergyKcal: sample.activeEnergyKcal,
-      avgHeartRate: sample.avgHeartRate,
+      moveMinutes: moveMinutes,
+      activeEnergyKcal: null,
+      avgHeartRate: null,
       recentSessions: recent,
       otherActivity: other,
       routineCount: routines.length,

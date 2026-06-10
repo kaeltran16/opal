@@ -84,78 +84,96 @@ class WeeklyPlan {
   }
 }
 
-/// The hardcoded "Week of Apr 21" schedule. Mon→Sun: completed = 3 of 5
-/// workouts, 290 min planned.
+/// The week schedule, anchored to the CURRENT week. Mon→Sun: completed = 3 of 5
+/// workouts, 290 min planned. Dates are derived relative to today so the plan
+/// always shows this week; per-day content/status is fixed.
 @riverpod
 WeeklyPlan weeklyPlanController(Ref ref) {
-  return const WeeklyPlan(days: [
-    WeekPlanDay(
-      day: 'Mon',
-      date: 21,
-      type: 'Push',
-      routine: 'Push Day A',
-      est: 55,
-      colorKey: 'move',
-      icon: 'dumbbell.fill',
-      done: true,
-      muscles: ['Chest', 'Shoulders', 'Triceps'],
-    ),
-    WeekPlanDay(
-      day: 'Tue',
-      date: 22,
-      type: 'Pull',
-      routine: 'Pull Day A',
-      est: 58,
-      colorKey: 'rituals',
-      icon: 'dumbbell.fill',
-      done: true,
-      muscles: ['Back', 'Biceps'],
-    ),
-    WeekPlanDay(
-      day: 'Wed',
-      date: 23,
-      type: 'Rest',
-      colorKey: 'rest',
-      icon: 'moon.stars.fill',
-      done: true,
-    ),
-    WeekPlanDay(
-      day: 'Thu',
-      date: 24,
-      type: 'Legs',
-      routine: 'Leg Day',
-      est: 62,
-      colorKey: 'money',
-      icon: 'figure.run',
-      today: true,
-      muscles: ['Quads', 'Hamstrings', 'Calves'],
-    ),
-    WeekPlanDay(
-      day: 'Fri',
-      date: 25,
-      type: 'Cardio',
-      routine: 'Treadmill Intervals',
-      est: 30,
-      colorKey: 'move',
-      icon: 'figure.run',
-      muscles: ['Cardio'],
-    ),
-    WeekPlanDay(
-      day: 'Sat',
-      date: 26,
-      type: 'Upper',
-      routine: 'Upper Power',
-      est: 45,
-      colorKey: 'accent',
-      icon: 'dumbbell.fill',
-      muscles: ['Chest', 'Back'],
-    ),
-    WeekPlanDay(
-      day: 'Sun',
-      date: 27,
-      type: 'Rest',
-      colorKey: 'rest',
-      icon: 'moon.stars.fill',
-    ),
+  final now = DateTime.now();
+  final todayMidnight = DateTime(now.year, now.month, now.day);
+  // Monday of the current week (DateTime.weekday: Mon=1..Sun=7).
+  final monday = todayMidnight.subtract(Duration(days: now.weekday - 1));
+
+  // Per-day content/status keyed by weekday offset (0 = Mon .. 6 = Sun).
+  WeekPlanDay dayAt(int offset, WeekPlanDay Function(int date, bool isToday) build) {
+    final date = monday.add(Duration(days: offset));
+    return build(date.day, date == todayMidnight);
+  }
+
+  return WeeklyPlan(days: [
+    dayAt(0, (date, isToday) => WeekPlanDay(
+          day: 'Mon',
+          date: date,
+          type: 'Push',
+          routine: 'Push Day A',
+          est: 55,
+          colorKey: 'move',
+          icon: 'dumbbell.fill',
+          done: true,
+          today: isToday,
+          muscles: const ['Chest', 'Shoulders', 'Triceps'],
+        )),
+    dayAt(1, (date, isToday) => WeekPlanDay(
+          day: 'Tue',
+          date: date,
+          type: 'Pull',
+          routine: 'Pull Day A',
+          est: 58,
+          colorKey: 'rituals',
+          icon: 'dumbbell.fill',
+          done: true,
+          today: isToday,
+          muscles: const ['Back', 'Biceps'],
+        )),
+    dayAt(2, (date, isToday) => WeekPlanDay(
+          day: 'Wed',
+          date: date,
+          type: 'Rest',
+          colorKey: 'rest',
+          icon: 'moon.stars.fill',
+          done: true,
+          today: isToday,
+        )),
+    dayAt(3, (date, isToday) => WeekPlanDay(
+          day: 'Thu',
+          date: date,
+          type: 'Legs',
+          routine: 'Leg Day',
+          est: 62,
+          colorKey: 'money',
+          icon: 'figure.run',
+          today: isToday,
+          muscles: const ['Quads', 'Hamstrings', 'Calves'],
+        )),
+    dayAt(4, (date, isToday) => WeekPlanDay(
+          day: 'Fri',
+          date: date,
+          type: 'Cardio',
+          routine: 'Treadmill Intervals',
+          est: 30,
+          colorKey: 'move',
+          icon: 'figure.run',
+          today: isToday,
+          muscles: const ['Cardio'],
+        )),
+    dayAt(5, (date, isToday) => WeekPlanDay(
+          day: 'Sat',
+          date: date,
+          type: 'Upper',
+          routine: 'Upper Power',
+          est: 45,
+          colorKey: 'accent',
+          icon: 'dumbbell.fill',
+          today: isToday,
+          muscles: const ['Chest', 'Back'],
+        )),
+    dayAt(6, (date, isToday) => WeekPlanDay(
+          day: 'Sun',
+          date: date,
+          type: 'Rest',
+          colorKey: 'rest',
+          icon: 'moon.stars.fill',
+          today: isToday,
+        )),
   ]);
 }

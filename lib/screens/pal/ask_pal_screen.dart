@@ -32,7 +32,7 @@ class _AskPalScreenState extends ConsumerState<AskPalScreen> {
   static const _suggestions = <String>[
     'Why was Friday expensive?',
     'How am I doing this week?',
-    'Suggest an evening ritual',
+    'Suggest an evening routine',
   ];
 
   @override
@@ -150,7 +150,7 @@ class _Header extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  'Your money, movement & rituals coach',
+                  'Your money, workout & routines coach',
                   style: AppFonts.sf(
                     size: 15,
                     color: c.ink3,
@@ -342,7 +342,7 @@ class _EmptyState extends StatelessWidget {
             const SizedBox(height: 6),
             // verbatim handoff empty-state copy ({name} → "there", no name field yet)
             Text(
-              "I'm Pal — ask me anything about your money, movement, or rituals. "
+              "I'm Pal — ask me anything about your money, workouts, or routines. "
               "Or just tell me what you did and I'll log it.",
               textAlign: TextAlign.center,
               style: AppFonts.sf(size: 15, color: c.ink3, letterSpacing: -0.24),

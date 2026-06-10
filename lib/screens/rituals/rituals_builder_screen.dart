@@ -314,6 +314,40 @@ class _RoutineEditorState extends State<_RoutineEditor> {
     ));
   }
 
+  static const _defaultTime = TimeOfDay(hour: 7, minute: 0);
+
+  /// Parses "7:00 AM" / "19:30" into a [TimeOfDay], falling back to 7:00 AM.
+  TimeOfDay _parseTime(String raw) {
+    final text = raw.trim();
+    final match =
+        RegExp(r'^(\d{1,2}):(\d{2})\s*([APap][Mm])?$').firstMatch(text);
+    if (match == null) return _defaultTime;
+    var hour = int.parse(match.group(1)!);
+    final minute = int.parse(match.group(2)!);
+    final meridiem = match.group(3)?.toUpperCase();
+    if (meridiem == 'PM' && hour != 12) hour += 12;
+    if (meridiem == 'AM' && hour == 12) hour = 0;
+    if (hour > 23 || minute > 59) return _defaultTime;
+    return TimeOfDay(hour: hour, minute: minute);
+  }
+
+  /// Formats a [TimeOfDay] back to "h:mm AM/PM".
+  String _formatTime(TimeOfDay t) {
+    final period = t.hour < 12 ? 'AM' : 'PM';
+    final hour12 = t.hourOfPeriod == 0 ? 12 : t.hourOfPeriod;
+    final minute = t.minute.toString().padLeft(2, '0');
+    return '$hour12:$minute $period';
+  }
+
+  Future<void> _pickTime() async {
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: _parseTime(_time.text),
+    );
+    if (picked == null) return;
+    setState(() => _time.text = _formatTime(picked));
+  }
+
   Future<void> _editStep(int? index) async {
     final result = await showModalBottomSheet<RitualStep>(
       context: context,
@@ -342,7 +376,7 @@ class _RoutineEditorState extends State<_RoutineEditor> {
     final tone = c.forType(_tone.colorKey);
 
     return Padding(
-      padding: EdgeInsets.fromLTRB(16, 12, 16, 16 + bottom),
+      padding: EdgeInsets.fromLTRB(16, 12, 16, 16 + bottom + 100),
       child: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -372,7 +406,12 @@ class _RoutineEditorState extends State<_RoutineEditor> {
               onChanged: () => setState(() {}),
             ),
             const SizedBox(height: 10),
-            _Field(controller: _time, hint: 'Time (e.g. 7:00 AM)'),
+            _Field(
+              controller: _time,
+              hint: 'Time (e.g. 7:00 AM)',
+              readOnly: true,
+              onTap: _pickTime,
+            ),
             const SizedBox(height: 18),
 
             _Label('TONE'),
@@ -613,12 +652,16 @@ class _Field extends StatelessWidget {
     required this.hint,
     this.autofocus = false,
     this.onChanged,
+    this.readOnly = false,
+    this.onTap,
   });
 
   final TextEditingController controller;
   final String hint;
   final bool autofocus;
   final VoidCallback? onChanged;
+  final bool readOnly;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -630,6 +673,8 @@ class _Field extends StatelessWidget {
       child: TextField(
         controller: controller,
         autofocus: autofocus,
+        readOnly: readOnly,
+        onTap: onTap,
         onChanged: onChanged == null ? null : (_) => onChanged!(),
         style: AppFonts.sf(size: 17, color: c.ink, letterSpacing: -0.43),
         cursorColor: c.accent,

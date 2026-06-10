@@ -630,7 +630,7 @@ class _NoSession extends StatelessWidget {
                         horizontal: 20, vertical: 11),
                     decoration: BoxDecoration(
                         color: c.move, borderRadius: BorderRadius.circular(100)),
-                    child: Text('Back to Move',
+                    child: Text('Back to Workout',
                         style: AppFonts.sf(
                             size: 14,
                             weight: FontWeight.w700,

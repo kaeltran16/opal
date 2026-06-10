@@ -14,9 +14,9 @@ class LoopTab {
 
 const _tabs = [
   LoopTab('today', 'Today', 'house.fill'),
-  LoopTab('move', 'Move', 'figure.run'),
+  LoopTab('move', 'Workout', 'figure.run'),
   LoopTab('add', '', 'plus'),
-  LoopTab('rituals', 'Rituals', 'sparkles'),
+  LoopTab('rituals', 'Routines', 'sparkles'),
   LoopTab('profile', 'You', 'person.crop.circle.fill'),
 ];
 

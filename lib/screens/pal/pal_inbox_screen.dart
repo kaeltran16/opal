@@ -194,14 +194,14 @@ class _InboxBody extends ConsumerWidget {
                 ),
                 const SizedBox(width: 6),
                 _FilterChip(
-                  label: 'Move',
+                  label: 'Workout',
                   dotColor: c.move,
                   active: state.filter == InboxFilter.move,
                   onTap: () => controller.setFilter(InboxFilter.move),
                 ),
                 const SizedBox(width: 6),
                 _FilterChip(
-                  label: 'Rituals',
+                  label: 'Routines',
                   dotColor: c.rituals,
                   active: state.filter == InboxFilter.rituals,
                   onTap: () => controller.setFilter(InboxFilter.rituals),

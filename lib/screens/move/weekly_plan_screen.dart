@@ -25,6 +25,21 @@ class WeeklyPlanScreen extends ConsumerWidget {
   static Color _colorFor(AppColors c, String key) =>
       key == 'rest' ? c.ink3 : c.forType(key);
 
+  static const _months = [
+    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+  ];
+
+  /// Monday of the current week, formatted "WEEK OF MON DD". The plan's day
+  /// model only carries day-of-month, so the month comes from the current
+  /// week's Monday (the same anchor the controller uses).
+  static String _weekOfLabel() {
+    final now = DateTime.now();
+    final monday = DateTime(now.year, now.month, now.day)
+        .subtract(Duration(days: now.weekday - 1));
+    return 'WEEK OF ${_months[monday.month - 1].toUpperCase()} ${monday.day}';
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final c = context.colors;
@@ -42,13 +57,13 @@ class WeeklyPlanScreen extends ConsumerWidget {
             children: [
               PressScale(
                 onTap: () => context.pop(),
-                semanticLabel: 'Move',
+                semanticLabel: 'Workout',
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     AppIcon('chevron.left', size: 20, color: c.accent),
                     const SizedBox(width: 2),
-                    Text('Move',
+                    Text('Workout',
                         style: AppFonts.sf(
                             size: 17, color: c.accent, letterSpacing: -0.43)),
                   ],
@@ -66,7 +81,7 @@ class WeeklyPlanScreen extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'WEEK OF APR 21',
+                _weekOfLabel(),
                 style: AppFonts.sf(
                     size: 12,
                     weight: FontWeight.w700,
@@ -353,26 +368,6 @@ class _TodaySpotlight extends StatelessWidget {
                               ),
                             ],
                           ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    PressScale(
-                      semanticLabel: 'Swap',
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 14, vertical: 12),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: c.hair, width: 0.5),
-                        ),
-                        child: Text(
-                          'Swap',
-                          style: AppFonts.sf(
-                              size: 14,
-                              weight: FontWeight.w500,
-                              color: c.ink2,
-                              letterSpacing: -0.15),
                         ),
                       ),
                     ),

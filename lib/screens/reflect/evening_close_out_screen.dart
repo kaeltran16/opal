@@ -139,7 +139,7 @@ class EveningCloseOutScreen extends ConsumerWidget {
                         height: 1.15)),
                 const SizedBox(height: 10),
                 Text(
-                  '$done of $total rituals done. One more to close the ring.',
+                  '$done of $total routines done. One more to close the ring.',
                   style: AppFonts.sf(
                       size: 15,
                       color: _white65,

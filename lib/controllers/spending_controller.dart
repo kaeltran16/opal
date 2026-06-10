@@ -25,17 +25,17 @@ enum DetailTracker {
     unbudgetedLabel: 'Uncategorized',
   ),
   move(
-    title: 'Movement',
+    title: 'Workout',
     entryType: EntryType.move,
     colorToken: 'move',
-    askPalPrompt: 'Ask Pal about movement',
+    askPalPrompt: 'Ask Pal about workouts',
     unbudgetedLabel: 'Other',
   ),
   rituals(
-    title: 'Rituals',
+    title: 'Routines',
     entryType: EntryType.rituals,
     colorToken: 'rituals',
-    askPalPrompt: 'Ask Pal about rituals',
+    askPalPrompt: 'Ask Pal about routines',
     unbudgetedLabel: 'Other',
   );
 

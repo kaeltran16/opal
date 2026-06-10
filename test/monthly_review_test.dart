@@ -140,7 +140,7 @@ void main() {
 
     // The 4 big rows render in handoff order.
     expect(s.rows.map((r) => r.label).toList(),
-        ['Total spent', 'Time moved', 'Rituals kept', 'Streak']);
+        ['Total spent', 'Workout time', 'Routines kept', 'Streak']);
   });
 
   // ---------------------------------------------------------------------------
@@ -205,8 +205,8 @@ void main() {
 
     // The four stat rows.
     expect(find.text('Total spent'), findsOneWidget);
-    expect(find.text('Time moved'), findsOneWidget);
-    expect(find.text('Rituals kept'), findsOneWidget);
+    expect(find.text('Workout time'), findsOneWidget);
+    expect(find.text('Routines kept'), findsOneWidget);
     expect(find.text('Streak'), findsOneWidget);
 
     // Computed stat values: spent $6, moved 40 min, streak 9.

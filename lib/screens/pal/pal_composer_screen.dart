@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../controllers/pal_composer_controller.dart';
+import '../../models/models.dart';
 import '../../services/services.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_text.dart';
@@ -58,6 +59,11 @@ class _PalComposerSheetState extends ConsumerState<PalComposerSheet> {
     if (trimmed.isEmpty) return;
     _inputCtrl.clear();
     _controller.send(trimmed);
+    _scrollToBottomSoon();
+  }
+
+  void _sendStarter(_Starter starter) {
+    _controller.sendStarter(starter.label, starter.payload);
     _scrollToBottomSoon();
   }
 
@@ -118,7 +124,7 @@ class _PalComposerSheetState extends ConsumerState<PalComposerSheet> {
                   ),
                 )
               else
-                _CompactBody(onSendChip: _send),
+                _CompactBody(onSendStarter: _sendStarter),
               _Composer(
                 controller: _inputCtrl,
                 expanded: expanded,
@@ -220,13 +226,32 @@ class _Header extends StatelessWidget {
 /// The compact-state body: a "Start a workout" card, a "Try saying" label, and
 /// three starter chips. Shown only before the conversation expands.
 class _CompactBody extends StatelessWidget {
-  const _CompactBody({required this.onSendChip});
+  const _CompactBody({required this.onSendStarter});
 
-  final ValueChanged<String> onSendChip;
+  final ValueChanged<_Starter> onSendStarter;
 
   static const _starters = <_Starter>[
-    _Starter('dollarsign.circle.fill', 'money', 'Verve coffee, \$5'),
-    _Starter('sparkles', 'rituals', 'Finished morning pages'),
+    _Starter(
+      'dollarsign.circle.fill',
+      'money',
+      'Verve coffee, \$5',
+      payload: StarterEntry(
+        type: EntryType.money,
+        title: 'Verve coffee',
+        amount: -5, // negative = expense
+        category: 'Coffee',
+      ),
+    ),
+    _Starter(
+      'sparkles',
+      'rituals',
+      'Finished morning pages',
+      payload: StarterEntry(
+        type: EntryType.rituals,
+        title: 'Morning pages',
+      ),
+    ),
+    // Open prompt, not a concrete log — no local fallback.
     _Starter('chart.bar.fill', 'accent', "How's my week so far?"),
   ];
 
@@ -313,7 +338,7 @@ class _CompactBody extends StatelessWidget {
             if (i > 0) const SizedBox(height: 6),
             _StarterChip(
               starter: _starters[i],
-              onTap: () => onSendChip(_starters[i].label),
+              onTap: () => onSendStarter(_starters[i]),
             ),
           ],
         ],
@@ -323,11 +348,15 @@ class _CompactBody extends StatelessWidget {
 }
 
 class _Starter {
-  const _Starter(this.icon, this.colorToken, this.label);
+  const _Starter(this.icon, this.colorToken, this.label, {this.payload});
 
   final String icon;
   final String colorToken;
   final String label;
+
+  /// Structured quick-log written locally when Pal is offline. Null for
+  /// open-prompt starters (which have nothing deterministic to log).
+  final StarterEntry? payload;
 }
 
 class _StarterChip extends StatelessWidget {

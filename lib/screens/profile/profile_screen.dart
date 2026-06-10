@@ -126,7 +126,7 @@ class _ProfileBody extends StatelessWidget {
                     child: _StatCard(
                       icon: 'figure.walk',
                       color: c.move,
-                      label: 'Hours moved',
+                      label: 'Workout hours',
                       value: '${stats.moveHours}',
                       unit: 'h',
                     ),
@@ -140,7 +140,7 @@ class _ProfileBody extends StatelessWidget {
                     child: _StatCard(
                       icon: 'sparkles',
                       color: c.rituals,
-                      label: 'Rituals kept',
+                      label: 'Routines kept',
                       value: '${stats.ritualsKept}',
                     ),
                   ),
@@ -167,8 +167,8 @@ class _ProfileBody extends StatelessWidget {
             ListRow(
               icon: 'sparkles',
               iconBg: c.rituals,
-              title: 'Rituals',
-              // Deep-link to the Rituals tab (built in U08).
+              title: 'Routines',
+              // Deep-link to the Routines tab (built in U08).
               onTap: () => context.goNamed(AppRoute.rituals.name),
             ),
             ListRow(
@@ -184,10 +184,10 @@ class _ProfileBody extends StatelessWidget {
               onTap: () => context.pushNamed(AppRoute.notificationSettings.name),
             ),
             ListRow(
-              icon: 'heart.fill',
-              iconBg: c.move,
-              title: 'HealthKit',
-              onTap: () => context.pushNamed(AppRoute.healthSettings.name),
+              icon: 'paintbrush.fill',
+              iconBg: c.accent,
+              title: 'Appearance',
+              onTap: () => context.pushNamed(AppRoute.appearance.name),
             ),
             ListRow(
               icon: 'envelope.fill',
@@ -198,18 +198,6 @@ class _ProfileBody extends StatelessWidget {
               // Targets the U20 email-intro stub; the row shows "Off" until an
               // EmailAccount exists.
               onTap: () => context.pushNamed(AppRoute.emailSync.name),
-            ),
-            ListRow(
-              icon: 'arrow.triangle.2.circlepath',
-              iconBg: c.money,
-              title: 'Subscriptions',
-              onTap: () => context.pushNamed(AppRoute.subscriptions.name),
-            ),
-            ListRow(
-              icon: 'calendar',
-              iconBg: c.money,
-              title: 'Bills',
-              onTap: () => context.pushNamed(AppRoute.bills.name),
             ),
             ListRow(
               icon: 'chart.bar.fill',

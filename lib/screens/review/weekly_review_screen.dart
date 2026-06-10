@@ -38,7 +38,7 @@ class WeeklyReviewScreen extends ConsumerWidget {
     ),
     (
       'move',
-      'You moved 73 min on ritual days vs 42 min on skipped-ritual days.',
+      'You worked out 73 min on routine days vs 42 min on skipped-routine days.',
     ),
     (
       'rituals',
@@ -105,7 +105,7 @@ class WeeklyReviewScreen extends ConsumerWidget {
                       height: 1.15)),
               const SizedBox(height: 8),
               Text(
-                "Movement stayed consistent, rituals held together, and you "
+                "Workouts stayed consistent, routines held together, and you "
                 "came in under budget. Let's look closer.",
                 style: AppFonts.sf(
                     size: 15,

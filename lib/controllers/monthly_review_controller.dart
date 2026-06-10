@@ -71,14 +71,14 @@ class MonthlyStats {
           icon: 'dollarsign.circle.fill',
         ),
         ReviewStat(
-          label: 'Time moved',
+          label: 'Workout time',
           value: '$moveMinutes',
           unit: 'min',
           colorToken: 'move',
           icon: 'figure.run',
         ),
         ReviewStat(
-          label: 'Rituals kept',
+          label: 'Routines kept',
           value: '$ritualsKept',
           colorToken: 'rituals',
           icon: 'sparkles',

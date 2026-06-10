@@ -38,7 +38,7 @@ void main() {
     expect(find.text('PAL NOTICED'), findsOneWidget);
     // The 3-up summary row is present.
     expect(find.text('Spent'), findsWidgets);
-    expect(find.text('Move'), findsWidgets);
-    expect(find.text('Rituals'), findsWidgets);
+    expect(find.text('Workout'), findsWidgets);
+    expect(find.text('Routines'), findsWidgets);
   });
 }

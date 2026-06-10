@@ -33,7 +33,7 @@ class RitualsScreen extends ConsumerWidget {
       error: (e, _) => Center(
         child: Padding(
           padding: const EdgeInsets.all(24),
-          child: Text("Couldn't load rituals.\n$e",
+          child: Text("Couldn't load routines.\n$e",
               textAlign: TextAlign.center,
               style: AppFonts.sf(size: 15, color: c.ink3, letterSpacing: -0.24)),
         ),
@@ -53,7 +53,7 @@ class _RitualsBody extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 110),
       children: [
         LargeTitleNavBar(
-          title: 'Rituals',
+          title: 'Routines',
           subtitle: '${state.doneSteps} of ${state.totalSteps} steps today',
           trailing: NavIconButton(
             name: 'plus',

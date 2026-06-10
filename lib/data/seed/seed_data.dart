@@ -304,7 +304,7 @@ class SeedData {
           category: EntryType.rituals,
           icon: 'moon.stars.fill',
           title: 'Evening close-out is open',
-          body: "4 of 5 rituals done. 5 min of reflection and you'll close the "
+          body: "4 of 5 routines done. 5 min of reflection and you'll close the "
               'ring tonight.',
           actionLabel: 'Close out →',
           unread: true,
@@ -339,7 +339,7 @@ class SeedData {
           kind: NoteKind.win,
           category: EntryType.move,
           icon: 'flame.fill',
-          title: '11-day move streak',
+          title: '11-day workout streak',
           body: "Longest you've gone this year. Want to share or just keep it "
               'going quietly?',
           actionLabel: 'See streak',
@@ -352,7 +352,7 @@ class SeedData {
           category: EntryType.rituals,
           icon: 'sparkles',
           title: 'Morning pages → better days',
-          body: 'Your move score averages 73 min on days you write, 42 min on '
+          body: 'Your workout score averages 73 min on days you write, 42 min on '
               'days you skip. Pattern over 6 weeks.',
           actionLabel: 'See pattern',
           unread: false,

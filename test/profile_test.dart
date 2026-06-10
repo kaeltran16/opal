@@ -176,8 +176,8 @@ void main() {
 
     // Year-stat 2×2 grid: four stat labels.
     expect(find.text('Total spent'), findsOneWidget);
-    expect(find.text('Hours moved'), findsOneWidget);
-    expect(find.text('Rituals kept'), findsOneWidget);
+    expect(find.text('Workout hours'), findsOneWidget);
+    expect(find.text('Routines kept'), findsOneWidget);
     expect(find.text('Longest streak'), findsOneWidget);
 
     // Computed values: $42 spent, 2 hours moved, 1 ritual kept, streak 9.
@@ -185,12 +185,12 @@ void main() {
     expect(find.text('2'), findsWidgets); // hours moved
     expect(find.text('9'), findsOneWidget); // longest streak
 
-    // Settings rows render. ("Rituals" also appears as the tab-bar label, so
+    // Settings rows render. ("Routines" also appears as the tab-bar label, so
     // target the settings row specifically.)
-    expect(find.widgetWithText(ListRow, 'Rituals'), findsOneWidget);
+    expect(find.widgetWithText(ListRow, 'Routines'), findsOneWidget);
     expect(find.text('Budgets & goals'), findsOneWidget);
     expect(find.text('Notifications'), findsOneWidget);
-    expect(find.text('HealthKit'), findsOneWidget);
+    expect(find.text('Appearance'), findsOneWidget);
     expect(find.text('Integrations'), findsOneWidget);
     expect(find.text('Email sync'), findsOneWidget); // integrations subtitle
     expect(find.text('Off'), findsOneWidget); // integrations state
@@ -214,13 +214,5 @@ void main() {
     await tester.tap(find.text('Settings'));
     await tester.pumpAndSettle();
     expect(find.text('Integrations'), findsOneWidget);
-
-    // --- Subscriptions row → Subscriptions screen (Handoff #2 wiring) ---
-    await tester.scrollUntilVisible(
-        find.widgetWithText(ListRow, 'Subscriptions'), 200,
-        scrollable: list);
-    await tester.tap(find.widgetWithText(ListRow, 'Subscriptions'));
-    await tester.pumpAndSettle();
-    expect(find.text('Auto-detected from your email'), findsOneWidget);
   });
 }

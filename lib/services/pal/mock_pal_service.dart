@@ -21,16 +21,16 @@ class MockPalService implements PalService {
 
   static const _chatReplies = <String>[
     "Nice — logged it. You're tracking a calm week so far.",
-    "Good question. On days you finish morning rituals, you spend about 32% less on food. Want me to show those days?",
-    "You've moved 11 days in a row. That streak is doing real work on your energy.",
-    "Totally doable. Want me to nudge you 30 minutes before sleep to close your last ritual?",
+    "Good question. On days you finish morning routines, you spend about 32% less on food. Want me to show those days?",
+    "You've worked out 11 days in a row. That streak is doing real work on your energy.",
+    "Totally doable. Want me to nudge you 30 minutes before sleep to close your last routine?",
   ];
 
   static const _reviews = <String>[
     "This month leaned steady. You stayed under budget 19 of 30 days, and your "
-        "longest ritual streak hit 12. The pattern is clear: mornings set the tone "
+        "longest routine streak hit 12. The pattern is clear: mornings set the tone "
         "for the whole day.",
-    "A strong month. Movement was your anchor — 22 active days — and spending "
+    "A strong month. Workouts were your anchor — 22 active days — and spending "
         "stayed tight on the days you trained. Keep riding that link.",
   ];
 

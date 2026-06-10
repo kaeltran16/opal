@@ -100,7 +100,7 @@ class _BudgetsGoalsScreenState extends ConsumerState<BudgetsGoalsScreen> {
                 _StepperRow(
                   icon: 'figure.run',
                   color: c.move,
-                  label: 'Move',
+                  label: 'Workout',
                   value: '$_move min',
                   onMinus: () =>
                       setState(() => _move = (_move - 5).clamp(0, 1440)),
@@ -109,7 +109,7 @@ class _BudgetsGoalsScreenState extends ConsumerState<BudgetsGoalsScreen> {
                 _StepperRow(
                   icon: 'sparkles',
                   color: c.rituals,
-                  label: 'Rituals',
+                  label: 'Routines',
                   value: '$_rituals',
                   last: true,
                   onMinus: () =>

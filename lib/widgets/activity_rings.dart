@@ -98,7 +98,7 @@ class _ActivityRingsState extends State<ActivityRings>
       for (final v in widget.values) (v.clamp(0.0, 1.0) * 100).round(),
     ];
     final label = pct.length == 3
-        ? 'Activity rings: money ${pct[0]}%, move ${pct[1]}%, rituals ${pct[2]}%'
+        ? 'Activity rings: money ${pct[0]}%, workout ${pct[1]}%, routines ${pct[2]}%'
         : 'Activity rings';
     return Semantics(
       label: label,

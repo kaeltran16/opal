@@ -72,14 +72,14 @@ void main() {
     await tester.pumpAndSettle();
 
     // Step 3 (Move goal) — pick 45 min, then Continue.
-    expect(find.text('Pick a\nmove goal'), findsOneWidget);
+    expect(find.text('Pick a\nworkout goal'), findsOneWidget);
     await tester.tap(find.text('45 min'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Continue'));
     await tester.pumpAndSettle();
 
     // Step 4 (Rituals) — defaults pre-selected; finish.
-    expect(find.text('Choose your\nrituals'), findsOneWidget);
+    expect(find.text('Choose your\nroutines'), findsOneWidget);
     await tester.tap(find.text('Start tracking'));
     await tester.pumpAndSettle();
 

@@ -7,7 +7,6 @@ import 'package:opal/controllers/providers.dart';
 import 'package:opal/data/db/database.dart';
 import 'package:opal/data/seed/seeder.dart';
 import 'package:opal/router.dart';
-import 'package:opal/services/services.dart';
 import 'package:opal/theme/app_colors.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -23,15 +22,6 @@ void main() {
     await Seeder(db).seedIfNeeded();
     addTearDown(db.close);
 
-    final health = MockHealthService(
-      today: HealthSample(
-        date: DateTime.now(),
-        moveMinutes: 66,
-        activeEnergyKcal: 512,
-        avgHeartRate: 72,
-      ),
-    );
-
     final router = createRouter(initialLocation: '/move');
     final colors = AppColors.light(AppAccent.indigo);
 
@@ -40,7 +30,6 @@ void main() {
         overrides: [
           sharedPreferencesProvider.overrideWithValue(prefs),
           loopDatabaseProvider.overrideWithValue(db),
-          healthServiceProvider.overrideWithValue(health),
         ],
         child: MaterialApp.router(
           debugShowCheckedModeBanner: false,
@@ -51,10 +40,12 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // Health 3-stat hero renders the canned values.
-    expect(find.text('66'), findsOneWidget); // move minutes
-    expect(find.text('512'), findsOneWidget); // active energy
-    expect(find.text('72'), findsOneWidget); // avg HR
+    // Move hero: minutes are derived from logged move entries; energy + HR have
+    // no data source post-HealthKit, so both read '—'.
+    expect(find.text('WORKOUT'), findsOneWidget);
+    expect(find.text('ENERGY'), findsOneWidget);
+    expect(find.text('AVG HR'), findsOneWidget);
+    expect(find.text('—'), findsAtLeastNWidgets(2)); // energy + HR unavailable
 
     // The Start CTA is present (its navigation target is covered by
     // start_workout_test; here we only assert the Move tab surfaces it).

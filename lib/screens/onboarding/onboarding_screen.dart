@@ -254,18 +254,18 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
   String _title(int step) => switch (step) {
         1 => 'Set a daily\nbudget',
-        2 => 'Pick a\nmove goal',
-        3 => 'Choose your\nrituals',
+        2 => 'Pick a\nworkout goal',
+        3 => 'Choose your\nroutines',
         _ => 'Welcome to\nOpal',
       };
 
   String _body(int step) => switch (step) {
         1 => "We'll help you stay under it — gently.",
-        2 => 'Any kind of movement counts — run, walk, yoga, anything.',
+        2 => 'Any kind of workout counts — run, walk, yoga, anything.',
         3 =>
-          'Five small things you want to do each day. You can edit these anytime.',
+          'Six small things you want to do each day. You can edit these anytime.',
         _ =>
-          'One app for money, movement, and the little rituals that hold your day together.',
+          'One app for money, workouts, and the little routines that hold your day together.',
       };
 
   String _cta(int step) => switch (step) {

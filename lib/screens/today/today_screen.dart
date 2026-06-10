@@ -86,8 +86,8 @@ class _TodayBody extends StatelessWidget {
     final ritualsDone = today.ritualsDone;
     final ritualsRemaining = today.ritualsRemaining;
     final closePrompt = ritualsRemaining == 0
-        ? 'All rituals done · nice close'
-        : '$ritualsRemaining ritual${ritualsRemaining == 1 ? '' : 's'} to close';
+        ? 'All routines done · nice close'
+        : '$ritualsRemaining routine${ritualsRemaining == 1 ? '' : 's'} to close';
 
     return ListView(
       padding: const EdgeInsets.only(bottom: 110),
@@ -97,10 +97,12 @@ class _TodayBody extends StatelessWidget {
           subtitle: _dateSubtitle,
           leading: Text(_monthAbbrev(),
               style: AppFonts.sf(size: 17, color: c.accent)),
-          trailing: Row(children: const [
-            NavIconButton(name: 'bell.fill', semanticLabel: 'Notifications'),
-            SizedBox(width: 8),
-            NavIconButton(name: 'magnifyingglass', semanticLabel: 'Search'),
+          trailing: Row(children: [
+            NavIconButton(
+              name: 'bell.fill',
+              semanticLabel: 'Notifications',
+              onTap: () => context.pushNamed(AppRoute.palInbox.name),
+            ),
           ]),
         ),
 
@@ -129,13 +131,13 @@ class _TodayBody extends StatelessWidget {
                           const SizedBox(height: 10),
                           RingStat(
                               color: c.move,
-                              label: 'Move',
+                              label: 'Workout',
                               value: '${today.moveMinutes}',
                               goal: '/ ${goals.dailyMoveMinutes} MIN'),
                           const SizedBox(height: 10),
                           RingStat(
                               color: c.rituals,
-                              label: 'Rituals',
+                              label: 'Routines',
                               value: '$ritualsDone',
                               goal: '/ ${goals.dailyRitualTarget}'),
                         ],
@@ -209,7 +211,7 @@ class _TodayBody extends StatelessWidget {
                 child: SummaryTile(
                   type: 'move',
                   icon: 'figure.run',
-                  label: 'Move',
+                  label: 'Workout',
                   big: '${today.moveMinutes}',
                   unit: 'MIN',
                   sub: 'of ${goals.dailyMoveMinutes} min goal',
@@ -221,7 +223,7 @@ class _TodayBody extends StatelessWidget {
                 child: SummaryTile(
                   type: 'rituals',
                   icon: 'sparkles',
-                  label: 'Rituals',
+                  label: 'Routines',
                   big: '$ritualsDone',
                   unit: '/ ${goals.dailyRitualTarget}',
                   sub: closePrompt,
@@ -267,8 +269,6 @@ class _TodayBody extends StatelessWidget {
                             weight: FontWeight.w700,
                             color: c.ink3,
                             letterSpacing: 0.3)),
-                    const Spacer(),
-                    AppIcon('chevron.right', size: 13, color: c.ink4),
                   ],
                 ),
                 const SizedBox(height: 10),
@@ -280,13 +280,13 @@ class _TodayBody extends StatelessWidget {
                         letterSpacing: -0.43,
                         height: 1.38),
                     children: [
-                      const TextSpan(text: "You've moved "),
+                      const TextSpan(text: "You've worked out "),
                       TextSpan(
                           text: '11 days in a row',
                           style: const TextStyle(fontWeight: FontWeight.w700)),
                       const TextSpan(
                           text:
-                              '. On days you finish morning rituals, you spend '),
+                              '. On days you finish morning routines, you spend '),
                       TextSpan(
                           text: '32% less',
                           style: TextStyle(
@@ -294,31 +294,6 @@ class _TodayBody extends StatelessWidget {
                       const TextSpan(text: ' on food.'),
                     ],
                   ),
-                ),
-                const SizedBox(height: 12),
-                Wrap(
-                  spacing: 6,
-                  runSpacing: 6,
-                  children: [
-                    for (final q in const [
-                      'Why?',
-                      'Show me the days',
-                      'How to keep it up'
-                    ])
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 6),
-                        decoration: BoxDecoration(
-                            color: c.fill,
-                            borderRadius: BorderRadius.circular(100)),
-                        child: Text(q,
-                            style: AppFonts.sf(
-                                size: 12,
-                                weight: FontWeight.w500,
-                                color: c.ink2,
-                                letterSpacing: -0.08)),
-                      ),
-                  ],
                 ),
               ],
             ),
@@ -340,7 +315,7 @@ class _TodayBody extends StatelessWidget {
                       letterSpacing: 0.35)),
               Text('Week',
                   style:
-                      AppFonts.sf(size: 15, color: c.accent, letterSpacing: -0.24)),
+                      AppFonts.sf(size: 15, color: c.ink3, letterSpacing: -0.24)),
             ],
           ),
         ),

@@ -194,7 +194,7 @@ class _HeroCard extends StatelessWidget {
                       child: const AppIcon('sparkles', size: 12, color: _white),
                     ),
                     const SizedBox(width: 8),
-                    Text('PAL BUILDS YOUR ROUTINE',
+                    Text('PAL BUILDS YOUR WORKOUT',
                         style: AppFonts.sf(
                             size: 11,
                             weight: FontWeight.w700,
@@ -494,7 +494,7 @@ class _LoadingPill extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              Text('Pal is building your routine…',
+              Text('Pal is building your workout…',
                   style: AppFonts.sf(
                       size: 13, color: c.ink2, letterSpacing: -0.1)),
             ],
@@ -817,7 +817,7 @@ class _ResultActions extends StatelessWidget {
           flex: 2,
           child: PressScale(
             onTap: onSave,
-            semanticLabel: 'Save routine',
+            semanticLabel: 'Save workout',
             child: Container(
               padding: const EdgeInsets.symmetric(vertical: 13),
               decoration: BoxDecoration(
@@ -825,7 +825,7 @@ class _ResultActions extends StatelessWidget {
                 borderRadius: BorderRadius.circular(12),
               ),
               alignment: Alignment.center,
-              child: Text('Save routine',
+              child: Text('Save workout',
                   style: AppFonts.sf(
                       size: 15,
                       weight: FontWeight.w700,

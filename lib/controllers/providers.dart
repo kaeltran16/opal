@@ -240,16 +240,6 @@ PalService palService(Ref ref) {
   );
 }
 
-/// Real HealthKit data on iOS (U27); canned [MockHealthService] on
-/// web/tests/desktop so Today (U05) and Move (U10) still render.
-@Riverpod(keepAlive: true)
-HealthService healthService(Ref ref) {
-  if (!kIsWeb && defaultTargetPlatform == TargetPlatform.iOS) {
-    return HealthKitService();
-  }
-  return MockHealthService();
-}
-
 /// Real IMAP-backed sync (U24) when `PAL_BASE_URL` is set; [MockEmailSyncService]
 /// otherwise (tests, backend-less preview). Shares the proxy's http client +
 /// device-token store with [palService].

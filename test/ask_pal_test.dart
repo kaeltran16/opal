@@ -57,7 +57,7 @@ void main() {
     // Empty state: the suggestion chips are present.
     expect(find.text('Why was Friday expensive?'), findsOneWidget);
     expect(find.text('How am I doing this week?'), findsOneWidget);
-    expect(find.text('Suggest an evening ritual'), findsOneWidget);
+    expect(find.text('Suggest an evening routine'), findsOneWidget);
 
     // Type a message and send it.
     await tester.enterText(find.byType(TextField), 'How am I doing?');

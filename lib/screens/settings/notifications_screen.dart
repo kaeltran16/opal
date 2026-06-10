@@ -95,7 +95,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
               _SwitchRow(
                 icon: 'sparkles',
                 color: c.rituals,
-                title: 'Ritual reminders',
+                title: 'Routine reminders',
                 value: _ritualReminders,
                 onChanged: _setRitualReminders,
               ),
