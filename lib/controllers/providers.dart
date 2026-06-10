@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -228,8 +228,15 @@ PalService palService(Ref ref) {
   );
 }
 
+/// Real HealthKit data on iOS (U27); canned [MockHealthService] on
+/// web/tests/desktop so Today (U05) and Move (U10) still render.
 @Riverpod(keepAlive: true)
-HealthService healthService(Ref ref) => MockHealthService();
+HealthService healthService(Ref ref) {
+  if (!kIsWeb && defaultTargetPlatform == TargetPlatform.iOS) {
+    return HealthKitService();
+  }
+  return MockHealthService();
+}
 
 @Riverpod(keepAlive: true)
 EmailSyncService emailSyncService(Ref ref) {
@@ -238,12 +245,41 @@ EmailSyncService emailSyncService(Ref ref) {
   return service;
 }
 
+/// Real `flutter_local_notifications` on iOS (U27); no-op elsewhere. Requires
+/// the timezone DB to be initialized in `main()` before any [schedule] call.
 @Riverpod(keepAlive: true)
-NotificationService notificationService(Ref ref) =>
-    const NoopNotificationService();
+NotificationService notificationService(Ref ref) {
+  if (!kIsWeb && defaultTargetPlatform == TargetPlatform.iOS) {
+    return LocalNotificationService();
+  }
+  return const NoopNotificationService();
+}
 
 @Riverpod(keepAlive: true)
 HapticsService hapticsService(Ref ref) => const PlatformHapticsService();
+
+/// Live Activity / Dynamic Island for the active workout (U25). The real impl
+/// talks to the native `opal/live_activity` MethodChannel; until the OpalWidgets
+/// extension + AppDelegate bridge are added in Xcode (see
+/// `docs/ios-native-setup.md`) the channel is absent and every call no-ops
+/// gracefully. No-op on web/tests/desktop.
+@Riverpod(keepAlive: true)
+LiveActivityService liveActivityService(Ref ref) {
+  if (!kIsWeb && defaultTargetPlatform == TargetPlatform.iOS) {
+    return const MethodChannelLiveActivityService();
+  }
+  return const NoopLiveActivityService();
+}
+
+/// Siri Shortcuts / AppIntents donation + deep-link stream (U26). The real impl
+/// talks to the native `opal/intents` MethodChannel, registered once the Intents
+/// Swift files are added to the Runner target in Xcode; no-op elsewhere.
+@Riverpod(keepAlive: true)
+SiriShortcutsService siriShortcutsService(Ref ref) {
+  final service = createSiriShortcutsService();
+  ref.onDispose(service.dispose);
+  return service;
+}
 
 // ---------------------------------------------------------------------------
 // Theme settings (brightness + accent), persisted via SettingsRepository.

@@ -475,12 +475,20 @@ final class PalServiceProvider
 
 String _$palServiceHash() => r'0e208184538329ea10fccc61e3f65259940bfc89';
 
+/// Real HealthKit data on iOS (U27); canned [MockHealthService] on
+/// web/tests/desktop so Today (U05) and Move (U10) still render.
+
 @ProviderFor(healthService)
 const healthServiceProvider = HealthServiceProvider._();
+
+/// Real HealthKit data on iOS (U27); canned [MockHealthService] on
+/// web/tests/desktop so Today (U05) and Move (U10) still render.
 
 final class HealthServiceProvider
     extends $FunctionalProvider<HealthService, HealthService, HealthService>
     with $Provider<HealthService> {
+  /// Real HealthKit data on iOS (U27); canned [MockHealthService] on
+  /// web/tests/desktop so Today (U05) and Move (U10) still render.
   const HealthServiceProvider._()
     : super(
         from: null,
@@ -514,7 +522,7 @@ final class HealthServiceProvider
   }
 }
 
-String _$healthServiceHash() => r'd2c11ce387285c3464a050a8ea381cad1851f4e2';
+String _$healthServiceHash() => r'5d477c9118828ba73fb80cdcb9c3cebe41e45291';
 
 @ProviderFor(emailSyncService)
 const emailSyncServiceProvider = EmailSyncServiceProvider._();
@@ -562,8 +570,14 @@ final class EmailSyncServiceProvider
 
 String _$emailSyncServiceHash() => r'90e89fddd77b8da898214bb688d01226990322e9';
 
+/// Real `flutter_local_notifications` on iOS (U27); no-op elsewhere. Requires
+/// the timezone DB to be initialized in `main()` before any [schedule] call.
+
 @ProviderFor(notificationService)
 const notificationServiceProvider = NotificationServiceProvider._();
+
+/// Real `flutter_local_notifications` on iOS (U27); no-op elsewhere. Requires
+/// the timezone DB to be initialized in `main()` before any [schedule] call.
 
 final class NotificationServiceProvider
     extends
@@ -573,6 +587,8 @@ final class NotificationServiceProvider
           NotificationService
         >
     with $Provider<NotificationService> {
+  /// Real `flutter_local_notifications` on iOS (U27); no-op elsewhere. Requires
+  /// the timezone DB to be initialized in `main()` before any [schedule] call.
   const NotificationServiceProvider._()
     : super(
         from: null,
@@ -608,7 +624,7 @@ final class NotificationServiceProvider
 }
 
 String _$notificationServiceHash() =>
-    r'd3ad71fb80e6e113c0e58bf0f66b07f943cd16ec';
+    r'9598a87c3cf64950f40027e83fcdbd0bdaee3d91';
 
 @ProviderFor(hapticsService)
 const hapticsServiceProvider = HapticsServiceProvider._();
@@ -650,6 +666,130 @@ final class HapticsServiceProvider
 }
 
 String _$hapticsServiceHash() => r'9804f50173cd1effd98eda0576aa018ccaf3c973';
+
+/// Live Activity / Dynamic Island for the active workout (U25). The real impl
+/// talks to the native `opal/live_activity` MethodChannel; until the OpalWidgets
+/// extension + AppDelegate bridge are added in Xcode (see
+/// `docs/ios-native-setup.md`) the channel is absent and every call no-ops
+/// gracefully. No-op on web/tests/desktop.
+
+@ProviderFor(liveActivityService)
+const liveActivityServiceProvider = LiveActivityServiceProvider._();
+
+/// Live Activity / Dynamic Island for the active workout (U25). The real impl
+/// talks to the native `opal/live_activity` MethodChannel; until the OpalWidgets
+/// extension + AppDelegate bridge are added in Xcode (see
+/// `docs/ios-native-setup.md`) the channel is absent and every call no-ops
+/// gracefully. No-op on web/tests/desktop.
+
+final class LiveActivityServiceProvider
+    extends
+        $FunctionalProvider<
+          LiveActivityService,
+          LiveActivityService,
+          LiveActivityService
+        >
+    with $Provider<LiveActivityService> {
+  /// Live Activity / Dynamic Island for the active workout (U25). The real impl
+  /// talks to the native `opal/live_activity` MethodChannel; until the OpalWidgets
+  /// extension + AppDelegate bridge are added in Xcode (see
+  /// `docs/ios-native-setup.md`) the channel is absent and every call no-ops
+  /// gracefully. No-op on web/tests/desktop.
+  const LiveActivityServiceProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'liveActivityServiceProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$liveActivityServiceHash();
+
+  @$internal
+  @override
+  $ProviderElement<LiveActivityService> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  LiveActivityService create(Ref ref) {
+    return liveActivityService(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(LiveActivityService value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<LiveActivityService>(value),
+    );
+  }
+}
+
+String _$liveActivityServiceHash() =>
+    r'da56177b00efd0d4c58d9386832c921d706e55b0';
+
+/// Siri Shortcuts / AppIntents donation + deep-link stream (U26). The real impl
+/// talks to the native `opal/intents` MethodChannel, registered once the Intents
+/// Swift files are added to the Runner target in Xcode; no-op elsewhere.
+
+@ProviderFor(siriShortcutsService)
+const siriShortcutsServiceProvider = SiriShortcutsServiceProvider._();
+
+/// Siri Shortcuts / AppIntents donation + deep-link stream (U26). The real impl
+/// talks to the native `opal/intents` MethodChannel, registered once the Intents
+/// Swift files are added to the Runner target in Xcode; no-op elsewhere.
+
+final class SiriShortcutsServiceProvider
+    extends
+        $FunctionalProvider<
+          SiriShortcutsService,
+          SiriShortcutsService,
+          SiriShortcutsService
+        >
+    with $Provider<SiriShortcutsService> {
+  /// Siri Shortcuts / AppIntents donation + deep-link stream (U26). The real impl
+  /// talks to the native `opal/intents` MethodChannel, registered once the Intents
+  /// Swift files are added to the Runner target in Xcode; no-op elsewhere.
+  const SiriShortcutsServiceProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'siriShortcutsServiceProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$siriShortcutsServiceHash();
+
+  @$internal
+  @override
+  $ProviderElement<SiriShortcutsService> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  SiriShortcutsService create(Ref ref) {
+    return siriShortcutsService(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(SiriShortcutsService value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<SiriShortcutsService>(value),
+    );
+  }
+}
+
+String _$siriShortcutsServiceHash() =>
+    r'b33f6ecb8781e6a3b00582f6ee1c85b4029cd6d5';
 
 /// Holds and persists the theme (brightness + accent). Reads initial values
 /// from [SettingsRepository]; every setter writes back so the selection

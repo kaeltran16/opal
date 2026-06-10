@@ -59,6 +59,15 @@ dependencies:
   http: ^1.2.0
   flutter_secure_storage: ^9.2.0
 
+  # Native iOS services (U27): HealthKit-backed HealthService + local
+  # notifications. Both auto-register via the Flutter plugin system and are
+  # gated to iOS in providers.dart (mock/no-op elsewhere). timezone +
+  # flutter_timezone resolve the device zone for zonedSchedule.
+  health: ^13.1.1
+  flutter_local_notifications: ^18.0.1
+  timezone: ^0.10.0
+  flutter_timezone: ^3.0.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
