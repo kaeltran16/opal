@@ -47,14 +47,15 @@ class QuickActionsOverlay extends StatelessWidget {
       case 'Ask Pal':
         context.pushNamed(AppRoute.askPal.name); // U16
       case 'Log workout':
+        // Manual workout log: open New Entry on the Workout segment.
+        context.pushNamed(AppRoute.newEntry.name,
+            queryParameters: {'kind': 'workout'});
       case 'Start workout':
-        // TODO U12/U13/U14: route to Start Workout / Active Session.
-        context.pushNamed(AppRoute.newEntry.name);
+        context.pushNamed(AppRoute.startWorkout.name); // U12 -> /move/start
       case 'Complete ritual':
-        // TODO U08: route to the Rituals tab / completion sheet.
-        context.pushNamed(AppRoute.newEntry.name);
+        context.goNamed(AppRoute.rituals.name); // switch to the Rituals tab
       case 'Voice entry':
-        // TODO U16: route to voice/NL capture (Ask Pal for now).
+        // Voice/NL capture lands on Ask Pal until a dedicated capture exists.
         context.pushNamed(AppRoute.askPal.name);
     }
   }

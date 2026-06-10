@@ -19,6 +19,8 @@ class SettingsRepository {
   static const _kAccent = 'settings.accent';
   static const _kBrightness = 'settings.brightness';
   static const _kOnboardingComplete = 'settings.onboardingComplete';
+  static const _kRitualReminders = 'settings.ritualReminders';
+  static const _kBudgetAlerts = 'settings.budgetAlerts';
 
   // --- Accent -------------------------------------------------------------
 
@@ -55,4 +57,18 @@ class SettingsRepository {
 
   Future<void> setOnboardingComplete(bool complete) =>
       _prefs.setBool(_kOnboardingComplete, complete);
+
+  // --- Notification preferences -------------------------------------------
+
+  /// Daily ritual reminder nudges. Defaults on.
+  bool get ritualReminders => _prefs.getBool(_kRitualReminders) ?? true;
+
+  Future<void> setRitualReminders(bool enabled) =>
+      _prefs.setBool(_kRitualReminders, enabled);
+
+  /// Over-budget alerts. Defaults on.
+  bool get budgetAlerts => _prefs.getBool(_kBudgetAlerts) ?? true;
+
+  Future<void> setBudgetAlerts(bool enabled) =>
+      _prefs.setBool(_kBudgetAlerts, enabled);
 }

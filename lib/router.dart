@@ -16,6 +16,12 @@ import 'screens/quick_actions/quick_actions_overlay.dart';
 import 'screens/review/monthly_review_screen.dart';
 import 'screens/rituals/rituals_builder_screen.dart';
 import 'screens/rituals/rituals_screen.dart';
+import 'screens/settings/about_screen.dart';
+import 'screens/settings/budgets_goals_screen.dart';
+import 'screens/settings/export_data_screen.dart';
+import 'screens/settings/health_screen.dart';
+import 'screens/settings/notifications_screen.dart';
+import 'screens/settings/privacy_screen.dart';
 import 'screens/shell/loop_shell.dart';
 import 'models/models.dart';
 import 'screens/workout/active_session_screen.dart';
@@ -24,8 +30,6 @@ import 'screens/workout/routine_editor_screen.dart';
 import 'screens/workout/start_workout_screen.dart';
 import 'screens/workout/workout_detail_screen.dart';
 import 'screens/today/today_screen.dart';
-import 'theme/app_colors.dart';
-import 'theme/app_text.dart';
 
 /// Named routes for the whole app. Later units slot their real screens into the
 /// already-defined paths so deep links / Live Activity tap-through (U25) stay
@@ -53,6 +57,14 @@ enum AppRoute {
 
   // Rituals sub-routes.
   manageRituals('manageRituals', 'manage'), //   U21b -> /rituals/manage
+
+  // You / Settings sub-routes (push within the You tab, tab bar stays).
+  budgetsGoals('budgetsGoals', 'budgets'), //       -> /you/budgets
+  notificationSettings('notificationSettings', 'notifications'), // /you/notifications
+  healthSettings('healthSettings', 'health'), //    -> /you/health
+  privacy('privacy', 'privacy'), //                 -> /you/privacy
+  exportData('exportData', 'export'), //            -> /you/export
+  about('about', 'about'), //                       -> /you/about
 
   // Modal sheets / focus routes (stubbed; built in later units).
   quickActions('quickActions', '/quick-actions'), // U06
@@ -129,13 +141,13 @@ GoRouter createRouter({
                     path: AppRoute.moveDetail.path,
                     name: AppRoute.moveDetail.name,
                     builder: (context, state) =>
-                        const _DetailStub(title: 'Movement'),
+                        const DetailScreen(tracker: DetailTracker.move),
                   ),
                   GoRoute(
                     path: AppRoute.ritualsDetail.path,
                     name: AppRoute.ritualsDetail.name,
                     builder: (context, state) =>
-                        const _DetailStub(title: 'Rituals'),
+                        const DetailScreen(tracker: DetailTracker.rituals),
                   ),
                 ],
               ),
@@ -199,6 +211,38 @@ GoRouter createRouter({
                 path: AppRoute.you.path,
                 name: AppRoute.you.name,
                 builder: (context, state) => const ProfileScreen(),
+                routes: [
+                  GoRoute(
+                    path: AppRoute.budgetsGoals.path,
+                    name: AppRoute.budgetsGoals.name,
+                    builder: (context, state) => const BudgetsGoalsScreen(),
+                  ),
+                  GoRoute(
+                    path: AppRoute.notificationSettings.path,
+                    name: AppRoute.notificationSettings.name,
+                    builder: (context, state) => const NotificationsScreen(),
+                  ),
+                  GoRoute(
+                    path: AppRoute.healthSettings.path,
+                    name: AppRoute.healthSettings.name,
+                    builder: (context, state) => const HealthSettingsScreen(),
+                  ),
+                  GoRoute(
+                    path: AppRoute.privacy.path,
+                    name: AppRoute.privacy.name,
+                    builder: (context, state) => const PrivacyScreen(),
+                  ),
+                  GoRoute(
+                    path: AppRoute.exportData.path,
+                    name: AppRoute.exportData.name,
+                    builder: (context, state) => const ExportDataScreen(),
+                  ),
+                  GoRoute(
+                    path: AppRoute.about.path,
+                    name: AppRoute.about.name,
+                    builder: (context, state) => const AboutScreen(),
+                  ),
+                ],
               ),
             ],
           ),
@@ -231,8 +275,9 @@ GoRouter createRouter({
         path: AppRoute.newEntry.path,
         name: AppRoute.newEntry.name,
         parentNavigatorKey: _rootNavigatorKey,
-        pageBuilder: (context, state) =>
-            _sheetPage(state.pageKey, const NewEntrySheet()),
+        pageBuilder: (context, state) => _sheetPage(
+            state.pageKey,
+            NewEntrySheet(initialKind: state.uri.queryParameters['kind'])),
       ),
       GoRoute(
         path: AppRoute.askPal.path,
@@ -347,51 +392,4 @@ CustomTransitionPage<void> _fadePage(LocalKey key, Widget child) {
         FadeTransition(opacity: animation, child: child),
     child: child,
   );
-}
-
-/// Temporary full-screen stub for routes whose screens arrive in later units.
-/// Provides a back affordance so navigation is testable now.
-class _DetailStub extends StatelessWidget {
-  const _DetailStub({required this.title});
-  final String title;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.colors;
-    return Scaffold(
-      backgroundColor: c.bg,
-      body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(8, 8, 16, 0),
-              child: Row(
-                children: [
-                  IconButton(
-                    icon: Icon(Icons.arrow_back_ios_new,
-                        size: 18, color: c.accent),
-                    onPressed: () => context.pop(),
-                  ),
-                  Text(title,
-                      style: AppFonts.sf(
-                          size: 17,
-                          weight: FontWeight.w600,
-                          color: c.ink,
-                          letterSpacing: -0.43)),
-                ],
-              ),
-            ),
-            Expanded(
-              child: Center(
-                child: Text('$title — coming soon',
-                    style: AppFonts.sf(
-                        size: 17, color: c.ink3, letterSpacing: -0.43)),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }

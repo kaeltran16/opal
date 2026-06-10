@@ -21,7 +21,12 @@ import '../../widgets/keypad.dart';
 /// Money entries store a **negative** amount (expense). Move entries store the
 /// typed number as [Entry.duration] minutes. Ritual entries use the typed title.
 class NewEntrySheet extends ConsumerStatefulWidget {
-  const NewEntrySheet({super.key});
+  const NewEntrySheet({super.key, this.initialKind});
+
+  /// Which tracker to open on, as a wire token ('expense' | 'workout' |
+  /// 'ritual'). Lets deep links (e.g. the Quick Actions "Log workout" tile)
+  /// preselect the segment. Null/unknown falls back to Expense.
+  final String? initialKind;
 
   @override
   ConsumerState<NewEntrySheet> createState() => _NewEntrySheetState();
@@ -78,6 +83,16 @@ class _NewEntrySheetState extends ConsumerState<NewEntrySheet> {
 
   /// True while a "Type it" natural-language parse is in flight.
   bool _parsing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _kind = switch (widget.initialKind) {
+      'workout' => _Kind.workout,
+      'ritual' => _Kind.ritual,
+      _ => _Kind.expense,
+    };
+  }
 
   static const _picks = <_QuickPick>[
     _QuickPick(

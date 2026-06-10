@@ -15,8 +15,9 @@ import '../../widgets/nav_bar.dart';
 /// Avatar + name + "Member since …", a this-year 2×2 stat grid (Total spent /
 /// Hours moved / Rituals kept / Longest streak, all from repositories via
 /// [profileStatsProvider]), and a Settings [InsetSection] list. The Rituals row
-/// deep-links to the Rituals tab; Integrations → Email sync targets the U20
-/// email stub. Non-email rows are no-op stubs for now (// TODO).
+/// deep-links to the Rituals tab; every other row pushes its settings
+/// sub-screen within the You tab (Integrations → Email sync is the one
+/// full-screen exception, matching the U20 flow).
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
 
@@ -174,24 +175,19 @@ class _ProfileBody extends StatelessWidget {
               icon: 'target',
               iconBg: c.money,
               title: 'Budgets & goals',
-              // TODO: Budgets & goals editor (later unit).
-              onTap: () {},
+              onTap: () => context.pushNamed(AppRoute.budgetsGoals.name),
             ),
             ListRow(
               icon: 'bell.fill',
               iconBg: c.red,
               title: 'Notifications',
-              // TODO: Notification preferences (later unit).
-              onTap: () {},
+              onTap: () => context.pushNamed(AppRoute.notificationSettings.name),
             ),
             ListRow(
               icon: 'heart.fill',
               iconBg: c.move,
               title: 'HealthKit',
-              value: 'Connected',
-              chevron: false,
-              // TODO: HealthKit connection management (device-only, U27).
-              onTap: () {},
+              onTap: () => context.pushNamed(AppRoute.healthSettings.name),
             ),
             ListRow(
               icon: 'envelope.fill',
@@ -213,25 +209,21 @@ class _ProfileBody extends StatelessWidget {
               icon: 'lock.fill',
               iconBg: c.ink3,
               title: 'Privacy',
-              // TODO: Privacy settings (later unit).
-              onTap: () {},
+              onTap: () => context.pushNamed(AppRoute.privacy.name),
             ),
             ListRow(
               icon: 'arrow.up.right',
               iconBg: c.move,
               title: 'Export data',
-              // TODO: Data export (later unit).
-              onTap: () {},
+              onTap: () => context.pushNamed(AppRoute.exportData.name),
             ),
             ListRow(
               icon: 'gearshape.fill',
               iconBg: c.ink3,
               title: 'About',
               value: 'Opal 1.0',
-              chevron: false,
               last: true,
-              // TODO: About screen (later unit).
-              onTap: () {},
+              onTap: () => context.pushNamed(AppRoute.about.name),
             ),
           ],
         ),
