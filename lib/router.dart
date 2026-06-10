@@ -231,13 +231,15 @@ GoRouter createRouter({
         path: AppRoute.newEntry.path,
         name: AppRoute.newEntry.name,
         parentNavigatorKey: _rootNavigatorKey,
-        builder: (context, state) => const NewEntrySheet(),
+        pageBuilder: (context, state) =>
+            _sheetPage(state.pageKey, const NewEntrySheet()),
       ),
       GoRoute(
         path: AppRoute.askPal.path,
         name: AppRoute.askPal.name,
         parentNavigatorKey: _rootNavigatorKey,
-        builder: (context, state) => const AskPalScreen(),
+        pageBuilder: (context, state) =>
+            _sheetPage(state.pageKey, const AskPalScreen()),
       ),
       GoRoute(
         path: AppRoute.exerciseLibrary.path,
@@ -250,8 +252,8 @@ GoRouter createRouter({
         path: AppRoute.activeSession.path,
         name: AppRoute.activeSession.name,
         parentNavigatorKey: _rootNavigatorKey,
-        builder: (context, state) =>
-            ActiveSessionScreen(routineId: state.pathParameters['routineId']!),
+        pageBuilder: (context, state) => _sheetPage(state.pageKey,
+            ActiveSessionScreen(routineId: state.pathParameters['routineId']!)),
       ),
       // U14 — Post-workout summary (focus route). The active session pushes
       // here on Finish, handing the finished Workout via `extra`.
@@ -259,15 +261,16 @@ GoRouter createRouter({
         path: AppRoute.postWorkout.path,
         name: AppRoute.postWorkout.name,
         parentNavigatorKey: _rootNavigatorKey,
-        builder: (context, state) =>
-            PostWorkoutScreen(workout: state.extra as Workout?),
+        pageBuilder: (context, state) => _sheetPage(
+            state.pageKey, PostWorkoutScreen(workout: state.extra as Workout?)),
       ),
       // U18 — Monthly Review (root-level; no screen links here yet).
       GoRoute(
         path: AppRoute.monthlyReview.path,
         name: AppRoute.monthlyReview.name,
         parentNavigatorKey: _rootNavigatorKey,
-        builder: (context, state) => const MonthlyReviewScreen(),
+        pageBuilder: (context, state) =>
+            _fadePage(state.pageKey, const MonthlyReviewScreen()),
       ),
       // Email sync intro — real screens land in U20; stub for now so the
       // profile Integrations row has a stable deep-link target.
@@ -298,7 +301,8 @@ GoRouter createRouter({
         path: AppRoute.onboarding.path,
         name: AppRoute.onboarding.name,
         parentNavigatorKey: _rootNavigatorKey,
-        builder: (context, state) => const OnboardingScreen(),
+        pageBuilder: (context, state) =>
+            _fadePage(state.pageKey, const OnboardingScreen()),
       ),
     ],
   );
@@ -307,6 +311,43 @@ GoRouter createRouter({
 /// Default gate predicate: when no `SettingsRepository` is supplied (tests,
 /// stand-alone use) the app behaves as if onboarding is already done.
 bool _alwaysComplete() => true;
+
+/// Slide-up + ease cover transition for modal / focus routes (the New Entry
+/// sheet, Ask Pal, and the full-screen workout flow). Shares the Quick Actions
+/// easing so presentations feel consistent across the app.
+CustomTransitionPage<void> _sheetPage(LocalKey key, Widget child) {
+  return CustomTransitionPage<void>(
+    key: key,
+    transitionDuration: const Duration(milliseconds: 300),
+    reverseTransitionDuration: const Duration(milliseconds: 220),
+    transitionsBuilder: (context, animation, secondary, child) {
+      final curved = CurvedAnimation(
+        parent: animation,
+        curve: const Cubic(0.2, 0.8, 0.2, 1),
+        reverseCurve: Curves.easeInCubic,
+      );
+      return SlideTransition(
+        position: Tween<Offset>(begin: const Offset(0, 1), end: Offset.zero)
+            .animate(curved),
+        child: child,
+      );
+    },
+    child: child,
+  );
+}
+
+/// Gentle cross-fade for full-screen routes that read better without a slide
+/// (first-run onboarding, monthly review).
+CustomTransitionPage<void> _fadePage(LocalKey key, Widget child) {
+  return CustomTransitionPage<void>(
+    key: key,
+    transitionDuration: const Duration(milliseconds: 250),
+    reverseTransitionDuration: const Duration(milliseconds: 180),
+    transitionsBuilder: (context, animation, secondary, child) =>
+        FadeTransition(opacity: animation, child: child),
+    child: child,
+  );
+}
 
 /// Temporary full-screen stub for routes whose screens arrive in later units.
 /// Provides a back affordance so navigation is testable now.

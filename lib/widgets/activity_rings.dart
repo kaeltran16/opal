@@ -6,7 +6,9 @@ import '../theme/app_colors.dart';
 /// Values are 0..1+ progress fractions; each ring fills clockwise from 12 o'clock.
 ///
 /// On first appear the rings animate 0 → current over 800ms ease-out, staggered
-/// 60ms per ring (handoff "Activity ring animation"). Later value changes snap.
+/// 60ms per ring (handoff "Activity ring animation"). Later value changes tween
+/// from the previously shown value to the new one with the same eased, staggered
+/// motion, so logging an entry fills the ring smoothly instead of snapping.
 class ActivityRings extends StatefulWidget {
   const ActivityRings({
     super.key,
@@ -32,12 +34,42 @@ class _ActivityRingsState extends State<ActivityRings>
 
   late final AnimationController _controller;
 
+  // Endpoints of the current tween: the displayed value at the moment the
+  // animation (re)started, and the target. Entrance starts from all-zero.
+  late List<double> _from;
+  late List<double> _to;
+
+  Duration _durationFor(int n) => _fill + _stagger * (n > 0 ? n - 1 : 0);
+
   @override
   void initState() {
     super.initState();
-    final n = widget.values.length;
-    final total = _fill + _stagger * (n > 0 ? n - 1 : 0);
-    _controller = AnimationController(vsync: this, duration: total)..forward();
+    _from = List<double>.filled(widget.values.length, 0);
+    _to = List<double>.of(widget.values);
+    _controller =
+        AnimationController(vsync: this, duration: _durationFor(_to.length))
+          ..forward();
+  }
+
+  @override
+  void didUpdateWidget(ActivityRings old) {
+    super.didUpdateWidget(old);
+    final changed = widget.values.length != _to.length ||
+        [for (var i = 0; i < widget.values.length; i++) i]
+            .any((i) => widget.values[i] != _to[i]);
+    if (!changed) return;
+    // Tween from whatever is on screen right now to the new values, so an
+    // in-flight animation hands off without a jump.
+    final t = _controller.value;
+    _from = [for (var i = 0; i < _to.length; i++) _display(i, t)];
+    // Pad/trim to match the new length (rare; treat extras as a fresh fill).
+    if (_from.length != widget.values.length) {
+      _from = List<double>.filled(widget.values.length, 0);
+    }
+    _to = List<double>.of(widget.values);
+    _controller
+      ..duration = _durationFor(_to.length)
+      ..forward(from: 0);
   }
 
   @override
@@ -54,6 +86,10 @@ class _ActivityRingsState extends State<ActivityRings>
     final local = ((t - start) / (end - start)).clamp(0.0, 1.0);
     return Curves.easeOut.transform(local);
   }
+
+  /// Currently shown value for ring [i] at controller position [t].
+  double _display(int i, double t) =>
+      _from[i] + (_to[i] - _from[i]) * _fraction(i, t);
 
   @override
   Widget build(BuildContext context) {
@@ -74,8 +110,7 @@ class _ActivityRingsState extends State<ActivityRings>
           builder: (context, _) {
             final t = _controller.value;
             final animated = [
-              for (var i = 0; i < widget.values.length; i++)
-                widget.values[i] * _fraction(i, t),
+              for (var i = 0; i < _to.length; i++) _display(i, t),
             ];
             return CustomPaint(
               painter: _RingsPainter(
