@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -21,6 +23,50 @@ class _LoopAppState extends ConsumerState<LoopApp> {
     isOnboardingComplete: () =>
         ref.read(settingsRepositoryProvider).onboardingComplete,
   );
+
+  /// U25/U26 — native deep links: Siri/Spotlight AppIntents (`/entry/new`,
+  /// `/move/start`) and Live-Activity / Dynamic-Island taps
+  /// (`/session/:routineId`), both delivered over the `opal/intents` channel by
+  /// the native bridge. No-op stream off iOS.
+  StreamSubscription<String>? _deepLinkSub;
+  String? _lastDeepLink;
+  DateTime? _lastDeepLinkAt;
+
+  @override
+  void initState() {
+    super.initState();
+    final siri = ref.read(siriShortcutsServiceProvider);
+    _deepLinkSub = siri.deepLinks.listen(_handleDeepLink);
+    // Donate the app shortcuts and drain any link buffered natively before we
+    // were listening (a cold launch from a Siri/Spotlight tap). Best-effort.
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await siri.donateShortcuts();
+      final initial = await siri.consumeInitialDeepLink();
+      if (initial != null) _handleDeepLink(initial);
+    });
+  }
+
+  void _handleDeepLink(String path) {
+    if (path.isEmpty) return;
+    // A warm Siri intent both pushes the path over the channel AND re-opens the
+    // app with the same `opal://` URL (forwarded by SceneDelegate), so an
+    // identical path can arrive twice within a beat — swallow the duplicate.
+    final now = DateTime.now();
+    if (_lastDeepLink == path &&
+        _lastDeepLinkAt != null &&
+        now.difference(_lastDeepLinkAt!) < const Duration(milliseconds: 1200)) {
+      return;
+    }
+    _lastDeepLink = path;
+    _lastDeepLinkAt = now;
+    _router.go(path);
+  }
+
+  @override
+  void dispose() {
+    _deepLinkSub?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {

@@ -1,49 +1,85 @@
 # iOS native setup (U25–U27)
 
-What the Mac environment + agents produced, and the **Xcode-GUI steps that remain**
-(the `.pbxproj` target/membership work can't be done safely from the CLI).
+Status of the iOS-native units and what remains. The Xcode-project wiring that
+the original handoff said needed manual GUI work is now **done programmatically**
+via `ios/configure_native_targets.rb` (uses the `xcodeproj` gem — re-runnable;
+idempotent). Everything builds for the simulator; 96 Flutter tests green; analyze
+clean.
 
-## Done & verified (builds for simulator, 94 tests green, analyze clean)
+## Account constraint (important)
 
-- **Toolchain:** Homebrew, Flutter 3.44.1, Node 22 LTS, CocoaPods, Xcode 26.5 + iOS 26.5 simulator runtime.
-- **Deployment target:** bumped to **iOS 26.0** (Podfile + `project.pbxproj`). Dev-only floor; raise the device floor later if shipping.
-- **U27a HealthKit:** `lib/services/health/health_kit_service.dart`, `health: ^13.1.1`, `healthServiceProvider` gated to iOS, `Info.plist` usage strings. **Live** (Today/Move read it). Verify real data on a physical device — the simulator returns empty HealthKit data.
-  - **Remaining (Xcode):** add the **HealthKit** capability (Signing & Capabilities → + → HealthKit) so the entitlement is present; otherwise auth fails at runtime.
-- **U27b Notifications:** `lib/services/notifications/local_notification_service.dart`, `flutter_local_notifications: ^18.0.1` + `timezone` + `flutter_timezone`, tz init in `main.dart`, `notificationServiceProvider` gated to iOS. Impl is ready; no scheduling call-site is wired yet (ritual-reminder scheduling is a separate feature).
+There is **no paid Apple Developer account** — only a free Apple ID / Personal
+Team is available. That decides what can be verified:
 
-## U25 — Live Activities / Dynamic Island (code staged)
+- **U25 Live Activities / Dynamic Island** and **U26 Siri / AppIntents** need no
+  paid entitlement. They build and run on the simulator (Dynamic Island renders
+  on iPhone 15/16/17 Pro sims) and sideload on a real device with a free team.
+- **U27 HealthKit** requires the `com.apple.developer.healthkit` entitlement,
+  which a free Personal Team **cannot provision** — including it breaks device
+  signing. So the entitlement is deliberately **NOT** added. `HealthKitService`
+  degrades gracefully without it (commit `a03387c`); real HealthKit data stays
+  unverifiable until a paid account exists.
 
-Files: `ios/Runner/LiveActivities/OpalWorkoutAttributes.swift`, `…/OpalLiveActivityBridge.swift`,
-`ios/OpalWidgets/OpalWorkoutLiveActivity.swift`; Dart `lib/services/live_activity/live_activity_service.dart`
-(`liveActivityServiceProvider` is real-on-iOS and **no-ops gracefully** until the native handler exists).
+## What's wired (done)
 
-**Xcode steps:**
-1. File → New → Target → **Widget Extension** named `OpalWidgets` (uncheck "Include Configuration Intent"), deployment 26.0.
-2. Target membership:
-   - `OpalWorkoutLiveActivity.swift` → **OpalWidgets** only.
-   - `OpalWorkoutAttributes.swift` → **BOTH** Runner and OpalWidgets (shared contract).
-   - `OpalLiveActivityBridge.swift` → **Runner** only.
-3. In the widget bundle's `@main WidgetBundle`, include `OpalWorkoutLiveActivity()`.
-4. `Info.plist` already has `NSSupportsLiveActivities=true` and the `opal` URL scheme. ✓
-5. `AppDelegate.swift` — register the bridge on the `opal/live_activity` channel and handle `opal://session/<routineId>` → forward to Flutter (see snippets in the U25 agent report / below).
-6. Call-site wiring in `lib/controllers/workout_session_controller.dart`: `start` at session build, `update` on set/rest/exercise changes (not per-tick — the island timer self-ticks via `Text(timerInterval:)`), `end` in `finish()` and the `onDispose`.
+**Xcode project** (`ios/configure_native_targets.rb`):
+- The four Runner-target Swift files (`OpalWorkoutAttributes`,
+  `OpalLiveActivityBridge`, `OpalAppIntents`, `OpalIntentsBridge`) are in Runner's
+  compile sources.
+- A new **`OpalWidgets`** app-extension target (bundle id
+  `com.opal.opal.OpalWidgets`, iOS 26.0, Swift 5.0) builds the Live Activity:
+  members `OpalWorkoutLiveActivity.swift`, `OpalWidgetsBundle.swift` (the `@main`
+  WidgetBundle), and the shared `OpalWorkoutAttributes.swift`. Its `Info.plist`
+  declares the `com.apple.widgetkit-extension` point.
+- The extension is embedded in Runner via an **Embed App Extensions** copy phase,
+  ordered **before** Flutter's "Thin Binary" phase — this avoids the
+  `ExtractAppIntentsMetadata` ↔ embed-appex build dependency cycle.
 
-## U26 — Siri Shortcuts / AppIntents (code staged)
+**Native glue:**
+- `AppDelegate.didInitializeImplicitFlutterEngine` registers both bridges on the
+  engine messenger (via a borrowed `registrar(forPlugin:)`), so the
+  `opal/live_activity` and `opal/intents` MethodChannels resolve.
+- `SceneDelegate` overrides `scene(_:willConnectTo:options:)` (cold launch) and
+  `scene(_:openURLContexts:)` (warm), calls `super`, and forwards every `opal://`
+  URL to `OpalIntentsBridge.handleDeepLink` — covering both Live-Activity taps
+  (`opal://session/<id>`) and AppIntent opens (`opal://entry/new`, `opal://move/start`).
 
-Files: `ios/Runner/Intents/OpalAppIntents.swift`, `…/OpalIntentsBridge.swift`;
-Dart `lib/services/siri/siri_shortcuts_service.dart` (`siriShortcutsServiceProvider` self-gates by platform).
+**Dart call-sites:**
+- `workout_session_controller.dart` starts the Live Activity when a session
+  builds, pushes content updates on set-logged / rest start-skip-extend-end (not
+  per tick — the island self-ticks from `startedAt`), and ends it on `finish()`
+  and `onDispose`.
+- `app.dart` subscribes to `SiriShortcutsService.deepLinks` → `router.go(path)`
+  with an immediate-duplicate guard, calls `donateShortcuts()` once, and drains
+  `consumeInitialDeepLink()` on the first frame (cold-launch tap).
+- Providers (`liveActivityServiceProvider`, `siriShortcutsServiceProvider`,
+  `healthService`, `notificationService`) were already iOS-gated.
 
-**Xcode steps:**
-1. Add both Intents `.swift` files to the **Runner** target's Compile Sources (no separate extension — intents run in-process). No Siri capability needed (modern AppIntents framework).
-2. `Info.plist` `opal` URL scheme already present (shared with U25). ✓
-3. `AppDelegate.swift` — register `OpalIntentsBridge` on `opal/intents`. **Deep links arrive at the `SceneDelegate`** (this project uses `UIApplicationSceneManifest`): handle `scene(_:openURLContexts:)` and the cold-launch `scene(_:willConnectTo:options:)`, forwarding `opal://entry/new` / `opal://move/start` to Flutter.
-4. Wiring: call `siriShortcutsServiceProvider.donateShortcuts()` once at app start; subscribe to its deep-link stream and `router.go(path)` (and `consumeInitialDeepLink()` for cold launch).
-5. Optional in-app "Siri shortcut" hint chip on the Move screen, deep-linking the same way.
+**Tests:** `test/deep_link_routing_test.dart` exercises the deep-link → router
+wiring (route + dedup) with a fake Siri service.
 
-## Shared deep-link contract
+## Verified automatically
 
-`opal://session/<routineId>` → `/session/:routineId` · `opal://entry/new` → `/entry/new` · `opal://move/start` → `/move/start`.
-A single `MethodChannel('opal/deeplink')` (or the `app_links` package) bridges native URL opens into `GoRouter`.
+- `flutter build ios --simulator --debug` succeeds; `OpalWidgets.appex` is
+  embedded under `Runner.app/PlugIns/`.
+- App launches on the iPhone 17 Pro simulator without crashing; the `opal://`
+  scheme is registered (iOS shows the "Open in Opal?" prompt on `simctl openurl`).
 
-> Full AppDelegate/SceneDelegate Swift snippets are in the agent integration reports for U25/U26.
-> All of U25/U26 is **device-only verifiable** (Dynamic Island needs a physical iPhone; "Hey Siri" needs a device).
+## Remaining — manual / device QA only
+
+These are inherently interactive and can't be automated headlessly:
+
+1. **Signing:** open `ios/Runner.xcworkspace` in Xcode → select the Runner *and*
+   OpalWidgets targets → Signing & Capabilities → pick your free Personal Team.
+   (No `DEVELOPMENT_TEAM` is committed.)
+2. **U25 Dynamic Island:** start a workout; confirm the island shows the ticking
+   timer, current exercise, set count, and rest countdown; tap it → returns to
+   `/session/:routineId`. (Testable in an iPhone Pro simulator.)
+3. **U26 Siri/Spotlight:** on a real device, "Hey Siri, log an expense in Opal"
+   and "start a workout in Opal" run the intents and deep-link in; Spotlight
+   surfaces both shortcuts.
+4. **U27 HealthKit:** blocked — needs a paid account (see above).
+
+> `OpalWorkoutAttributes.swift` / `OpalAppIntents.swift` still carry their
+> original "add in Xcode" header comments; those steps are now handled by the
+> script, so the comments are historical.

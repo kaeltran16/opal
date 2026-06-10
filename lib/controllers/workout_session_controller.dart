@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../models/models.dart';
+import '../services/services.dart';
 import 'providers.dart';
 import 'workout_session.dart';
 
@@ -87,9 +88,22 @@ class WorkoutSessionController extends _$WorkoutSessionController {
   /// Guard so the 10s medium cue fires once per rest period, not every rebuild.
   bool _tenSecondCueFired = false;
 
+  /// U25 — the running Live Activity for this session. [_activityId] is the id
+  /// returned by the native side ([NoopLiveActivityService] off iOS → null);
+  /// [_liveActivity] is captured once so the `onDispose` end-call needn't read a
+  /// provider mid-teardown.
+  LiveActivityService? _liveActivity;
+  String? _activityId;
+
   @override
   Future<ActiveSessionState> build(String routineId) async {
-    ref.onDispose(() => _timer?.cancel());
+    final liveActivity = ref.read(liveActivityServiceProvider);
+    _liveActivity = liveActivity;
+    ref.onDispose(() {
+      _timer?.cancel();
+      final id = _activityId;
+      if (id != null) liveActivity.end(id);
+    });
 
     final repo = ref.watch(routineRepositoryProvider);
     final routine = await repo.getById(routineId);
@@ -103,7 +117,40 @@ class WorkoutSessionController extends _$WorkoutSessionController {
 
     final session = WorkoutSession(routine: routine, exercises: exercises);
     _session = session;
+
+    // U25 — mirror the live session onto a Live Activity / Dynamic Island.
+    // Fire-and-forget so the native channel round-trip never delays the session
+    // screen; the id lands before the user logs a set. No-op off iOS.
+    unawaited(liveActivity
+        .start(
+          routineId: routineId,
+          routineName: routine.name,
+          startedAt: session.activeWorkout.startedAt,
+        )
+        .then((id) => _activityId = id));
+
     return _snapshot();
+  }
+
+  /// Pushes the current session state onto the Live Activity. The island timer
+  /// self-ticks from `startedAt`, so this is only called on *content* changes
+  /// (set logged, rest started/skipped/extended/ended) — never per tick.
+  void _syncLiveActivity() {
+    final id = _activityId;
+    final service = _liveActivity;
+    final s = _session;
+    if (id == null || service == null || s == null) return;
+    final w = s.activeWorkout;
+    final exId = s.currentExerciseIndex < s.exerciseIds.length
+        ? s.exerciseIds[s.currentExerciseIndex]
+        : null;
+    unawaited(service.update(
+      activityId: id,
+      elapsed: DateTime.now().difference(w.startedAt),
+      currentExercise: exId == null ? null : _catalog[exId]?.name,
+      completedSets: w.sets.where((set) => set.done).length,
+      restRemaining: s.isResting ? Duration(seconds: s.restRemaining) : null,
+    ));
   }
 
   ActiveSessionState _snapshot() {
@@ -146,9 +193,11 @@ class WorkoutSessionController extends _$WorkoutSessionController {
       ref.read(hapticsServiceProvider).medium();
     }
     if (!s.isResting) {
-      // rest just hit 0 — success cue, stop the clock.
+      // rest just hit 0 — success cue, stop the clock, switch the island back
+      // to the elapsed timer.
       ref.read(hapticsServiceProvider).success();
       _syncTimer();
+      _syncLiveActivity();
     }
     _emit();
   }
@@ -169,6 +218,7 @@ class WorkoutSessionController extends _$WorkoutSessionController {
       haptics.light();
     }
     _syncTimer();
+    _syncLiveActivity();
     _emit();
   }
 
@@ -186,6 +236,7 @@ class WorkoutSessionController extends _$WorkoutSessionController {
     if (s == null) return;
     s.skipRest();
     _syncTimer();
+    _syncLiveActivity();
     _emit();
   }
 
@@ -195,6 +246,7 @@ class WorkoutSessionController extends _$WorkoutSessionController {
     if (s == null) return;
     s.addRestTime(30);
     _syncTimer();
+    _syncLiveActivity();
     _emit();
   }
 
@@ -208,6 +260,12 @@ class WorkoutSessionController extends _$WorkoutSessionController {
     _timer?.cancel();
     _timer = null;
     final workout = s.finish();
+    // U25 — tear down the Live Activity now the session is over.
+    final id = _activityId;
+    if (id != null) {
+      _liveActivity?.end(id);
+      _activityId = null;
+    }
     _emit();
     return workout;
   }

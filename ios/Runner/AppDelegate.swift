@@ -11,6 +11,16 @@ import UIKit
   }
 
   func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
-    GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
+    let pluginRegistry = engineBridge.pluginRegistry
+    GeneratedPluginRegistrant.register(with: pluginRegistry)
+
+    // U25/U26 — register the native bridges on the engine's messenger so the
+    // `opal/live_activity` and `opal/intents` MethodChannels resolve. We borrow
+    // a registrar purely for its binaryMessenger (the bridges aren't plugins).
+    if let registrar = pluginRegistry.registrar(forPlugin: "OpalNativeBridges") {
+      let messenger = registrar.messenger()
+      OpalLiveActivityBridge.register(with: messenger)
+      OpalIntentsBridge.shared.register(with: messenger)
+    }
   }
 }
