@@ -9,6 +9,7 @@ import 'package:loop/controllers/providers.dart';
 import 'package:loop/data/db/database.dart';
 import 'package:loop/screens/email/email_intro_screen.dart';
 import 'package:loop/screens/email/email_nav.dart';
+import 'package:loop/screens/email/email_setup_screen.dart';
 import 'package:loop/services/services.dart';
 import 'package:loop/theme/app_colors.dart';
 
@@ -106,5 +107,22 @@ void main() {
     await tester.scrollUntilVisible(
         find.text('iCloud, Outlook, any IMAP coming'), 200);
     expect(find.text('iCloud, Outlook, any IMAP coming'), findsOneWidget);
+  });
+
+  // --- Widget: Setup renders its credential form without crashing -----------
+  // Regression: the screen's root was a bare ColoredBox, so its TextFields had
+  // no Material ancestor and the form threw "No Material widget found".
+  testWidgets('Email Setup renders the credential form under a Material',
+      (WidgetTester tester) async {
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
+    final db = LoopDatabase.forTesting(NativeDatabase.memory());
+    addTearDown(db.close);
+
+    await _pump(tester, const EmailSetupScreen(), prefs: prefs, db: db);
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('Gmail setup'), findsOneWidget);
+    expect(find.byType(TextField), findsWidgets);
   });
 }

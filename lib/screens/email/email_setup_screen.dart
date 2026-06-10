@@ -74,7 +74,9 @@ class _EmailSetupScreenState extends ConsumerState<EmailSetupScreen> {
     final c = context.colors;
     final setup = ref.watch(emailSetupControllerProvider);
 
-    return ColoredBox(
+    // Material (not a bare ColoredBox) so the form's TextFields have the
+    // Material ancestor they require; it paints the same background.
+    return Material(
       color: c.bg,
       child: ListView(
         padding: const EdgeInsets.only(bottom: 48),
