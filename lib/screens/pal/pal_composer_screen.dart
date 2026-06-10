@@ -85,14 +85,18 @@ class _PalComposerSheetState extends ConsumerState<PalComposerSheet> {
 
     final expanded = state.expanded;
     final media = MediaQuery.of(context);
+    // Lift the sheet above the keyboard so the composer stays visible; shrink
+    // the cap by the same inset so the expanded sheet never overflows the top.
+    final keyboard = media.viewInsets.bottom;
 
     return Align(
       alignment: Alignment.bottomCenter,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 260),
         curve: const Cubic(0.22, 1, 0.36, 1),
+        margin: EdgeInsets.only(bottom: keyboard),
         height: expanded ? media.size.height * 0.86 : null,
-        constraints: BoxConstraints(maxHeight: media.size.height * 0.92),
+        constraints: BoxConstraints(maxHeight: media.size.height * 0.92 - keyboard),
         decoration: BoxDecoration(
           color: c.surface,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
