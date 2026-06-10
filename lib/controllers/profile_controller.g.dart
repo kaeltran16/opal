@@ -56,4 +56,4 @@ final class ProfileStatsProvider
   }
 }
 
-String _$profileStatsHash() => r'14d3afdcad933446bdc4e9e2eb11ca6b1d0a5ceb';
+String _$profileStatsHash() => r'6c516b07cf5795bd71224c7ddc12a7fc5655c1f0';

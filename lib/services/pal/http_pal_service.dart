@@ -152,6 +152,47 @@ class HttpPalService implements PalService {
     return json['note'] as String;
   }
 
+  @override
+  Future<GeneratedRoutineDraft> generateRoutine(
+    String goal,
+    List<Exercise> available,
+  ) async {
+    final json = await _post('/v1/routine', {
+      'goal': goal,
+      'exercises': available
+          .map((e) => {
+                'id': e.id,
+                'name': e.name,
+                'group': e.group,
+                'equipment': e.equipment,
+              })
+          .toList(),
+    });
+    final exercises = ((json['exercises'] as List?) ?? const [])
+        .cast<Map<String, dynamic>>()
+        .map((ex) => GeneratedExerciseDraft(
+              exerciseId: ex['exerciseId'] as String,
+              sets: ((ex['sets'] as List?) ?? const [])
+                  .cast<Map<String, dynamic>>()
+                  .map((s) => GeneratedSetDraft(
+                        reps: (s['reps'] as num?)?.round(),
+                        weightKg: (s['weight'] as num?)?.toDouble(),
+                        durationMinutes: (s['duration'] as num?)?.round(),
+                      ))
+                  .toList(),
+            ))
+        .toList();
+    return GeneratedRoutineDraft(
+      name: json['name'] as String? ?? 'Routine',
+      tag: RoutineTag.fromWire(
+        (json['tag'] as String? ?? 'custom').toLowerCase(),
+      ),
+      estimatedMinutes: (json['estMin'] as num?)?.round(),
+      rationale: json['rationale'] as String?,
+      exercises: exercises,
+    );
+  }
+
   EntryType _entryTypeFromWire(String token) => switch (token) {
         'money' => EntryType.money,
         'move' => EntryType.move,

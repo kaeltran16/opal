@@ -138,20 +138,99 @@ class SetLogs extends Table {
       ];
 }
 
-/// Recurring habits.
-@DataClassName('RitualRow')
-class Rituals extends Table {
+/// Time-of-day ritual routines (Morning / Midday / Evening).
+@DataClassName('RitualRoutineRow')
+class RitualRoutines extends Table {
   TextColumn get id => text()();
+  TextColumn get name => text()();
+
+  /// Human display time, e.g. "7:00 AM".
+  TextColumn get time => text().withDefault(const Constant(''))();
+
+  /// [RitualTone.wire].
+  TextColumn get tone => text()();
+  TextColumn get icon => text()();
+  TextColumn get blurb => text().withDefault(const Constant(''))();
+  IntColumn get streak => integer().withDefault(const Constant(0))();
+
+  /// `RitualRoutine.order` (renamed; `order` is a SQL keyword).
+  IntColumn get position => integer().withDefault(const Constant(0))();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+/// Ordered steps inside a [RitualRoutines] row (owned child).
+@DataClassName('RitualStepRow')
+class RitualSteps extends Table {
+  TextColumn get id => text()();
+  TextColumn get routineId => text()();
   TextColumn get title => text()();
+  TextColumn get note => text().withDefault(const Constant(''))();
   TextColumn get icon => text()();
 
-  /// [Cadence.wire].
-  TextColumn get cadence => text().withDefault(const Constant('daily'))();
-  DateTimeColumn get reminderTime => dateTime().nullable()();
+  /// `RitualStep` ordering (renamed; `order` is a SQL keyword).
+  IntColumn get position => integer()();
 
-  /// `Ritual.order` (renamed; `order` is a SQL keyword).
-  IntColumn get position => integer().withDefault(const Constant(0))();
-  IntColumn get streak => integer().withDefault(const Constant(0))();
+  @override
+  Set<Column> get primaryKey => {id};
+
+  @override
+  List<String> get customConstraints => [
+        'FOREIGN KEY (routine_id) REFERENCES ritual_routines (id) ON DELETE CASCADE',
+      ];
+}
+
+/// Recurring obligations (Bills / Recurring screen).
+@DataClassName('BillRow')
+class Bills extends Table {
+  TextColumn get id => text()();
+  TextColumn get name => text()();
+  TextColumn get payee => text()();
+  TextColumn get category => text()();
+  RealColumn get amount => real()();
+  DateTimeColumn get dueDate => dateTime()();
+  BoolColumn get autoPay => boolean().withDefault(const Constant(false))();
+  TextColumn get icon => text()();
+  TextColumn get color => text()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+/// Auto-detected recurring services (Subscriptions screen).
+@DataClassName('SubscriptionRow')
+class Subscriptions extends Table {
+  TextColumn get id => text()();
+  TextColumn get name => text()();
+  TextColumn get category => text()();
+  RealColumn get amount => real()();
+  DateTimeColumn get nextChargeDate => dateTime()();
+  TextColumn get icon => text()();
+  TextColumn get color => text()();
+  BoolColumn get detectedFromEmail =>
+      boolean().withDefault(const Constant(true))();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+/// Passive Pal observations (Pal inbox).
+@DataClassName('PalNoteRow')
+class PalNotes extends Table {
+  TextColumn get id => text()();
+  DateTimeColumn get createdAt => dateTime()();
+
+  /// [NoteKind.wire].
+  TextColumn get kind => text()();
+
+  /// [EntryType.wire] of the category dot.
+  TextColumn get category => text()();
+  TextColumn get icon => text()();
+  TextColumn get title => text()();
+  TextColumn get body => text()();
+  TextColumn get actionLabel => text().nullable()();
+  BoolColumn get unread => boolean().withDefault(const Constant(true))();
 
   @override
   Set<Column> get primaryKey => {id};

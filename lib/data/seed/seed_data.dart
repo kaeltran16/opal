@@ -25,6 +25,16 @@ class SeedData {
     return d.subtract(Duration(days: daysAgo));
   }
 
+  /// Helper: midnight [days] days from today (for bill/subscription due dates).
+  static DateTime _inDays(int days) {
+    final now = DateTime.now();
+    return DateTime(now.year, now.month, now.day).add(Duration(days: days));
+  }
+
+  /// Helper: [minutesAgo] minutes back from now (for Pal-note timestamps).
+  static DateTime _minutesAgo(int minutesAgo) =>
+      DateTime.now().subtract(Duration(minutes: minutesAgo));
+
   /// The default daily targets (matches handoff / `Goals` defaults).
   static const Goals goals = Goals(
     dailyBudget: 85.0,
@@ -32,47 +42,356 @@ class SeedData {
     dailyRitualTarget: 5,
   );
 
-  /// The five tracked rituals (the "pick 5" set).
-  static List<Ritual> rituals() => const [
-        Ritual(
-          id: 'seed-ritual-morning-pages',
-          title: 'Morning pages',
-          icon: 'book.closed.fill',
-          cadence: Cadence.daily,
-          order: 0,
+  /// The three time-of-day ritual routines (Morning / Midday / Evening), each
+  /// an ordered list of steps. Step ids follow `"<routineId>-step-<index>"` so
+  /// a completed step can be recorded as a ritual `Entry` (`ritualId == step.id`)
+  /// — the single source of truth shared with the Today rings.
+  static List<RitualRoutine> ritualRoutines() => const [
+        RitualRoutine(
+          id: 'morning',
+          name: 'Morning',
+          time: '7:00 AM',
+          tone: RitualTone.morning,
+          icon: 'sunrise.fill',
+          blurb: 'Ease into the day',
           streak: 12,
+          order: 0,
+          steps: [
+            RitualStep(
+              id: 'morning-step-0',
+              title: 'Glass of water',
+              note: 'Before coffee — rehydrate first thing.',
+              icon: 'drop.fill',
+            ),
+            RitualStep(
+              id: 'morning-step-1',
+              title: 'Wash my face',
+              note: 'Gentle cleanser, then a cold rinse to wake up.',
+              icon: 'drop.fill',
+            ),
+            RitualStep(
+              id: 'morning-step-2',
+              title: 'Moisturize + SPF',
+              note: "Don't skip the sunscreen, even indoors.",
+              icon: 'sun.max.fill',
+            ),
+            RitualStep(
+              id: 'morning-step-3',
+              title: 'Meditate',
+              note: 'Ten minutes. Eyes closed, follow the breath.',
+              icon: 'sparkles',
+            ),
+            RitualStep(
+              id: 'morning-step-4',
+              title: 'Morning pages',
+              note: 'Three pages, longhand, before any screens.',
+              icon: 'book.closed.fill',
+            ),
+          ],
         ),
-        Ritual(
-          id: 'seed-ritual-inbox-zero',
-          title: 'Inbox zero',
-          icon: 'tray.fill',
-          cadence: Cadence.weekdays,
+        RitualRoutine(
+          id: 'midday',
+          name: 'Midday reset',
+          time: '1:00 PM',
+          tone: RitualTone.midday,
+          icon: 'sun.max.fill',
+          blurb: 'Break the desk spell',
+          streak: 5,
           order: 1,
-          streak: 4,
+          steps: [
+            RitualStep(
+              id: 'midday-step-0',
+              title: 'Step outside',
+              note: 'A ten-minute walk, no phone. Just move.',
+              icon: 'figure.walk',
+            ),
+            RitualStep(
+              id: 'midday-step-1',
+              title: 'Stretch it out',
+              note: 'Neck, shoulders, hips — undo the slouch.',
+              icon: 'leaf.fill',
+            ),
+            RitualStep(
+              id: 'midday-step-2',
+              title: 'Inbox to zero',
+              note: 'Reply, archive, or defer. Nothing lingers.',
+              icon: 'tray.fill',
+            ),
+          ],
         ),
-        Ritual(
-          id: 'seed-ritual-spanish',
-          title: 'Spanish practice',
-          icon: 'character.book.closed.fill',
-          cadence: Cadence.daily,
-          order: 2,
-          streak: 31,
-        ),
-        Ritual(
-          id: 'seed-ritual-read',
-          title: 'Read',
-          icon: 'books.vertical.fill',
-          cadence: Cadence.daily,
-          order: 3,
+        RitualRoutine(
+          id: 'evening',
+          name: 'Evening wind-down',
+          time: '9:30 PM',
+          tone: RitualTone.evening,
+          icon: 'moon.stars.fill',
+          blurb: 'Close the day gently',
           streak: 8,
+          order: 2,
+          steps: [
+            RitualStep(
+              id: 'evening-step-0',
+              title: 'Phone on the charger',
+              note: 'Out of the bedroom. No screens past here.',
+              icon: 'bolt.fill',
+            ),
+            RitualStep(
+              id: 'evening-step-1',
+              title: 'Skincare',
+              note: 'Cleanse, serum, night cream.',
+              icon: 'drop.fill',
+            ),
+            RitualStep(
+              id: 'evening-step-2',
+              title: 'Read',
+              note: 'Twenty pages. Currently: Pachinko.',
+              icon: 'books.vertical.fill',
+            ),
+            RitualStep(
+              id: 'evening-step-3',
+              title: 'Reflect',
+              note: 'One honest line about today in the journal.',
+              icon: 'character.book.closed.fill',
+            ),
+          ],
         ),
-        Ritual(
-          id: 'seed-ritual-stretch',
-          title: 'Stretch',
-          icon: 'figure.cooldown',
-          cadence: Cadence.daily,
-          order: 4,
-          streak: 2,
+      ];
+
+  /// Recurring bills (Bills / Recurring screen). Due dates are anchored ahead
+  /// of "today" so "due in N days" stays meaningful regardless of run date.
+  static List<Bill> bills() => [
+        Bill(
+          id: 'seed-bill-rent',
+          name: 'Rent',
+          payee: 'Greenwood Property Co.',
+          category: 'Housing',
+          amount: 2400.00,
+          dueDate: _inDays(3),
+          autoPay: true,
+          icon: 'house.fill',
+          color: '#0A84FF',
+        ),
+        Bill(
+          id: 'seed-bill-electric',
+          name: 'PG&E',
+          payee: 'Electric + gas',
+          category: 'Utility',
+          amount: 94.20,
+          dueDate: _inDays(6),
+          autoPay: true,
+          icon: 'bolt.fill',
+          color: '#FF9500',
+        ),
+        Bill(
+          id: 'seed-bill-internet',
+          name: 'Sonic Fiber',
+          payee: '1 Gbps internet',
+          category: 'Utility',
+          amount: 50.00,
+          dueDate: _inDays(9),
+          autoPay: false,
+          icon: 'bolt.fill',
+          color: '#5856D6',
+        ),
+        Bill(
+          id: 'seed-bill-health',
+          name: 'Blue Shield',
+          payee: 'Health premium',
+          category: 'Insurance',
+          amount: 312.00,
+          dueDate: _inDays(13),
+          autoPay: true,
+          icon: 'heart.fill',
+          color: '#FF2D55',
+        ),
+        Bill(
+          id: 'seed-bill-card',
+          name: 'Chase Sapphire',
+          payee: 'Credit card · min \$75',
+          category: 'Credit',
+          amount: 1240.16,
+          dueDate: _inDays(17),
+          autoPay: false,
+          icon: 'dollarsign.circle.fill',
+          color: '#1565C0',
+        ),
+        Bill(
+          id: 'seed-bill-phone',
+          name: 'T-Mobile',
+          payee: 'Phone plan',
+          category: 'Utility',
+          amount: 70.00,
+          dueDate: _inDays(22),
+          autoPay: true,
+          icon: 'bell.fill',
+          color: '#E50914',
+        ),
+      ];
+
+  /// Auto-detected subscriptions (Subscriptions screen).
+  static List<Subscription> subscriptions() => [
+        Subscription(
+          id: 'seed-sub-spotify',
+          name: 'Spotify',
+          category: 'Music',
+          amount: 10.99,
+          nextChargeDate: _inDays(2),
+          icon: 'music.note',
+          color: '#1DB954',
+        ),
+        Subscription(
+          id: 'seed-sub-netflix',
+          name: 'Netflix',
+          category: 'Video',
+          amount: 15.49,
+          nextChargeDate: _inDays(5),
+          icon: 'play.fill',
+          color: '#E50914',
+        ),
+        Subscription(
+          id: 'seed-sub-icloud',
+          name: 'iCloud+',
+          category: 'Storage',
+          amount: 2.99,
+          nextChargeDate: _inDays(8),
+          icon: 'tray.fill',
+          color: '#007AFF',
+        ),
+        Subscription(
+          id: 'seed-sub-nyt',
+          name: 'NYT',
+          category: 'News',
+          amount: 17.00,
+          nextChargeDate: _inDays(12),
+          icon: 'book.closed.fill',
+          color: '#1C1C1E',
+        ),
+        Subscription(
+          id: 'seed-sub-figma',
+          name: 'Figma',
+          category: 'Work',
+          amount: 15.00,
+          nextChargeDate: _inDays(14),
+          icon: 'square.grid.2x2.fill',
+          color: '#F24E1E',
+        ),
+        Subscription(
+          id: 'seed-sub-gym',
+          name: 'Gym',
+          category: 'Fitness',
+          amount: 89.00,
+          nextChargeDate: _inDays(19),
+          icon: 'dumbbell.fill',
+          color: '#FF6B35',
+        ),
+        Subscription(
+          id: 'seed-sub-chatgpt',
+          name: 'ChatGPT',
+          category: 'AI',
+          amount: 20.00,
+          nextChargeDate: _inDays(23),
+          icon: 'sparkles',
+          color: '#10A37F',
+        ),
+      ];
+
+  /// Passive Pal-inbox observations (Pal Inbox screen).
+  static List<PalNote> palNotes() => [
+        PalNote(
+          id: 'seed-note-1',
+          createdAt: _minutesAgo(2),
+          kind: NoteKind.nudge,
+          category: EntryType.rituals,
+          icon: 'moon.stars.fill',
+          title: 'Evening close-out is open',
+          body: "4 of 5 rituals done. 5 min of reflection and you'll close the "
+              'ring tonight.',
+          actionLabel: 'Close out →',
+          unread: true,
+        ),
+        PalNote(
+          id: 'seed-note-2',
+          createdAt: _minutesAgo(120),
+          kind: NoteKind.spotted,
+          category: EntryType.money,
+          icon: 'cup.and.saucer.fill',
+          title: 'Fourth Verve this week',
+          body: "You've spent \$23 at Verve since Monday — 1.7× your usual "
+              'pace. Dial back, or re-budget?',
+          actionLabel: 'Ask Pal',
+          unread: true,
+        ),
+        PalNote(
+          id: 'seed-note-3',
+          createdAt: _minutesAgo(60 * 26),
+          kind: NoteKind.spotted,
+          category: EntryType.move,
+          icon: 'fork.knife',
+          title: 'You skipped lunch Tuesday',
+          body: 'No food logged between breakfast and 6pm — and you still ran '
+              '4.8km after. Just noticed.',
+          actionLabel: 'Log it',
+          unread: false,
+        ),
+        PalNote(
+          id: 'seed-note-4',
+          createdAt: _minutesAgo(60 * 27),
+          kind: NoteKind.win,
+          category: EntryType.move,
+          icon: 'flame.fill',
+          title: '11-day move streak',
+          body: "Longest you've gone this year. Want to share or just keep it "
+              'going quietly?',
+          actionLabel: 'See streak',
+          unread: false,
+        ),
+        PalNote(
+          id: 'seed-note-5',
+          createdAt: _minutesAgo(60 * 48),
+          kind: NoteKind.pattern,
+          category: EntryType.rituals,
+          icon: 'sparkles',
+          title: 'Morning pages → better days',
+          body: 'Your move score averages 73 min on days you write, 42 min on '
+              'days you skip. Pattern over 6 weeks.',
+          actionLabel: 'See pattern',
+          unread: false,
+        ),
+        PalNote(
+          id: 'seed-note-6',
+          createdAt: _minutesAgo(60 * 72),
+          kind: NoteKind.reminder,
+          category: EntryType.money,
+          icon: 'bell.fill',
+          title: 'Rent auto-pays Monday',
+          body: '\$2,400 from Chase ··0427 on Apr 28. Balance looks fine — '
+              '\$4,192 after.',
+          actionLabel: 'View bill',
+          unread: false,
+        ),
+        PalNote(
+          id: 'seed-note-7',
+          createdAt: _minutesAgo(60 * 96),
+          kind: NoteKind.recap,
+          category: EntryType.rituals,
+          icon: 'chart.bar.fill',
+          title: 'Your weekly review is ready',
+          body: "A steady week — under budget, 11-day streak, 6/7 morning "
+              "pages. Let's look closer.",
+          actionLabel: 'Open review →',
+          unread: false,
+        ),
+        PalNote(
+          id: 'seed-note-8',
+          createdAt: _minutesAgo(60 * 120),
+          kind: NoteKind.spotted,
+          category: EntryType.move,
+          icon: 'figure.run',
+          title: 'Shorter runs after 9pm',
+          body: 'Your last 3 late runs averaged 18 min vs your morning 28. '
+              'Evening you is tireder than morning you.',
+          actionLabel: null,
+          unread: false,
         ),
       ];
 
@@ -563,13 +882,12 @@ class SeedData {
   /// seeded push workout via [Entry.workoutId].
   static List<Entry> entries() => [
         Entry(
-          id: 'seed-entry-morning-pages',
+          id: 'seed-entry-step-morning-0',
           timestamp: _todayAt(6, 42),
           type: EntryType.rituals,
-          title: 'Morning pages',
-          detail: '15 min · journal',
-          duration: 15,
-          ritualId: 'seed-ritual-morning-pages',
+          title: 'Glass of water',
+          detail: 'Morning · step 1',
+          ritualId: 'morning-step-0',
           source: EntrySource.manual,
         ),
         Entry(
@@ -594,13 +912,12 @@ class SeedData {
           source: EntrySource.manual,
         ),
         Entry(
-          id: 'seed-entry-inbox',
-          timestamp: _todayAt(9, 10),
+          id: 'seed-entry-step-morning-1',
+          timestamp: _todayAt(6, 48),
           type: EntryType.rituals,
-          title: 'Inbox zero',
-          detail: '22 min · focus',
-          duration: 22,
-          ritualId: 'seed-ritual-inbox-zero',
+          title: 'Wash my face',
+          detail: 'Morning · step 2',
+          ritualId: 'morning-step-1',
           source: EntrySource.manual,
         ),
         Entry(
@@ -614,13 +931,12 @@ class SeedData {
           source: EntrySource.email,
         ),
         Entry(
-          id: 'seed-entry-spanish',
-          timestamp: _todayAt(14, 20),
+          id: 'seed-entry-step-morning-2',
+          timestamp: _todayAt(6, 55),
           type: EntryType.rituals,
-          title: 'Spanish practice',
-          detail: '18 min · Duolingo',
-          duration: 18,
-          ritualId: 'seed-ritual-spanish',
+          title: 'Moisturize + SPF',
+          detail: 'Morning · step 3',
+          ritualId: 'morning-step-2',
           source: EntrySource.manual,
         ),
         Entry(
@@ -643,16 +959,6 @@ class SeedData {
           amount: -38.40,
           category: 'Groceries',
           source: EntrySource.email,
-        ),
-        Entry(
-          id: 'seed-entry-read',
-          timestamp: _todayAt(21, 30),
-          type: EntryType.rituals,
-          title: 'Read · Pachinko',
-          detail: '28 min · 19 pgs',
-          duration: 28,
-          ritualId: 'seed-ritual-read',
-          source: EntrySource.manual,
         ),
       ];
 }

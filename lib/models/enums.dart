@@ -52,19 +52,46 @@ enum RoutineTag {
       values.firstWhere((e) => e.wire == wire);
 }
 
-/// How often a [Ritual] is expected to recur.
-enum Cadence {
-  daily('daily'),
-  weekdays('weekdays'),
-  weekends('weekends'),
-  weekly('weekly'),
-  custom('custom');
+/// Time-of-day tone of a [RitualRoutine]. Each tone borrows one of the three
+/// tracker hues for its accent (morning→money/orange, midday→move/green,
+/// evening→rituals/purple). [colorKey] feeds `AppColors.forType`.
+enum RitualTone {
+  morning('morning', 'money'),
+  midday('midday', 'move'),
+  evening('evening', 'rituals');
 
-  const Cadence(this.wire);
+  const RitualTone(this.wire, this.colorKey);
 
   final String wire;
 
-  static Cadence fromWire(String wire) =>
+  /// Key for `AppColors.forType(...)` — the tracker hue this tone borrows.
+  final String colorKey;
+
+  static RitualTone fromWire(String wire) =>
+      values.firstWhere((e) => e.wire == wire);
+}
+
+/// Classification of a [PalNote] in the Pal inbox. Drives the meta-row label
+/// and the category dot ([dotColorKey] feeds `AppColors.forType`).
+enum NoteKind {
+  nudge('nudge', 'Nudge', 'accent'),
+  spotted('spotted', 'Spotted', 'rituals'),
+  pattern('pattern', 'Pattern', 'rituals'),
+  win('win', 'Win', 'move'),
+  reminder('reminder', 'Reminder', 'money'),
+  recap('recap', 'Recap', 'accent');
+
+  const NoteKind(this.wire, this.label, this.dotColorKey);
+
+  final String wire;
+
+  /// Title-case label shown in the note meta row ("Nudge", "Spotted"…).
+  final String label;
+
+  /// Key for `AppColors.forType(...)` for the kind dot.
+  final String dotColorKey;
+
+  static NoteKind fromWire(String wire) =>
       values.firstWhere((e) => e.wire == wire);
 }
 

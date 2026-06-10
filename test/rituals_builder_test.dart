@@ -9,21 +9,34 @@ import 'package:opal/data/repositories/repositories.dart';
 import 'package:opal/models/models.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+RitualRoutine _routine(String id, String name, {int order = 0}) => RitualRoutine(
+      id: id,
+      name: name,
+      time: '7:00 AM',
+      tone: RitualTone.morning,
+      icon: 'sparkles',
+      blurb: '',
+      order: order,
+      steps: [
+        RitualStep(id: '$id-step-0', title: 'Step', note: '', icon: 'sparkles'),
+      ],
+    );
+
 void main() {
   // ---------------------------------------------------------------------------
-  // Pure math — reindex rewrites each ritual's order to its list position.
+  // Pure math — reindex rewrites each routine's order to its list position.
   // ---------------------------------------------------------------------------
-  test('reindex assigns each ritual order = its list index', () {
-    const a = Ritual(id: 'a', title: 'A', icon: 'sparkles', order: 5);
-    const b = Ritual(id: 'b', title: 'B', icon: 'sparkles', order: 2);
-    const c = Ritual(id: 'c', title: 'C', icon: 'sparkles', order: 9);
+  test('reindex assigns each routine order = its list index', () {
+    final a = _routine('a', 'A', order: 5);
+    final b = _routine('b', 'B', order: 2);
+    final c = _routine('c', 'C', order: 9);
 
     final out = reindex([c, a, b]);
 
     expect(out.map((r) => r.id).toList(), ['c', 'a', 'b']);
     expect(out.map((r) => r.order).toList(), [0, 1, 2]);
     // unchanged fields are preserved.
-    expect(out[1].title, 'A');
+    expect(out[1].name, 'A');
   });
 
   // ---------------------------------------------------------------------------
@@ -37,11 +50,9 @@ void main() {
     addTearDown(db.close);
 
     final repo = RitualRepository(db);
-    // seed two rituals in order.
-    await repo.insert(
-        const Ritual(id: 'r1', title: 'Pages', icon: 'book.closed.fill', order: 0));
-    await repo.insert(
-        const Ritual(id: 'r2', title: 'Read', icon: 'books.vertical.fill', order: 1));
+    // seed two routines in order.
+    await repo.upsertRoutine(_routine('r1', 'Pages', order: 0));
+    await repo.upsertRoutine(_routine('r2', 'Read', order: 1));
 
     final container = ProviderContainer(overrides: [
       sharedPreferencesProvider.overrideWithValue(prefs),
@@ -51,29 +62,57 @@ void main() {
     // hold the autoDispose streaming controller alive across the awaits below.
     container.listen(ritualsBuilderControllerProvider, (_, _) {});
 
-    final notifier =
-        container.read(ritualsBuilderControllerProvider.notifier);
+    final notifier = container.read(ritualsBuilderControllerProvider.notifier);
     // wait for the initial stream emission before acting.
     await container.read(ritualsBuilderControllerProvider.future);
 
-    // add a new ritual (empty id) → appended with order = current count (2).
-    await notifier.addOrUpdate(
-        const Ritual(id: '', title: 'Water', icon: 'sparkles'));
+    // add a new routine (empty id) → appended with order = current count (2).
+    await notifier.addOrUpdate(_routine('', 'Water'));
     var all = await repo.getAll();
-    expect(all.map((r) => r.title).toList(), ['Pages', 'Read', 'Water']);
+    expect(all.map((r) => r.name).toList(), ['Pages', 'Read', 'Water']);
     expect(all.last.order, 2);
 
     // reorder: move the last ('Water', index 2) to the front.
     await notifier.reorder(2, 0);
     all = await repo.getAll();
-    expect(all.map((r) => r.title).toList(), ['Water', 'Pages', 'Read']);
+    expect(all.map((r) => r.name).toList(), ['Water', 'Pages', 'Read']);
     expect(all.map((r) => r.order).toList(), [0, 1, 2]);
 
     // delete 'Pages' (now at index 1) → survivors reindexed gap-free.
-    final pages = all.firstWhere((r) => r.title == 'Pages');
+    final pages = all.firstWhere((r) => r.name == 'Pages');
     await notifier.delete(pages.id);
     all = await repo.getAll();
-    expect(all.map((r) => r.title).toList(), ['Water', 'Read']);
+    expect(all.map((r) => r.name).toList(), ['Water', 'Read']);
     expect(all.map((r) => r.order).toList(), [0, 1]);
+  });
+
+  test('addOrUpdate replaces the full step set on an existing routine',
+      () async {
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
+    final db = LoopDatabase.forTesting(NativeDatabase.memory());
+    addTearDown(db.close);
+
+    final repo = RitualRepository(db);
+    await repo.upsertRoutine(_routine('r1', 'Morning', order: 0));
+
+    final container = ProviderContainer(overrides: [
+      sharedPreferencesProvider.overrideWithValue(prefs),
+      loopDatabaseProvider.overrideWithValue(db),
+    ]);
+    addTearDown(container.dispose);
+    container.listen(ritualsBuilderControllerProvider, (_, _) {});
+
+    final notifier = container.read(ritualsBuilderControllerProvider.notifier);
+    await container.read(ritualsBuilderControllerProvider.future);
+
+    final edited = (await repo.getAll()).first.copyWith(steps: const [
+      RitualStep(id: 'a', title: 'Water', note: '', icon: 'drop.fill'),
+      RitualStep(id: 'b', title: 'Stretch', note: '', icon: 'leaf.fill'),
+    ]);
+    await notifier.addOrUpdate(edited);
+
+    final after = (await repo.getAll()).single;
+    expect(after.steps.map((s) => s.title).toList(), ['Water', 'Stretch']);
   });
 }

@@ -137,20 +137,37 @@ void main() {
     });
   });
 
-  group('Ritual', () {
-    const ritual = Ritual(
-      id: 'rt1',
-      title: 'Morning pages',
-      icon: 'book.closed.fill',
-      cadence: Cadence.daily,
+  group('RitualRoutine', () {
+    const routine = RitualRoutine(
+      id: 'morning',
+      name: 'Morning',
+      time: '7:00 AM',
+      tone: RitualTone.morning,
+      icon: 'sunrise.fill',
+      blurb: 'Ease into the day',
       streak: 11,
+      steps: [
+        RitualStep(
+          id: 'morning-step-0',
+          title: 'Glass of water',
+          note: 'Rehydrate first thing.',
+          icon: 'drop.fill',
+        ),
+      ],
     );
 
     test('copyWith and equality', () {
-      final copy = ritual.copyWith(streak: 12);
+      final copy = routine.copyWith(streak: 12);
       expect(copy.streak, 12);
-      expect(copy.copyWith(streak: 11), ritual);
-      expect(copy, isNot(ritual));
+      expect(copy.copyWith(streak: 11), routine);
+      expect(copy, isNot(routine));
+    });
+
+    test('tone maps to a tracker color key', () {
+      expect(routine.colorKey, 'money');
+      expect(routine.tone.colorKey, 'money');
+      expect(RitualTone.midday.colorKey, 'move');
+      expect(RitualTone.evening.colorKey, 'rituals');
     });
   });
 
@@ -223,7 +240,8 @@ void main() {
       expect(EntryType.fromWire('rituals'), EntryType.rituals);
       expect(EntrySource.fromWire('nlParsed'), EntrySource.nlParsed);
       expect(RoutineTag.fromWire('cardio'), RoutineTag.cardio);
-      expect(Cadence.fromWire('weekly'), Cadence.weekly);
+      expect(RitualTone.fromWire('evening'), RitualTone.evening);
+      expect(NoteKind.fromWire('spotted'), NoteKind.spotted);
       expect(Provider.fromWire('outlook'), Provider.outlook);
       expect(SyncStatus.fromWire('upToDate'), SyncStatus.upToDate);
       expect(SyncStatus.error.wire, 'error');

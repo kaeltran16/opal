@@ -4,9 +4,12 @@
 /// insert. No Riverpod here — U03 wires these into providers.
 library;
 
+export 'bill_repository.dart';
 export 'entry_repository.dart';
 export 'goals_repository.dart';
+export 'pal_note_repository.dart';
 export 'ritual_repository.dart';
 export 'routine_repository.dart';
 export 'settings_repository.dart';
+export 'subscription_repository.dart';
 export 'workout_repository.dart';

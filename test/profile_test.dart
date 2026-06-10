@@ -79,12 +79,26 @@ void main() {
           amount: -999,
           source: EntrySource.manual),
     ];
-    final rituals = const [
-      Ritual(id: 'a', title: 'Read', icon: 'sparkles', streak: 12),
-      Ritual(id: 'b', title: 'Water', icon: 'sparkles', streak: 5),
+    final routines = const [
+      RitualRoutine(
+          id: 'a',
+          name: 'Morning',
+          time: '7:00 AM',
+          tone: RitualTone.morning,
+          icon: 'sunrise.fill',
+          blurb: '',
+          streak: 12),
+      RitualRoutine(
+          id: 'b',
+          name: 'Evening',
+          time: '9:30 PM',
+          tone: RitualTone.evening,
+          icon: 'moon.stars.fill',
+          blurb: '',
+          streak: 5),
     ];
 
-    final stats = buildProfileStats(entries, rituals, now: now);
+    final stats = buildProfileStats(entries, routines, now: now);
 
     expect(stats.totalSpent, 50); // -30 + -20, income excluded
     expect(stats.moveMinutes, 150);
@@ -103,10 +117,17 @@ void main() {
     final db = LoopDatabase.forTesting(NativeDatabase.memory());
     addTearDown(db.close);
 
-    // Seed a ritual (so the Rituals tab has identifiable content) with a streak.
+    // Seed a routine (so the Rituals tab has identifiable content) with a streak.
     final ritualRepo = RitualRepository(db);
-    await ritualRepo.insert(const Ritual(
-        id: 'r-read', title: 'Read', icon: 'sparkles', order: 0, streak: 9));
+    await ritualRepo.upsertRoutine(const RitualRoutine(
+        id: 'morning',
+        name: 'Morning',
+        time: '7:00 AM',
+        tone: RitualTone.morning,
+        icon: 'sunrise.fill',
+        blurb: '',
+        order: 0,
+        streak: 9));
 
     // Seed this-year entries: one expense, one move, one ritual completion.
     final entryRepo = EntryRepository(db);
@@ -194,13 +215,12 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Integrations'), findsOneWidget);
 
-    // --- Rituals row → Rituals tab ---
-    await tester.tap(find.widgetWithText(ListRow, 'Rituals'));
+    // --- Subscriptions row → Subscriptions screen (Handoff #2 wiring) ---
+    await tester.scrollUntilVisible(
+        find.widgetWithText(ListRow, 'Subscriptions'), 200,
+        scrollable: list);
+    await tester.tap(find.widgetWithText(ListRow, 'Subscriptions'));
     await tester.pumpAndSettle();
-    // The Rituals screen shows its large-title "Rituals" + a progress card
-    // ("1 / 1" since the seeded ritual was completed today via e-ritual? no —
-    // e-ritual is this-year not today). Assert the Rituals landing rendered by
-    // its "Manage rituals" button, which only the Rituals screen draws.
-    expect(find.text('Manage rituals'), findsOneWidget);
+    expect(find.text('Auto-detected from your email'), findsOneWidget);
   });
 }

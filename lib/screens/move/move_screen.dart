@@ -284,6 +284,12 @@ class _QuickLinks extends StatelessWidget {
           onTap: () => context.pushNamed(AppRoute.exerciseLibrary.name),
         ),
         ListRow(
+          icon: 'calendar',
+          iconBg: c.move,
+          title: 'Weekly plan',
+          onTap: () => context.pushNamed(AppRoute.weeklyPlan.name),
+        ),
+        ListRow(
           icon: 'chart.bar.fill',
           iconBg: c.rituals,
           title: 'History & trends',

@@ -9,23 +9,13 @@ import 'package:opal/controllers/providers.dart';
 import 'package:opal/data/db/database.dart';
 import 'package:opal/data/seed/seeder.dart';
 
-/// U06 — Quick Actions overlay: pump the real app inside a [ProviderScope],
-/// open the overlay via the center FAB, assert the six action tiles render,
-/// then tap outside the grid to close it.
+/// Handoff #2 — the center FAB now opens the unified **Pal composer** (the
+/// single input surface that replaced the old Quick-Actions menu). Pump the
+/// real app, tap the FAB, assert the composer surface appears, then dismiss it
+/// by tapping the dim backdrop.
 void main() {
-  const tiles = [
-    'Log expense',
-    'Log workout',
-    'Start workout',
-    'Complete ritual',
-    'Ask Pal',
-    'Voice entry',
-  ];
-
-  testWidgets('FAB opens the Quick Actions overlay with 6 tiles; tap-outside closes',
+  testWidgets('FAB opens the Pal composer; tap-outside closes',
       (WidgetTester tester) async {
-    // onboardingComplete=true so the U17 first-run gate lets the app boot
-    // straight to Today (rather than redirecting to onboarding).
     SharedPreferences.setMockInitialValues({
       'settings.onboardingComplete': true,
     });
@@ -45,8 +35,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // No tiles before opening.
-    expect(find.text('Log expense'), findsNothing);
+    // Composer not present before opening.
+    expect(find.text('Log, ask, or start anything'), findsNothing);
 
     // Tap the center FAB (the raised "+" in the tab bar).
     final fab = find.byIcon(CupertinoIcons.plus);
@@ -54,16 +44,14 @@ void main() {
     await tester.tap(fab);
     await tester.pumpAndSettle();
 
-    // All six action tiles render.
-    for (final label in tiles) {
-      expect(find.text(label), findsOneWidget, reason: 'missing tile: $label');
-    }
+    // The compact composer surface is up.
+    expect(find.text('Log, ask, or start anything'), findsOneWidget);
+    expect(find.text('Start a workout'), findsOneWidget);
 
-    // Tap outside the grid (top-left corner of the dim backdrop) to close.
+    // Tap the dim backdrop (top of the screen, above the sheet) to dismiss.
     await tester.tapAt(const Offset(8, 8));
     await tester.pumpAndSettle();
 
-    // Overlay dismissed.
-    expect(find.text('Log expense'), findsNothing);
+    expect(find.text('Log, ask, or start anything'), findsNothing);
   });
 }

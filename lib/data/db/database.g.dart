@@ -3130,11 +3130,12 @@ class SetLogsCompanion extends UpdateCompanion<SetLogRow> {
   }
 }
 
-class $RitualsTable extends Rituals with TableInfo<$RitualsTable, RitualRow> {
+class $RitualRoutinesTable extends RitualRoutines
+    with TableInfo<$RitualRoutinesTable, RitualRoutineRow> {
   @override
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
-  $RitualsTable(this.attachedDatabase, [this._alias]);
+  $RitualRoutinesTable(this.attachedDatabase, [this._alias]);
   static const VerificationMeta _idMeta = const VerificationMeta('id');
   @override
   late final GeneratedColumn<String> id = GeneratedColumn<String>(
@@ -3144,10 +3145,29 @@ class $RitualsTable extends Rituals with TableInfo<$RitualsTable, RitualRow> {
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
-  static const VerificationMeta _titleMeta = const VerificationMeta('title');
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
   @override
-  late final GeneratedColumn<String> title = GeneratedColumn<String>(
-    'title',
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _timeMeta = const VerificationMeta('time');
+  @override
+  late final GeneratedColumn<String> time = GeneratedColumn<String>(
+    'time',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _toneMeta = const VerificationMeta('tone');
+  @override
+  late final GeneratedColumn<String> tone = GeneratedColumn<String>(
+    'tone',
     aliasedName,
     false,
     type: DriftSqlType.string,
@@ -3162,28 +3182,25 @@ class $RitualsTable extends Rituals with TableInfo<$RitualsTable, RitualRow> {
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
-  static const VerificationMeta _cadenceMeta = const VerificationMeta(
-    'cadence',
-  );
+  static const VerificationMeta _blurbMeta = const VerificationMeta('blurb');
   @override
-  late final GeneratedColumn<String> cadence = GeneratedColumn<String>(
-    'cadence',
+  late final GeneratedColumn<String> blurb = GeneratedColumn<String>(
+    'blurb',
     aliasedName,
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: false,
-    defaultValue: const Constant('daily'),
+    defaultValue: const Constant(''),
   );
-  static const VerificationMeta _reminderTimeMeta = const VerificationMeta(
-    'reminderTime',
-  );
+  static const VerificationMeta _streakMeta = const VerificationMeta('streak');
   @override
-  late final GeneratedColumn<DateTime> reminderTime = GeneratedColumn<DateTime>(
-    'reminder_time',
+  late final GeneratedColumn<int> streak = GeneratedColumn<int>(
+    'streak',
     aliasedName,
-    true,
-    type: DriftSqlType.dateTime,
+    false,
+    type: DriftSqlType.int,
     requiredDuringInsert: false,
+    defaultValue: const Constant(0),
   );
   static const VerificationMeta _positionMeta = const VerificationMeta(
     'position',
@@ -3197,34 +3214,25 @@ class $RitualsTable extends Rituals with TableInfo<$RitualsTable, RitualRow> {
     requiredDuringInsert: false,
     defaultValue: const Constant(0),
   );
-  static const VerificationMeta _streakMeta = const VerificationMeta('streak');
-  @override
-  late final GeneratedColumn<int> streak = GeneratedColumn<int>(
-    'streak',
-    aliasedName,
-    false,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-    defaultValue: const Constant(0),
-  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
-    title,
+    name,
+    time,
+    tone,
     icon,
-    cadence,
-    reminderTime,
-    position,
+    blurb,
     streak,
+    position,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
   String get actualTableName => $name;
-  static const String $name = 'rituals';
+  static const String $name = 'ritual_routines';
   @override
   VerificationContext validateIntegrity(
-    Insertable<RitualRow> instance, {
+    Insertable<RitualRoutineRow> instance, {
     bool isInserting = false,
   }) {
     final context = VerificationContext();
@@ -3234,13 +3242,27 @@ class $RitualsTable extends Rituals with TableInfo<$RitualsTable, RitualRow> {
     } else if (isInserting) {
       context.missing(_idMeta);
     }
-    if (data.containsKey('title')) {
+    if (data.containsKey('name')) {
       context.handle(
-        _titleMeta,
-        title.isAcceptableOrUnknown(data['title']!, _titleMeta),
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
       );
     } else if (isInserting) {
-      context.missing(_titleMeta);
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('time')) {
+      context.handle(
+        _timeMeta,
+        time.isAcceptableOrUnknown(data['time']!, _timeMeta),
+      );
+    }
+    if (data.containsKey('tone')) {
+      context.handle(
+        _toneMeta,
+        tone.isAcceptableOrUnknown(data['tone']!, _toneMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_toneMeta);
     }
     if (data.containsKey('icon')) {
       context.handle(
@@ -3250,25 +3272,10 @@ class $RitualsTable extends Rituals with TableInfo<$RitualsTable, RitualRow> {
     } else if (isInserting) {
       context.missing(_iconMeta);
     }
-    if (data.containsKey('cadence')) {
+    if (data.containsKey('blurb')) {
       context.handle(
-        _cadenceMeta,
-        cadence.isAcceptableOrUnknown(data['cadence']!, _cadenceMeta),
-      );
-    }
-    if (data.containsKey('reminder_time')) {
-      context.handle(
-        _reminderTimeMeta,
-        reminderTime.isAcceptableOrUnknown(
-          data['reminder_time']!,
-          _reminderTimeMeta,
-        ),
-      );
-    }
-    if (data.containsKey('position')) {
-      context.handle(
-        _positionMeta,
-        position.isAcceptableOrUnknown(data['position']!, _positionMeta),
+        _blurbMeta,
+        blurb.isAcceptableOrUnknown(data['blurb']!, _blurbMeta),
       );
     }
     if (data.containsKey('streak')) {
@@ -3277,115 +3284,129 @@ class $RitualsTable extends Rituals with TableInfo<$RitualsTable, RitualRow> {
         streak.isAcceptableOrUnknown(data['streak']!, _streakMeta),
       );
     }
+    if (data.containsKey('position')) {
+      context.handle(
+        _positionMeta,
+        position.isAcceptableOrUnknown(data['position']!, _positionMeta),
+      );
+    }
     return context;
   }
 
   @override
   Set<GeneratedColumn> get $primaryKey => {id};
   @override
-  RitualRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+  RitualRoutineRow map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return RitualRow(
+    return RitualRoutineRow(
       id: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}id'],
       )!,
-      title: attachedDatabase.typeMapping.read(
+      name: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
-        data['${effectivePrefix}title'],
+        data['${effectivePrefix}name'],
+      )!,
+      time: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}time'],
+      )!,
+      tone: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}tone'],
       )!,
       icon: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}icon'],
       )!,
-      cadence: attachedDatabase.typeMapping.read(
+      blurb: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
-        data['${effectivePrefix}cadence'],
-      )!,
-      reminderTime: attachedDatabase.typeMapping.read(
-        DriftSqlType.dateTime,
-        data['${effectivePrefix}reminder_time'],
-      ),
-      position: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}position'],
+        data['${effectivePrefix}blurb'],
       )!,
       streak: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}streak'],
       )!,
+      position: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}position'],
+      )!,
     );
   }
 
   @override
-  $RitualsTable createAlias(String alias) {
-    return $RitualsTable(attachedDatabase, alias);
+  $RitualRoutinesTable createAlias(String alias) {
+    return $RitualRoutinesTable(attachedDatabase, alias);
   }
 }
 
-class RitualRow extends DataClass implements Insertable<RitualRow> {
+class RitualRoutineRow extends DataClass
+    implements Insertable<RitualRoutineRow> {
   final String id;
-  final String title;
+  final String name;
+
+  /// Human display time, e.g. "7:00 AM".
+  final String time;
+
+  /// [RitualTone.wire].
+  final String tone;
   final String icon;
-
-  /// [Cadence.wire].
-  final String cadence;
-  final DateTime? reminderTime;
-
-  /// `Ritual.order` (renamed; `order` is a SQL keyword).
-  final int position;
+  final String blurb;
   final int streak;
-  const RitualRow({
+
+  /// `RitualRoutine.order` (renamed; `order` is a SQL keyword).
+  final int position;
+  const RitualRoutineRow({
     required this.id,
-    required this.title,
+    required this.name,
+    required this.time,
+    required this.tone,
     required this.icon,
-    required this.cadence,
-    this.reminderTime,
-    required this.position,
+    required this.blurb,
     required this.streak,
+    required this.position,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['id'] = Variable<String>(id);
-    map['title'] = Variable<String>(title);
+    map['name'] = Variable<String>(name);
+    map['time'] = Variable<String>(time);
+    map['tone'] = Variable<String>(tone);
     map['icon'] = Variable<String>(icon);
-    map['cadence'] = Variable<String>(cadence);
-    if (!nullToAbsent || reminderTime != null) {
-      map['reminder_time'] = Variable<DateTime>(reminderTime);
-    }
-    map['position'] = Variable<int>(position);
+    map['blurb'] = Variable<String>(blurb);
     map['streak'] = Variable<int>(streak);
+    map['position'] = Variable<int>(position);
     return map;
   }
 
-  RitualsCompanion toCompanion(bool nullToAbsent) {
-    return RitualsCompanion(
+  RitualRoutinesCompanion toCompanion(bool nullToAbsent) {
+    return RitualRoutinesCompanion(
       id: Value(id),
-      title: Value(title),
+      name: Value(name),
+      time: Value(time),
+      tone: Value(tone),
       icon: Value(icon),
-      cadence: Value(cadence),
-      reminderTime: reminderTime == null && nullToAbsent
-          ? const Value.absent()
-          : Value(reminderTime),
-      position: Value(position),
+      blurb: Value(blurb),
       streak: Value(streak),
+      position: Value(position),
     );
   }
 
-  factory RitualRow.fromJson(
+  factory RitualRoutineRow.fromJson(
     Map<String, dynamic> json, {
     ValueSerializer? serializer,
   }) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
-    return RitualRow(
+    return RitualRoutineRow(
       id: serializer.fromJson<String>(json['id']),
-      title: serializer.fromJson<String>(json['title']),
+      name: serializer.fromJson<String>(json['name']),
+      time: serializer.fromJson<String>(json['time']),
+      tone: serializer.fromJson<String>(json['tone']),
       icon: serializer.fromJson<String>(json['icon']),
-      cadence: serializer.fromJson<String>(json['cadence']),
-      reminderTime: serializer.fromJson<DateTime?>(json['reminderTime']),
-      position: serializer.fromJson<int>(json['position']),
+      blurb: serializer.fromJson<String>(json['blurb']),
       streak: serializer.fromJson<int>(json['streak']),
+      position: serializer.fromJson<int>(json['position']),
     );
   }
   @override
@@ -3393,147 +3414,159 @@ class RitualRow extends DataClass implements Insertable<RitualRow> {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
       'id': serializer.toJson<String>(id),
-      'title': serializer.toJson<String>(title),
+      'name': serializer.toJson<String>(name),
+      'time': serializer.toJson<String>(time),
+      'tone': serializer.toJson<String>(tone),
       'icon': serializer.toJson<String>(icon),
-      'cadence': serializer.toJson<String>(cadence),
-      'reminderTime': serializer.toJson<DateTime?>(reminderTime),
-      'position': serializer.toJson<int>(position),
+      'blurb': serializer.toJson<String>(blurb),
       'streak': serializer.toJson<int>(streak),
+      'position': serializer.toJson<int>(position),
     };
   }
 
-  RitualRow copyWith({
+  RitualRoutineRow copyWith({
     String? id,
-    String? title,
+    String? name,
+    String? time,
+    String? tone,
     String? icon,
-    String? cadence,
-    Value<DateTime?> reminderTime = const Value.absent(),
-    int? position,
+    String? blurb,
     int? streak,
-  }) => RitualRow(
+    int? position,
+  }) => RitualRoutineRow(
     id: id ?? this.id,
-    title: title ?? this.title,
+    name: name ?? this.name,
+    time: time ?? this.time,
+    tone: tone ?? this.tone,
     icon: icon ?? this.icon,
-    cadence: cadence ?? this.cadence,
-    reminderTime: reminderTime.present ? reminderTime.value : this.reminderTime,
-    position: position ?? this.position,
+    blurb: blurb ?? this.blurb,
     streak: streak ?? this.streak,
+    position: position ?? this.position,
   );
-  RitualRow copyWithCompanion(RitualsCompanion data) {
-    return RitualRow(
+  RitualRoutineRow copyWithCompanion(RitualRoutinesCompanion data) {
+    return RitualRoutineRow(
       id: data.id.present ? data.id.value : this.id,
-      title: data.title.present ? data.title.value : this.title,
+      name: data.name.present ? data.name.value : this.name,
+      time: data.time.present ? data.time.value : this.time,
+      tone: data.tone.present ? data.tone.value : this.tone,
       icon: data.icon.present ? data.icon.value : this.icon,
-      cadence: data.cadence.present ? data.cadence.value : this.cadence,
-      reminderTime: data.reminderTime.present
-          ? data.reminderTime.value
-          : this.reminderTime,
-      position: data.position.present ? data.position.value : this.position,
+      blurb: data.blurb.present ? data.blurb.value : this.blurb,
       streak: data.streak.present ? data.streak.value : this.streak,
+      position: data.position.present ? data.position.value : this.position,
     );
   }
 
   @override
   String toString() {
-    return (StringBuffer('RitualRow(')
+    return (StringBuffer('RitualRoutineRow(')
           ..write('id: $id, ')
-          ..write('title: $title, ')
+          ..write('name: $name, ')
+          ..write('time: $time, ')
+          ..write('tone: $tone, ')
           ..write('icon: $icon, ')
-          ..write('cadence: $cadence, ')
-          ..write('reminderTime: $reminderTime, ')
-          ..write('position: $position, ')
-          ..write('streak: $streak')
+          ..write('blurb: $blurb, ')
+          ..write('streak: $streak, ')
+          ..write('position: $position')
           ..write(')'))
         .toString();
   }
 
   @override
   int get hashCode =>
-      Object.hash(id, title, icon, cadence, reminderTime, position, streak);
+      Object.hash(id, name, time, tone, icon, blurb, streak, position);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      (other is RitualRow &&
+      (other is RitualRoutineRow &&
           other.id == this.id &&
-          other.title == this.title &&
+          other.name == this.name &&
+          other.time == this.time &&
+          other.tone == this.tone &&
           other.icon == this.icon &&
-          other.cadence == this.cadence &&
-          other.reminderTime == this.reminderTime &&
-          other.position == this.position &&
-          other.streak == this.streak);
+          other.blurb == this.blurb &&
+          other.streak == this.streak &&
+          other.position == this.position);
 }
 
-class RitualsCompanion extends UpdateCompanion<RitualRow> {
+class RitualRoutinesCompanion extends UpdateCompanion<RitualRoutineRow> {
   final Value<String> id;
-  final Value<String> title;
+  final Value<String> name;
+  final Value<String> time;
+  final Value<String> tone;
   final Value<String> icon;
-  final Value<String> cadence;
-  final Value<DateTime?> reminderTime;
-  final Value<int> position;
+  final Value<String> blurb;
   final Value<int> streak;
+  final Value<int> position;
   final Value<int> rowid;
-  const RitualsCompanion({
+  const RitualRoutinesCompanion({
     this.id = const Value.absent(),
-    this.title = const Value.absent(),
+    this.name = const Value.absent(),
+    this.time = const Value.absent(),
+    this.tone = const Value.absent(),
     this.icon = const Value.absent(),
-    this.cadence = const Value.absent(),
-    this.reminderTime = const Value.absent(),
-    this.position = const Value.absent(),
+    this.blurb = const Value.absent(),
     this.streak = const Value.absent(),
+    this.position = const Value.absent(),
     this.rowid = const Value.absent(),
   });
-  RitualsCompanion.insert({
+  RitualRoutinesCompanion.insert({
     required String id,
-    required String title,
+    required String name,
+    this.time = const Value.absent(),
+    required String tone,
     required String icon,
-    this.cadence = const Value.absent(),
-    this.reminderTime = const Value.absent(),
-    this.position = const Value.absent(),
+    this.blurb = const Value.absent(),
     this.streak = const Value.absent(),
+    this.position = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
-       title = Value(title),
+       name = Value(name),
+       tone = Value(tone),
        icon = Value(icon);
-  static Insertable<RitualRow> custom({
+  static Insertable<RitualRoutineRow> custom({
     Expression<String>? id,
-    Expression<String>? title,
+    Expression<String>? name,
+    Expression<String>? time,
+    Expression<String>? tone,
     Expression<String>? icon,
-    Expression<String>? cadence,
-    Expression<DateTime>? reminderTime,
-    Expression<int>? position,
+    Expression<String>? blurb,
     Expression<int>? streak,
+    Expression<int>? position,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
-      if (title != null) 'title': title,
+      if (name != null) 'name': name,
+      if (time != null) 'time': time,
+      if (tone != null) 'tone': tone,
       if (icon != null) 'icon': icon,
-      if (cadence != null) 'cadence': cadence,
-      if (reminderTime != null) 'reminder_time': reminderTime,
-      if (position != null) 'position': position,
+      if (blurb != null) 'blurb': blurb,
       if (streak != null) 'streak': streak,
+      if (position != null) 'position': position,
       if (rowid != null) 'rowid': rowid,
     });
   }
 
-  RitualsCompanion copyWith({
+  RitualRoutinesCompanion copyWith({
     Value<String>? id,
-    Value<String>? title,
+    Value<String>? name,
+    Value<String>? time,
+    Value<String>? tone,
     Value<String>? icon,
-    Value<String>? cadence,
-    Value<DateTime?>? reminderTime,
-    Value<int>? position,
+    Value<String>? blurb,
     Value<int>? streak,
+    Value<int>? position,
     Value<int>? rowid,
   }) {
-    return RitualsCompanion(
+    return RitualRoutinesCompanion(
       id: id ?? this.id,
-      title: title ?? this.title,
+      name: name ?? this.name,
+      time: time ?? this.time,
+      tone: tone ?? this.tone,
       icon: icon ?? this.icon,
-      cadence: cadence ?? this.cadence,
-      reminderTime: reminderTime ?? this.reminderTime,
-      position: position ?? this.position,
+      blurb: blurb ?? this.blurb,
       streak: streak ?? this.streak,
+      position: position ?? this.position,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -3544,23 +3577,26 @@ class RitualsCompanion extends UpdateCompanion<RitualRow> {
     if (id.present) {
       map['id'] = Variable<String>(id.value);
     }
-    if (title.present) {
-      map['title'] = Variable<String>(title.value);
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (time.present) {
+      map['time'] = Variable<String>(time.value);
+    }
+    if (tone.present) {
+      map['tone'] = Variable<String>(tone.value);
     }
     if (icon.present) {
       map['icon'] = Variable<String>(icon.value);
     }
-    if (cadence.present) {
-      map['cadence'] = Variable<String>(cadence.value);
-    }
-    if (reminderTime.present) {
-      map['reminder_time'] = Variable<DateTime>(reminderTime.value);
-    }
-    if (position.present) {
-      map['position'] = Variable<int>(position.value);
+    if (blurb.present) {
+      map['blurb'] = Variable<String>(blurb.value);
     }
     if (streak.present) {
       map['streak'] = Variable<int>(streak.value);
+    }
+    if (position.present) {
+      map['position'] = Variable<int>(position.value);
     }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
@@ -3570,14 +3606,2045 @@ class RitualsCompanion extends UpdateCompanion<RitualRow> {
 
   @override
   String toString() {
-    return (StringBuffer('RitualsCompanion(')
+    return (StringBuffer('RitualRoutinesCompanion(')
           ..write('id: $id, ')
-          ..write('title: $title, ')
+          ..write('name: $name, ')
+          ..write('time: $time, ')
+          ..write('tone: $tone, ')
           ..write('icon: $icon, ')
-          ..write('cadence: $cadence, ')
-          ..write('reminderTime: $reminderTime, ')
-          ..write('position: $position, ')
+          ..write('blurb: $blurb, ')
           ..write('streak: $streak, ')
+          ..write('position: $position, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $RitualStepsTable extends RitualSteps
+    with TableInfo<$RitualStepsTable, RitualStepRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $RitualStepsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _routineIdMeta = const VerificationMeta(
+    'routineId',
+  );
+  @override
+  late final GeneratedColumn<String> routineId = GeneratedColumn<String>(
+    'routine_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _titleMeta = const VerificationMeta('title');
+  @override
+  late final GeneratedColumn<String> title = GeneratedColumn<String>(
+    'title',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _noteMeta = const VerificationMeta('note');
+  @override
+  late final GeneratedColumn<String> note = GeneratedColumn<String>(
+    'note',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _iconMeta = const VerificationMeta('icon');
+  @override
+  late final GeneratedColumn<String> icon = GeneratedColumn<String>(
+    'icon',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _positionMeta = const VerificationMeta(
+    'position',
+  );
+  @override
+  late final GeneratedColumn<int> position = GeneratedColumn<int>(
+    'position',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    routineId,
+    title,
+    note,
+    icon,
+    position,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'ritual_steps';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<RitualStepRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('routine_id')) {
+      context.handle(
+        _routineIdMeta,
+        routineId.isAcceptableOrUnknown(data['routine_id']!, _routineIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_routineIdMeta);
+    }
+    if (data.containsKey('title')) {
+      context.handle(
+        _titleMeta,
+        title.isAcceptableOrUnknown(data['title']!, _titleMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_titleMeta);
+    }
+    if (data.containsKey('note')) {
+      context.handle(
+        _noteMeta,
+        note.isAcceptableOrUnknown(data['note']!, _noteMeta),
+      );
+    }
+    if (data.containsKey('icon')) {
+      context.handle(
+        _iconMeta,
+        icon.isAcceptableOrUnknown(data['icon']!, _iconMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_iconMeta);
+    }
+    if (data.containsKey('position')) {
+      context.handle(
+        _positionMeta,
+        position.isAcceptableOrUnknown(data['position']!, _positionMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_positionMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  RitualStepRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return RitualStepRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      routineId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}routine_id'],
+      )!,
+      title: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}title'],
+      )!,
+      note: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}note'],
+      )!,
+      icon: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}icon'],
+      )!,
+      position: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}position'],
+      )!,
+    );
+  }
+
+  @override
+  $RitualStepsTable createAlias(String alias) {
+    return $RitualStepsTable(attachedDatabase, alias);
+  }
+}
+
+class RitualStepRow extends DataClass implements Insertable<RitualStepRow> {
+  final String id;
+  final String routineId;
+  final String title;
+  final String note;
+  final String icon;
+
+  /// `RitualStep` ordering (renamed; `order` is a SQL keyword).
+  final int position;
+  const RitualStepRow({
+    required this.id,
+    required this.routineId,
+    required this.title,
+    required this.note,
+    required this.icon,
+    required this.position,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['routine_id'] = Variable<String>(routineId);
+    map['title'] = Variable<String>(title);
+    map['note'] = Variable<String>(note);
+    map['icon'] = Variable<String>(icon);
+    map['position'] = Variable<int>(position);
+    return map;
+  }
+
+  RitualStepsCompanion toCompanion(bool nullToAbsent) {
+    return RitualStepsCompanion(
+      id: Value(id),
+      routineId: Value(routineId),
+      title: Value(title),
+      note: Value(note),
+      icon: Value(icon),
+      position: Value(position),
+    );
+  }
+
+  factory RitualStepRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return RitualStepRow(
+      id: serializer.fromJson<String>(json['id']),
+      routineId: serializer.fromJson<String>(json['routineId']),
+      title: serializer.fromJson<String>(json['title']),
+      note: serializer.fromJson<String>(json['note']),
+      icon: serializer.fromJson<String>(json['icon']),
+      position: serializer.fromJson<int>(json['position']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'routineId': serializer.toJson<String>(routineId),
+      'title': serializer.toJson<String>(title),
+      'note': serializer.toJson<String>(note),
+      'icon': serializer.toJson<String>(icon),
+      'position': serializer.toJson<int>(position),
+    };
+  }
+
+  RitualStepRow copyWith({
+    String? id,
+    String? routineId,
+    String? title,
+    String? note,
+    String? icon,
+    int? position,
+  }) => RitualStepRow(
+    id: id ?? this.id,
+    routineId: routineId ?? this.routineId,
+    title: title ?? this.title,
+    note: note ?? this.note,
+    icon: icon ?? this.icon,
+    position: position ?? this.position,
+  );
+  RitualStepRow copyWithCompanion(RitualStepsCompanion data) {
+    return RitualStepRow(
+      id: data.id.present ? data.id.value : this.id,
+      routineId: data.routineId.present ? data.routineId.value : this.routineId,
+      title: data.title.present ? data.title.value : this.title,
+      note: data.note.present ? data.note.value : this.note,
+      icon: data.icon.present ? data.icon.value : this.icon,
+      position: data.position.present ? data.position.value : this.position,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('RitualStepRow(')
+          ..write('id: $id, ')
+          ..write('routineId: $routineId, ')
+          ..write('title: $title, ')
+          ..write('note: $note, ')
+          ..write('icon: $icon, ')
+          ..write('position: $position')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, routineId, title, note, icon, position);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is RitualStepRow &&
+          other.id == this.id &&
+          other.routineId == this.routineId &&
+          other.title == this.title &&
+          other.note == this.note &&
+          other.icon == this.icon &&
+          other.position == this.position);
+}
+
+class RitualStepsCompanion extends UpdateCompanion<RitualStepRow> {
+  final Value<String> id;
+  final Value<String> routineId;
+  final Value<String> title;
+  final Value<String> note;
+  final Value<String> icon;
+  final Value<int> position;
+  final Value<int> rowid;
+  const RitualStepsCompanion({
+    this.id = const Value.absent(),
+    this.routineId = const Value.absent(),
+    this.title = const Value.absent(),
+    this.note = const Value.absent(),
+    this.icon = const Value.absent(),
+    this.position = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  RitualStepsCompanion.insert({
+    required String id,
+    required String routineId,
+    required String title,
+    this.note = const Value.absent(),
+    required String icon,
+    required int position,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       routineId = Value(routineId),
+       title = Value(title),
+       icon = Value(icon),
+       position = Value(position);
+  static Insertable<RitualStepRow> custom({
+    Expression<String>? id,
+    Expression<String>? routineId,
+    Expression<String>? title,
+    Expression<String>? note,
+    Expression<String>? icon,
+    Expression<int>? position,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (routineId != null) 'routine_id': routineId,
+      if (title != null) 'title': title,
+      if (note != null) 'note': note,
+      if (icon != null) 'icon': icon,
+      if (position != null) 'position': position,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  RitualStepsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? routineId,
+    Value<String>? title,
+    Value<String>? note,
+    Value<String>? icon,
+    Value<int>? position,
+    Value<int>? rowid,
+  }) {
+    return RitualStepsCompanion(
+      id: id ?? this.id,
+      routineId: routineId ?? this.routineId,
+      title: title ?? this.title,
+      note: note ?? this.note,
+      icon: icon ?? this.icon,
+      position: position ?? this.position,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (routineId.present) {
+      map['routine_id'] = Variable<String>(routineId.value);
+    }
+    if (title.present) {
+      map['title'] = Variable<String>(title.value);
+    }
+    if (note.present) {
+      map['note'] = Variable<String>(note.value);
+    }
+    if (icon.present) {
+      map['icon'] = Variable<String>(icon.value);
+    }
+    if (position.present) {
+      map['position'] = Variable<int>(position.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('RitualStepsCompanion(')
+          ..write('id: $id, ')
+          ..write('routineId: $routineId, ')
+          ..write('title: $title, ')
+          ..write('note: $note, ')
+          ..write('icon: $icon, ')
+          ..write('position: $position, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $BillsTable extends Bills with TableInfo<$BillsTable, BillRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $BillsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _payeeMeta = const VerificationMeta('payee');
+  @override
+  late final GeneratedColumn<String> payee = GeneratedColumn<String>(
+    'payee',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _categoryMeta = const VerificationMeta(
+    'category',
+  );
+  @override
+  late final GeneratedColumn<String> category = GeneratedColumn<String>(
+    'category',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _amountMeta = const VerificationMeta('amount');
+  @override
+  late final GeneratedColumn<double> amount = GeneratedColumn<double>(
+    'amount',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _dueDateMeta = const VerificationMeta(
+    'dueDate',
+  );
+  @override
+  late final GeneratedColumn<DateTime> dueDate = GeneratedColumn<DateTime>(
+    'due_date',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _autoPayMeta = const VerificationMeta(
+    'autoPay',
+  );
+  @override
+  late final GeneratedColumn<bool> autoPay = GeneratedColumn<bool>(
+    'auto_pay',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("auto_pay" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _iconMeta = const VerificationMeta('icon');
+  @override
+  late final GeneratedColumn<String> icon = GeneratedColumn<String>(
+    'icon',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _colorMeta = const VerificationMeta('color');
+  @override
+  late final GeneratedColumn<String> color = GeneratedColumn<String>(
+    'color',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    name,
+    payee,
+    category,
+    amount,
+    dueDate,
+    autoPay,
+    icon,
+    color,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'bills';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<BillRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('payee')) {
+      context.handle(
+        _payeeMeta,
+        payee.isAcceptableOrUnknown(data['payee']!, _payeeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_payeeMeta);
+    }
+    if (data.containsKey('category')) {
+      context.handle(
+        _categoryMeta,
+        category.isAcceptableOrUnknown(data['category']!, _categoryMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_categoryMeta);
+    }
+    if (data.containsKey('amount')) {
+      context.handle(
+        _amountMeta,
+        amount.isAcceptableOrUnknown(data['amount']!, _amountMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_amountMeta);
+    }
+    if (data.containsKey('due_date')) {
+      context.handle(
+        _dueDateMeta,
+        dueDate.isAcceptableOrUnknown(data['due_date']!, _dueDateMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_dueDateMeta);
+    }
+    if (data.containsKey('auto_pay')) {
+      context.handle(
+        _autoPayMeta,
+        autoPay.isAcceptableOrUnknown(data['auto_pay']!, _autoPayMeta),
+      );
+    }
+    if (data.containsKey('icon')) {
+      context.handle(
+        _iconMeta,
+        icon.isAcceptableOrUnknown(data['icon']!, _iconMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_iconMeta);
+    }
+    if (data.containsKey('color')) {
+      context.handle(
+        _colorMeta,
+        color.isAcceptableOrUnknown(data['color']!, _colorMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_colorMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  BillRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return BillRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      payee: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}payee'],
+      )!,
+      category: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}category'],
+      )!,
+      amount: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}amount'],
+      )!,
+      dueDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}due_date'],
+      )!,
+      autoPay: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}auto_pay'],
+      )!,
+      icon: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}icon'],
+      )!,
+      color: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}color'],
+      )!,
+    );
+  }
+
+  @override
+  $BillsTable createAlias(String alias) {
+    return $BillsTable(attachedDatabase, alias);
+  }
+}
+
+class BillRow extends DataClass implements Insertable<BillRow> {
+  final String id;
+  final String name;
+  final String payee;
+  final String category;
+  final double amount;
+  final DateTime dueDate;
+  final bool autoPay;
+  final String icon;
+  final String color;
+  const BillRow({
+    required this.id,
+    required this.name,
+    required this.payee,
+    required this.category,
+    required this.amount,
+    required this.dueDate,
+    required this.autoPay,
+    required this.icon,
+    required this.color,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['name'] = Variable<String>(name);
+    map['payee'] = Variable<String>(payee);
+    map['category'] = Variable<String>(category);
+    map['amount'] = Variable<double>(amount);
+    map['due_date'] = Variable<DateTime>(dueDate);
+    map['auto_pay'] = Variable<bool>(autoPay);
+    map['icon'] = Variable<String>(icon);
+    map['color'] = Variable<String>(color);
+    return map;
+  }
+
+  BillsCompanion toCompanion(bool nullToAbsent) {
+    return BillsCompanion(
+      id: Value(id),
+      name: Value(name),
+      payee: Value(payee),
+      category: Value(category),
+      amount: Value(amount),
+      dueDate: Value(dueDate),
+      autoPay: Value(autoPay),
+      icon: Value(icon),
+      color: Value(color),
+    );
+  }
+
+  factory BillRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return BillRow(
+      id: serializer.fromJson<String>(json['id']),
+      name: serializer.fromJson<String>(json['name']),
+      payee: serializer.fromJson<String>(json['payee']),
+      category: serializer.fromJson<String>(json['category']),
+      amount: serializer.fromJson<double>(json['amount']),
+      dueDate: serializer.fromJson<DateTime>(json['dueDate']),
+      autoPay: serializer.fromJson<bool>(json['autoPay']),
+      icon: serializer.fromJson<String>(json['icon']),
+      color: serializer.fromJson<String>(json['color']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'name': serializer.toJson<String>(name),
+      'payee': serializer.toJson<String>(payee),
+      'category': serializer.toJson<String>(category),
+      'amount': serializer.toJson<double>(amount),
+      'dueDate': serializer.toJson<DateTime>(dueDate),
+      'autoPay': serializer.toJson<bool>(autoPay),
+      'icon': serializer.toJson<String>(icon),
+      'color': serializer.toJson<String>(color),
+    };
+  }
+
+  BillRow copyWith({
+    String? id,
+    String? name,
+    String? payee,
+    String? category,
+    double? amount,
+    DateTime? dueDate,
+    bool? autoPay,
+    String? icon,
+    String? color,
+  }) => BillRow(
+    id: id ?? this.id,
+    name: name ?? this.name,
+    payee: payee ?? this.payee,
+    category: category ?? this.category,
+    amount: amount ?? this.amount,
+    dueDate: dueDate ?? this.dueDate,
+    autoPay: autoPay ?? this.autoPay,
+    icon: icon ?? this.icon,
+    color: color ?? this.color,
+  );
+  BillRow copyWithCompanion(BillsCompanion data) {
+    return BillRow(
+      id: data.id.present ? data.id.value : this.id,
+      name: data.name.present ? data.name.value : this.name,
+      payee: data.payee.present ? data.payee.value : this.payee,
+      category: data.category.present ? data.category.value : this.category,
+      amount: data.amount.present ? data.amount.value : this.amount,
+      dueDate: data.dueDate.present ? data.dueDate.value : this.dueDate,
+      autoPay: data.autoPay.present ? data.autoPay.value : this.autoPay,
+      icon: data.icon.present ? data.icon.value : this.icon,
+      color: data.color.present ? data.color.value : this.color,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('BillRow(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('payee: $payee, ')
+          ..write('category: $category, ')
+          ..write('amount: $amount, ')
+          ..write('dueDate: $dueDate, ')
+          ..write('autoPay: $autoPay, ')
+          ..write('icon: $icon, ')
+          ..write('color: $color')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    name,
+    payee,
+    category,
+    amount,
+    dueDate,
+    autoPay,
+    icon,
+    color,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is BillRow &&
+          other.id == this.id &&
+          other.name == this.name &&
+          other.payee == this.payee &&
+          other.category == this.category &&
+          other.amount == this.amount &&
+          other.dueDate == this.dueDate &&
+          other.autoPay == this.autoPay &&
+          other.icon == this.icon &&
+          other.color == this.color);
+}
+
+class BillsCompanion extends UpdateCompanion<BillRow> {
+  final Value<String> id;
+  final Value<String> name;
+  final Value<String> payee;
+  final Value<String> category;
+  final Value<double> amount;
+  final Value<DateTime> dueDate;
+  final Value<bool> autoPay;
+  final Value<String> icon;
+  final Value<String> color;
+  final Value<int> rowid;
+  const BillsCompanion({
+    this.id = const Value.absent(),
+    this.name = const Value.absent(),
+    this.payee = const Value.absent(),
+    this.category = const Value.absent(),
+    this.amount = const Value.absent(),
+    this.dueDate = const Value.absent(),
+    this.autoPay = const Value.absent(),
+    this.icon = const Value.absent(),
+    this.color = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  BillsCompanion.insert({
+    required String id,
+    required String name,
+    required String payee,
+    required String category,
+    required double amount,
+    required DateTime dueDate,
+    this.autoPay = const Value.absent(),
+    required String icon,
+    required String color,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       name = Value(name),
+       payee = Value(payee),
+       category = Value(category),
+       amount = Value(amount),
+       dueDate = Value(dueDate),
+       icon = Value(icon),
+       color = Value(color);
+  static Insertable<BillRow> custom({
+    Expression<String>? id,
+    Expression<String>? name,
+    Expression<String>? payee,
+    Expression<String>? category,
+    Expression<double>? amount,
+    Expression<DateTime>? dueDate,
+    Expression<bool>? autoPay,
+    Expression<String>? icon,
+    Expression<String>? color,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (name != null) 'name': name,
+      if (payee != null) 'payee': payee,
+      if (category != null) 'category': category,
+      if (amount != null) 'amount': amount,
+      if (dueDate != null) 'due_date': dueDate,
+      if (autoPay != null) 'auto_pay': autoPay,
+      if (icon != null) 'icon': icon,
+      if (color != null) 'color': color,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  BillsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? name,
+    Value<String>? payee,
+    Value<String>? category,
+    Value<double>? amount,
+    Value<DateTime>? dueDate,
+    Value<bool>? autoPay,
+    Value<String>? icon,
+    Value<String>? color,
+    Value<int>? rowid,
+  }) {
+    return BillsCompanion(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      payee: payee ?? this.payee,
+      category: category ?? this.category,
+      amount: amount ?? this.amount,
+      dueDate: dueDate ?? this.dueDate,
+      autoPay: autoPay ?? this.autoPay,
+      icon: icon ?? this.icon,
+      color: color ?? this.color,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (payee.present) {
+      map['payee'] = Variable<String>(payee.value);
+    }
+    if (category.present) {
+      map['category'] = Variable<String>(category.value);
+    }
+    if (amount.present) {
+      map['amount'] = Variable<double>(amount.value);
+    }
+    if (dueDate.present) {
+      map['due_date'] = Variable<DateTime>(dueDate.value);
+    }
+    if (autoPay.present) {
+      map['auto_pay'] = Variable<bool>(autoPay.value);
+    }
+    if (icon.present) {
+      map['icon'] = Variable<String>(icon.value);
+    }
+    if (color.present) {
+      map['color'] = Variable<String>(color.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('BillsCompanion(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('payee: $payee, ')
+          ..write('category: $category, ')
+          ..write('amount: $amount, ')
+          ..write('dueDate: $dueDate, ')
+          ..write('autoPay: $autoPay, ')
+          ..write('icon: $icon, ')
+          ..write('color: $color, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $SubscriptionsTable extends Subscriptions
+    with TableInfo<$SubscriptionsTable, SubscriptionRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $SubscriptionsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _categoryMeta = const VerificationMeta(
+    'category',
+  );
+  @override
+  late final GeneratedColumn<String> category = GeneratedColumn<String>(
+    'category',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _amountMeta = const VerificationMeta('amount');
+  @override
+  late final GeneratedColumn<double> amount = GeneratedColumn<double>(
+    'amount',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _nextChargeDateMeta = const VerificationMeta(
+    'nextChargeDate',
+  );
+  @override
+  late final GeneratedColumn<DateTime> nextChargeDate =
+      GeneratedColumn<DateTime>(
+        'next_charge_date',
+        aliasedName,
+        false,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: true,
+      );
+  static const VerificationMeta _iconMeta = const VerificationMeta('icon');
+  @override
+  late final GeneratedColumn<String> icon = GeneratedColumn<String>(
+    'icon',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _colorMeta = const VerificationMeta('color');
+  @override
+  late final GeneratedColumn<String> color = GeneratedColumn<String>(
+    'color',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _detectedFromEmailMeta = const VerificationMeta(
+    'detectedFromEmail',
+  );
+  @override
+  late final GeneratedColumn<bool> detectedFromEmail = GeneratedColumn<bool>(
+    'detected_from_email',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("detected_from_email" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    name,
+    category,
+    amount,
+    nextChargeDate,
+    icon,
+    color,
+    detectedFromEmail,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'subscriptions';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<SubscriptionRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('category')) {
+      context.handle(
+        _categoryMeta,
+        category.isAcceptableOrUnknown(data['category']!, _categoryMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_categoryMeta);
+    }
+    if (data.containsKey('amount')) {
+      context.handle(
+        _amountMeta,
+        amount.isAcceptableOrUnknown(data['amount']!, _amountMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_amountMeta);
+    }
+    if (data.containsKey('next_charge_date')) {
+      context.handle(
+        _nextChargeDateMeta,
+        nextChargeDate.isAcceptableOrUnknown(
+          data['next_charge_date']!,
+          _nextChargeDateMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_nextChargeDateMeta);
+    }
+    if (data.containsKey('icon')) {
+      context.handle(
+        _iconMeta,
+        icon.isAcceptableOrUnknown(data['icon']!, _iconMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_iconMeta);
+    }
+    if (data.containsKey('color')) {
+      context.handle(
+        _colorMeta,
+        color.isAcceptableOrUnknown(data['color']!, _colorMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_colorMeta);
+    }
+    if (data.containsKey('detected_from_email')) {
+      context.handle(
+        _detectedFromEmailMeta,
+        detectedFromEmail.isAcceptableOrUnknown(
+          data['detected_from_email']!,
+          _detectedFromEmailMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  SubscriptionRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return SubscriptionRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      category: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}category'],
+      )!,
+      amount: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}amount'],
+      )!,
+      nextChargeDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}next_charge_date'],
+      )!,
+      icon: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}icon'],
+      )!,
+      color: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}color'],
+      )!,
+      detectedFromEmail: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}detected_from_email'],
+      )!,
+    );
+  }
+
+  @override
+  $SubscriptionsTable createAlias(String alias) {
+    return $SubscriptionsTable(attachedDatabase, alias);
+  }
+}
+
+class SubscriptionRow extends DataClass implements Insertable<SubscriptionRow> {
+  final String id;
+  final String name;
+  final String category;
+  final double amount;
+  final DateTime nextChargeDate;
+  final String icon;
+  final String color;
+  final bool detectedFromEmail;
+  const SubscriptionRow({
+    required this.id,
+    required this.name,
+    required this.category,
+    required this.amount,
+    required this.nextChargeDate,
+    required this.icon,
+    required this.color,
+    required this.detectedFromEmail,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['name'] = Variable<String>(name);
+    map['category'] = Variable<String>(category);
+    map['amount'] = Variable<double>(amount);
+    map['next_charge_date'] = Variable<DateTime>(nextChargeDate);
+    map['icon'] = Variable<String>(icon);
+    map['color'] = Variable<String>(color);
+    map['detected_from_email'] = Variable<bool>(detectedFromEmail);
+    return map;
+  }
+
+  SubscriptionsCompanion toCompanion(bool nullToAbsent) {
+    return SubscriptionsCompanion(
+      id: Value(id),
+      name: Value(name),
+      category: Value(category),
+      amount: Value(amount),
+      nextChargeDate: Value(nextChargeDate),
+      icon: Value(icon),
+      color: Value(color),
+      detectedFromEmail: Value(detectedFromEmail),
+    );
+  }
+
+  factory SubscriptionRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return SubscriptionRow(
+      id: serializer.fromJson<String>(json['id']),
+      name: serializer.fromJson<String>(json['name']),
+      category: serializer.fromJson<String>(json['category']),
+      amount: serializer.fromJson<double>(json['amount']),
+      nextChargeDate: serializer.fromJson<DateTime>(json['nextChargeDate']),
+      icon: serializer.fromJson<String>(json['icon']),
+      color: serializer.fromJson<String>(json['color']),
+      detectedFromEmail: serializer.fromJson<bool>(json['detectedFromEmail']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'name': serializer.toJson<String>(name),
+      'category': serializer.toJson<String>(category),
+      'amount': serializer.toJson<double>(amount),
+      'nextChargeDate': serializer.toJson<DateTime>(nextChargeDate),
+      'icon': serializer.toJson<String>(icon),
+      'color': serializer.toJson<String>(color),
+      'detectedFromEmail': serializer.toJson<bool>(detectedFromEmail),
+    };
+  }
+
+  SubscriptionRow copyWith({
+    String? id,
+    String? name,
+    String? category,
+    double? amount,
+    DateTime? nextChargeDate,
+    String? icon,
+    String? color,
+    bool? detectedFromEmail,
+  }) => SubscriptionRow(
+    id: id ?? this.id,
+    name: name ?? this.name,
+    category: category ?? this.category,
+    amount: amount ?? this.amount,
+    nextChargeDate: nextChargeDate ?? this.nextChargeDate,
+    icon: icon ?? this.icon,
+    color: color ?? this.color,
+    detectedFromEmail: detectedFromEmail ?? this.detectedFromEmail,
+  );
+  SubscriptionRow copyWithCompanion(SubscriptionsCompanion data) {
+    return SubscriptionRow(
+      id: data.id.present ? data.id.value : this.id,
+      name: data.name.present ? data.name.value : this.name,
+      category: data.category.present ? data.category.value : this.category,
+      amount: data.amount.present ? data.amount.value : this.amount,
+      nextChargeDate: data.nextChargeDate.present
+          ? data.nextChargeDate.value
+          : this.nextChargeDate,
+      icon: data.icon.present ? data.icon.value : this.icon,
+      color: data.color.present ? data.color.value : this.color,
+      detectedFromEmail: data.detectedFromEmail.present
+          ? data.detectedFromEmail.value
+          : this.detectedFromEmail,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SubscriptionRow(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('category: $category, ')
+          ..write('amount: $amount, ')
+          ..write('nextChargeDate: $nextChargeDate, ')
+          ..write('icon: $icon, ')
+          ..write('color: $color, ')
+          ..write('detectedFromEmail: $detectedFromEmail')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    name,
+    category,
+    amount,
+    nextChargeDate,
+    icon,
+    color,
+    detectedFromEmail,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is SubscriptionRow &&
+          other.id == this.id &&
+          other.name == this.name &&
+          other.category == this.category &&
+          other.amount == this.amount &&
+          other.nextChargeDate == this.nextChargeDate &&
+          other.icon == this.icon &&
+          other.color == this.color &&
+          other.detectedFromEmail == this.detectedFromEmail);
+}
+
+class SubscriptionsCompanion extends UpdateCompanion<SubscriptionRow> {
+  final Value<String> id;
+  final Value<String> name;
+  final Value<String> category;
+  final Value<double> amount;
+  final Value<DateTime> nextChargeDate;
+  final Value<String> icon;
+  final Value<String> color;
+  final Value<bool> detectedFromEmail;
+  final Value<int> rowid;
+  const SubscriptionsCompanion({
+    this.id = const Value.absent(),
+    this.name = const Value.absent(),
+    this.category = const Value.absent(),
+    this.amount = const Value.absent(),
+    this.nextChargeDate = const Value.absent(),
+    this.icon = const Value.absent(),
+    this.color = const Value.absent(),
+    this.detectedFromEmail = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  SubscriptionsCompanion.insert({
+    required String id,
+    required String name,
+    required String category,
+    required double amount,
+    required DateTime nextChargeDate,
+    required String icon,
+    required String color,
+    this.detectedFromEmail = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       name = Value(name),
+       category = Value(category),
+       amount = Value(amount),
+       nextChargeDate = Value(nextChargeDate),
+       icon = Value(icon),
+       color = Value(color);
+  static Insertable<SubscriptionRow> custom({
+    Expression<String>? id,
+    Expression<String>? name,
+    Expression<String>? category,
+    Expression<double>? amount,
+    Expression<DateTime>? nextChargeDate,
+    Expression<String>? icon,
+    Expression<String>? color,
+    Expression<bool>? detectedFromEmail,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (name != null) 'name': name,
+      if (category != null) 'category': category,
+      if (amount != null) 'amount': amount,
+      if (nextChargeDate != null) 'next_charge_date': nextChargeDate,
+      if (icon != null) 'icon': icon,
+      if (color != null) 'color': color,
+      if (detectedFromEmail != null) 'detected_from_email': detectedFromEmail,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  SubscriptionsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? name,
+    Value<String>? category,
+    Value<double>? amount,
+    Value<DateTime>? nextChargeDate,
+    Value<String>? icon,
+    Value<String>? color,
+    Value<bool>? detectedFromEmail,
+    Value<int>? rowid,
+  }) {
+    return SubscriptionsCompanion(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      category: category ?? this.category,
+      amount: amount ?? this.amount,
+      nextChargeDate: nextChargeDate ?? this.nextChargeDate,
+      icon: icon ?? this.icon,
+      color: color ?? this.color,
+      detectedFromEmail: detectedFromEmail ?? this.detectedFromEmail,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (category.present) {
+      map['category'] = Variable<String>(category.value);
+    }
+    if (amount.present) {
+      map['amount'] = Variable<double>(amount.value);
+    }
+    if (nextChargeDate.present) {
+      map['next_charge_date'] = Variable<DateTime>(nextChargeDate.value);
+    }
+    if (icon.present) {
+      map['icon'] = Variable<String>(icon.value);
+    }
+    if (color.present) {
+      map['color'] = Variable<String>(color.value);
+    }
+    if (detectedFromEmail.present) {
+      map['detected_from_email'] = Variable<bool>(detectedFromEmail.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SubscriptionsCompanion(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('category: $category, ')
+          ..write('amount: $amount, ')
+          ..write('nextChargeDate: $nextChargeDate, ')
+          ..write('icon: $icon, ')
+          ..write('color: $color, ')
+          ..write('detectedFromEmail: $detectedFromEmail, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $PalNotesTable extends PalNotes
+    with TableInfo<$PalNotesTable, PalNoteRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $PalNotesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _kindMeta = const VerificationMeta('kind');
+  @override
+  late final GeneratedColumn<String> kind = GeneratedColumn<String>(
+    'kind',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _categoryMeta = const VerificationMeta(
+    'category',
+  );
+  @override
+  late final GeneratedColumn<String> category = GeneratedColumn<String>(
+    'category',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _iconMeta = const VerificationMeta('icon');
+  @override
+  late final GeneratedColumn<String> icon = GeneratedColumn<String>(
+    'icon',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _titleMeta = const VerificationMeta('title');
+  @override
+  late final GeneratedColumn<String> title = GeneratedColumn<String>(
+    'title',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _bodyMeta = const VerificationMeta('body');
+  @override
+  late final GeneratedColumn<String> body = GeneratedColumn<String>(
+    'body',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _actionLabelMeta = const VerificationMeta(
+    'actionLabel',
+  );
+  @override
+  late final GeneratedColumn<String> actionLabel = GeneratedColumn<String>(
+    'action_label',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _unreadMeta = const VerificationMeta('unread');
+  @override
+  late final GeneratedColumn<bool> unread = GeneratedColumn<bool>(
+    'unread',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("unread" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    createdAt,
+    kind,
+    category,
+    icon,
+    title,
+    body,
+    actionLabel,
+    unread,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'pal_notes';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<PalNoteRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('kind')) {
+      context.handle(
+        _kindMeta,
+        kind.isAcceptableOrUnknown(data['kind']!, _kindMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_kindMeta);
+    }
+    if (data.containsKey('category')) {
+      context.handle(
+        _categoryMeta,
+        category.isAcceptableOrUnknown(data['category']!, _categoryMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_categoryMeta);
+    }
+    if (data.containsKey('icon')) {
+      context.handle(
+        _iconMeta,
+        icon.isAcceptableOrUnknown(data['icon']!, _iconMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_iconMeta);
+    }
+    if (data.containsKey('title')) {
+      context.handle(
+        _titleMeta,
+        title.isAcceptableOrUnknown(data['title']!, _titleMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_titleMeta);
+    }
+    if (data.containsKey('body')) {
+      context.handle(
+        _bodyMeta,
+        body.isAcceptableOrUnknown(data['body']!, _bodyMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_bodyMeta);
+    }
+    if (data.containsKey('action_label')) {
+      context.handle(
+        _actionLabelMeta,
+        actionLabel.isAcceptableOrUnknown(
+          data['action_label']!,
+          _actionLabelMeta,
+        ),
+      );
+    }
+    if (data.containsKey('unread')) {
+      context.handle(
+        _unreadMeta,
+        unread.isAcceptableOrUnknown(data['unread']!, _unreadMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  PalNoteRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return PalNoteRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      kind: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}kind'],
+      )!,
+      category: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}category'],
+      )!,
+      icon: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}icon'],
+      )!,
+      title: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}title'],
+      )!,
+      body: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}body'],
+      )!,
+      actionLabel: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}action_label'],
+      ),
+      unread: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}unread'],
+      )!,
+    );
+  }
+
+  @override
+  $PalNotesTable createAlias(String alias) {
+    return $PalNotesTable(attachedDatabase, alias);
+  }
+}
+
+class PalNoteRow extends DataClass implements Insertable<PalNoteRow> {
+  final String id;
+  final DateTime createdAt;
+
+  /// [NoteKind.wire].
+  final String kind;
+
+  /// [EntryType.wire] of the category dot.
+  final String category;
+  final String icon;
+  final String title;
+  final String body;
+  final String? actionLabel;
+  final bool unread;
+  const PalNoteRow({
+    required this.id,
+    required this.createdAt,
+    required this.kind,
+    required this.category,
+    required this.icon,
+    required this.title,
+    required this.body,
+    this.actionLabel,
+    required this.unread,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['kind'] = Variable<String>(kind);
+    map['category'] = Variable<String>(category);
+    map['icon'] = Variable<String>(icon);
+    map['title'] = Variable<String>(title);
+    map['body'] = Variable<String>(body);
+    if (!nullToAbsent || actionLabel != null) {
+      map['action_label'] = Variable<String>(actionLabel);
+    }
+    map['unread'] = Variable<bool>(unread);
+    return map;
+  }
+
+  PalNotesCompanion toCompanion(bool nullToAbsent) {
+    return PalNotesCompanion(
+      id: Value(id),
+      createdAt: Value(createdAt),
+      kind: Value(kind),
+      category: Value(category),
+      icon: Value(icon),
+      title: Value(title),
+      body: Value(body),
+      actionLabel: actionLabel == null && nullToAbsent
+          ? const Value.absent()
+          : Value(actionLabel),
+      unread: Value(unread),
+    );
+  }
+
+  factory PalNoteRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return PalNoteRow(
+      id: serializer.fromJson<String>(json['id']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      kind: serializer.fromJson<String>(json['kind']),
+      category: serializer.fromJson<String>(json['category']),
+      icon: serializer.fromJson<String>(json['icon']),
+      title: serializer.fromJson<String>(json['title']),
+      body: serializer.fromJson<String>(json['body']),
+      actionLabel: serializer.fromJson<String?>(json['actionLabel']),
+      unread: serializer.fromJson<bool>(json['unread']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'kind': serializer.toJson<String>(kind),
+      'category': serializer.toJson<String>(category),
+      'icon': serializer.toJson<String>(icon),
+      'title': serializer.toJson<String>(title),
+      'body': serializer.toJson<String>(body),
+      'actionLabel': serializer.toJson<String?>(actionLabel),
+      'unread': serializer.toJson<bool>(unread),
+    };
+  }
+
+  PalNoteRow copyWith({
+    String? id,
+    DateTime? createdAt,
+    String? kind,
+    String? category,
+    String? icon,
+    String? title,
+    String? body,
+    Value<String?> actionLabel = const Value.absent(),
+    bool? unread,
+  }) => PalNoteRow(
+    id: id ?? this.id,
+    createdAt: createdAt ?? this.createdAt,
+    kind: kind ?? this.kind,
+    category: category ?? this.category,
+    icon: icon ?? this.icon,
+    title: title ?? this.title,
+    body: body ?? this.body,
+    actionLabel: actionLabel.present ? actionLabel.value : this.actionLabel,
+    unread: unread ?? this.unread,
+  );
+  PalNoteRow copyWithCompanion(PalNotesCompanion data) {
+    return PalNoteRow(
+      id: data.id.present ? data.id.value : this.id,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      kind: data.kind.present ? data.kind.value : this.kind,
+      category: data.category.present ? data.category.value : this.category,
+      icon: data.icon.present ? data.icon.value : this.icon,
+      title: data.title.present ? data.title.value : this.title,
+      body: data.body.present ? data.body.value : this.body,
+      actionLabel: data.actionLabel.present
+          ? data.actionLabel.value
+          : this.actionLabel,
+      unread: data.unread.present ? data.unread.value : this.unread,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PalNoteRow(')
+          ..write('id: $id, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('kind: $kind, ')
+          ..write('category: $category, ')
+          ..write('icon: $icon, ')
+          ..write('title: $title, ')
+          ..write('body: $body, ')
+          ..write('actionLabel: $actionLabel, ')
+          ..write('unread: $unread')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    createdAt,
+    kind,
+    category,
+    icon,
+    title,
+    body,
+    actionLabel,
+    unread,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is PalNoteRow &&
+          other.id == this.id &&
+          other.createdAt == this.createdAt &&
+          other.kind == this.kind &&
+          other.category == this.category &&
+          other.icon == this.icon &&
+          other.title == this.title &&
+          other.body == this.body &&
+          other.actionLabel == this.actionLabel &&
+          other.unread == this.unread);
+}
+
+class PalNotesCompanion extends UpdateCompanion<PalNoteRow> {
+  final Value<String> id;
+  final Value<DateTime> createdAt;
+  final Value<String> kind;
+  final Value<String> category;
+  final Value<String> icon;
+  final Value<String> title;
+  final Value<String> body;
+  final Value<String?> actionLabel;
+  final Value<bool> unread;
+  final Value<int> rowid;
+  const PalNotesCompanion({
+    this.id = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.kind = const Value.absent(),
+    this.category = const Value.absent(),
+    this.icon = const Value.absent(),
+    this.title = const Value.absent(),
+    this.body = const Value.absent(),
+    this.actionLabel = const Value.absent(),
+    this.unread = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  PalNotesCompanion.insert({
+    required String id,
+    required DateTime createdAt,
+    required String kind,
+    required String category,
+    required String icon,
+    required String title,
+    required String body,
+    this.actionLabel = const Value.absent(),
+    this.unread = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       createdAt = Value(createdAt),
+       kind = Value(kind),
+       category = Value(category),
+       icon = Value(icon),
+       title = Value(title),
+       body = Value(body);
+  static Insertable<PalNoteRow> custom({
+    Expression<String>? id,
+    Expression<DateTime>? createdAt,
+    Expression<String>? kind,
+    Expression<String>? category,
+    Expression<String>? icon,
+    Expression<String>? title,
+    Expression<String>? body,
+    Expression<String>? actionLabel,
+    Expression<bool>? unread,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (createdAt != null) 'created_at': createdAt,
+      if (kind != null) 'kind': kind,
+      if (category != null) 'category': category,
+      if (icon != null) 'icon': icon,
+      if (title != null) 'title': title,
+      if (body != null) 'body': body,
+      if (actionLabel != null) 'action_label': actionLabel,
+      if (unread != null) 'unread': unread,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  PalNotesCompanion copyWith({
+    Value<String>? id,
+    Value<DateTime>? createdAt,
+    Value<String>? kind,
+    Value<String>? category,
+    Value<String>? icon,
+    Value<String>? title,
+    Value<String>? body,
+    Value<String?>? actionLabel,
+    Value<bool>? unread,
+    Value<int>? rowid,
+  }) {
+    return PalNotesCompanion(
+      id: id ?? this.id,
+      createdAt: createdAt ?? this.createdAt,
+      kind: kind ?? this.kind,
+      category: category ?? this.category,
+      icon: icon ?? this.icon,
+      title: title ?? this.title,
+      body: body ?? this.body,
+      actionLabel: actionLabel ?? this.actionLabel,
+      unread: unread ?? this.unread,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (kind.present) {
+      map['kind'] = Variable<String>(kind.value);
+    }
+    if (category.present) {
+      map['category'] = Variable<String>(category.value);
+    }
+    if (icon.present) {
+      map['icon'] = Variable<String>(icon.value);
+    }
+    if (title.present) {
+      map['title'] = Variable<String>(title.value);
+    }
+    if (body.present) {
+      map['body'] = Variable<String>(body.value);
+    }
+    if (actionLabel.present) {
+      map['action_label'] = Variable<String>(actionLabel.value);
+    }
+    if (unread.present) {
+      map['unread'] = Variable<bool>(unread.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PalNotesCompanion(')
+          ..write('id: $id, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('kind: $kind, ')
+          ..write('category: $category, ')
+          ..write('icon: $icon, ')
+          ..write('title: $title, ')
+          ..write('body: $body, ')
+          ..write('actionLabel: $actionLabel, ')
+          ..write('unread: $unread, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -4076,7 +6143,11 @@ abstract class _$LoopDatabase extends GeneratedDatabase {
   );
   late final $WorkoutsTable workouts = $WorkoutsTable(this);
   late final $SetLogsTable setLogs = $SetLogsTable(this);
-  late final $RitualsTable rituals = $RitualsTable(this);
+  late final $RitualRoutinesTable ritualRoutines = $RitualRoutinesTable(this);
+  late final $RitualStepsTable ritualSteps = $RitualStepsTable(this);
+  late final $BillsTable bills = $BillsTable(this);
+  late final $SubscriptionsTable subscriptions = $SubscriptionsTable(this);
+  late final $PalNotesTable palNotes = $PalNotesTable(this);
   late final $GoalsTableTable goalsTable = $GoalsTableTable(this);
   late final $SeedMarkersTable seedMarkers = $SeedMarkersTable(this);
   @override
@@ -4090,7 +6161,11 @@ abstract class _$LoopDatabase extends GeneratedDatabase {
     routineExercises,
     workouts,
     setLogs,
-    rituals,
+    ritualRoutines,
+    ritualSteps,
+    bills,
+    subscriptions,
+    palNotes,
     goalsTable,
     seedMarkers,
   ];
@@ -5667,32 +7742,34 @@ typedef $$SetLogsTableProcessedTableManager =
       SetLogRow,
       PrefetchHooks Function()
     >;
-typedef $$RitualsTableCreateCompanionBuilder =
-    RitualsCompanion Function({
+typedef $$RitualRoutinesTableCreateCompanionBuilder =
+    RitualRoutinesCompanion Function({
       required String id,
-      required String title,
+      required String name,
+      Value<String> time,
+      required String tone,
       required String icon,
-      Value<String> cadence,
-      Value<DateTime?> reminderTime,
-      Value<int> position,
+      Value<String> blurb,
       Value<int> streak,
+      Value<int> position,
       Value<int> rowid,
     });
-typedef $$RitualsTableUpdateCompanionBuilder =
-    RitualsCompanion Function({
+typedef $$RitualRoutinesTableUpdateCompanionBuilder =
+    RitualRoutinesCompanion Function({
       Value<String> id,
-      Value<String> title,
+      Value<String> name,
+      Value<String> time,
+      Value<String> tone,
       Value<String> icon,
-      Value<String> cadence,
-      Value<DateTime?> reminderTime,
-      Value<int> position,
+      Value<String> blurb,
       Value<int> streak,
+      Value<int> position,
       Value<int> rowid,
     });
 
-class $$RitualsTableFilterComposer
-    extends Composer<_$LoopDatabase, $RitualsTable> {
-  $$RitualsTableFilterComposer({
+class $$RitualRoutinesTableFilterComposer
+    extends Composer<_$LoopDatabase, $RitualRoutinesTable> {
+  $$RitualRoutinesTableFilterComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
@@ -5704,8 +7781,18 @@ class $$RitualsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<String> get title => $composableBuilder(
-    column: $table.title,
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get time => $composableBuilder(
+    column: $table.time,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get tone => $composableBuilder(
+    column: $table.tone,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -5714,18 +7801,8 @@ class $$RitualsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<String> get cadence => $composableBuilder(
-    column: $table.cadence,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<DateTime> get reminderTime => $composableBuilder(
-    column: $table.reminderTime,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<int> get position => $composableBuilder(
-    column: $table.position,
+  ColumnFilters<String> get blurb => $composableBuilder(
+    column: $table.blurb,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -5733,11 +7810,16 @@ class $$RitualsTableFilterComposer
     column: $table.streak,
     builder: (column) => ColumnFilters(column),
   );
+
+  ColumnFilters<int> get position => $composableBuilder(
+    column: $table.position,
+    builder: (column) => ColumnFilters(column),
+  );
 }
 
-class $$RitualsTableOrderingComposer
-    extends Composer<_$LoopDatabase, $RitualsTable> {
-  $$RitualsTableOrderingComposer({
+class $$RitualRoutinesTableOrderingComposer
+    extends Composer<_$LoopDatabase, $RitualRoutinesTable> {
+  $$RitualRoutinesTableOrderingComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
@@ -5749,8 +7831,18 @@ class $$RitualsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<String> get title => $composableBuilder(
-    column: $table.title,
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get time => $composableBuilder(
+    column: $table.time,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get tone => $composableBuilder(
+    column: $table.tone,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -5759,18 +7851,8 @@ class $$RitualsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<String> get cadence => $composableBuilder(
-    column: $table.cadence,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<DateTime> get reminderTime => $composableBuilder(
-    column: $table.reminderTime,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<int> get position => $composableBuilder(
-    column: $table.position,
+  ColumnOrderings<String> get blurb => $composableBuilder(
+    column: $table.blurb,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -5778,11 +7860,16 @@ class $$RitualsTableOrderingComposer
     column: $table.streak,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<int> get position => $composableBuilder(
+    column: $table.position,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
-class $$RitualsTableAnnotationComposer
-    extends Composer<_$LoopDatabase, $RitualsTable> {
-  $$RitualsTableAnnotationComposer({
+class $$RitualRoutinesTableAnnotationComposer
+    extends Composer<_$LoopDatabase, $RitualRoutinesTable> {
+  $$RitualRoutinesTableAnnotationComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
@@ -5792,91 +7879,105 @@ class $$RitualsTableAnnotationComposer
   GeneratedColumn<String> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
 
-  GeneratedColumn<String> get title =>
-      $composableBuilder(column: $table.title, builder: (column) => column);
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<String> get time =>
+      $composableBuilder(column: $table.time, builder: (column) => column);
+
+  GeneratedColumn<String> get tone =>
+      $composableBuilder(column: $table.tone, builder: (column) => column);
 
   GeneratedColumn<String> get icon =>
       $composableBuilder(column: $table.icon, builder: (column) => column);
 
-  GeneratedColumn<String> get cadence =>
-      $composableBuilder(column: $table.cadence, builder: (column) => column);
-
-  GeneratedColumn<DateTime> get reminderTime => $composableBuilder(
-    column: $table.reminderTime,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<int> get position =>
-      $composableBuilder(column: $table.position, builder: (column) => column);
+  GeneratedColumn<String> get blurb =>
+      $composableBuilder(column: $table.blurb, builder: (column) => column);
 
   GeneratedColumn<int> get streak =>
       $composableBuilder(column: $table.streak, builder: (column) => column);
+
+  GeneratedColumn<int> get position =>
+      $composableBuilder(column: $table.position, builder: (column) => column);
 }
 
-class $$RitualsTableTableManager
+class $$RitualRoutinesTableTableManager
     extends
         RootTableManager<
           _$LoopDatabase,
-          $RitualsTable,
-          RitualRow,
-          $$RitualsTableFilterComposer,
-          $$RitualsTableOrderingComposer,
-          $$RitualsTableAnnotationComposer,
-          $$RitualsTableCreateCompanionBuilder,
-          $$RitualsTableUpdateCompanionBuilder,
-          (RitualRow, BaseReferences<_$LoopDatabase, $RitualsTable, RitualRow>),
-          RitualRow,
+          $RitualRoutinesTable,
+          RitualRoutineRow,
+          $$RitualRoutinesTableFilterComposer,
+          $$RitualRoutinesTableOrderingComposer,
+          $$RitualRoutinesTableAnnotationComposer,
+          $$RitualRoutinesTableCreateCompanionBuilder,
+          $$RitualRoutinesTableUpdateCompanionBuilder,
+          (
+            RitualRoutineRow,
+            BaseReferences<
+              _$LoopDatabase,
+              $RitualRoutinesTable,
+              RitualRoutineRow
+            >,
+          ),
+          RitualRoutineRow,
           PrefetchHooks Function()
         > {
-  $$RitualsTableTableManager(_$LoopDatabase db, $RitualsTable table)
-    : super(
+  $$RitualRoutinesTableTableManager(
+    _$LoopDatabase db,
+    $RitualRoutinesTable table,
+  ) : super(
         TableManagerState(
           db: db,
           table: table,
           createFilteringComposer: () =>
-              $$RitualsTableFilterComposer($db: db, $table: table),
+              $$RitualRoutinesTableFilterComposer($db: db, $table: table),
           createOrderingComposer: () =>
-              $$RitualsTableOrderingComposer($db: db, $table: table),
+              $$RitualRoutinesTableOrderingComposer($db: db, $table: table),
           createComputedFieldComposer: () =>
-              $$RitualsTableAnnotationComposer($db: db, $table: table),
+              $$RitualRoutinesTableAnnotationComposer($db: db, $table: table),
           updateCompanionCallback:
               ({
                 Value<String> id = const Value.absent(),
-                Value<String> title = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<String> time = const Value.absent(),
+                Value<String> tone = const Value.absent(),
                 Value<String> icon = const Value.absent(),
-                Value<String> cadence = const Value.absent(),
-                Value<DateTime?> reminderTime = const Value.absent(),
-                Value<int> position = const Value.absent(),
+                Value<String> blurb = const Value.absent(),
                 Value<int> streak = const Value.absent(),
+                Value<int> position = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
-              }) => RitualsCompanion(
+              }) => RitualRoutinesCompanion(
                 id: id,
-                title: title,
+                name: name,
+                time: time,
+                tone: tone,
                 icon: icon,
-                cadence: cadence,
-                reminderTime: reminderTime,
-                position: position,
+                blurb: blurb,
                 streak: streak,
+                position: position,
                 rowid: rowid,
               ),
           createCompanionCallback:
               ({
                 required String id,
-                required String title,
+                required String name,
+                Value<String> time = const Value.absent(),
+                required String tone,
                 required String icon,
-                Value<String> cadence = const Value.absent(),
-                Value<DateTime?> reminderTime = const Value.absent(),
-                Value<int> position = const Value.absent(),
+                Value<String> blurb = const Value.absent(),
                 Value<int> streak = const Value.absent(),
+                Value<int> position = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
-              }) => RitualsCompanion.insert(
+              }) => RitualRoutinesCompanion.insert(
                 id: id,
-                title: title,
+                name: name,
+                time: time,
+                tone: tone,
                 icon: icon,
-                cadence: cadence,
-                reminderTime: reminderTime,
-                position: position,
+                blurb: blurb,
                 streak: streak,
+                position: position,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -5887,18 +7988,1049 @@ class $$RitualsTableTableManager
       );
 }
 
-typedef $$RitualsTableProcessedTableManager =
+typedef $$RitualRoutinesTableProcessedTableManager =
     ProcessedTableManager<
       _$LoopDatabase,
-      $RitualsTable,
-      RitualRow,
-      $$RitualsTableFilterComposer,
-      $$RitualsTableOrderingComposer,
-      $$RitualsTableAnnotationComposer,
-      $$RitualsTableCreateCompanionBuilder,
-      $$RitualsTableUpdateCompanionBuilder,
-      (RitualRow, BaseReferences<_$LoopDatabase, $RitualsTable, RitualRow>),
-      RitualRow,
+      $RitualRoutinesTable,
+      RitualRoutineRow,
+      $$RitualRoutinesTableFilterComposer,
+      $$RitualRoutinesTableOrderingComposer,
+      $$RitualRoutinesTableAnnotationComposer,
+      $$RitualRoutinesTableCreateCompanionBuilder,
+      $$RitualRoutinesTableUpdateCompanionBuilder,
+      (
+        RitualRoutineRow,
+        BaseReferences<_$LoopDatabase, $RitualRoutinesTable, RitualRoutineRow>,
+      ),
+      RitualRoutineRow,
+      PrefetchHooks Function()
+    >;
+typedef $$RitualStepsTableCreateCompanionBuilder =
+    RitualStepsCompanion Function({
+      required String id,
+      required String routineId,
+      required String title,
+      Value<String> note,
+      required String icon,
+      required int position,
+      Value<int> rowid,
+    });
+typedef $$RitualStepsTableUpdateCompanionBuilder =
+    RitualStepsCompanion Function({
+      Value<String> id,
+      Value<String> routineId,
+      Value<String> title,
+      Value<String> note,
+      Value<String> icon,
+      Value<int> position,
+      Value<int> rowid,
+    });
+
+class $$RitualStepsTableFilterComposer
+    extends Composer<_$LoopDatabase, $RitualStepsTable> {
+  $$RitualStepsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get routineId => $composableBuilder(
+    column: $table.routineId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get note => $composableBuilder(
+    column: $table.note,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get icon => $composableBuilder(
+    column: $table.icon,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get position => $composableBuilder(
+    column: $table.position,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$RitualStepsTableOrderingComposer
+    extends Composer<_$LoopDatabase, $RitualStepsTable> {
+  $$RitualStepsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get routineId => $composableBuilder(
+    column: $table.routineId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get note => $composableBuilder(
+    column: $table.note,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get icon => $composableBuilder(
+    column: $table.icon,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get position => $composableBuilder(
+    column: $table.position,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$RitualStepsTableAnnotationComposer
+    extends Composer<_$LoopDatabase, $RitualStepsTable> {
+  $$RitualStepsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get routineId =>
+      $composableBuilder(column: $table.routineId, builder: (column) => column);
+
+  GeneratedColumn<String> get title =>
+      $composableBuilder(column: $table.title, builder: (column) => column);
+
+  GeneratedColumn<String> get note =>
+      $composableBuilder(column: $table.note, builder: (column) => column);
+
+  GeneratedColumn<String> get icon =>
+      $composableBuilder(column: $table.icon, builder: (column) => column);
+
+  GeneratedColumn<int> get position =>
+      $composableBuilder(column: $table.position, builder: (column) => column);
+}
+
+class $$RitualStepsTableTableManager
+    extends
+        RootTableManager<
+          _$LoopDatabase,
+          $RitualStepsTable,
+          RitualStepRow,
+          $$RitualStepsTableFilterComposer,
+          $$RitualStepsTableOrderingComposer,
+          $$RitualStepsTableAnnotationComposer,
+          $$RitualStepsTableCreateCompanionBuilder,
+          $$RitualStepsTableUpdateCompanionBuilder,
+          (
+            RitualStepRow,
+            BaseReferences<_$LoopDatabase, $RitualStepsTable, RitualStepRow>,
+          ),
+          RitualStepRow,
+          PrefetchHooks Function()
+        > {
+  $$RitualStepsTableTableManager(_$LoopDatabase db, $RitualStepsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$RitualStepsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$RitualStepsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$RitualStepsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> routineId = const Value.absent(),
+                Value<String> title = const Value.absent(),
+                Value<String> note = const Value.absent(),
+                Value<String> icon = const Value.absent(),
+                Value<int> position = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => RitualStepsCompanion(
+                id: id,
+                routineId: routineId,
+                title: title,
+                note: note,
+                icon: icon,
+                position: position,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String routineId,
+                required String title,
+                Value<String> note = const Value.absent(),
+                required String icon,
+                required int position,
+                Value<int> rowid = const Value.absent(),
+              }) => RitualStepsCompanion.insert(
+                id: id,
+                routineId: routineId,
+                title: title,
+                note: note,
+                icon: icon,
+                position: position,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$RitualStepsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$LoopDatabase,
+      $RitualStepsTable,
+      RitualStepRow,
+      $$RitualStepsTableFilterComposer,
+      $$RitualStepsTableOrderingComposer,
+      $$RitualStepsTableAnnotationComposer,
+      $$RitualStepsTableCreateCompanionBuilder,
+      $$RitualStepsTableUpdateCompanionBuilder,
+      (
+        RitualStepRow,
+        BaseReferences<_$LoopDatabase, $RitualStepsTable, RitualStepRow>,
+      ),
+      RitualStepRow,
+      PrefetchHooks Function()
+    >;
+typedef $$BillsTableCreateCompanionBuilder =
+    BillsCompanion Function({
+      required String id,
+      required String name,
+      required String payee,
+      required String category,
+      required double amount,
+      required DateTime dueDate,
+      Value<bool> autoPay,
+      required String icon,
+      required String color,
+      Value<int> rowid,
+    });
+typedef $$BillsTableUpdateCompanionBuilder =
+    BillsCompanion Function({
+      Value<String> id,
+      Value<String> name,
+      Value<String> payee,
+      Value<String> category,
+      Value<double> amount,
+      Value<DateTime> dueDate,
+      Value<bool> autoPay,
+      Value<String> icon,
+      Value<String> color,
+      Value<int> rowid,
+    });
+
+class $$BillsTableFilterComposer extends Composer<_$LoopDatabase, $BillsTable> {
+  $$BillsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get payee => $composableBuilder(
+    column: $table.payee,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get category => $composableBuilder(
+    column: $table.category,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get amount => $composableBuilder(
+    column: $table.amount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get dueDate => $composableBuilder(
+    column: $table.dueDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get autoPay => $composableBuilder(
+    column: $table.autoPay,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get icon => $composableBuilder(
+    column: $table.icon,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get color => $composableBuilder(
+    column: $table.color,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$BillsTableOrderingComposer
+    extends Composer<_$LoopDatabase, $BillsTable> {
+  $$BillsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get payee => $composableBuilder(
+    column: $table.payee,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get category => $composableBuilder(
+    column: $table.category,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get amount => $composableBuilder(
+    column: $table.amount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get dueDate => $composableBuilder(
+    column: $table.dueDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get autoPay => $composableBuilder(
+    column: $table.autoPay,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get icon => $composableBuilder(
+    column: $table.icon,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get color => $composableBuilder(
+    column: $table.color,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$BillsTableAnnotationComposer
+    extends Composer<_$LoopDatabase, $BillsTable> {
+  $$BillsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<String> get payee =>
+      $composableBuilder(column: $table.payee, builder: (column) => column);
+
+  GeneratedColumn<String> get category =>
+      $composableBuilder(column: $table.category, builder: (column) => column);
+
+  GeneratedColumn<double> get amount =>
+      $composableBuilder(column: $table.amount, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get dueDate =>
+      $composableBuilder(column: $table.dueDate, builder: (column) => column);
+
+  GeneratedColumn<bool> get autoPay =>
+      $composableBuilder(column: $table.autoPay, builder: (column) => column);
+
+  GeneratedColumn<String> get icon =>
+      $composableBuilder(column: $table.icon, builder: (column) => column);
+
+  GeneratedColumn<String> get color =>
+      $composableBuilder(column: $table.color, builder: (column) => column);
+}
+
+class $$BillsTableTableManager
+    extends
+        RootTableManager<
+          _$LoopDatabase,
+          $BillsTable,
+          BillRow,
+          $$BillsTableFilterComposer,
+          $$BillsTableOrderingComposer,
+          $$BillsTableAnnotationComposer,
+          $$BillsTableCreateCompanionBuilder,
+          $$BillsTableUpdateCompanionBuilder,
+          (BillRow, BaseReferences<_$LoopDatabase, $BillsTable, BillRow>),
+          BillRow,
+          PrefetchHooks Function()
+        > {
+  $$BillsTableTableManager(_$LoopDatabase db, $BillsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$BillsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$BillsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$BillsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<String> payee = const Value.absent(),
+                Value<String> category = const Value.absent(),
+                Value<double> amount = const Value.absent(),
+                Value<DateTime> dueDate = const Value.absent(),
+                Value<bool> autoPay = const Value.absent(),
+                Value<String> icon = const Value.absent(),
+                Value<String> color = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => BillsCompanion(
+                id: id,
+                name: name,
+                payee: payee,
+                category: category,
+                amount: amount,
+                dueDate: dueDate,
+                autoPay: autoPay,
+                icon: icon,
+                color: color,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String name,
+                required String payee,
+                required String category,
+                required double amount,
+                required DateTime dueDate,
+                Value<bool> autoPay = const Value.absent(),
+                required String icon,
+                required String color,
+                Value<int> rowid = const Value.absent(),
+              }) => BillsCompanion.insert(
+                id: id,
+                name: name,
+                payee: payee,
+                category: category,
+                amount: amount,
+                dueDate: dueDate,
+                autoPay: autoPay,
+                icon: icon,
+                color: color,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$BillsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$LoopDatabase,
+      $BillsTable,
+      BillRow,
+      $$BillsTableFilterComposer,
+      $$BillsTableOrderingComposer,
+      $$BillsTableAnnotationComposer,
+      $$BillsTableCreateCompanionBuilder,
+      $$BillsTableUpdateCompanionBuilder,
+      (BillRow, BaseReferences<_$LoopDatabase, $BillsTable, BillRow>),
+      BillRow,
+      PrefetchHooks Function()
+    >;
+typedef $$SubscriptionsTableCreateCompanionBuilder =
+    SubscriptionsCompanion Function({
+      required String id,
+      required String name,
+      required String category,
+      required double amount,
+      required DateTime nextChargeDate,
+      required String icon,
+      required String color,
+      Value<bool> detectedFromEmail,
+      Value<int> rowid,
+    });
+typedef $$SubscriptionsTableUpdateCompanionBuilder =
+    SubscriptionsCompanion Function({
+      Value<String> id,
+      Value<String> name,
+      Value<String> category,
+      Value<double> amount,
+      Value<DateTime> nextChargeDate,
+      Value<String> icon,
+      Value<String> color,
+      Value<bool> detectedFromEmail,
+      Value<int> rowid,
+    });
+
+class $$SubscriptionsTableFilterComposer
+    extends Composer<_$LoopDatabase, $SubscriptionsTable> {
+  $$SubscriptionsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get category => $composableBuilder(
+    column: $table.category,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get amount => $composableBuilder(
+    column: $table.amount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get nextChargeDate => $composableBuilder(
+    column: $table.nextChargeDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get icon => $composableBuilder(
+    column: $table.icon,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get color => $composableBuilder(
+    column: $table.color,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get detectedFromEmail => $composableBuilder(
+    column: $table.detectedFromEmail,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$SubscriptionsTableOrderingComposer
+    extends Composer<_$LoopDatabase, $SubscriptionsTable> {
+  $$SubscriptionsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get category => $composableBuilder(
+    column: $table.category,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get amount => $composableBuilder(
+    column: $table.amount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get nextChargeDate => $composableBuilder(
+    column: $table.nextChargeDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get icon => $composableBuilder(
+    column: $table.icon,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get color => $composableBuilder(
+    column: $table.color,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get detectedFromEmail => $composableBuilder(
+    column: $table.detectedFromEmail,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$SubscriptionsTableAnnotationComposer
+    extends Composer<_$LoopDatabase, $SubscriptionsTable> {
+  $$SubscriptionsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<String> get category =>
+      $composableBuilder(column: $table.category, builder: (column) => column);
+
+  GeneratedColumn<double> get amount =>
+      $composableBuilder(column: $table.amount, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get nextChargeDate => $composableBuilder(
+    column: $table.nextChargeDate,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get icon =>
+      $composableBuilder(column: $table.icon, builder: (column) => column);
+
+  GeneratedColumn<String> get color =>
+      $composableBuilder(column: $table.color, builder: (column) => column);
+
+  GeneratedColumn<bool> get detectedFromEmail => $composableBuilder(
+    column: $table.detectedFromEmail,
+    builder: (column) => column,
+  );
+}
+
+class $$SubscriptionsTableTableManager
+    extends
+        RootTableManager<
+          _$LoopDatabase,
+          $SubscriptionsTable,
+          SubscriptionRow,
+          $$SubscriptionsTableFilterComposer,
+          $$SubscriptionsTableOrderingComposer,
+          $$SubscriptionsTableAnnotationComposer,
+          $$SubscriptionsTableCreateCompanionBuilder,
+          $$SubscriptionsTableUpdateCompanionBuilder,
+          (
+            SubscriptionRow,
+            BaseReferences<
+              _$LoopDatabase,
+              $SubscriptionsTable,
+              SubscriptionRow
+            >,
+          ),
+          SubscriptionRow,
+          PrefetchHooks Function()
+        > {
+  $$SubscriptionsTableTableManager(_$LoopDatabase db, $SubscriptionsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$SubscriptionsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$SubscriptionsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$SubscriptionsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<String> category = const Value.absent(),
+                Value<double> amount = const Value.absent(),
+                Value<DateTime> nextChargeDate = const Value.absent(),
+                Value<String> icon = const Value.absent(),
+                Value<String> color = const Value.absent(),
+                Value<bool> detectedFromEmail = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => SubscriptionsCompanion(
+                id: id,
+                name: name,
+                category: category,
+                amount: amount,
+                nextChargeDate: nextChargeDate,
+                icon: icon,
+                color: color,
+                detectedFromEmail: detectedFromEmail,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String name,
+                required String category,
+                required double amount,
+                required DateTime nextChargeDate,
+                required String icon,
+                required String color,
+                Value<bool> detectedFromEmail = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => SubscriptionsCompanion.insert(
+                id: id,
+                name: name,
+                category: category,
+                amount: amount,
+                nextChargeDate: nextChargeDate,
+                icon: icon,
+                color: color,
+                detectedFromEmail: detectedFromEmail,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$SubscriptionsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$LoopDatabase,
+      $SubscriptionsTable,
+      SubscriptionRow,
+      $$SubscriptionsTableFilterComposer,
+      $$SubscriptionsTableOrderingComposer,
+      $$SubscriptionsTableAnnotationComposer,
+      $$SubscriptionsTableCreateCompanionBuilder,
+      $$SubscriptionsTableUpdateCompanionBuilder,
+      (
+        SubscriptionRow,
+        BaseReferences<_$LoopDatabase, $SubscriptionsTable, SubscriptionRow>,
+      ),
+      SubscriptionRow,
+      PrefetchHooks Function()
+    >;
+typedef $$PalNotesTableCreateCompanionBuilder =
+    PalNotesCompanion Function({
+      required String id,
+      required DateTime createdAt,
+      required String kind,
+      required String category,
+      required String icon,
+      required String title,
+      required String body,
+      Value<String?> actionLabel,
+      Value<bool> unread,
+      Value<int> rowid,
+    });
+typedef $$PalNotesTableUpdateCompanionBuilder =
+    PalNotesCompanion Function({
+      Value<String> id,
+      Value<DateTime> createdAt,
+      Value<String> kind,
+      Value<String> category,
+      Value<String> icon,
+      Value<String> title,
+      Value<String> body,
+      Value<String?> actionLabel,
+      Value<bool> unread,
+      Value<int> rowid,
+    });
+
+class $$PalNotesTableFilterComposer
+    extends Composer<_$LoopDatabase, $PalNotesTable> {
+  $$PalNotesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get kind => $composableBuilder(
+    column: $table.kind,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get category => $composableBuilder(
+    column: $table.category,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get icon => $composableBuilder(
+    column: $table.icon,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get body => $composableBuilder(
+    column: $table.body,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get actionLabel => $composableBuilder(
+    column: $table.actionLabel,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get unread => $composableBuilder(
+    column: $table.unread,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$PalNotesTableOrderingComposer
+    extends Composer<_$LoopDatabase, $PalNotesTable> {
+  $$PalNotesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get kind => $composableBuilder(
+    column: $table.kind,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get category => $composableBuilder(
+    column: $table.category,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get icon => $composableBuilder(
+    column: $table.icon,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get body => $composableBuilder(
+    column: $table.body,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get actionLabel => $composableBuilder(
+    column: $table.actionLabel,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get unread => $composableBuilder(
+    column: $table.unread,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$PalNotesTableAnnotationComposer
+    extends Composer<_$LoopDatabase, $PalNotesTable> {
+  $$PalNotesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<String> get kind =>
+      $composableBuilder(column: $table.kind, builder: (column) => column);
+
+  GeneratedColumn<String> get category =>
+      $composableBuilder(column: $table.category, builder: (column) => column);
+
+  GeneratedColumn<String> get icon =>
+      $composableBuilder(column: $table.icon, builder: (column) => column);
+
+  GeneratedColumn<String> get title =>
+      $composableBuilder(column: $table.title, builder: (column) => column);
+
+  GeneratedColumn<String> get body =>
+      $composableBuilder(column: $table.body, builder: (column) => column);
+
+  GeneratedColumn<String> get actionLabel => $composableBuilder(
+    column: $table.actionLabel,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get unread =>
+      $composableBuilder(column: $table.unread, builder: (column) => column);
+}
+
+class $$PalNotesTableTableManager
+    extends
+        RootTableManager<
+          _$LoopDatabase,
+          $PalNotesTable,
+          PalNoteRow,
+          $$PalNotesTableFilterComposer,
+          $$PalNotesTableOrderingComposer,
+          $$PalNotesTableAnnotationComposer,
+          $$PalNotesTableCreateCompanionBuilder,
+          $$PalNotesTableUpdateCompanionBuilder,
+          (
+            PalNoteRow,
+            BaseReferences<_$LoopDatabase, $PalNotesTable, PalNoteRow>,
+          ),
+          PalNoteRow,
+          PrefetchHooks Function()
+        > {
+  $$PalNotesTableTableManager(_$LoopDatabase db, $PalNotesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$PalNotesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$PalNotesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$PalNotesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<String> kind = const Value.absent(),
+                Value<String> category = const Value.absent(),
+                Value<String> icon = const Value.absent(),
+                Value<String> title = const Value.absent(),
+                Value<String> body = const Value.absent(),
+                Value<String?> actionLabel = const Value.absent(),
+                Value<bool> unread = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => PalNotesCompanion(
+                id: id,
+                createdAt: createdAt,
+                kind: kind,
+                category: category,
+                icon: icon,
+                title: title,
+                body: body,
+                actionLabel: actionLabel,
+                unread: unread,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required DateTime createdAt,
+                required String kind,
+                required String category,
+                required String icon,
+                required String title,
+                required String body,
+                Value<String?> actionLabel = const Value.absent(),
+                Value<bool> unread = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => PalNotesCompanion.insert(
+                id: id,
+                createdAt: createdAt,
+                kind: kind,
+                category: category,
+                icon: icon,
+                title: title,
+                body: body,
+                actionLabel: actionLabel,
+                unread: unread,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$PalNotesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$LoopDatabase,
+      $PalNotesTable,
+      PalNoteRow,
+      $$PalNotesTableFilterComposer,
+      $$PalNotesTableOrderingComposer,
+      $$PalNotesTableAnnotationComposer,
+      $$PalNotesTableCreateCompanionBuilder,
+      $$PalNotesTableUpdateCompanionBuilder,
+      (PalNoteRow, BaseReferences<_$LoopDatabase, $PalNotesTable, PalNoteRow>),
+      PalNoteRow,
       PrefetchHooks Function()
     >;
 typedef $$GoalsTableTableCreateCompanionBuilder =
@@ -6213,8 +9345,16 @@ class $LoopDatabaseManager {
       $$WorkoutsTableTableManager(_db, _db.workouts);
   $$SetLogsTableTableManager get setLogs =>
       $$SetLogsTableTableManager(_db, _db.setLogs);
-  $$RitualsTableTableManager get rituals =>
-      $$RitualsTableTableManager(_db, _db.rituals);
+  $$RitualRoutinesTableTableManager get ritualRoutines =>
+      $$RitualRoutinesTableTableManager(_db, _db.ritualRoutines);
+  $$RitualStepsTableTableManager get ritualSteps =>
+      $$RitualStepsTableTableManager(_db, _db.ritualSteps);
+  $$BillsTableTableManager get bills =>
+      $$BillsTableTableManager(_db, _db.bills);
+  $$SubscriptionsTableTableManager get subscriptions =>
+      $$SubscriptionsTableTableManager(_db, _db.subscriptions);
+  $$PalNotesTableTableManager get palNotes =>
+      $$PalNotesTableTableManager(_db, _db.palNotes);
   $$GoalsTableTableTableManager get goalsTable =>
       $$GoalsTableTableTableManager(_db, _db.goalsTable);
   $$SeedMarkersTableTableManager get seedMarkers =>

@@ -5,47 +5,92 @@ import '../../models/models.dart';
 import '../db/database.dart';
 import '../db/mappers.dart';
 
-/// Reads/writes [Ritual]s, ordered by their explicit display [order].
+/// Reads/writes [RitualRoutine]s and their ordered [RitualStep]s.
+///
+/// Routines are ordered by their display [RitualRoutine.order]; steps by their
+/// position within a routine. Step *completion* is NOT stored here — it lives
+/// as ritual-type `Entry` rows (see `RitualsController`), the single source of
+/// truth shared with the Today rings.
 class RitualRepository {
   RitualRepository(this._db, {Uuid? uuid}) : _uuid = uuid ?? const Uuid();
 
   final LoopDatabase _db;
   final Uuid _uuid;
 
-  /// All rituals sorted by their display order.
-  Stream<List<Ritual>> watchRituals() {
-    final q = _db.select(_db.rituals)
+  /// All routines (with steps), display-ordered. Re-emits on any change to
+  /// either the routines or steps tables.
+  Stream<List<RitualRoutine>> watchRoutines() {
+    final routinesQ = _db.select(_db.ritualRoutines)
       ..orderBy([(t) => OrderingTerm.asc(t.position)]);
-    return q.watch().map((rows) => rows.map((r) => r.toModel()).toList());
-  }
-
-  Future<List<Ritual>> getAll() async {
-    final q = _db.select(_db.rituals)
+    final stepsQ = _db.select(_db.ritualSteps)
       ..orderBy([(t) => OrderingTerm.asc(t.position)]);
-    final rows = await q.get();
-    return rows.map((r) => r.toModel()).toList();
+    return routinesQ.watch().asyncMap((routineRows) async {
+      final stepRows = await stepsQ.get();
+      return _assemble(routineRows, stepRows);
+    });
   }
 
-  /// Inserts [ritual]; assigns a UUID if its id is empty. Returns the id.
-  Future<String> insert(Ritual ritual) async {
-    final id = ritual.id.isEmpty ? _uuid.v4() : ritual.id;
-    await _db.into(_db.rituals).insert(ritual.copyWith(id: id).toCompanion());
-    return id;
+  /// One-shot read of all routines (with steps), display-ordered.
+  Future<List<RitualRoutine>> getAll() async {
+    final routinesQ = _db.select(_db.ritualRoutines)
+      ..orderBy([(t) => OrderingTerm.asc(t.position)]);
+    final stepsQ = _db.select(_db.ritualSteps)
+      ..orderBy([(t) => OrderingTerm.asc(t.position)]);
+    final routineRows = await routinesQ.get();
+    final stepRows = await stepsQ.get();
+    return _assemble(routineRows, stepRows);
   }
 
-  /// Upserts [ritual] (insert or replace by id).
-  Future<void> upsert(Ritual ritual) =>
-      _db.into(_db.rituals).insertOnConflictUpdate(ritual.toCompanion());
+  List<RitualRoutine> _assemble(
+    List<RitualRoutineRow> routineRows,
+    List<RitualStepRow> stepRows,
+  ) {
+    final byRoutine = <String, List<RitualStep>>{};
+    for (final s in stepRows) {
+      (byRoutine[s.routineId] ??= <RitualStep>[]).add(s.toModel());
+    }
+    return routineRows
+        .map((r) => ritualRoutineFromRow(r, byRoutine[r.id] ?? const []))
+        .toList();
+  }
 
-  Future<void> deleteById(String id) =>
-      (_db.delete(_db.rituals)..where((t) => t.id.equals(id))).go();
+  /// Upserts [routine] and replaces its full ordered step set in one
+  /// transaction. Assigns a UUID to the routine and to any step with an empty
+  /// id; step positions follow list order. Returns the routine id.
+  Future<String> upsertRoutine(RitualRoutine routine) async {
+    final routineId = routine.id.isEmpty ? _uuid.v4() : routine.id;
+    await _db.transaction(() async {
+      await _db
+          .into(_db.ritualRoutines)
+          .insertOnConflictUpdate(routine.copyWith(id: routineId).toCompanion());
+      // Replace steps wholesale so reorders/removals are reflected exactly.
+      await (_db.delete(_db.ritualSteps)
+            ..where((t) => t.routineId.equals(routineId)))
+          .go();
+      for (var i = 0; i < routine.steps.length; i++) {
+        final step = routine.steps[i];
+        final stepId = step.id.isEmpty ? _uuid.v4() : step.id;
+        await _db
+            .into(_db.ritualSteps)
+            .insert(step.copyWith(id: stepId).toCompanion(routineId, i));
+      }
+    });
+    return routineId;
+  }
 
-  /// Persists the new display order: writes each ritual (with its current
-  /// [Ritual.order]) in one transaction. Callers pass the list already in the
-  /// desired order with positions assigned (see `reindex`).
-  Future<void> reorder(List<Ritual> ordered) => _db.transaction(() async {
+  /// Deletes a routine (its steps cascade via FK).
+  Future<void> deleteRoutine(String id) =>
+      (_db.delete(_db.ritualRoutines)..where((t) => t.id.equals(id))).go();
+
+  /// Persists a new routine display order: writes each routine's row with its
+  /// current [RitualRoutine.order] (steps untouched). Callers pass the list in
+  /// the desired order with positions assigned.
+  Future<void> reorderRoutines(List<RitualRoutine> ordered) =>
+      _db.transaction(() async {
         for (final r in ordered) {
-          await upsert(r);
+          await _db
+              .into(_db.ritualRoutines)
+              .insertOnConflictUpdate(r.toCompanion());
         }
       });
 }

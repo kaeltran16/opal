@@ -103,6 +103,71 @@ class MockPalService implements PalService {
   }
 
   @override
+  Future<GeneratedRoutineDraft> generateRoutine(
+    String goal,
+    List<Exercise> available,
+  ) async {
+    await Future<void>.delayed(latency);
+    final lower = goal.toLowerCase();
+
+    // Pick a target group + tag from the goal text; fall back to a full-body mix.
+    final (group, tag) = switch (lower) {
+      _ when lower.contains('push') => ('Push', RoutineTag.upper),
+      _ when lower.contains('pull') || lower.contains('back') =>
+        ('Pull', RoutineTag.upper),
+      _ when lower.contains('leg') ||
+          lower.contains('glute') ||
+          lower.contains('ham') =>
+        ('Legs', RoutineTag.lower),
+      _ when lower.contains('cardio') ||
+          lower.contains('hiit') ||
+          lower.contains('run') =>
+        ('Cardio', RoutineTag.cardio),
+      _ => ('', RoutineTag.full),
+    };
+
+    final pool = group.isEmpty
+        ? available.where((e) => e.group != 'Cardio').toList()
+        : available.where((e) => e.group == group).toList();
+    final picks = (pool.isEmpty ? available : pool).take(4).toList();
+
+    final isCardio = tag == RoutineTag.cardio;
+    final exercises = picks.map((e) {
+      if (isCardio) {
+        return GeneratedExerciseDraft(
+          exerciseId: e.id,
+          sets: const [GeneratedSetDraft(durationMinutes: 20)],
+        );
+      }
+      final weight = e.pr?.weightKg == null ? null : (e.pr!.weightKg * 0.8);
+      return GeneratedExerciseDraft(
+        exerciseId: e.id,
+        sets: List.generate(
+          3,
+          (_) => GeneratedSetDraft(reps: 8, weightKg: weight),
+        ),
+      );
+    }).toList();
+
+    final name = switch (tag) {
+      RoutineTag.upper when group == 'Push' => 'Push Builder',
+      RoutineTag.upper => 'Pull Builder',
+      RoutineTag.lower => 'Leg Builder',
+      RoutineTag.cardio => 'Cardio Burst',
+      _ => 'Full-Body Flow',
+    };
+
+    return GeneratedRoutineDraft(
+      name: name,
+      tag: tag,
+      estimatedMinutes: isCardio ? 25 : 45,
+      rationale: 'Built around your goal — compound work first, '
+          'then accessories, ordered to keep fresh muscles fresh.',
+      exercises: exercises,
+    );
+  }
+
+  @override
   Future<String> postWorkoutNote(Workout workout) async {
     await Future<void>.delayed(latency);
     final prs = workout.prCount;

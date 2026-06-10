@@ -245,6 +245,142 @@ final class RitualRepositoryProvider
 
 String _$ritualRepositoryHash() => r'685506845c2fa6d11959055d9a75617fc88c0c7e';
 
+@ProviderFor(billRepository)
+const billRepositoryProvider = BillRepositoryProvider._();
+
+final class BillRepositoryProvider
+    extends $FunctionalProvider<BillRepository, BillRepository, BillRepository>
+    with $Provider<BillRepository> {
+  const BillRepositoryProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'billRepositoryProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$billRepositoryHash();
+
+  @$internal
+  @override
+  $ProviderElement<BillRepository> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  BillRepository create(Ref ref) {
+    return billRepository(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(BillRepository value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<BillRepository>(value),
+    );
+  }
+}
+
+String _$billRepositoryHash() => r'76482b62c8c18112520ba3fc6f0b45f443c4796b';
+
+@ProviderFor(subscriptionRepository)
+const subscriptionRepositoryProvider = SubscriptionRepositoryProvider._();
+
+final class SubscriptionRepositoryProvider
+    extends
+        $FunctionalProvider<
+          SubscriptionRepository,
+          SubscriptionRepository,
+          SubscriptionRepository
+        >
+    with $Provider<SubscriptionRepository> {
+  const SubscriptionRepositoryProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'subscriptionRepositoryProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$subscriptionRepositoryHash();
+
+  @$internal
+  @override
+  $ProviderElement<SubscriptionRepository> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  SubscriptionRepository create(Ref ref) {
+    return subscriptionRepository(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(SubscriptionRepository value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<SubscriptionRepository>(value),
+    );
+  }
+}
+
+String _$subscriptionRepositoryHash() =>
+    r'bbe947ee0cc2deab95249e02992f2c2d9a7531bb';
+
+@ProviderFor(palNoteRepository)
+const palNoteRepositoryProvider = PalNoteRepositoryProvider._();
+
+final class PalNoteRepositoryProvider
+    extends
+        $FunctionalProvider<
+          PalNoteRepository,
+          PalNoteRepository,
+          PalNoteRepository
+        >
+    with $Provider<PalNoteRepository> {
+  const PalNoteRepositoryProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'palNoteRepositoryProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$palNoteRepositoryHash();
+
+  @$internal
+  @override
+  $ProviderElement<PalNoteRepository> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  PalNoteRepository create(Ref ref) {
+    return palNoteRepository(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(PalNoteRepository value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<PalNoteRepository>(value),
+    );
+  }
+}
+
+String _$palNoteRepositoryHash() => r'f7c9c696e41eab9b1c9c6f09ade16e3cb7e18478';
+
 @ProviderFor(routineRepository)
 const routineRepositoryProvider = RoutineRepositoryProvider._();
 
@@ -524,8 +660,16 @@ final class HealthServiceProvider
 
 String _$healthServiceHash() => r'5d477c9118828ba73fb80cdcb9c3cebe41e45291';
 
+/// Real IMAP-backed sync (U24) when `PAL_BASE_URL` is set; [MockEmailSyncService]
+/// otherwise (tests, backend-less preview). Shares the proxy's http client +
+/// device-token store with [palService].
+
 @ProviderFor(emailSyncService)
 const emailSyncServiceProvider = EmailSyncServiceProvider._();
+
+/// Real IMAP-backed sync (U24) when `PAL_BASE_URL` is set; [MockEmailSyncService]
+/// otherwise (tests, backend-less preview). Shares the proxy's http client +
+/// device-token store with [palService].
 
 final class EmailSyncServiceProvider
     extends
@@ -535,6 +679,9 @@ final class EmailSyncServiceProvider
           EmailSyncService
         >
     with $Provider<EmailSyncService> {
+  /// Real IMAP-backed sync (U24) when `PAL_BASE_URL` is set; [MockEmailSyncService]
+  /// otherwise (tests, backend-less preview). Shares the proxy's http client +
+  /// device-token store with [palService].
   const EmailSyncServiceProvider._()
     : super(
         from: null,
@@ -568,7 +715,7 @@ final class EmailSyncServiceProvider
   }
 }
 
-String _$emailSyncServiceHash() => r'90e89fddd77b8da898214bb688d01226990322e9';
+String _$emailSyncServiceHash() => r'e7031bbc411bd2af7fd24f4e49ac479cec7f82df';
 
 /// Real `flutter_local_notifications` on iOS (U27); no-op elsewhere. Requires
 /// the timezone DB to be initialized in `main()` before any [schedule] call.

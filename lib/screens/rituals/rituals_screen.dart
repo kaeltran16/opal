@@ -4,21 +4,19 @@ import 'package:go_router/go_router.dart';
 
 import '../../controllers/rituals_controller.dart';
 import '../../models/models.dart';
-import '../../router.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_text.dart';
 import '../../widgets/app_icon.dart';
-import '../../widgets/controls.dart';
-import '../../widgets/inset_section.dart';
 import '../../widgets/nav_bar.dart';
+import '../../widgets/press_scale.dart';
 
-/// Screen 13 — Rituals landing.
+/// Screen 13 — Rituals landing, reframed as time-of-day routines.
 ///
-/// Large-title nav "Rituals" + streak subtitle, a "N / M today" progress card
-/// (rituals-purple), today's rituals as an inset-grouped list with a trailing
-/// [CheckButton] per row, and a "Manage rituals" outline button. Toggling a
-/// row's check writes/removes a ritual-type [Entry] (so the Today rituals ring
-/// updates) and fires a light haptic — all via `ritualsControllerProvider`.
+/// Large-title nav "Rituals" + "{done} of {total} steps today", an up-next
+/// gradient hero in the active routine's tone color, the "Your day" timeline
+/// spine (one node + card per routine, with tappable step rows + a tinted
+/// start button), and a dashed "New routine" footer. All math lives in
+/// `ritualsControllerProvider`; toggling a step writes/removes a ritual `Entry`.
 class RitualsScreen extends ConsumerWidget {
   const RitualsScreen({super.key});
 
@@ -45,236 +43,568 @@ class RitualsScreen extends ConsumerWidget {
   }
 }
 
-class _RitualsBody extends ConsumerWidget {
+class _RitualsBody extends StatelessWidget {
   const _RitualsBody({required this.state});
   final RitualsState state;
 
-  String get _subtitle {
-    final streak = state.bestStreak;
-    if (streak <= 0) return 'Build your daily streak';
-    return '$streak-day streak · keep it going';
-  }
-
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final c = context.colors;
-    final done = state.doneCount;
-    final total = state.totalCount;
-
+  Widget build(BuildContext context) {
     return ListView(
       padding: const EdgeInsets.only(bottom: 110),
       children: [
         LargeTitleNavBar(
           title: 'Rituals',
-          subtitle: _subtitle,
-          trailing: const NavIconButton(name: 'flame.fill', semanticLabel: 'Streak'),
-        ),
-
-        // "N / M today" progress card (rituals-purple).
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 4, 16, 18),
-          child: Container(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
-            decoration: BoxDecoration(
-                color: c.surface, borderRadius: BorderRadius.circular(18)),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Container(
-                      width: 30,
-                      height: 30,
-                      decoration: BoxDecoration(
-                          color: c.rituals,
-                          borderRadius: BorderRadius.circular(9)),
-                      alignment: Alignment.center,
-                      child: const AppIcon('sparkles',
-                          size: 15, color: Color(0xFFFFFFFF)),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('TODAY',
-                              style: AppFonts.sf(
-                                  size: 12,
-                                  weight: FontWeight.w700,
-                                  color: c.ink3,
-                                  letterSpacing: 0.3)),
-                          Text(
-                            total == 0
-                                ? 'No rituals yet'
-                                : (done == total
-                                    ? 'All done · nice'
-                                    : '${total - done} to close'),
-                            style: AppFonts.sf(
-                                size: 13,
-                                weight: FontWeight.w500,
-                                color: c.ink2,
-                                letterSpacing: -0.08),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Text.rich(
-                      TextSpan(
-                        children: [
-                          TextSpan(
-                            text: '$done',
-                            style: AppFonts.sf(
-                                size: 28,
-                                weight: FontWeight.w700,
-                                color: c.ink,
-                                letterSpacing: 0.36,
-                                tabular: true),
-                          ),
-                          TextSpan(
-                            text: ' / $total',
-                            style: AppFonts.sf(
-                                size: 17,
-                                weight: FontWeight.w600,
-                                color: c.ink3,
-                                letterSpacing: -0.43,
-                                tabular: true),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 14),
-                ProgressBar(value: state.progress, color: c.rituals, height: 6),
-              ],
-            ),
+          subtitle: '${state.doneSteps} of ${state.totalSteps} steps today',
+          trailing: NavIconButton(
+            name: 'plus',
+            semanticLabel: 'New routine',
+            onTap: () => context.go('/rituals/manage'),
           ),
         ),
-
-        // Today's rituals — inset-grouped list with trailing CheckButton.
-        if (total == 0)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
-            child: Center(
-              child: Text('No rituals yet. Add some to get started.',
-                  textAlign: TextAlign.center,
-                  style: AppFonts.sf(
-                      size: 15, color: c.ink3, letterSpacing: -0.24)),
-            ),
-          )
-        else
-          InsetSection(
-            header: "Today's rituals",
-            children: [
-              for (var i = 0; i < state.rituals.length; i++)
-                _RitualRow(
-                  ritual: state.rituals[i],
-                  done: state.isDone(state.rituals[i].id),
-                  last: i == state.rituals.length - 1,
-                ),
-            ],
-          ),
-
-        // "Manage rituals" outline button → stubbed builder route (U21b).
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
-          child: _OutlineButton(
-            label: 'Manage rituals',
-            icon: 'slider.horizontal.3',
-            onTap: () => context.pushNamed(AppRoute.manageRituals.name),
-          ),
-        ),
+        _UpNextHero(state: state),
+        _Timeline(state: state),
+        const _NewRoutineButton(),
       ],
     );
   }
 }
 
-/// A single ritual row: tinted icon + title/streak subtitle + trailing check.
-class _RitualRow extends ConsumerWidget {
-  const _RitualRow({
-    required this.ritual,
-    required this.done,
-    required this.last,
-  });
+// ─── Up-next hero ───────────────────────────────────────────────────────────
 
-  final Ritual ritual;
-  final bool done;
-  final bool last;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final c = context.colors;
-    final subtitle = ritual.streak > 0 ? '${ritual.streak}-day streak' : null;
-    void toggle() => ref.read(ritualsControllerProvider.notifier).toggle(ritual);
-    // Compose the shared ListRow (icon + title/subtitle + separator, no chevron)
-    // and overlay a trailing CheckButton in the value slot via a Stack.
-    return Stack(
-      alignment: Alignment.centerRight,
-      children: [
-        ListRow(
-          icon: ritual.icon,
-          iconBg: c.rituals,
-          title: ritual.title,
-          subtitle: subtitle,
-          chevron: false,
-          last: last,
-          onTap: toggle,
-        ),
-        Padding(
-          padding: const EdgeInsets.only(right: 16),
-          child: CheckButton(
-            checked: done,
-            typeColor: c.rituals,
-            onTap: toggle,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-/// iOS-style outline (tertiary) button used for "Manage rituals".
-class _OutlineButton extends StatelessWidget {
-  const _OutlineButton({
-    required this.label,
-    required this.onTap,
-    this.icon,
-  });
-
-  final String label;
-  final String? icon;
-  final VoidCallback onTap;
+class _UpNextHero extends StatelessWidget {
+  const _UpNextHero({required this.state});
+  final RitualsState state;
 
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Container(
-        height: 50,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: c.hair, width: 1),
-        ),
-        alignment: Alignment.center,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            if (icon != null) ...[
-              AppIcon(icon!, size: 16, color: c.accent),
-              const SizedBox(width: 8),
+    final routine = state.upNext;
+
+    if (routine == null) {
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 18),
+        child: Container(
+          padding: const EdgeInsets.all(22),
+          decoration: BoxDecoration(
+            color: c.surface,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [BoxShadow(color: c.hair, blurRadius: 0.5)],
+          ),
+          child: Column(
+            children: [
+              Container(
+                width: 52,
+                height: 52,
+                decoration: BoxDecoration(
+                    color: c.moveTint, shape: BoxShape.circle),
+                alignment: Alignment.center,
+                child: AppIcon('checkmark', size: 24, color: c.move),
+              ),
+              const SizedBox(height: 12),
+              Text('All routines done',
+                  style: AppFonts.sfr(
+                      size: 20, color: c.ink, letterSpacing: -0.4)),
+              const SizedBox(height: 4),
+              Text('Every step checked off. Rest easy.',
+                  textAlign: TextAlign.center,
+                  style:
+                      AppFonts.sf(size: 14, color: c.ink3, letterSpacing: -0.1)),
             ],
-            Text(label,
+          ),
+        ),
+      );
+    }
+
+    final tone = c.forType(routine.colorKey);
+    final left = state.stepsLeft(routine);
+    final inProgress = state.doneCount(routine.id) > 0;
+    final done = state.doneCount(routine.id);
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 18),
+      child: PressScale(
+        onTap: () => context.go('/rituals/player/${routine.id}'),
+        pressedScale: 0.985,
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                tone,
+                tone.withValues(alpha: 0.87),
+                tone.withValues(alpha: 0.69),
+              ],
+              stops: const [0.0, 0.55, 1.0],
+            ),
+            borderRadius: BorderRadius.circular(22),
+            boxShadow: [
+              BoxShadow(
+                color: tone.withValues(alpha: 0.25),
+                blurRadius: 34,
+                offset: const Offset(0, 14),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  AppIcon(routine.icon, size: 13, color: const Color(0xFFFFFFFF)),
+                  const SizedBox(width: 6),
+                  Text(
+                    (inProgress
+                            ? 'Pick up where you left off'
+                            : 'Up next')
+                        .toUpperCase(),
+                    style: AppFonts.sf(
+                      size: 11,
+                      weight: FontWeight.w700,
+                      color: const Color(0xD9FFFFFF),
+                      letterSpacing: 1.3,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Text(
+                routine.name,
+                style: AppFonts.sfr(
+                  size: 28,
+                  color: const Color(0xFFFFFFFF),
+                  letterSpacing: -0.6,
+                  height: 1.05,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                '${routine.time} · $left ${left == 1 ? 'step' : 'steps'} left · ~${left * 5} min',
                 style: AppFonts.sf(
-                    size: 17,
-                    weight: FontWeight.w600,
-                    color: c.accent,
-                    letterSpacing: -0.43)),
+                  size: 14,
+                  color: const Color(0xE6FFFFFF),
+                  letterSpacing: -0.1,
+                ),
+              ),
+              const SizedBox(height: 16),
+              // segmented progress pips — one per step, white when done.
+              Row(
+                children: [
+                  for (var i = 0; i < routine.steps.length; i++) ...[
+                    if (i > 0) const SizedBox(width: 5),
+                    Expanded(
+                      child: Container(
+                        height: 5,
+                        decoration: BoxDecoration(
+                          color: i < done
+                              ? const Color(0xFFFFFFFF)
+                              : const Color(0x52FFFFFF),
+                          borderRadius: BorderRadius.circular(3),
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+              const SizedBox(height: 18),
+              Container(
+                width: double.infinity,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFFFFF),
+                  borderRadius: BorderRadius.circular(14),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x24000000),
+                      blurRadius: 16,
+                      offset: Offset(0, 6),
+                    ),
+                  ],
+                ),
+                alignment: Alignment.center,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    AppIcon('play.fill', size: 15, color: tone),
+                    const SizedBox(width: 8),
+                    Text(
+                      inProgress ? 'Continue routine' : 'Begin routine',
+                      style: AppFonts.sf(
+                        size: 16,
+                        weight: FontWeight.w700,
+                        color: tone,
+                        letterSpacing: -0.2,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Timeline body ──────────────────────────────────────────────────────────
+
+class _Timeline extends StatelessWidget {
+  const _Timeline({required this.state});
+  final RitualsState state;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    if (state.routines.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+        child: Center(
+          child: Text('No routines yet. Add one to get started.',
+              textAlign: TextAlign.center,
+              style: AppFonts.sf(size: 15, color: c.ink3, letterSpacing: -0.24)),
+        ),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(4, 0, 4, 12),
+            child: Text('YOUR DAY',
+                style: AppFonts.sf(
+                    size: 12,
+                    weight: FontWeight.w700,
+                    color: c.ink3,
+                    letterSpacing: 0.8)),
+          ),
+          Stack(
+            children: [
+              // the vertical spine.
+              Positioned(
+                left: 13,
+                top: 8,
+                bottom: 24,
+                child: Container(width: 2, color: c.hair),
+              ),
+              Padding(
+                padding: const EdgeInsets.only(left: 34),
+                child: Column(
+                  children: [
+                    for (final r in state.routines)
+                      _TimelineNode(routine: r, state: state),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TimelineNode extends StatelessWidget {
+  const _TimelineNode({required this.routine, required this.state});
+  final RitualRoutine routine;
+  final RitualsState state;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    final tone = c.forType(routine.colorKey);
+    final complete = state.isComplete(routine);
+    final done = state.doneCount(routine.id);
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          // node, hung off the card's left edge over the spine.
+          Positioned(
+            left: -34,
+            top: 16,
+            child: Container(
+              width: 28,
+              height: 28,
+              decoration: BoxDecoration(
+                color: complete ? tone : c.surface,
+                shape: BoxShape.circle,
+                border: complete ? null : Border.all(color: tone, width: 2),
+                boxShadow: [BoxShadow(color: c.bg, blurRadius: 0, spreadRadius: 4)],
+              ),
+              alignment: Alignment.center,
+              child: complete
+                  ? const AppIcon('checkmark',
+                      size: 15, color: Color(0xFFFFFFFF))
+                  : AppIcon(routine.icon, size: 14, color: tone),
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: c.surface,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [BoxShadow(color: c.hair, blurRadius: 0.5)],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.baseline,
+                  textBaseline: TextBaseline.alphabetic,
+                  children: [
+                    Text(routine.name,
+                        style: AppFonts.sf(
+                            size: 16,
+                            weight: FontWeight.w700,
+                            color: c.ink,
+                            letterSpacing: -0.3)),
+                    const SizedBox(width: 8),
+                    Text(routine.time,
+                        style: AppFonts.sfr(
+                            size: 12,
+                            weight: FontWeight.w600,
+                            color: tone,
+                            letterSpacing: -0.1)),
+                    const Spacer(),
+                    Text('$done/${routine.steps.length}',
+                        style: AppFonts.sfr(
+                            size: 13,
+                            weight: FontWeight.w700,
+                            color: c.ink3)),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                for (var i = 0; i < routine.steps.length; i++)
+                  _StepRow(
+                    routine: routine,
+                    index: i,
+                    done: state.isStepDone(routine.id, i),
+                    tone: tone,
+                  ),
+                const SizedBox(height: 12),
+                _StartButton(routine: routine, state: state, tone: tone),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StepRow extends ConsumerWidget {
+  const _StepRow({
+    required this.routine,
+    required this.index,
+    required this.done,
+    required this.tone,
+  });
+
+  final RitualRoutine routine;
+  final int index;
+  final bool done;
+  final Color tone;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final c = context.colors;
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => ref
+          .read(ritualsControllerProvider.notifier)
+          .toggleStep(routine, index),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6),
+        child: Row(
+          children: [
+            Container(
+              width: 20,
+              height: 20,
+              decoration: BoxDecoration(
+                color: done ? tone : const Color(0x00000000),
+                shape: BoxShape.circle,
+                border: done ? null : Border.all(color: c.ink4, width: 1.5),
+              ),
+              alignment: Alignment.center,
+              child: done
+                  ? const AppIcon('checkmark',
+                      size: 11, color: Color(0xFFFFFFFF))
+                  : null,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                routine.steps[index].title,
+                style: AppFonts.sf(
+                  size: 14.5,
+                  color: done ? c.ink3 : c.ink2,
+                  letterSpacing: -0.2,
+                ).copyWith(
+                  decoration: done ? TextDecoration.lineThrough : null,
+                  decorationColor: c.ink3,
+                ),
+              ),
+            ),
           ],
         ),
       ),
     );
   }
+}
+
+class _StartButton extends StatelessWidget {
+  const _StartButton({
+    required this.routine,
+    required this.state,
+    required this.tone,
+  });
+
+  final RitualRoutine routine;
+  final RitualsState state;
+  final Color tone;
+
+  @override
+  Widget build(BuildContext context) {
+    final complete = state.isComplete(routine);
+    final inProgress = state.doneCount(routine.id) > 0;
+    final label = complete
+        ? 'Run again'
+        : inProgress
+            ? 'Continue'
+            : 'Start';
+    final icon = complete ? 'arrow.triangle.2.circlepath' : 'play.fill';
+
+    return PressScale(
+      onTap: () => context.go('/rituals/player/${routine.id}'),
+      child: Container(
+        width: double.infinity,
+        height: 38,
+        decoration: BoxDecoration(
+          color: tone.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        alignment: Alignment.center,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            AppIcon(icon, size: 13, color: tone),
+            const SizedBox(width: 6),
+            Text(label,
+                style: AppFonts.sf(
+                    size: 14,
+                    weight: FontWeight.w700,
+                    color: tone,
+                    letterSpacing: -0.2)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Footer ─────────────────────────────────────────────────────────────────
+
+class _NewRoutineButton extends StatelessWidget {
+  const _NewRoutineButton();
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
+      child: PressScale(
+        onTap: () => context.go('/rituals/manage'),
+        child: DottedBorderBox(
+          color: c.hair,
+          radius: 14,
+          child: SizedBox(
+            height: 46,
+            child: Center(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  AppIcon('plus', size: 14, color: c.ink3),
+                  const SizedBox(width: 6),
+                  Text('New routine',
+                      style: AppFonts.sf(
+                          size: 15,
+                          weight: FontWeight.w600,
+                          color: c.ink3,
+                          letterSpacing: -0.24)),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A rounded box with a dashed border, painted via [CustomPaint] (Flutter has
+/// no built-in dashed border).
+class DottedBorderBox extends StatelessWidget {
+  const DottedBorderBox({
+    super.key,
+    required this.child,
+    required this.color,
+    this.radius = 12,
+  });
+
+  final Widget child;
+  final Color color;
+  final double radius;
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomPaint(
+      painter: _DashedBorderPainter(color: color, radius: radius),
+      child: child,
+    );
+  }
+}
+
+class _DashedBorderPainter extends CustomPainter {
+  _DashedBorderPainter({required this.color, required this.radius});
+
+  final Color color;
+  final double radius;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 1
+      ..style = PaintingStyle.stroke;
+    final rrect = RRect.fromRectAndRadius(
+      Offset.zero & size,
+      Radius.circular(radius),
+    );
+    final path = Path()..addRRect(rrect);
+
+    const dash = 5.0;
+    const gap = 4.0;
+    for (final metric in path.computeMetrics()) {
+      var distance = 0.0;
+      while (distance < metric.length) {
+        canvas.drawPath(
+          metric.extractPath(distance, distance + dash),
+          paint,
+        );
+        distance += dash + gap;
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(_DashedBorderPainter old) =>
+      old.color != color || old.radius != radius;
 }
