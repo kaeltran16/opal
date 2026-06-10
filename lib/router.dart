@@ -7,6 +7,7 @@ import 'screens/entry/new_entry_sheet.dart';
 import 'screens/library/exercise_library_screen.dart';
 import 'screens/onboarding/onboarding_screen.dart';
 import 'screens/pal/ask_pal_screen.dart';
+import 'screens/profile/profile_screen.dart';
 import 'screens/quick_actions/quick_actions_overlay.dart';
 import 'screens/review/monthly_review_screen.dart';
 import 'screens/rituals/rituals_screen.dart';
@@ -39,6 +40,7 @@ enum AppRoute {
   askPal('askPal', '/pal'), //                      U16
   exerciseLibrary('exerciseLibrary', '/library'), // U11
   monthlyReview('monthlyReview', '/monthly-review'), // U18
+  emailSync('emailSync', '/email'), //              U20 (stub for now)
 
   // First-run onboarding (U17), full-screen above the shell.
   onboarding('onboarding', '/onboarding');
@@ -156,8 +158,7 @@ GoRouter createRouter({
               GoRoute(
                 path: AppRoute.you.path,
                 name: AppRoute.you.name,
-                builder: (context, state) =>
-                    const PlaceholderScreen(label: 'You'),
+                builder: (context, state) => const ProfileScreen(),
               ),
             ],
           ),
@@ -210,6 +211,15 @@ GoRouter createRouter({
         name: AppRoute.monthlyReview.name,
         parentNavigatorKey: _rootNavigatorKey,
         builder: (context, state) => const MonthlyReviewScreen(),
+      ),
+      // Email sync intro — real screens land in U20; stub for now so the
+      // profile Integrations row has a stable deep-link target.
+      GoRoute(
+        path: AppRoute.emailSync.path,
+        name: AppRoute.emailSync.name,
+        parentNavigatorKey: _rootNavigatorKey,
+        // TODO U20: Email sync Intro/Setup/Dashboard screens.
+        builder: (context, state) => const _DetailStub(title: 'Email sync'),
       ),
 
       // --- U17 first-run onboarding (full-screen, above the shell) ---
