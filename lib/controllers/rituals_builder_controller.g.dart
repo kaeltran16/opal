@@ -43,7 +43,7 @@ final class RitualsBuilderControllerProvider
 }
 
 String _$ritualsBuilderControllerHash() =>
-    r'8f662b4b0e83629d22dbf959fad4922bbb06195a';
+    r'fa2ae635dcb10c0045d30f68fc6d7966116ed11f';
 
 /// Streams all rituals (in display order) and owns add/edit/delete/reorder for
 /// the Rituals Builder. Mirrors [RitualsController]'s streaming idiom; writes go

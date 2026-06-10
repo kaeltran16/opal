@@ -473,7 +473,7 @@ final class PalServiceProvider
   }
 }
 
-String _$palServiceHash() => r'02749d6abbfce406f5391244b50d89e25c990b18';
+String _$palServiceHash() => r'0e208184538329ea10fccc61e3f65259940bfc89';
 
 @ProviderFor(healthService)
 const healthServiceProvider = HealthServiceProvider._();

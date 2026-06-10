@@ -1,6 +1,10 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:uuid/uuid.dart';
 
 import '../data/db/database.dart';
 import '../data/repositories/repositories.dart';
@@ -75,8 +79,154 @@ SettingsRepository settingsRepository(Ref ref) =>
 // Services (default to mocks/no-ops; real impls swap in via override later)
 // ---------------------------------------------------------------------------
 
+/// Compile-time backend config. `--dart-define=PAL_BASE_URL=...` swaps in the
+/// real proxy; unset (tests, backend-less preview) keeps the mock.
+const _palBaseUrl = String.fromEnvironment('PAL_BASE_URL');
+const _palProvisioningKey = String.fromEnvironment('PAL_PROVISIONING_KEY');
+
+// Single shared http client + device-token store for the real Pal proxy. Kept
+// module-level (not providers) since they hold no Riverpod state and the gate
+// below is the only consumer.
+class _HttpClientHolder {
+  static final http.Client instance = http.Client();
+}
+
+DeviceTokenStore? _deviceTokensCache;
+DeviceTokenStore _deviceTokens(http.Client client) {
+  return _deviceTokensCache ??= DeviceTokenStore(
+    secure: const FlutterTokenSecureStore(),
+    deviceId: const Uuid().v4(),
+    register: (deviceId) async {
+      final res = await client.post(
+        Uri.parse('$_palBaseUrl/v1/register'),
+        headers: {'content-type': 'application/json'},
+        body: jsonEncode({'provisioningKey': _palProvisioningKey, 'deviceId': deviceId}),
+      );
+      if (res.statusCode != 200) {
+        throw PalException('register failed (${res.statusCode})');
+      }
+      return (jsonDecode(res.body) as Map<String, dynamic>)['token'] as String;
+    },
+  );
+}
+
 @Riverpod(keepAlive: true)
-PalService palService(Ref ref) => MockPalService();
+PalService palService(Ref ref) {
+  if (_palBaseUrl.isEmpty) return MockPalService();
+
+  final httpClient = _HttpClientHolder.instance;
+  final entries = ref.watch(entryRepositoryProvider);
+  final goals = ref.watch(goalsRepositoryProvider);
+  final workouts = ref.watch(workoutRepositoryProvider);
+  final routines = ref.watch(routineRepositoryProvider);
+
+  final tokens = TokenProvider(
+    token: () => _deviceTokens(httpClient).token(),
+    clear: () => _deviceTokens(httpClient).clear(),
+  );
+
+  final context = PalContextSource(
+    chat: () async {
+      final now = DateTime.now();
+      final today = await entries.watchToday(now).first;
+      final weekStart = now.subtract(Duration(days: now.weekday - 1));
+      final week = await entries
+          .watchEntriesInRange(
+            DateTime(weekStart.year, weekStart.month, weekStart.day),
+            DateTime(now.year, now.month, now.day).add(const Duration(days: 1)),
+          )
+          .first;
+      return buildChatContext(
+        userName: 'there',
+        goals: await goals.get(),
+        todayEntries: today,
+        weekEntries: week,
+        moveStreakDays: 0, // streak source wired in U18 reuse; 0 until then
+      );
+    },
+    review: (month) async {
+      final start = DateTime(month.year, month.month);
+      final end = DateTime(month.year, month.month + 1);
+      final monthEntries = await entries.watchEntriesInRange(start, end).first;
+      var spent = 0.0;
+      var movedMin = 0;
+      var kept = 0;
+      String topCat = '—';
+      final byCat = <String, double>{};
+      for (final e in monthEntries) {
+        switch (e.type) {
+          case EntryType.money:
+            if ((e.amount ?? 0) < 0) {
+              spent += e.amount!.abs();
+              final c = e.category ?? 'Other';
+              byCat[c] = (byCat[c] ?? 0) + e.amount!.abs();
+            }
+          case EntryType.move:
+            movedMin += e.duration ?? 0;
+          case EntryType.rituals:
+            kept += 1;
+        }
+      }
+      var topVal = 0.0;
+      byCat.forEach((k, v) {
+        if (v > topVal) {
+          topVal = v;
+          topCat = k;
+        }
+      });
+      final topPct = spent == 0 ? 0 : ((topVal / spent) * 100).round();
+      final g = await goals.get();
+      return buildReviewContext(
+        spent: spent,
+        spentDeltaPct: 0,
+        hoursMoved: (movedMin / 60).round(),
+        movedDeltaPct: 0,
+        activeDays: monthEntries.map((e) => e.timestamp.day).toSet().length,
+        ritualsKept: kept,
+        ritualsTarget: g.dailyRitualTarget * 30,
+        streakDays: 0,
+        topCategory: topCat,
+        topCategoryPct: topPct,
+        discoveredPattern: 'steady tracking this month',
+      );
+    },
+    suggest: (another) async {
+      final recent = await workouts.watchWorkouts().first;
+      final all = await routines.getAll();
+      const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+      return buildSuggestContext(
+        recentWorkouts: recent.take(5).toList(),
+        dayOfWeek: days[DateTime.now().weekday - 1],
+        availableRoutines: all,
+      );
+    },
+    postWorkout: (workout) async {
+      final priors = (await workouts.watchWorkouts().first)
+          .where((w) => w.routineId == workout.routineId && w.id != workout.id)
+          .toList();
+      double? lastVol;
+      int? daysAgo;
+      if (priors.isNotEmpty) {
+        priors.sort((a, b) => b.startedAt.compareTo(a.startedAt));
+        lastVol = priors.first.totalVolumeKg;
+        daysAgo = DateTime.now().difference(priors.first.startedAt).inDays;
+      }
+      return buildPostWorkoutContext(
+        workout: workout,
+        lastSessionVolumeKg: lastVol,
+        daysAgoLastSession: daysAgo,
+      );
+    },
+    resolveRoutineTitle: (id) async => (await routines.getById(id))?.name,
+  );
+
+  return HttpPalService(
+    baseUrl: _palBaseUrl,
+    httpClient: httpClient,
+    tokens: tokens,
+    context: context,
+  );
+}
 
 @Riverpod(keepAlive: true)
 HealthService healthService(Ref ref) => MockHealthService();

@@ -1,0 +1,4 @@
+# Replace pal.example.com with your droplet's domain. Caddy auto-provisions TLS.
+pal.example.com {
+    reverse_proxy 127.0.0.1:8080
+}

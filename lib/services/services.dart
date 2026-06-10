@@ -13,5 +13,8 @@ export 'health/health_service.dart';
 export 'health/mock_health_service.dart';
 export 'notifications/noop_notification_service.dart';
 export 'notifications/notification_service.dart';
+export 'pal/device_token_store.dart';
+export 'pal/http_pal_service.dart';
 export 'pal/mock_pal_service.dart';
+export 'pal/pal_context_builder.dart';
 export 'pal/pal_service.dart';

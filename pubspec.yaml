@@ -55,6 +55,10 @@ dependencies:
   # Settings persistence (U03): accent / brightness / onboarding flag.
   shared_preferences: ^2.3.0
 
+  # Backend Pal proxy (U23): HTTP client + per-device token storage.
+  http: ^1.2.0
+  flutter_secure_storage: ^9.2.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

@@ -1,0 +1,14 @@
+[Unit]
+Description=Loop Pal LLM proxy
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/loop-pal
+EnvironmentFile=/opt/loop-pal/.env
+ExecStart=/usr/bin/node dist/server.js
+Restart=on-failure
+User=loop
+
+[Install]
+WantedBy=multi-user.target

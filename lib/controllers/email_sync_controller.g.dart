@@ -173,7 +173,7 @@ final class EmailDashboardControllerProvider
 }
 
 String _$emailDashboardControllerHash() =>
-    r'4cae7243fe536a4e8be2bd7c08d2be3d28a19074';
+    r'0a9559b81ab6eb616317486ffb1043011f607da3';
 
 /// Owns the Dashboard: reads the connected account, runs Sync-now (which the
 /// service stages over [syncStatusProvider]) and surfaces the returned imports,
