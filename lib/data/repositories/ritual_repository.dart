@@ -39,4 +39,13 @@ class RitualRepository {
 
   Future<void> deleteById(String id) =>
       (_db.delete(_db.rituals)..where((t) => t.id.equals(id))).go();
+
+  /// Persists the new display order: writes each ritual (with its current
+  /// [Ritual.order]) in one transaction. Callers pass the list already in the
+  /// desired order with positions assigned (see `reindex`).
+  Future<void> reorder(List<Ritual> ordered) => _db.transaction(() async {
+        for (final r in ordered) {
+          await upsert(r);
+        }
+      });
 }

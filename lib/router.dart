@@ -14,9 +14,13 @@ import 'screens/pal/ask_pal_screen.dart';
 import 'screens/profile/profile_screen.dart';
 import 'screens/quick_actions/quick_actions_overlay.dart';
 import 'screens/review/monthly_review_screen.dart';
+import 'screens/rituals/rituals_builder_screen.dart';
 import 'screens/rituals/rituals_screen.dart';
 import 'screens/shell/loop_shell.dart';
+import 'models/models.dart';
 import 'screens/workout/active_session_screen.dart';
+import 'screens/workout/post_workout_screen.dart';
+import 'screens/workout/routine_editor_screen.dart';
 import 'screens/workout/start_workout_screen.dart';
 import 'screens/workout/workout_detail_screen.dart';
 import 'screens/today/today_screen.dart';
@@ -41,6 +45,7 @@ enum AppRoute {
   // Move sub-routes.
   startWorkout('startWorkout', 'start'), //   U12 -> /move/start
   workoutDetail('workoutDetail', 'workout/:id'), // U15 -> /move/workout/:id
+  routineEditor('routineEditor', 'routine-editor'), // U21b -> /move/routine-editor
 
   // Workout focus routes (full-screen, above the shell — no tab bar).
   activeSession('activeSession', '/session/:routineId'), // U13
@@ -156,6 +161,14 @@ GoRouter createRouter({
                     builder: (context, state) => WorkoutDetailScreen(
                         workoutId: state.pathParameters['id']!),
                   ),
+                  // U21b — Routine Editor. `routineId` query param absent =
+                  // create new; present = edit that routine.
+                  GoRoute(
+                    path: AppRoute.routineEditor.path,
+                    name: AppRoute.routineEditor.name,
+                    builder: (context, state) => RoutineEditorScreen(
+                        routineId: state.uri.queryParameters['routineId']),
+                  ),
                 ],
               ),
             ],
@@ -172,9 +185,7 @@ GoRouter createRouter({
                   GoRoute(
                     path: AppRoute.manageRituals.path,
                     name: AppRoute.manageRituals.name,
-                    // TODO U21b: Rituals Builder (add/edit/reorder rituals).
-                    builder: (context, state) =>
-                        const _DetailStub(title: 'Manage rituals'),
+                    builder: (context, state) => const RitualsBuilderScreen(),
                   ),
                 ],
               ),
@@ -242,14 +253,14 @@ GoRouter createRouter({
         builder: (context, state) =>
             ActiveSessionScreen(routineId: state.pathParameters['routineId']!),
       ),
-      // U14 — Post-workout summary (focus route). Stub until U14 lands; the
-      // active session navigates here on Finish.
+      // U14 — Post-workout summary (focus route). The active session pushes
+      // here on Finish, handing the finished Workout via `extra`.
       GoRoute(
         path: AppRoute.postWorkout.path,
         name: AppRoute.postWorkout.name,
         parentNavigatorKey: _rootNavigatorKey,
-        // TODO U14: Post-workout summary (celebration + Save to timeline).
-        builder: (context, state) => const _DetailStub(title: 'Workout saved'),
+        builder: (context, state) =>
+            PostWorkoutScreen(workout: state.extra as Workout?),
       ),
       // U18 — Monthly Review (root-level; no screen links here yet).
       GoRoute(

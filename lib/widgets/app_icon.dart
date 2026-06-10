@@ -44,6 +44,7 @@ const Map<String, IconData> _sfMap = {
   'house.fill': CupertinoIcons.house_fill,
   'delete.left.fill': CupertinoIcons.delete_left,
   'slider.horizontal.3': CupertinoIcons.slider_horizontal_3,
+  'square.and.arrow.up': CupertinoIcons.share,
   // Exercise-catalog glyphs (U11). Closest Material substitutes for preview;
   // map back to true SF Symbols on a real iOS build.
   'figure.strengthtraining.traditional': Icons.fitness_center,

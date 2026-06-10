@@ -128,7 +128,7 @@ class _Body extends ConsumerWidget {
               iconBg: c.accent,
               title: 'New routine',
               subtitle: 'Build from scratch',
-              chevron: false,
+              onTap: () => context.pushNamed(AppRoute.routineEditor.name),
             ),
             ListRow(
               icon: 'dumbbell.fill',

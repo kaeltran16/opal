@@ -73,6 +73,26 @@ class RoutineRepository {
     return routineId;
   }
 
+  /// Replaces an existing [routine] and its exercise slots in one transaction:
+  /// upserts the routine row, drops its current slots, and re-inserts the new
+  /// ones (assigning UUIDs to empty slot ids). The routine id must be set.
+  Future<void> update(Routine routine) async {
+    await _db.transaction(() async {
+      await _db
+          .into(_db.routines)
+          .insertOnConflictUpdate(routine.toCompanion());
+      await (_db.delete(_db.routineExercises)
+            ..where((t) => t.routineId.equals(routine.id)))
+          .go();
+      for (final ex in routine.exercises) {
+        final exId = ex.id.isEmpty ? _uuid.v4() : ex.id;
+        await _db
+            .into(_db.routineExercises)
+            .insert(ex.copyWith(id: exId).toCompanion(routine.id));
+      }
+    });
+  }
+
   Future<void> deleteById(String id) =>
       (_db.delete(_db.routines)..where((t) => t.id.equals(id))).go();
 

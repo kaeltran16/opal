@@ -125,9 +125,9 @@ class _Body extends ConsumerWidget {
     );
     if (confirmed != true || !context.mounted) return;
 
-    ref.read(workoutSessionControllerProvider(routineId).notifier).finish();
-    // U14 wires `postWorkout`; the orchestrator handles registration.
-    context.pushReplacementNamed('postWorkout');
+    final workout =
+        ref.read(workoutSessionControllerProvider(routineId).notifier).finish();
+    context.pushReplacementNamed('postWorkout', extra: workout);
   }
 }
 
