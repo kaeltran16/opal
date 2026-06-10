@@ -48,7 +48,7 @@ PAL_MODEL=${PAL_MODEL:-deepseek/deepseek-v4-flash}
 OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
 PORT=8080
 SQLITE_PATH=$APP_DIR/loop.sqlite
-CORS_ORIGINS=
+CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:8080}
 ENV
   chown "$APP_USER:$APP_USER" "$APP_DIR/.env"
   chmod 600 "$APP_DIR/.env"
