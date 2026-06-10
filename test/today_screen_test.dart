@@ -124,4 +124,51 @@ void main() {
     );
     expect(find.text('Tartine'), findsOneWidget);
   });
+
+  testWidgets('Today shows the empty-state copy when nothing is logged',
+      (WidgetTester tester) async {
+    SharedPreferences.setMockInitialValues({
+      'settings.onboardingComplete': true,
+    });
+    final prefs = await SharedPreferences.getInstance();
+    final db = LoopDatabase.forTesting(NativeDatabase.memory());
+    addTearDown(db.close);
+
+    // Tall surface so the empty-state line (below rings + tiles + timeline
+    // header) is laid out rather than culled by the lazy ListView.
+    tester.view.physicalSize = const Size(800, 2400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    // Goals exist so TodayState builds, but no entries are inserted.
+    await GoalsRepository(db).save(const Goals(
+      dailyBudget: 100,
+      dailyMoveMinutes: 60,
+      dailyRitualTarget: 4,
+    ));
+
+    final health = MockHealthService(
+      today: HealthSample(
+        date: DateTime.now(),
+        moveMinutes: 0,
+        activeEnergyKcal: 0,
+        avgHeartRate: 0,
+      ),
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          loopDatabaseProvider.overrideWithValue(db),
+          healthServiceProvider.overrideWithValue(health),
+        ],
+        child: const LoopApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Nothing logged yet. Tap + to start your day.'),
+        findsOneWidget);
+  });
 }

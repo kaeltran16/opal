@@ -3,6 +3,7 @@ import 'package:flutter/widgets.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text.dart';
 import 'app_icon.dart';
+import 'press_scale.dart';
 
 class LoopTab {
   const LoopTab(this.id, this.label, this.icon);
@@ -76,9 +77,9 @@ class _TabItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     final color = active ? c.accent : c.ink3;
-    return GestureDetector(
+    return PressScale(
       onTap: onTap,
-      behavior: HitTestBehavior.opaque,
+      semanticLabel: '${tab.label} tab',
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 4),
         child: Column(
@@ -105,9 +106,10 @@ class _Fab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    return GestureDetector(
+    return PressScale(
       onTap: onTap,
-      behavior: HitTestBehavior.opaque,
+      pressedScale: 0.92,
+      semanticLabel: 'Quick actions',
       child: Container(
         width: 50,
         height: 50,

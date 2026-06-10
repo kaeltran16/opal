@@ -61,7 +61,10 @@ class CheckButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     final fillColor = typeColor ?? c.rituals;
-    return GestureDetector(
+    return Semantics(
+      button: onTap != null,
+      checked: checked,
+      child: GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: AnimatedContainer(
@@ -77,6 +80,7 @@ class CheckButton extends StatelessWidget {
         child: checked
             ? const AppIcon('checkmark', size: 16, color: Color(0xFFFFFFFF))
             : null,
+      ),
       ),
     );
   }

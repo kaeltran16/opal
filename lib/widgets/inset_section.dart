@@ -58,7 +58,7 @@ class InsetSection extends StatelessWidget {
 
 /// Default iOS list row: tinted icon tile + title/subtitle + value + chevron,
 /// with a hairline separator (inset to the title when an icon is present).
-class ListRow extends StatelessWidget {
+class ListRow extends StatefulWidget {
   const ListRow({
     super.key,
     this.icon,
@@ -83,84 +83,107 @@ class ListRow extends StatelessWidget {
   final VoidCallback? onTap;
 
   @override
+  State<ListRow> createState() => _ListRowState();
+}
+
+class _ListRowState extends State<ListRow> {
+  bool _down = false;
+
+  void _set(bool down) => setState(() => _down = down);
+
+  @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Stack(
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(minHeight: 44),
-              child: Row(
-                children: [
-                  if (icon != null) ...[
-                    Container(
-                      width: 29,
-                      height: 29,
-                      decoration: BoxDecoration(
-                        color: iconBg ?? c.accent,
-                        borderRadius: BorderRadius.circular(7),
-                      ),
-                      alignment: Alignment.center,
-                      child: AppIcon(icon!, size: 17, color: const Color(0xFFFFFFFF)),
-                    ),
-                    const SizedBox(width: 12),
-                  ],
-                  Expanded(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          title,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: AppFonts.sf(
-                              size: 17, color: c.ink, letterSpacing: -0.43, height: 22 / 17),
-                        ),
-                        if (subtitle != null)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 1),
-                            child: Text(
-                              subtitle!,
-                              style: AppFonts.sf(size: 13, color: c.ink3, letterSpacing: -0.08),
-                            ),
+    final icon = widget.icon;
+    final tappable = widget.onTap != null;
+    return Semantics(
+      button: tappable,
+      label: tappable ? widget.title : null,
+      child: GestureDetector(
+        onTap: widget.onTap,
+        onTapDown: tappable ? (_) => _set(true) : null,
+        onTapUp: tappable ? (_) => _set(false) : null,
+        onTapCancel: tappable ? () => _set(false) : null,
+        behavior: HitTestBehavior.opaque,
+        // brief highlight (theme.fill) that fades over 180ms on release
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          color: _down ? c.fill : const Color(0x00000000),
+          child: Stack(
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(minHeight: 44),
+                  child: Row(
+                    children: [
+                      if (icon != null) ...[
+                        Container(
+                          width: 29,
+                          height: 29,
+                          decoration: BoxDecoration(
+                            color: widget.iconBg ?? c.accent,
+                            borderRadius: BorderRadius.circular(7),
                           ),
+                          alignment: Alignment.center,
+                          child: AppIcon(icon, size: 17, color: const Color(0xFFFFFFFF)),
+                        ),
+                        const SizedBox(width: 12),
                       ],
-                    ),
-                  ),
-                  if (value != null)
-                    Padding(
-                      padding: const EdgeInsets.only(left: 8),
-                      child: Text(
-                        value!,
-                        style: AppFonts.sf(
-                            size: 17,
-                            color: valueColor ?? c.ink3,
-                            letterSpacing: -0.43,
-                            tabular: true),
+                      Expanded(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              widget.title,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: AppFonts.sf(
+                                  size: 17, color: c.ink, letterSpacing: -0.43, height: 22 / 17),
+                            ),
+                            if (widget.subtitle != null)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 1),
+                                child: Text(
+                                  widget.subtitle!,
+                                  style: AppFonts.sf(size: 13, color: c.ink3, letterSpacing: -0.08),
+                                ),
+                              ),
+                          ],
+                        ),
                       ),
-                    ),
-                  if (chevron)
-                    Padding(
-                      padding: const EdgeInsets.only(left: 6),
-                      child: AppIcon('chevron.right', size: 14, color: c.ink4),
-                    ),
-                ],
+                      if (widget.value != null)
+                        Padding(
+                          padding: const EdgeInsets.only(left: 8),
+                          child: Text(
+                            widget.value!,
+                            style: AppFonts.sf(
+                                size: 17,
+                                color: widget.valueColor ?? c.ink3,
+                                letterSpacing: -0.43,
+                                tabular: true),
+                          ),
+                        ),
+                      if (widget.chevron)
+                        Padding(
+                          padding: const EdgeInsets.only(left: 6),
+                          child: AppIcon('chevron.right', size: 14, color: c.ink4),
+                        ),
+                    ],
+                  ),
+                ),
               ),
-            ),
+              if (!widget.last)
+                Positioned(
+                  left: icon != null ? 57 : 16,
+                  right: 0,
+                  bottom: 0,
+                  child: Container(height: 0.5, color: c.hair),
+                ),
+            ],
           ),
-          if (!last)
-            Positioned(
-              left: icon != null ? 57 : 16,
-              right: 0,
-              bottom: 0,
-              child: Container(height: 0.5, color: c.hair),
-            ),
-        ],
+        ),
       ),
     );
   }

@@ -82,7 +82,7 @@ class _Body extends StatelessWidget {
             onTap: () => context.pop(),
             child: AppIcon('chevron.left', size: 20, color: c.accent),
           ),
-          trailing: const NavIconButton(name: 'ellipsis'),
+          trailing: const NavIconButton(name: 'ellipsis', semanticLabel: 'More options'),
         ),
 
         // --- 2×2 summary grid -------------------------------------------------

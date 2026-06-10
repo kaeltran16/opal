@@ -67,7 +67,7 @@ class _RitualsBody extends ConsumerWidget {
         LargeTitleNavBar(
           title: 'Rituals',
           subtitle: _subtitle,
-          trailing: const NavIconButton(name: 'flame.fill'),
+          trailing: const NavIconButton(name: 'flame.fill', semanticLabel: 'Streak'),
         ),
 
         // "N / M today" progress card (rituals-purple).

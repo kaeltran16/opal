@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text.dart';
 import 'app_icon.dart';
+import 'press_scale.dart';
 
 /// iOS large-title navigation header (static, non-collapsing variant used by the
 /// prototype). A scroll-collapsing version can wrap this in a SliverPersistentHeader later.
@@ -62,17 +63,18 @@ class LargeTitleNavBar extends StatelessWidget {
 
 /// 32×32 circular tinted icon button used in nav trailing slots.
 class NavIconButton extends StatelessWidget {
-  const NavIconButton({super.key, required this.name, this.onTap});
+  const NavIconButton({super.key, required this.name, this.onTap, this.semanticLabel});
 
   final String name;
   final VoidCallback? onTap;
+  final String? semanticLabel;
 
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    return GestureDetector(
+    return PressScale(
       onTap: onTap,
-      behavior: HitTestBehavior.opaque,
+      semanticLabel: semanticLabel,
       child: Container(
         width: 32,
         height: 32,

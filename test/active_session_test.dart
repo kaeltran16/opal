@@ -117,6 +117,9 @@ void main() {
     await tester.tap(find.text('Complete set'));
     await tester.pumpAndSettle();
 
+    // A non-PR set fires the light cue (success is reserved for PRs).
+    expect(haptics.lightCount, greaterThan(0));
+
     // The rest banner now shows (engine started the 120s rest).
     expect(find.text('REST'), findsOneWidget);
 

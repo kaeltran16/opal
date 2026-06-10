@@ -58,7 +58,7 @@ class _MoveBody extends StatelessWidget {
         const LargeTitleNavBar(
           title: 'Move',
           subtitle: 'Gym, cardio, daily movement',
-          trailing: NavIconButton(name: 'ellipsis'),
+          trailing: NavIconButton(name: 'ellipsis', semanticLabel: 'More options'),
         ),
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 4, 16, 18),

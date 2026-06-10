@@ -68,6 +68,7 @@ class RitualsBuilderScreen extends ConsumerWidget {
             ),
             trailing: NavIconButton(
               name: 'plus',
+              semanticLabel: 'Add ritual',
               onTap: () => _openEditor(context, ref, null),
             ),
           ),

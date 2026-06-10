@@ -128,6 +128,7 @@ class EmailDashboardController extends _$EmailDashboardController {
       account: service.account,
       lastSyncAt: DateTime.now(),
     );
+    await ref.read(hapticsServiceProvider).success(); // sync complete
   }
 
   /// Removes the account (service emits [SyncStatus.idle]) and clears state.

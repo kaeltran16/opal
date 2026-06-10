@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text.dart';
 import 'app_icon.dart';
+import 'press_scale.dart';
 
 /// Dot + label + big value + goal, shown beside the activity rings on Today.
 class RingStat extends StatelessWidget {
@@ -80,9 +81,8 @@ class SummaryTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     final color = c.forType(type);
-    return GestureDetector(
+    return PressScale(
       onTap: onTap,
-      behavior: HitTestBehavior.opaque,
       child: Container(
         constraints: const BoxConstraints(minHeight: 120),
         padding: const EdgeInsets.all(14),

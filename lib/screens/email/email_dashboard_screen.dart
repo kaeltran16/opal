@@ -76,7 +76,7 @@ class EmailDashboardScreen extends ConsumerWidget {
                 ],
               ),
             ),
-            trailing: const NavIconButton(name: 'ellipsis'),
+            trailing: const NavIconButton(name: 'ellipsis', semanticLabel: 'More options'),
           ),
 
           // --- Sync-job hero -------------------------------------------------

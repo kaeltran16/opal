@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_text.dart';
 import '../../widgets/app_icon.dart';
+import '../../widgets/press_scale.dart';
 import '../../router.dart';
 
 /// Screen 03 — Quick Actions overlay.
@@ -164,9 +165,9 @@ class _ActionTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    return GestureDetector(
+    return PressScale(
       onTap: onTap,
-      behavior: HitTestBehavior.opaque,
+      semanticLabel: spec.label,
       child: Container(
         decoration: BoxDecoration(
           color: c.surface,
@@ -218,9 +219,9 @@ class _CloseButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    return GestureDetector(
+    return PressScale(
       onTap: onTap,
-      behavior: HitTestBehavior.opaque,
+      semanticLabel: 'Close',
       child: Container(
         width: 36,
         height: 36,

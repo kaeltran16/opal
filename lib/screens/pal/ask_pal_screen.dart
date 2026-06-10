@@ -331,7 +331,7 @@ class _EmptyState extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             Text(
-              'Ask me anything',
+              'Hi there',
               style: AppFonts.sf(
                 size: 20,
                 weight: FontWeight.w600,
@@ -340,8 +340,10 @@ class _EmptyState extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 6),
+            // verbatim handoff empty-state copy ({name} → "there", no name field yet)
             Text(
-              'I can read your week and nudge you forward.',
+              "I'm Pal — ask me anything about your money, movement, or rituals. "
+              "Or just tell me what you did and I'll log it.",
               textAlign: TextAlign.center,
               style: AppFonts.sf(size: 15, color: c.ink3, letterSpacing: -0.24),
             ),

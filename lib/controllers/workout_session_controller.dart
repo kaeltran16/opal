@@ -159,7 +159,15 @@ class WorkoutSessionController extends _$WorkoutSessionController {
     final s = _session;
     if (s == null) return;
     _tenSecondCueFired = false;
+    final prBefore = s.activeWorkout.prCount;
     s.logCurrentSet(weightKg: weightKg, reps: reps);
+    // success cue when this set set a new PR, light cue otherwise
+    final haptics = ref.read(hapticsServiceProvider);
+    if (s.activeWorkout.prCount > prBefore) {
+      haptics.success();
+    } else {
+      haptics.light();
+    }
     _syncTimer();
     _emit();
   }

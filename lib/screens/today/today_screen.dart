@@ -36,7 +36,7 @@ class TodayScreen extends ConsumerWidget {
       error: (e, _) => Center(
         child: Padding(
           padding: const EdgeInsets.all(24),
-          child: Text("Couldn't load today.\n$e",
+          child: Text("Couldn't load today. Try again in a moment.",
               textAlign: TextAlign.center,
               style: AppFonts.sf(size: 15, color: c.ink3, letterSpacing: -0.24)),
         ),
@@ -98,9 +98,9 @@ class _TodayBody extends StatelessWidget {
           leading: Text(_monthAbbrev(),
               style: AppFonts.sf(size: 17, color: c.accent)),
           trailing: Row(children: const [
-            NavIconButton(name: 'bell.fill'),
+            NavIconButton(name: 'bell.fill', semanticLabel: 'Notifications'),
             SizedBox(width: 8),
-            NavIconButton(name: 'magnifyingglass'),
+            NavIconButton(name: 'magnifyingglass', semanticLabel: 'Search'),
           ]),
         ),
 
@@ -344,6 +344,17 @@ class _TodayBody extends StatelessWidget {
             ],
           ),
         ),
+
+        if (!today.buckets.any((b) => b.entries.isNotEmpty))
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+            child: Center(
+              child: Text('Nothing logged yet. Tap + to start your day.',
+                  textAlign: TextAlign.center,
+                  style:
+                      AppFonts.sf(size: 15, color: c.ink3, letterSpacing: -0.24)),
+            ),
+          ),
 
         for (final b in today.buckets)
           if (b.entries.isNotEmpty)
