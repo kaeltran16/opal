@@ -45,11 +45,11 @@ jobs:
             ./ "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:/opt/opal-api/"
       - name: Build and restart on droplet
         run: |
-          ssh -i ~/.ssh/deploy_key \
+          ssh -i ~/.ssh/deploy_key -o BatchMode=yes \
             "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" \
-            'cd /opt/opal-api && npm ci && npm run build && systemctl restart opal-api'
+            'set -e; cd /opt/opal-api && npm install --no-audit --no-fund && npm run build && chown -R opal:opal /opt/opal-api && systemctl restart opal-api' < /dev/null
       - name: Healthcheck
         run: |
-          ssh -i ~/.ssh/deploy_key \
+          ssh -i ~/.ssh/deploy_key -o BatchMode=yes \
             "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" \
-            'sleep 2 && curl -fsS http://127.0.0.1:8080/healthz'
+            'for i in $(seq 1 15); do curl -fsS http://127.0.0.1:8080/healthz && exit 0; sleep 2; done; echo "healthcheck failed"; journalctl -u opal-api -n 30 --no-pager; exit 1' < /dev/null
