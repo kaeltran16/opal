@@ -31,13 +31,24 @@ npm test               # Vitest, no network
 
 ## Deploy (DigitalOcean droplet)
 
+opal-api runs as a systemd service (`opal-api.service`) on the host, bound to
+`0.0.0.0:8080`. TLS and public routing for `https://opal.kael.life` are handled
+by the droplet's existing nginx reverse proxy (the co-hosted `krypton` stack),
+which proxies to the host at `172.18.0.1:8080` (the nginx network's gateway).
+
 Deploys are automated via GitHub Actions (`.github/workflows/deploy.yml`): every
 push to `main` touching `server/**` runs tests, then rsyncs the source to the
 droplet and runs `npm ci && npm run build && systemctl restart opal-api`.
 
-First-time droplet setup (run once): copy `server/scripts/bootstrap.sh` to the
-droplet and run it as root. It installs Node 20, Caddy, creates the `opal` user
-and `/opt/opal-api`, installs the systemd unit + Caddyfile, and writes `.env`.
+First-time droplet setup (run once):
+
+1. **Host service** — copy `server/scripts/bootstrap.sh` to the droplet and run
+   it as root. It installs Node 20 + build tools, creates the `opal` user and
+   `/opt/opal-api`, installs the systemd unit, and writes `.env`.
+2. **nginx wiring** — issue a cert for `opal.kael.life` via the existing certbot,
+   add the `server` block from `nginx-opal.conf.example` to the nginx config and
+   reload, and let the container subnet reach the host service:
+   `ufw allow from 172.18.0.0/16 to any port 8080 proto tcp`.
 
 Verify: `curl https://opal.kael.life/healthz` → `ok`.
 

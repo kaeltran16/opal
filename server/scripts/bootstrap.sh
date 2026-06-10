@@ -14,17 +14,6 @@ if ! command -v node >/dev/null || [ "$(node -v | cut -d. -f1 | tr -d v)" -lt 20
 fi
 apt-get install -y build-essential python3 rsync curl
 
-echo "==> Installing Caddy"
-if ! command -v caddy >/dev/null; then
-  apt-get install -y debian-keyring debian-archive-keyring apt-transport-https
-  curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' \
-    | gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
-  curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' \
-    > /etc/apt/sources.list.d/caddy-stable.list
-  apt-get update
-  apt-get install -y caddy
-fi
-
 echo "==> Creating user + app dir"
 id -u "$APP_USER" >/dev/null 2>&1 || useradd --system --create-home --shell /usr/sbin/nologin "$APP_USER"
 mkdir -p "$APP_DIR"
@@ -50,14 +39,6 @@ UNIT
 systemctl daemon-reload
 systemctl enable opal-api
 
-echo "==> Installing Caddyfile"
-cat >/etc/caddy/Caddyfile <<CADDY
-$DOMAIN {
-    reverse_proxy 127.0.0.1:8080
-}
-CADDY
-systemctl reload caddy || systemctl restart caddy
-
 echo "==> Writing .env (only if missing)"
 if [ ! -f "$APP_DIR/.env" ]; then
   cat >"$APP_DIR/.env" <<ENV
@@ -76,5 +57,7 @@ else
   echo "    $APP_DIR/.env exists, leaving as-is"
 fi
 
-echo "==> Bootstrap complete. Deploy via GitHub Actions, then:"
-echo "    curl https://$DOMAIN/healthz"
+echo "==> Host setup complete. opal-api runs as a systemd service on 0.0.0.0:8080."
+echo "    TLS + public routing is handled by the droplet's existing nginx proxy."
+echo "    See server/README.md 'Deploy' for the one-time nginx wiring, then deploy"
+echo "    via GitHub Actions and verify: curl https://$DOMAIN/healthz"
