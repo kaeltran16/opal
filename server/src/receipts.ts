@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { extractJson, type CompletionClient } from './pal.js'
 import { receiptPrompt } from './prompts.js'
+import { redactPii } from './redact.js'
 import type { RawEmail } from './imap.js'
 
 /** Deterministic allowlist: keep emails whose sender matches a filter. */
@@ -33,8 +34,17 @@ export async function extractReceipt(
   email: RawEmail,
   client: CompletionClient,
 ): Promise<ReceiptFields | null> {
+  // scrub PII before the body leaves for the LLM; `from` is the merchant's
+  // sender address (needed for merchant inference, not the user's data).
   const raw = await client.complete([
-    { role: 'user', content: receiptPrompt({ from: email.from, subject: email.subject, text: email.text }) },
+    {
+      role: 'user',
+      content: receiptPrompt({
+        from: email.from,
+        subject: redactPii(email.subject),
+        text: redactPii(email.text),
+      }),
+    },
   ])
   const parsed = receiptSchema.parse(extractJson(raw))
   if (!parsed.isReceipt || parsed.amount === null || !parsed.merchant) return null

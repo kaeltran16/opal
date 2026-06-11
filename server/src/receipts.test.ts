@@ -53,4 +53,21 @@ describe('extractReceipt', () => {
     const r = await extractReceipt(email(), c)
     expect(r?.merchant).toBe('Uber')
   })
+
+  it('scrubs PII from the body before it reaches the model, keeping the amount', async () => {
+    let seen = ''
+    const capturing: CompletionClient = {
+      complete: async (msgs) => {
+        seen = msgs[0].content
+        return '{"isReceipt": true, "merchant": "Amazon", "amount": 42.99, "category": "Shopping"}'
+      },
+    }
+    await extractReceipt(
+      email({ text: 'Hi cktran16x2@gmail.com, total $42.99 on card 4111 1111 1111 1111' }),
+      capturing,
+    )
+    expect(seen).not.toContain('cktran16x2@gmail.com')
+    expect(seen).not.toContain('4111 1111 1111 1111')
+    expect(seen).toContain('$42.99')
+  })
 })
