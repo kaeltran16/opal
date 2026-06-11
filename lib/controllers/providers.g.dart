@@ -789,6 +789,67 @@ final class LiveActivityServiceProvider
 String _$liveActivityServiceHash() =>
     r'da56177b00efd0d4c58d9386832c921d706e55b0';
 
+/// Pushes today's progress to the iOS home-screen rings widget over the native
+/// `opal/widget_sync` MethodChannel; no-op off iOS. Driven by
+/// [WidgetSyncController]. Until the OpalWidgets extension + AppDelegate bridge
+/// are wired in Xcode the channel is absent and every call no-ops gracefully.
+
+@ProviderFor(widgetSyncService)
+const widgetSyncServiceProvider = WidgetSyncServiceProvider._();
+
+/// Pushes today's progress to the iOS home-screen rings widget over the native
+/// `opal/widget_sync` MethodChannel; no-op off iOS. Driven by
+/// [WidgetSyncController]. Until the OpalWidgets extension + AppDelegate bridge
+/// are wired in Xcode the channel is absent and every call no-ops gracefully.
+
+final class WidgetSyncServiceProvider
+    extends
+        $FunctionalProvider<
+          WidgetSyncService,
+          WidgetSyncService,
+          WidgetSyncService
+        >
+    with $Provider<WidgetSyncService> {
+  /// Pushes today's progress to the iOS home-screen rings widget over the native
+  /// `opal/widget_sync` MethodChannel; no-op off iOS. Driven by
+  /// [WidgetSyncController]. Until the OpalWidgets extension + AppDelegate bridge
+  /// are wired in Xcode the channel is absent and every call no-ops gracefully.
+  const WidgetSyncServiceProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'widgetSyncServiceProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$widgetSyncServiceHash();
+
+  @$internal
+  @override
+  $ProviderElement<WidgetSyncService> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  WidgetSyncService create(Ref ref) {
+    return widgetSyncService(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(WidgetSyncService value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<WidgetSyncService>(value),
+    );
+  }
+}
+
+String _$widgetSyncServiceHash() => r'7d8119f788aa1d611d515adc0f014bf5e45bf409';
+
 /// Siri Shortcuts / AppIntents donation + deep-link stream (U26). The real impl
 /// talks to the native `opal/intents` MethodChannel, registered once the Intents
 /// Swift files are added to the Runner target in Xcode; no-op elsewhere.

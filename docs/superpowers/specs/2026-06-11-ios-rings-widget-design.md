@@ -3,6 +3,14 @@
 Date: 2026-06-11
 Status: Approved (brainstorm)
 
+> Revision (2026-06-11): bridge approach changed from the `home_widget` package
+> to a custom `MethodChannel` (`opal/widget_sync`) mirroring `LiveActivityService`,
+> after finding the codebase's established native-service pattern. Adds zero
+> dependencies. Also: deep-link routing is fully generic
+> (`OpalIntentsBridge.routerPath` maps `opal://<host>` -> `/<host>`), so no
+> SceneDelegate/Runner change is needed for `opal://pal-composer` or
+> `opal://today` — both routes already resolve.
+
 ## Goal
 
 Ship an iOS home-screen widget that mirrors the in-app Today header: the three
@@ -42,46 +50,60 @@ shared between Runner and OpalWidgets.
 
 | Piece | Location | New? |
 |---|---|---|
-| `OpalRingsWidget` (`Widget` + `TimelineProvider`) | `ios/OpalWidgets/` | new Swift |
-| Ring-arc SwiftUI view | `ios/OpalWidgets/` | new Swift |
+| `OpalRingsWidget` (`Widget` + `TimelineProvider` + SwiftUI views) | `ios/OpalWidgets/OpalRingsWidget.swift` | new Swift |
+| `RingsSnapshot` shared model (App Group id, keys, load/save) — member of BOTH targets | `ios/OpalWidgets/OpalRingsSnapshot.swift` | new Swift |
 | Register in `OpalWidgetsBundle` | `ios/OpalWidgets/OpalWidgetsBundle.swift` | 1 line |
-| `WidgetSyncService` (writes snapshot + reloads timelines) | `lib/services/` | new Dart |
-| Riverpod listener: `todayState` change → sync | `lib/` wiring | new Dart |
-| App Group capability on Runner + OpalWidgets | `ios/configure_native_targets.rb` | edit |
-| `opal://pal-composer` mapping in SceneDelegate | `ios/Runner/` | edit (mirror existing) |
+| `OpalWidgetSyncBridge` (`opal/widget_sync` channel → save + reload) | `ios/Runner/Widgets/OpalWidgetSyncBridge.swift` | new Swift |
+| Register bridge in AppDelegate | `ios/Runner/AppDelegate.swift` | 1 line |
+| `WidgetSyncService` interface + Noop + MethodChannel impl + pure payload fn | `lib/services/widget_sync/widget_sync_service.dart` | new Dart |
+| `widgetSyncServiceProvider` | `lib/controllers/providers.dart` | new Dart |
+| `WidgetSyncController` (listens `todayState` → sync) | `lib/controllers/widget_sync_controller.dart` | new Dart |
+| Instantiate controller on app start | `lib/app.dart` | 1 line |
+| App Group entitlements (Runner + OpalWidgets) + register new Swift files | `ios/Runner/Runner.entitlements`, `ios/OpalWidgets/OpalWidgets.entitlements`, `ios/configure_native_targets.rb` | new + edit |
 
 ### Bridge
 
-Use the **`home_widget`** package for the App Group read/write + timeline
-reload. It replaces App Group `UserDefaults` plumbing on both sides plus
-`WidgetCenter.reloadAllTimelines()`. (Alternative considered: a custom
-`MethodChannel` reusing the existing native bridge — rejected to avoid
-reimplementing exactly what `home_widget` provides.)
+Custom **`MethodChannel('opal/widget_sync')`** mirroring `LiveActivityService`
+(abstract interface + `NoopWidgetSyncService` + `MethodChannelWidgetSyncService`).
+Dart sends the snapshot; the native `OpalWidgetSyncBridge` (Runner target) writes
+it to the shared App Group `UserDefaults(suiteName: "group.com.opal.opal")` via the
+shared `RingsSnapshot` model and calls `WidgetCenter.shared.reloadAllTimelines()`.
+The widget's `TimelineProvider` reads the same `RingsSnapshot`. The App Group id +
+UserDefaults keys live once in `OpalRingsSnapshot.swift`, compiled into both
+targets (DRY), exactly as `OpalWorkoutAttributes.swift` is shared today.
+No new dependency.
 
 ### Data flow
 
 ```
 TodayState (drift, live)
-  -> WidgetSyncService.sync(state)
-       writes { moneyRing, moveRing, ritualsRing,
-                moneySpent, dailyBudget,
-                moveMinutes, dailyMoveMinutes,
-                ritualsDone, dailyRitualTarget } to App Group
-  -> WidgetCenter.reloadAllTimelines()
-       -> OpalRingsWidget TimelineProvider reads App Group -> renders snapshot
+  -> WidgetSyncController (ref.listen todayState)
+  -> WidgetSyncService.sync(state)         [Dart]
+       MethodChannel('opal/widget_sync').invokeMethod('sync', {
+         moneyRing, moveRing, ritualsRing,
+         moneySpent, dailyBudget,
+         moveMinutes, dailyMoveMinutes,
+         ritualsDone, dailyRitualTarget })
+  -> OpalWidgetSyncBridge                   [Swift, Runner]
+       RingsSnapshot(...).save()  // App Group UserDefaults
+       WidgetCenter.shared.reloadAllTimelines()
+  -> OpalRingsWidget TimelineProvider       [Swift, OpalWidgets]
+       RingsSnapshot.load() -> renders snapshot
 ```
 
-Sync triggers: every `todayState` emit (entry logged, goal changed) and on app
-background. No polling. The widget never computes — it renders pre-computed
-fractions and numbers (matches `TodayState`'s zero-goal guards).
+Sync triggers: every `todayState` emit (entry logged, goal changed); the
+controller listens with `fireImmediately` so the widget is seeded on launch. No
+polling. The widget never computes — it renders pre-computed fractions and
+numbers (matches `TodayState`'s zero-goal guards).
 
 ### Deep links (already wired)
 
 `lib/app.dart:51-65` listens on the native `opal/intents` channel and calls
-`_router.go(path)`; SceneDelegate already forwards `opal://` URLs (this is how
-the Live Activity's `opal://session/<routineId>` works). `/pal-composer` and
-`/today` are existing routes, so the only Runner-side edit is ensuring
-SceneDelegate maps the widget URLs to those paths.
+`_router.go(path)`; SceneDelegate already forwards every `opal://` URL to
+`OpalIntentsBridge`, whose `routerPath` maps `opal://<host>` -> `/<host>`
+generically. `/pal-composer` and `/today` are existing routes, so the widget's
+`.widgetURL`/`Link` URLs route with **no native change** — the widget just emits
+`opal://pal-composer` (the "+") and `opal://today` (the rest of the widget).
 
 ## Edge cases & error handling
 
@@ -101,10 +123,14 @@ SceneDelegate maps the widget URLs to those paths.
 
 ## Testing
 
-- **Dart unit:** `WidgetSyncService` maps a given `TodayState` to the exact
-  key/value payload (correct numbers + fractions, zero-goal handling); platform
-  calls mocked.
-- **Dart:** `todayState` listener calls sync on emit, without redundant calls.
+- **Dart unit:** pure `widgetSyncPayload(TodayState)` maps to the exact
+  key/value map (correct numbers + fractions, zero-goal handling) — no channel
+  needed.
+- **Dart:** `MethodChannelWidgetSyncService.sync` invokes `opal/widget_sync`
+  `sync` with that payload (mock channel handler); swallows `PlatformException` /
+  `MissingPluginException`.
+- **Dart:** `WidgetSyncController` calls `service.sync` when `todayState` emits
+  data (fake service via provider override).
 - **Swift:** ring-arc view + TimelineProvider via Xcode preview snapshots
   (consistent with the Live Activity — no Swift unit tests exist for it).
 - **Manual (simulator):** log an entry → widget updates after reload; tap "+" →

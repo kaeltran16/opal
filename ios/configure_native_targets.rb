@@ -25,6 +25,11 @@ project = Xcodeproj::Project.open(PROJECT_PATH)
 runner = project.targets.find { |t| t.name == 'Runner' }
 raise 'Runner target not found' unless runner
 
+# App Group entitlement for the rings-widget data share (Runner side).
+runner.build_configurations.each do |config|
+  config.build_settings['CODE_SIGN_ENTITLEMENTS'] = 'Runner/Runner.entitlements'
+end
+
 # --- helper: get-or-create a group whose `path` is relative to its parent --
 # (so file refs underneath can be plain basenames and resolve correctly).
 def group_at(parent, name, path = name)
@@ -58,6 +63,10 @@ add_source(project, la_group, 'OpalLiveActivityBridge.swift', runner)
 add_source(project, intents_group, 'OpalAppIntents.swift', runner)
 add_source(project, intents_group, 'OpalIntentsBridge.swift', runner)
 
+# Rings-widget sync bridge (Runner side; the `opal/widget_sync` channel).
+widgets_group = group_at(runner_group, 'Widgets')
+add_source(project, widgets_group, 'OpalWidgetSyncBridge.swift', runner)
+
 # ---------------------------------------------------------------------------
 # B2 — create the OpalWidgets app-extension target (the Live Activity widget).
 # ---------------------------------------------------------------------------
@@ -72,6 +81,12 @@ end
 widget_group = group_at(project.main_group, WIDGET_NAME)
 add_source(project, widget_group, 'OpalWorkoutLiveActivity.swift', widget)
 add_source(project, widget_group, 'OpalWidgetsBundle.swift', widget)
+add_source(project, widget_group, 'OpalRingsWidget.swift', widget)
+# Shared rings snapshot: member of BOTH targets (Runner writes, widget reads).
+snapshot_ref = add_source(project, widget_group, 'OpalRingsSnapshot.swift', widget)
+unless runner.source_build_phase.files_references.include?(snapshot_ref)
+  runner.source_build_phase.add_file_reference(snapshot_ref)
+end
 # Shared attributes: member of BOTH targets.
 widget.source_build_phase.add_file_reference(attributes_ref) unless
   widget.source_build_phase.files_references.include?(attributes_ref)
@@ -84,6 +99,7 @@ widget.build_configurations.each do |config|
   s = config.build_settings
   s['PRODUCT_NAME'] = '$(TARGET_NAME)'
   s['PRODUCT_BUNDLE_IDENTIFIER'] = WIDGET_BUNDLE_ID
+  s['CODE_SIGN_ENTITLEMENTS'] = 'OpalWidgets/OpalWidgets.entitlements'
   s['INFOPLIST_FILE'] = 'OpalWidgets/Info.plist'
   s['GENERATE_INFOPLIST_FILE'] = 'NO'
   s['IPHONEOS_DEPLOYMENT_TARGET'] = DEPLOYMENT_TARGET

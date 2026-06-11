@@ -1,11 +1,13 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'controllers/providers.dart';
+import 'controllers/widget_sync_controller.dart';
 import 'router.dart';
 import 'theme/app_colors.dart';
 import 'theme/app_text.dart';
@@ -39,6 +41,12 @@ class _LoopAppState extends ConsumerState<LoopApp> {
     super.initState();
     final siri = ref.read(siriShortcutsServiceProvider);
     _deepLinkSub = siri.deepLinks.listen(_handleDeepLink);
+    // Start the rings-widget sync loop (listens to todayState internally). iOS
+    // only: the home-screen widget exists nowhere else, so there's no reason to
+    // hold a live todayState subscription on other platforms.
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.iOS) {
+      ref.read(widgetSyncControllerProvider);
+    }
     // Donate the app shortcuts and drain any link buffered natively before we
     // were listening (a cold launch from a Siri/Spotlight tap). Best-effort.
     WidgetsBinding.instance.addPostFrameCallback((_) async {

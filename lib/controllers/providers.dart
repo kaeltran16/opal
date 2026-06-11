@@ -290,6 +290,18 @@ LiveActivityService liveActivityService(Ref ref) {
   return const NoopLiveActivityService();
 }
 
+/// Pushes today's progress to the iOS home-screen rings widget over the native
+/// `opal/widget_sync` MethodChannel; no-op off iOS. Driven by
+/// [WidgetSyncController]. Until the OpalWidgets extension + AppDelegate bridge
+/// are wired in Xcode the channel is absent and every call no-ops gracefully.
+@Riverpod(keepAlive: true)
+WidgetSyncService widgetSyncService(Ref ref) {
+  if (!kIsWeb && defaultTargetPlatform == TargetPlatform.iOS) {
+    return const MethodChannelWidgetSyncService();
+  }
+  return const NoopWidgetSyncService();
+}
+
 /// Siri Shortcuts / AppIntents donation + deep-link stream (U26). The real impl
 /// talks to the native `opal/intents` MethodChannel, registered once the Intents
 /// Swift files are added to the Runner target in Xcode; no-op elsewhere.
