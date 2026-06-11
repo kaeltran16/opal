@@ -93,3 +93,16 @@ Without `PAL_BASE_URL` the app stays on `MockPalService`.
 
 Email creds are never persisted server-side; the same `OPENROUTER_API_KEY`
 powers receipt extraction.
+
+## CORS
+
+The Flutter **web** build calls the API from the browser, so the server must
+echo CORS headers for the web app's origin. Browser calls are blocked unless the
+requesting origin is in `CORS_ORIGINS`. This is **off by default** (empty list).
+
+In production, set `CORS_ORIGINS` to the exact origin(s) the web app is served
+from — comma-separated, scheme + host + optional port, **no trailing slash**
+(e.g. `CORS_ORIGINS=https://app.kael.life,http://localhost:5173`). Then rebuild
+and restart so the running process picks up the new env: `npm run build &&
+systemctl restart opal-api`. Native (mobile) builds are unaffected — CORS only
+matters for browsers.

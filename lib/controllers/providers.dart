@@ -233,6 +233,7 @@ PalService palService(Ref ref) {
     httpClient: httpClient,
     tokens: tokens,
     context: context,
+    timeout: kIsWeb ? const Duration(seconds: 8) : const Duration(seconds: 30),
   );
 }
 

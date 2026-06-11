@@ -150,3 +150,39 @@ describe('app', () => {
     expect(res.statusCode).toBe(422)
   })
 })
+
+describe('cors', () => {
+  const allowed = 'https://web.example'
+
+  function buildCors() {
+    const store = new TokenStore(':memory:')
+    return buildApp({ pal: fakePal() as never, worker: fakeWorker() as never, store, provisioningKey: 'secret', corsOrigins: [allowed] })
+  }
+
+  let app: ReturnType<typeof buildApp>
+  beforeEach(async () => {
+    app = buildCors()
+    await app.ready()
+  })
+
+  it('echoes Access-Control-Allow-Origin for an allowed origin', async () => {
+    const res = await app.inject({ method: 'GET', url: '/healthz', headers: { origin: allowed } })
+    expect(res.statusCode).toBe(200)
+    expect(res.headers['access-control-allow-origin']).toBe(allowed)
+    expect(res.headers['vary']).toBe('Origin')
+  })
+
+  it('answers an OPTIONS preflight from an allowed origin with 204 and CORS headers', async () => {
+    const res = await app.inject({ method: 'OPTIONS', url: '/v1/register', headers: { origin: allowed } })
+    expect(res.statusCode).toBe(204)
+    expect(res.headers['access-control-allow-origin']).toBe(allowed)
+    expect(res.headers['access-control-allow-headers']).toBe('authorization,content-type')
+    expect(res.headers['access-control-allow-methods']).toBe('POST,GET,OPTIONS')
+  })
+
+  it('does not echo Access-Control-Allow-Origin for a disallowed origin', async () => {
+    const res = await app.inject({ method: 'GET', url: '/healthz', headers: { origin: 'https://evil.example' } })
+    expect(res.statusCode).toBe(200)
+    expect(res.headers['access-control-allow-origin']).toBeUndefined()
+  })
+})

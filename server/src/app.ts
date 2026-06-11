@@ -29,6 +29,7 @@ export function buildApp(deps: AppDeps): FastifyInstance {
     const origin = req.headers.origin
     if (origin && deps.corsOrigins.includes(origin)) {
       reply.header('Access-Control-Allow-Origin', origin)
+      reply.header('Vary', 'Origin')
       reply.header('Access-Control-Allow-Headers', 'authorization,content-type')
       reply.header('Access-Control-Allow-Methods', 'POST,GET,OPTIONS')
     }
