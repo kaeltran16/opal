@@ -69,6 +69,10 @@ RoutineRepository routineRepository(Ref ref) =>
 WorkoutRepository workoutRepository(Ref ref) =>
     WorkoutRepository(ref.watch(loopDatabaseProvider));
 
+@Riverpod(keepAlive: true)
+WeeklyPlanRepository weeklyPlanRepository(Ref ref) =>
+    WeeklyPlanRepository(ref.watch(loopDatabaseProvider));
+
 /// The exercise catalog (name-ascending), streamed from [RoutineRepository].
 /// Powers the Exercise Library (U11); U12/U13 reuse the same source.
 @riverpod

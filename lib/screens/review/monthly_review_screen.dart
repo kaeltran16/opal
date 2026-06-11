@@ -26,9 +26,11 @@ class MonthlyReviewScreen extends ConsumerWidget {
     'July', 'August', 'September', 'October', 'November', 'December',
   ];
 
-  /// Static on-brand insights for the "Patterns Pal found" block. These are the
-  /// mock's canned patterns (the real `/review` returns these with the
-  /// narrative in U23); kept here so the demo renders three rows.
+  /// Qualitative "Patterns Pal found" insights. These are correlational claims
+  /// with no structured data source yet (the narrative `/review` seam returns
+  /// prose, not structured patterns), so they stay canned rather than
+  /// fabricating numbers from the aggregates above.
+  // TODO(pal): structured insights endpoint — replace canned Patterns.
   static const _patterns = <(String, String)>[
     (
       'Morning rituals lower food spending',

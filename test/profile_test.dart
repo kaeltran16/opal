@@ -100,6 +100,28 @@ void main() {
     expect(stats.ritualsKept, 3);
     expect(stats.longestStreak, 12);
     expect(stats.memberSinceYear, 2024); // earliest entry year
+    expect(stats.memberSince, DateTime(2024, 12, 1)); // earliest full date
+    // best move day: mv1 (90 min) beats mv2 (60 min)
+    expect(stats.bestMoveDay, DateTime(2026, 3, 1));
+    expect(stats.bestMoveDayMinutes, 90);
+  });
+
+  // --- Pure milestone + streak-start helpers --------------------------------
+  test('nextStreakMilestone returns the next ladder rung, null past the top',
+      () {
+    expect(nextStreakMilestone(0), 7);
+    expect(nextStreakMilestone(7), 14); // strictly greater
+    expect(nextStreakMilestone(11), 14);
+    expect(nextStreakMilestone(30), 60);
+    expect(nextStreakMilestone(365), isNull); // no fabricated target
+    expect(nextStreakMilestone(400), isNull);
+  });
+
+  test('streakStartDate counts back inclusively; null for a zero streak', () {
+    final today = DateTime(2026, 4, 22, 9, 30); // time-of-day ignored
+    expect(streakStartDate(1, today), DateTime(2026, 4, 22)); // today
+    expect(streakStartDate(11, today), DateTime(2026, 4, 12));
+    expect(streakStartDate(0, today), isNull);
   });
 
   // --- Widget: redesigned You tab — profile card + inset sections ----------
@@ -109,7 +131,10 @@ void main() {
       'You tab renders the profile card + inset sections; Daily budget opens '
       'the budget sheet, Integrations targets the email stub',
       (WidgetTester tester) async {
-    SharedPreferences.setMockInitialValues({});
+    // seed the onboarding display name so the profile card renders it (the
+    // card falls back to "You" only when this is empty).
+    SharedPreferences.setMockInitialValues(
+        {'settings.displayName': 'Mira Okafor'});
     final prefs = await SharedPreferences.getInstance();
     final db = LoopDatabase.forTesting(NativeDatabase.memory());
     addTearDown(db.close);
@@ -135,9 +160,10 @@ void main() {
     // Header.
     expect(find.text('You'), findsWidgets);
 
-    // Profile card.
+    // Profile card renders the seeded display name (not the "You" fallback).
     expect(find.text('Mira Okafor'), findsOneWidget);
-    expect(find.text('Tracking since October · 182 days'), findsOneWidget);
+    // Empty DB → no entries → honest tenure placeholder (no fabricated date).
+    expect(find.text('Just getting started'), findsOneWidget);
 
     // Above-the-fold section headers (InsetSection uppercases them) for the
     // new IA — no stat grid, no Money/Bills section.

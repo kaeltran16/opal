@@ -660,6 +660,18 @@ class SeedData {
         ),
       ];
 
+  /// The default weekly schedule (ISO weekday 1=Mon..7=Sun) referencing the
+  /// seeded [routines]. Wed/Sun are Rest days (no row). Mirrors the layout the
+  /// Weekly Plan screen previously hardcoded.
+  static List<WeeklyPlanAssignment> weeklyPlan() => const [
+        WeeklyPlanAssignment(weekday: 1, routineId: 'seed-routine-push-a'),
+        WeeklyPlanAssignment(weekday: 2, routineId: 'seed-routine-pull-a'),
+        WeeklyPlanAssignment(weekday: 4, routineId: 'seed-routine-legs'),
+        WeeklyPlanAssignment(
+            weekday: 5, routineId: 'seed-routine-treadmill-int'),
+        WeeklyPlanAssignment(weekday: 6, routineId: 'seed-routine-upper-power'),
+      ];
+
   /// Two past workouts: one completed earlier today (push), one yesterday
   /// (legs). The today one is linked from a move [Entry] (see [entries]).
   static List<Workout> workouts() => [

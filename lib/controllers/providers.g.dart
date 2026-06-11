@@ -386,6 +386,54 @@ final class WorkoutRepositoryProvider
 
 String _$workoutRepositoryHash() => r'c97103f9acf7574b8a484ef162d790c62a8850c9';
 
+@ProviderFor(weeklyPlanRepository)
+const weeklyPlanRepositoryProvider = WeeklyPlanRepositoryProvider._();
+
+final class WeeklyPlanRepositoryProvider
+    extends
+        $FunctionalProvider<
+          WeeklyPlanRepository,
+          WeeklyPlanRepository,
+          WeeklyPlanRepository
+        >
+    with $Provider<WeeklyPlanRepository> {
+  const WeeklyPlanRepositoryProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'weeklyPlanRepositoryProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$weeklyPlanRepositoryHash();
+
+  @$internal
+  @override
+  $ProviderElement<WeeklyPlanRepository> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  WeeklyPlanRepository create(Ref ref) {
+    return weeklyPlanRepository(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(WeeklyPlanRepository value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<WeeklyPlanRepository>(value),
+    );
+  }
+}
+
+String _$weeklyPlanRepositoryHash() =>
+    r'c3738b6eac4779275e5171feaf67aa8e78bf391b';
+
 /// The exercise catalog (name-ascending), streamed from [RoutineRepository].
 /// Powers the Exercise Library (U11); U12/U13 reuse the same source.
 

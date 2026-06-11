@@ -3,6 +3,25 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../theme/app_colors.dart' show AppAccent;
 
+/// How often the email sync runs in the background. Persisted by its [minutes]
+/// so the stored value stays meaningful even if the option set changes.
+enum SyncCadence {
+  every15min(15, 'Every 15 min'),
+  every30min(30, 'Every 30 min'),
+  hourly(60, 'Hourly'),
+  manual(0, 'Manual only');
+
+  const SyncCadence(this.minutes, this.label);
+
+  final int minutes;
+  final String label;
+
+  static SyncCadence fromMinutes(int minutes) => values.firstWhere(
+        (c) => c.minutes == minutes,
+        orElse: () => SyncCadence.every15min,
+      );
+}
+
 /// User preferences persisted across launches via `shared_preferences`.
 ///
 /// Mirrors the handoff's `@AppStorage("accent")` / brightness toggle plus the
@@ -22,6 +41,9 @@ class SettingsRepository {
   static const _kRitualReminders = 'settings.ritualReminders';
   static const _kBudgetAlerts = 'settings.budgetAlerts';
   static const _kDisplayName = 'settings.displayName';
+  static const _kSyncCadence = 'settings.email.syncCadenceMinutes';
+  static const _kImportNotifications = 'settings.email.importNotifications';
+  static const _kAutoCategorize = 'settings.email.autoCategorize';
 
   // --- Accent -------------------------------------------------------------
 
@@ -80,4 +102,29 @@ class SettingsRepository {
 
   Future<void> setBudgetAlerts(bool enabled) =>
       _prefs.setBool(_kBudgetAlerts, enabled);
+
+  // --- Email sync preferences ---------------------------------------------
+
+  /// Background email-sync cadence. Defaults to [SyncCadence.every15min].
+  SyncCadence get syncCadence {
+    final minutes = _prefs.getInt(_kSyncCadence);
+    if (minutes == null) return SyncCadence.every15min;
+    return SyncCadence.fromMinutes(minutes);
+  }
+
+  Future<void> setSyncCadence(SyncCadence cadence) =>
+      _prefs.setInt(_kSyncCadence, cadence.minutes);
+
+  /// Notify when a new receipt is detected during sync. Defaults off.
+  bool get importNotifications =>
+      _prefs.getBool(_kImportNotifications) ?? false;
+
+  Future<void> setImportNotifications(bool enabled) =>
+      _prefs.setBool(_kImportNotifications, enabled);
+
+  /// Let Pal auto-categorize imported receipts. Defaults on.
+  bool get autoCategorize => _prefs.getBool(_kAutoCategorize) ?? true;
+
+  Future<void> setAutoCategorize(bool enabled) =>
+      _prefs.setBool(_kAutoCategorize, enabled);
 }

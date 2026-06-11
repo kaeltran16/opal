@@ -3,12 +3,14 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../models/models.dart';
 import 'providers.dart';
+import 'today_controller.dart' show goalsStreamProvider;
 
 part 'weekly_review_controller.g.dart';
 
 /// One tinted stat tile in the Weekly Review three-ring summary (handoff screen
-/// 17). Mirrors the mock's canned week numbers — this is a mock-data review.
+/// 17): a label, a big value, the `of <target>` sub line, and a type accent.
 @immutable
 class WeekStat {
   const WeekStat({
@@ -31,23 +33,158 @@ class WeekStat {
   final String colorToken;
 }
 
-/// The mock's canned three-ring week summary for the review week (Apr 17–23).
-/// Fixed values matching the prototype; kept here so the screen stays dumb.
-const List<WeekStat> kWeeklyReviewStats = [
-  WeekStat(label: 'Spent', value: '\$435', sub: 'of \$595', colorToken: 'money'),
-  WeekStat(label: 'Workout', value: '296', sub: 'of 420 min', colorToken: 'move'),
-  WeekStat(label: 'Routines', value: '26', sub: 'of 35', colorToken: 'rituals'),
-];
+/// The fully-computed week summary for the current week (Mon–Sun): the three
+/// stat tiles plus the date eyebrows. All math lives here so the screen stays
+/// dumb and this is unit-testable.
+@immutable
+class WeeklyStats {
+  const WeeklyStats({
+    required this.weekStart,
+    required this.spent,
+    required this.budget,
+    required this.moveMinutes,
+    required this.moveTarget,
+    required this.ritualsKept,
+    required this.ritualsTarget,
+  });
+
+  /// Monday 00:00 of the week these stats cover.
+  final DateTime weekStart;
+
+  /// Absolute sum of expense amounts (money entries, amount < 0) this week.
+  final double spent;
+
+  /// Weekly budget = dailyBudget * 7.
+  final double budget;
+
+  /// Total movement minutes (move entries' [Entry.duration]) this week.
+  final int moveMinutes;
+
+  /// Weekly move target = dailyMoveMinutes * 7.
+  final int moveTarget;
+
+  /// Count of ritual entries logged this week.
+  final int ritualsKept;
+
+  /// Weekly rituals target = dailyRitualTarget * 7.
+  final int ritualsTarget;
+
+  /// Sunday (week end, inclusive) — Monday + 6 days.
+  DateTime get weekEnd => weekStart.add(const Duration(days: 6));
+
+  /// Next review date — the Sunday that closes this week.
+  DateTime get nextReview => weekEnd;
+
+  static const _months = [
+    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+  ];
+
+  static const _weekdays = [
+    'Monday', 'Tuesday', 'Wednesday', 'Thursday',
+    'Friday', 'Saturday', 'Sunday',
+  ];
+
+  /// Eyebrow span, e.g. "Apr 17–23" or "Apr 28–May 4" when the week crosses a
+  /// month boundary.
+  String get rangeLabel {
+    final start = '${_months[weekStart.month - 1]} ${weekStart.day}';
+    final end = weekStart.month == weekEnd.month
+        ? '${weekEnd.day}'
+        : '${_months[weekEnd.month - 1]} ${weekEnd.day}';
+    return '$start–$end';
+  }
+
+  /// "Next review" footer label, e.g. "Sunday, Apr 23".
+  String get nextReviewLabel {
+    final d = nextReview;
+    return '${_weekdays[d.weekday - 1]}, ${_months[d.month - 1]} ${d.day}';
+  }
+
+  /// The three week tiles, in handoff order (money / move / rituals).
+  List<WeekStat> get tiles => [
+        WeekStat(
+          label: 'Spent',
+          value: '\$${spent.toStringAsFixed(0)}',
+          sub: 'of \$${budget.toStringAsFixed(0)}',
+          colorToken: 'money',
+        ),
+        WeekStat(
+          label: 'Workout',
+          value: '$moveMinutes',
+          sub: 'of $moveTarget min',
+          colorToken: 'move',
+        ),
+        WeekStat(
+          label: 'Routines',
+          value: '$ritualsKept',
+          sub: 'of $ritualsTarget',
+          colorToken: 'rituals',
+        ),
+      ];
+}
+
+/// Monday 00:00 of the week containing [now].
+DateTime weekStartFor(DateTime now) {
+  final today = DateTime(now.year, now.month, now.day);
+  return today.subtract(Duration(days: now.weekday - 1));
+}
+
+/// Folds the week's [entries] against [goals] into the [WeeklyStats] tiles.
+/// Pure — extracted from the provider so it can be tested with fixtures.
+/// [now] defaults to [DateTime.now] and only fixes the covered week.
+WeeklyStats buildWeeklyStats(
+  List<Entry> entries,
+  Goals goals, {
+  DateTime? now,
+}) {
+  final weekStart = weekStartFor(now ?? DateTime.now());
+  var spent = 0.0;
+  var moveMinutes = 0;
+  var ritualsKept = 0;
+  for (final e in entries) {
+    switch (e.type) {
+      case EntryType.money:
+        if ((e.amount ?? 0) < 0) spent += e.amount!.abs();
+      case EntryType.move:
+        moveMinutes += e.duration ?? 0;
+      case EntryType.rituals:
+        ritualsKept += 1;
+    }
+  }
+  return WeeklyStats(
+    weekStart: weekStart,
+    spent: spent,
+    budget: goals.dailyBudget * 7,
+    moveMinutes: moveMinutes,
+    moveTarget: goals.dailyMoveMinutes * 7,
+    ritualsKept: ritualsKept,
+    ritualsTarget: goals.dailyRitualTarget * 7,
+  );
+}
+
+/// Streams the [WeeklyStats] for the current week (Mon–Sun). Reactive: re-emits
+/// when this week's entries or the goals change.
+@riverpod
+Stream<WeeklyStats> weeklyStats(Ref ref) async* {
+  final entriesRepo = ref.watch(entryRepositoryProvider);
+  final goals = ref.watch(goalsStreamProvider).asData?.value ?? const Goals();
+
+  final now = DateTime.now();
+  final start = weekStartFor(now);
+  final end = start.add(const Duration(days: 7));
+
+  await for (final entries in entriesRepo.watchEntriesInRange(start, end)) {
+    yield buildWeeklyStats(entries, goals, now: now);
+  }
+}
 
 /// Drives the Pal-written weekly narrative: holds the review text with a loading
 /// state, and re-requests it on [regenerate]. Mirrors [MonthlyReviewController]
-/// — reuses the [PalService.review] seam, passing the review week's start date
-/// (Apr 17) so the mock returns canned text.
+/// — reuses the [PalService.review] seam, passing the current week's start.
 @riverpod
 class WeeklyReviewController extends _$WeeklyReviewController {
-  /// The review week's start date — Apr 17 of the current year, matching the
-  /// mock's "Weekly Review · Apr 17–23" eyebrow.
-  DateTime get _weekStart => DateTime(DateTime.now().year, 4, 17);
+  DateTime get _weekStart => weekStartFor(DateTime.now());
 
   @override
   Future<String> build() {

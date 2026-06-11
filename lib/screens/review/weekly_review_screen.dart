@@ -8,29 +8,33 @@ import '../../theme/app_text.dart';
 import '../../widgets/app_icon.dart';
 import '../../widgets/nav_bar.dart';
 
-/// Screen 17 — Weekly Review (mock).
+/// Screen 17 — Weekly Review.
 ///
 /// A Sunday ritual, the Pal-written sibling of the Monthly Review: an eyebrow +
 /// headline + lede hero; a three-ring week summary of tinted stat tiles; a
 /// "Wins" inset list; "Patterns" accent-bar cards; a "One thing to try"
 /// gradient card seeding the Pal composer; and a "Next review" footer.
 ///
-/// The three-ring week stats are the canned [kWeeklyReviewStats]; the
+/// The three-ring week stats + the date eyebrows come from
+/// [weeklyStatsProvider] (computed from this week's entries against goals); the
 /// narrative seam lives in [weeklyReviewControllerProvider] (mirrors monthly).
 /// This widget only lays out.
 class WeeklyReviewScreen extends ConsumerWidget {
   const WeeklyReviewScreen({super.key});
 
-  /// "Wins" rows: (icon, colorToken, title, sub).
+  /// "Wins" rows: (icon, colorToken, title, sub). Qualitative Pal-found
+  /// highlights — these have no structured data source yet, so they stay canned
+  /// rather than fabricating numbers from the tiles.
+  // TODO(pal): structured insights endpoint — replace canned Wins.
   static const _wins = <(String, String, String, String)>[
     ('figure.run', 'move', '11-day workout streak', 'Longest in 3 months'),
     ('dollarsign.circle.fill', 'money', '\$160 under budget', '\$435 of \$595'),
     ('sparkles', 'rituals', 'Morning pages 6/7', 'Missed only Saturday'),
   ];
 
-  /// "Patterns" cards: (colorToken, rich text). The bolded spans from the mock
-  /// are dropped to plain text — the app has no inline-bold body style and the
-  /// house Pattern rows render flat; copy is otherwise verbatim.
+  /// "Patterns" cards: (colorToken, rich text). Qualitative Pal insights with no
+  /// structured data source yet; kept canned rather than inventing numbers.
+  // TODO(pal): structured insights endpoint — replace canned Patterns.
   static const _patterns = <(String, String)>[
     (
       'money',
@@ -49,6 +53,8 @@ class WeeklyReviewScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final c = context.colors;
+    final statsAsync = ref.watch(weeklyStatsProvider);
+    final stats = statsAsync.asData?.value;
 
     return ListView(
       padding: const EdgeInsets.only(bottom: 40),
@@ -89,7 +95,10 @@ class WeeklyReviewScreen extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('WEEKLY REVIEW · APR 17–23',
+              Text(
+                  stats == null
+                      ? 'WEEKLY REVIEW'
+                      : 'WEEKLY REVIEW · ${stats.rangeLabel.toUpperCase()}',
                   style: AppFonts.sf(
                       size: 12,
                       weight: FontWeight.w700,
@@ -124,13 +133,19 @@ class WeeklyReviewScreen extends ConsumerWidget {
             padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(
                 color: c.surface, borderRadius: BorderRadius.circular(18)),
-            child: Row(
-              children: [
-                for (var i = 0; i < kWeeklyReviewStats.length; i++) ...[
-                  if (i > 0) const SizedBox(width: 10),
-                  Expanded(child: _StatTile(stat: kWeeklyReviewStats[i])),
+            child: statsAsync.when(
+              loading: () => const _TilesPlaceholder(),
+              error: (e, _) => Text("Couldn't load this week.",
+                  style: AppFonts.sf(
+                      size: 15, color: c.ink3, letterSpacing: -0.24)),
+              data: (s) => Row(
+                children: [
+                  for (var i = 0; i < s.tiles.length; i++) ...[
+                    if (i > 0) const SizedBox(width: 10),
+                    Expanded(child: _StatTile(stat: s.tiles[i])),
+                  ],
                 ],
-              ],
+              ),
             ),
           ),
         ),
@@ -182,7 +197,10 @@ class WeeklyReviewScreen extends ConsumerWidget {
         // --- Footer ---------------------------------------------------------
         Padding(
           padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
-          child: Text('Next review · Sunday, Apr 30',
+          child: Text(
+              stats == null
+                  ? 'Next review · Sunday'
+                  : 'Next review · ${stats.nextReviewLabel}',
               textAlign: TextAlign.center,
               style: AppFonts.sf(
                   size: 13, color: c.ink3, letterSpacing: -0.08)),
@@ -208,6 +226,18 @@ class _SectionHeader extends StatelessWidget {
               color: c.ink,
               letterSpacing: 0.35)),
     );
+  }
+}
+
+/// Loading state for the three-ring summary, keeping the row's height stable.
+class _TilesPlaceholder extends StatelessWidget {
+  const _TilesPlaceholder();
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return Text('…',
+        style: AppFonts.sf(size: 22, color: c.ink3, letterSpacing: -0.3));
   }
 }
 

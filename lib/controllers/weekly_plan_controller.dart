@@ -1,15 +1,18 @@
 import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../models/models.dart';
+import 'providers.dart';
+
 part 'weekly_plan_controller.g.dart';
 
-/// One day in the [WeeklyPlanController] schedule (handoff screen 24).
+/// One day in the [weeklyPlanController] schedule (handoff screen 24).
 ///
-/// This is a derived 7-day view, not persisted, so the schedule is hardcoded in
-/// the controller. [colorKey] is a tracker token ('move'|'rituals'|'money'|
-/// 'accent') or the 'rest' pseudo-color; the screen maps 'rest' → `c.ink3` and
-/// everything else through `c.forType` (with 'accent' falling through to
-/// `c.accent`).
+/// A derived 7-day view joining the persisted schedule (`weekday -> routineId`)
+/// to the referenced [Routine] and this week's [Workout]s. [colorKey] is a
+/// tracker token ('move'|'rituals'|'money'|'accent') or the 'rest' pseudo-color;
+/// the screen maps 'rest' → `c.ink3` and everything else through `c.forType`
+/// (with 'accent' falling through to `c.accent`).
 @immutable
 class WeekPlanDay {
   const WeekPlanDay({
@@ -73,8 +76,7 @@ class WeeklyPlan {
   int get totalCount => days.where((d) => !d.isRest).length;
 
   /// Sum of estimated minutes across the week.
-  int get totalMinutes =>
-      days.fold(0, (sum, d) => sum + (d.est ?? 0));
+  int get totalMinutes => days.fold(0, (sum, d) => sum + (d.est ?? 0));
 
   WeekPlanDay? get today {
     for (final d in days) {
@@ -84,96 +86,141 @@ class WeeklyPlan {
   }
 }
 
-/// The week schedule, anchored to the CURRENT week. Mon→Sun: completed = 3 of 5
-/// workouts, 290 min planned. Dates are derived relative to today so the plan
-/// always shows this week; per-day content/status is fixed.
-@riverpod
-WeeklyPlan weeklyPlanController(Ref ref) {
-  final now = DateTime.now();
+const _dayAbbrev = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+/// Per-weekday accent token (1=Mon..7=Sun) cycling the three tracker hues plus
+/// the accent, so the strip keeps its visual variety without a stored field.
+const _colorByWeekday = <int, String>{
+  1: 'move',
+  2: 'rituals',
+  3: 'rest',
+  4: 'money',
+  5: 'move',
+  6: 'accent',
+  7: 'rest',
+};
+
+/// Builds the derived [WeeklyPlan] by joining the persisted [schedule] to its
+/// [routines] (looked up by id) and deriving completion from this week's
+/// [workouts]. Pure so the join/derive logic is unit-testable; [now] is the
+/// anchor for "this week" and "today".
+///
+/// For each weekday (Mon..Sun): an assignment with a resolvable routine yields a
+/// workout day (type/muscles derived from the routine's exercises via
+/// [exercisesById], est from `Routine.estMin`); anything else is a Rest day.
+/// `done` is true when a workout for that routine started within the current
+/// week (Mon 00:00 .. next Mon 00:00).
+WeeklyPlan buildWeeklyPlan({
+  required List<WeeklyPlanAssignment> schedule,
+  required List<Routine> routines,
+  required Map<String, Exercise> exercisesById,
+  required List<Workout> workouts,
+  required DateTime now,
+}) {
   final todayMidnight = DateTime(now.year, now.month, now.day);
   // Monday of the current week (DateTime.weekday: Mon=1..Sun=7).
   final monday = todayMidnight.subtract(Duration(days: now.weekday - 1));
+  final nextMonday = monday.add(const Duration(days: 7));
 
-  // Per-day content/status keyed by weekday offset (0 = Mon .. 6 = Sun).
-  WeekPlanDay dayAt(int offset, WeekPlanDay Function(int date, bool isToday) build) {
-    final date = monday.add(Duration(days: offset));
-    return build(date.day, date == todayMidnight);
+  final routineById = {for (final r in routines) r.id: r};
+  final scheduleByWeekday = {for (final a in schedule) a.weekday: a};
+
+  // Routine ids with a workout started in the current week.
+  final doneRoutineIds = <String>{};
+  for (final w in workouts) {
+    final id = w.routineId;
+    if (id == null) continue;
+    if (!w.startedAt.isBefore(monday) && w.startedAt.isBefore(nextMonday)) {
+      doneRoutineIds.add(id);
+    }
   }
 
-  return WeeklyPlan(days: [
-    dayAt(0, (date, isToday) => WeekPlanDay(
-          day: 'Mon',
-          date: date,
-          type: 'Push',
-          routine: 'Push Day A',
-          est: 55,
-          colorKey: 'move',
-          icon: 'dumbbell.fill',
-          done: true,
-          today: isToday,
-          muscles: const ['Chest', 'Shoulders', 'Triceps'],
-        )),
-    dayAt(1, (date, isToday) => WeekPlanDay(
-          day: 'Tue',
-          date: date,
-          type: 'Pull',
-          routine: 'Pull Day A',
-          est: 58,
-          colorKey: 'rituals',
-          icon: 'dumbbell.fill',
-          done: true,
-          today: isToday,
-          muscles: const ['Back', 'Biceps'],
-        )),
-    dayAt(2, (date, isToday) => WeekPlanDay(
-          day: 'Wed',
-          date: date,
-          type: 'Rest',
-          colorKey: 'rest',
-          icon: 'moon.stars.fill',
-          done: true,
-          today: isToday,
-        )),
-    dayAt(3, (date, isToday) => WeekPlanDay(
-          day: 'Thu',
-          date: date,
-          type: 'Legs',
-          routine: 'Leg Day',
-          est: 62,
-          colorKey: 'money',
-          icon: 'figure.run',
-          today: isToday,
-          muscles: const ['Quads', 'Hamstrings', 'Calves'],
-        )),
-    dayAt(4, (date, isToday) => WeekPlanDay(
-          day: 'Fri',
-          date: date,
-          type: 'Cardio',
-          routine: 'Treadmill Intervals',
-          est: 30,
-          colorKey: 'move',
-          icon: 'figure.run',
-          today: isToday,
-          muscles: const ['Cardio'],
-        )),
-    dayAt(5, (date, isToday) => WeekPlanDay(
-          day: 'Sat',
-          date: date,
-          type: 'Upper',
-          routine: 'Upper Power',
-          est: 45,
-          colorKey: 'accent',
-          icon: 'dumbbell.fill',
-          today: isToday,
-          muscles: const ['Chest', 'Back'],
-        )),
-    dayAt(6, (date, isToday) => WeekPlanDay(
-          day: 'Sun',
-          date: date,
-          type: 'Rest',
-          colorKey: 'rest',
-          icon: 'moon.stars.fill',
-          today: isToday,
-        )),
-  ]);
+  final days = <WeekPlanDay>[];
+  for (var offset = 0; offset < 7; offset++) {
+    final date = monday.add(Duration(days: offset));
+    final isToday = date == todayMidnight;
+    final weekday = offset + 1; // 1=Mon..7=Sun
+    final colorKey = _colorByWeekday[weekday]!;
+
+    final routineId = scheduleByWeekday[weekday]?.routineId;
+    final routine = routineId == null ? null : routineById[routineId];
+
+    if (routine == null) {
+      days.add(WeekPlanDay(
+        day: _dayAbbrev[offset],
+        date: date.day,
+        type: 'Rest',
+        colorKey: 'rest',
+        icon: 'moon.stars.fill',
+        today: isToday,
+      ));
+      continue;
+    }
+
+    final isCardio = routine.tag == RoutineTag.cardio;
+    days.add(WeekPlanDay(
+      day: _dayAbbrev[offset],
+      date: date.day,
+      type: _typeLabel(routine, exercisesById),
+      routine: routine.name,
+      est: routine.estMin,
+      colorKey: colorKey,
+      icon: isCardio ? 'figure.run' : 'dumbbell.fill',
+      done: doneRoutineIds.contains(routine.id),
+      today: isToday,
+      muscles: _muscles(routine, exercisesById),
+    ));
+  }
+
+  return WeeklyPlan(days: days);
+}
+
+/// Short type label derived from the routine's exercises: the most common
+/// exercise `group` (e.g. "Push" / "Pull" / "Legs" / "Cardio"). Falls back to
+/// the routine name when no exercises resolve.
+String _typeLabel(Routine routine, Map<String, Exercise> exercisesById) {
+  final counts = <String, int>{};
+  for (final slot in routine.orderedExercises) {
+    final group = exercisesById[slot.exerciseId]?.group;
+    if (group == null) continue;
+    counts[group] = (counts[group] ?? 0) + 1;
+  }
+  if (counts.isEmpty) return routine.name;
+  return counts.entries.reduce((a, b) => a.value >= b.value ? a : b).key;
+}
+
+/// Distinct target muscles across the routine's exercises, in slot order.
+List<String> _muscles(Routine routine, Map<String, Exercise> exercisesById) {
+  final seen = <String>{};
+  final result = <String>[];
+  for (final slot in routine.orderedExercises) {
+    final muscle = exercisesById[slot.exerciseId]?.muscle;
+    if (muscle == null || !seen.add(muscle)) continue;
+    result.add(muscle);
+  }
+  return result;
+}
+
+/// Streams the derived [WeeklyPlan], anchored to the current week. Re-emits when
+/// the persisted schedule changes; each tick re-reads routines, the exercise
+/// catalog, and workout history so completion/derivation stay current.
+@riverpod
+Stream<WeeklyPlan> weeklyPlanController(Ref ref) async* {
+  final scheduleRepo = ref.watch(weeklyPlanRepositoryProvider);
+  final routineRepo = ref.watch(routineRepositoryProvider);
+  final workoutRepo = ref.watch(workoutRepositoryProvider);
+
+  await for (final schedule in scheduleRepo.watchSchedule()) {
+    final routines = await routineRepo.getAll();
+    final exercises = await routineRepo.getAllExercises();
+    final workouts = await workoutRepo.watchWorkouts().first;
+
+    yield buildWeeklyPlan(
+      schedule: schedule,
+      routines: routines,
+      exercisesById: {for (final e in exercises) e.id: e},
+      workouts: workouts,
+      now: DateTime.now(),
+    );
+  }
 }

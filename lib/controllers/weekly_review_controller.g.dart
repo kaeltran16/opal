@@ -8,24 +8,68 @@ part of 'weekly_review_controller.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
+/// Streams the [WeeklyStats] for the current week (Mon–Sun). Reactive: re-emits
+/// when this week's entries or the goals change.
+
+@ProviderFor(weeklyStats)
+const weeklyStatsProvider = WeeklyStatsProvider._();
+
+/// Streams the [WeeklyStats] for the current week (Mon–Sun). Reactive: re-emits
+/// when this week's entries or the goals change.
+
+final class WeeklyStatsProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<WeeklyStats>,
+          WeeklyStats,
+          Stream<WeeklyStats>
+        >
+    with $FutureModifier<WeeklyStats>, $StreamProvider<WeeklyStats> {
+  /// Streams the [WeeklyStats] for the current week (Mon–Sun). Reactive: re-emits
+  /// when this week's entries or the goals change.
+  const WeeklyStatsProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'weeklyStatsProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$weeklyStatsHash();
+
+  @$internal
+  @override
+  $StreamProviderElement<WeeklyStats> $createElement(
+    $ProviderPointer pointer,
+  ) => $StreamProviderElement(pointer);
+
+  @override
+  Stream<WeeklyStats> create(Ref ref) {
+    return weeklyStats(ref);
+  }
+}
+
+String _$weeklyStatsHash() => r'41ef5641d0460065434edd8f1c4e4a624120d529';
+
 /// Drives the Pal-written weekly narrative: holds the review text with a loading
 /// state, and re-requests it on [regenerate]. Mirrors [MonthlyReviewController]
-/// — reuses the [PalService.review] seam, passing the review week's start date
-/// (Apr 17) so the mock returns canned text.
+/// — reuses the [PalService.review] seam, passing the current week's start.
 
 @ProviderFor(WeeklyReviewController)
 const weeklyReviewControllerProvider = WeeklyReviewControllerProvider._();
 
 /// Drives the Pal-written weekly narrative: holds the review text with a loading
 /// state, and re-requests it on [regenerate]. Mirrors [MonthlyReviewController]
-/// — reuses the [PalService.review] seam, passing the review week's start date
-/// (Apr 17) so the mock returns canned text.
+/// — reuses the [PalService.review] seam, passing the current week's start.
 final class WeeklyReviewControllerProvider
     extends $AsyncNotifierProvider<WeeklyReviewController, String> {
   /// Drives the Pal-written weekly narrative: holds the review text with a loading
   /// state, and re-requests it on [regenerate]. Mirrors [MonthlyReviewController]
-  /// — reuses the [PalService.review] seam, passing the review week's start date
-  /// (Apr 17) so the mock returns canned text.
+  /// — reuses the [PalService.review] seam, passing the current week's start.
   const WeeklyReviewControllerProvider._()
     : super(
         from: null,
@@ -46,12 +90,11 @@ final class WeeklyReviewControllerProvider
 }
 
 String _$weeklyReviewControllerHash() =>
-    r'bfa200a262c2f34c701579120f1df79556da9e29';
+    r'050101e0897826f94d3717517860264bb0c650c9';
 
 /// Drives the Pal-written weekly narrative: holds the review text with a loading
 /// state, and re-requests it on [regenerate]. Mirrors [MonthlyReviewController]
-/// — reuses the [PalService.review] seam, passing the review week's start date
-/// (Apr 17) so the mock returns canned text.
+/// — reuses the [PalService.review] seam, passing the current week's start.
 
 abstract class _$WeeklyReviewController extends $AsyncNotifier<String> {
   FutureOr<String> build();

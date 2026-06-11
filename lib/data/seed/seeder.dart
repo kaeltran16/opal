@@ -16,10 +16,10 @@ class Seeder {
 
   /// Marker key written once the initial seed completes.
   ///
-  /// Bumped to `v4`: routines gain authored `estMin` (+ cardio `distanceKm`/
-  /// `pace`), so DBs seeded under `initial_seed_v3` re-run (insertOrReplace) and
-  /// backfill those fields on the seed routines.
-  static const String _markerKey = 'initial_seed_v4';
+  /// Bumped to `v5`: a default weekly schedule (`weekly_plan_days`) is seeded,
+  /// so DBs seeded under `initial_seed_v4` re-run (insertOrReplace) and backfill
+  /// the schedule referencing the seed routines.
+  static const String _markerKey = 'initial_seed_v5';
 
   /// Seeds the DB if it hasn't been seeded yet. Safe to call on every launch.
   Future<void> seedIfNeeded() async {
@@ -94,6 +94,13 @@ class Seeder {
       // Timeline entries.
       for (final entry in SeedData.entries()) {
         await _db.into(_db.entries).insert(entry.toCompanion(), mode: replace);
+      }
+
+      // Weekly schedule (weekday -> routineId) — must follow routines (FK).
+      for (final assignment in SeedData.weeklyPlan()) {
+        await _db
+            .into(_db.weeklyPlanDays)
+            .insert(assignment.toCompanion(), mode: replace);
       }
 
       // Mark done.

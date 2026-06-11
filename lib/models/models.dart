@@ -13,4 +13,5 @@ export 'pal_note.dart';
 export 'ritual_routine.dart';
 export 'routine.dart';
 export 'set_log.dart';
+export 'weekly_plan_assignment.dart';
 export 'workout.dart';

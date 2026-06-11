@@ -132,15 +132,65 @@ void main() {
           streak: 12),
     ];
 
-    final s = buildMonthlyStats(month, entries, routines);
+    // Previous month: $60 spent, 50 move min over 1 day, 0 rituals.
+    final previousEntries = [
+      Entry(
+        id: 'p1',
+        timestamp: DateTime(2026, 3, 10, 9),
+        type: EntryType.money,
+        title: 'Groceries',
+        amount: -60,
+        source: EntrySource.manual,
+      ),
+      Entry(
+        id: 'p2',
+        timestamp: DateTime(2026, 3, 11, 7),
+        type: EntryType.move,
+        title: 'Run',
+        duration: 50,
+        source: EntrySource.health,
+      ),
+    ];
+
+    final s = buildMonthlyStats(month, entries, previousEntries, routines);
     expect(s.totalSpent, 36); // 6 + 30 (income excluded)
     expect(s.moveMinutes, 75); // 30 + 45
     expect(s.ritualsKept, 1);
     expect(s.longestStreak, 12);
 
+    // Active move days this month: Apr 5 and Apr 6 → 2 distinct days.
+    expect(s.current.activeMoveDays, 2);
+
     // The 4 big rows render in handoff order.
     expect(s.rows.map((r) => r.label).toList(),
         ['Total spent', 'Workout time', 'Routines kept', 'Streak']);
+
+    // Deltas are computed vs the previous month (no fabricated numbers).
+    final spentRow = s.rows[0];
+    expect(spentRow.sub, '↓ 40% vs March'); // 36 vs 60 → -40%
+    final moveRow = s.rows[1];
+    expect(moveRow.sub, '↑ 50% vs March · 2 active days'); // 75 vs 50 → +50%
+  });
+
+  // ---------------------------------------------------------------------------
+  // No prior month → no fabricated delta (sub is null, not a made-up %).
+  // ---------------------------------------------------------------------------
+  test('buildMonthlyStats omits deltas when the previous month is empty', () {
+    final month = DateTime(2026, 4);
+    final entries = [
+      Entry(
+        id: '1',
+        timestamp: DateTime(2026, 4, 2, 8),
+        type: EntryType.money,
+        title: 'Coffee',
+        amount: -6,
+        source: EntrySource.manual,
+      ),
+    ];
+
+    final s = buildMonthlyStats(month, entries, const [], const []);
+    expect(s.rows[0].sub, isNull); // total spent: no baseline → no delta
+    expect(s.rows[1].sub, isNull); // workout: no move minutes, no active days
   });
 
   // ---------------------------------------------------------------------------

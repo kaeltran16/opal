@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../data/repositories/settings_repository.dart';
 import '../models/models.dart';
 import '../services/services.dart';
 import 'providers.dart';
@@ -83,11 +84,27 @@ class EmailDashboardState {
     this.account,
     this.imports = const [],
     this.lastSyncAt,
+    this.importsThisMonth = 0,
+    this.importsAllTime = 0,
+    this.syncCadence = SyncCadence.every15min,
+    this.importNotifications = false,
+    this.autoCategorize = true,
   });
 
   final EmailAccount? account;
   final List<EmailImportItem> imports;
   final DateTime? lastSyncAt;
+
+  /// Count of email-sourced entries received in the current calendar month.
+  final int importsThisMonth;
+
+  /// Count of all email-sourced entries ever imported.
+  final int importsAllTime;
+
+  // Persisted sync preferences (mirrored from [SettingsRepository]).
+  final SyncCadence syncCadence;
+  final bool importNotifications;
+  final bool autoCategorize;
 
   bool get isConnected => account != null;
 
@@ -95,11 +112,21 @@ class EmailDashboardState {
     EmailAccount? account,
     List<EmailImportItem>? imports,
     DateTime? lastSyncAt,
+    int? importsThisMonth,
+    int? importsAllTime,
+    SyncCadence? syncCadence,
+    bool? importNotifications,
+    bool? autoCategorize,
   }) =>
       EmailDashboardState(
         account: account ?? this.account,
         imports: imports ?? this.imports,
         lastSyncAt: lastSyncAt ?? this.lastSyncAt,
+        importsThisMonth: importsThisMonth ?? this.importsThisMonth,
+        importsAllTime: importsAllTime ?? this.importsAllTime,
+        syncCadence: syncCadence ?? this.syncCadence,
+        importNotifications: importNotifications ?? this.importNotifications,
+        autoCategorize: autoCategorize ?? this.autoCategorize,
       );
 }
 
@@ -111,10 +138,51 @@ class EmailDashboardController extends _$EmailDashboardController {
   @override
   EmailDashboardState build() {
     final service = ref.watch(emailSyncServiceProvider);
+    final settings = ref.watch(settingsRepositoryProvider);
+    // Prefs are synchronous (SharedPreferences); counts need a DB query, so we
+    // seed zero and refresh them asynchronously below.
+    unawaited(_refreshCounts());
     return EmailDashboardState(
       account: service.account,
       lastSyncAt: service.account?.lastSyncedAt,
+      syncCadence: settings.syncCadence,
+      importNotifications: settings.importNotifications,
+      autoCategorize: settings.autoCategorize,
     );
+  }
+
+  /// Recomputes import-count stats from email-sourced [Entry]s: "all time" is
+  /// every email entry; "this month" is those received in the current calendar
+  /// month. There is no subscription/recurring model anymore, so no recurring
+  /// count is derived here.
+  Future<void> _refreshCounts() async {
+    final entries = await ref.read(entryRepositoryProvider).getAll();
+    final emailEntries =
+        entries.where((e) => e.source == EntrySource.email).toList();
+    final now = DateTime.now();
+    final monthStart = DateTime(now.year, now.month);
+    final thisMonth = emailEntries
+        .where((e) => !e.timestamp.isBefore(monthStart))
+        .length;
+    state = state.copyWith(
+      importsAllTime: emailEntries.length,
+      importsThisMonth: thisMonth,
+    );
+  }
+
+  Future<void> setSyncCadence(SyncCadence cadence) async {
+    await ref.read(settingsRepositoryProvider).setSyncCadence(cadence);
+    state = state.copyWith(syncCadence: cadence);
+  }
+
+  Future<void> setImportNotifications(bool enabled) async {
+    await ref.read(settingsRepositoryProvider).setImportNotifications(enabled);
+    state = state.copyWith(importNotifications: enabled);
+  }
+
+  Future<void> setAutoCategorize(bool enabled) async {
+    await ref.read(settingsRepositoryProvider).setAutoCategorize(enabled);
+    state = state.copyWith(autoCategorize: enabled);
   }
 
   /// Runs a sync; the staged [SyncStatus] is emitted via the service's stream
@@ -130,6 +198,7 @@ class EmailDashboardController extends _$EmailDashboardController {
       account: service.account,
       lastSyncAt: DateTime.now(),
     );
+    await _refreshCounts();
     await ref.read(hapticsServiceProvider).success(); // sync complete
   }
 

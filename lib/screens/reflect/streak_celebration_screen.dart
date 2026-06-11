@@ -25,19 +25,45 @@ class StreakCelebrationScreen extends ConsumerWidget {
 
   static const _white = Color(0xFFFFFFFF);
 
-  static const _stats = <(String, String)>[
-    ('Total', '486 min'),
-    ('Best day', 'Sat · 75m'),
-    ('Next milestone', '14 days'),
+  static const _weekdayAbbrev = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  static const _monthAbbrev = [
+    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
   ];
+
+  /// Stat pills derived from real profile data; only includes a pill when its
+  /// value can actually be computed (no fabricated stats).
+  static List<(String, String)> _statsFor(ProfileStats? stats, int streak) {
+    if (stats == null) return const [];
+    final pills = <(String, String)>[];
+    if (stats.moveMinutes > 0) {
+      pills.add(('Total', '${stats.moveMinutes} min'));
+    }
+    final bestDay = stats.bestMoveDay;
+    if (bestDay != null && stats.bestMoveDayMinutes > 0) {
+      final wd = _weekdayAbbrev[bestDay.weekday - 1];
+      pills.add(('Best day', '$wd · ${stats.bestMoveDayMinutes}m'));
+    }
+    final next = nextStreakMilestone(streak);
+    if (next != null) {
+      pills.add(('Next milestone', '${next - streak} days'));
+    }
+    return pills;
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final c = context.colors;
-    final streak =
-        ref.watch(profileStatsProvider).asData?.value.longestStreak ??
-            _fallbackStreak;
+    final stats = ref.watch(profileStatsProvider).asData?.value;
+    final streak = stats?.longestStreak ?? _fallbackStreak;
     final filledDots = streak.clamp(0, _milestoneDots);
+    final pills = _statsFor(stats, streak);
+    final start = streakStartDate(streak, DateTime.now());
+    final sinceLine = start == null
+        ? 'Your longest streak this year.'
+        : "You haven't missed a day since "
+            '${_monthAbbrev[start.month - 1]} ${start.day}.\n'
+            'Your longest streak this year.';
 
     return DecoratedBox(
       decoration: BoxDecoration(
@@ -120,7 +146,7 @@ class StreakCelebrationScreen extends ConsumerWidget {
                             letterSpacing: -0.5)),
                     const SizedBox(height: 14),
                     Text(
-                      "You haven't missed a day since Apr 12.\nYour longest streak this year.",
+                      sinceLine,
                       textAlign: TextAlign.center,
                       style: AppFonts.sf(
                           size: 15,
@@ -128,18 +154,19 @@ class StreakCelebrationScreen extends ConsumerWidget {
                           letterSpacing: -0.24,
                           height: 1.5),
                     ),
-                    const SizedBox(height: 22),
+                    if (pills.isNotEmpty) const SizedBox(height: 22),
 
                     // --- Stat pills ------------------------------------------
-                    Wrap(
-                      alignment: WrapAlignment.center,
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        for (final (label, value) in _stats)
-                          _StatPill(label: label, value: value),
-                      ],
-                    ),
+                    if (pills.isNotEmpty)
+                      Wrap(
+                        alignment: WrapAlignment.center,
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          for (final (label, value) in pills)
+                            _StatPill(label: label, value: value),
+                        ],
+                      ),
                   ],
                 ),
               ),

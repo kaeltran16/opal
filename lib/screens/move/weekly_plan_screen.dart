@@ -15,10 +15,11 @@ const _white = Color(0xFFFFFFFF);
 
 /// Screen 24 — Weekly Plan, the derived 7-day workout schedule.
 ///
-/// Reads the hardcoded [WeeklyPlan] from `weeklyPlanControllerProvider` and
-/// renders the title block, the week strip, the today spotlight, the full
-/// schedule list, and the Pal weekly-coach note. All derivation lives in the
-/// controller; this widget only lays out.
+/// Reads the [WeeklyPlan] from `weeklyPlanControllerProvider` (a stream joining
+/// the persisted schedule to routines + this week's workouts) and renders the
+/// title block, the week strip, the today spotlight, the full schedule list,
+/// and a computed weekly-progress note. All derivation lives in the controller;
+/// this widget only lays out.
 class WeeklyPlanScreen extends ConsumerWidget {
   const WeeklyPlanScreen({super.key});
 
@@ -45,7 +46,8 @@ class WeeklyPlanScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final c = context.colors;
-    final plan = ref.watch(weeklyPlanControllerProvider);
+    final plan = ref.watch(weeklyPlanControllerProvider).asData?.value ??
+        const WeeklyPlan(days: []);
     final today = plan.today;
 
     return ListView(
@@ -160,10 +162,11 @@ class WeeklyPlanScreen extends ConsumerWidget {
           ),
         ),
 
-        // Pal weekly-coach note.
-        const Padding(
-          padding: EdgeInsets.fromLTRB(16, 18, 16, 0),
-          child: _PalCoachNote(),
+        // Weekly progress summary (computed from the plan — no fabricated coach
+        // prose; coaching is Pal-territory and has no real source here).
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 18, 16, 0),
+          child: _WeekProgressNote(plan: plan),
         ),
       ],
     );
@@ -555,9 +558,24 @@ class _ScheduleRow extends StatelessWidget {
   }
 }
 
-/// Bottom Pal weekly-coach gradient note.
-class _PalCoachNote extends StatelessWidget {
-  const _PalCoachNote();
+/// Bottom weekly-progress gradient note. Renders a factual line computed from
+/// the plan (done / total workouts, minutes planned) — not invented coaching.
+class _WeekProgressNote extends StatelessWidget {
+  const _WeekProgressNote({required this.plan});
+  final WeeklyPlan plan;
+
+  /// Factual progress line from the plan's own counts.
+  String get _summary {
+    final done = plan.doneCount;
+    final total = plan.totalCount;
+    final remaining = total - done;
+    if (total == 0) return 'No workouts scheduled this week yet.';
+    if (done >= total) {
+      return 'All $total workouts done this week — ${plan.totalMinutes} min planned.';
+    }
+    final left = remaining == 1 ? '1 workout' : '$remaining workouts';
+    return '$done of $total done · $left left this week.';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -599,7 +617,7 @@ class _PalCoachNote extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'PAL · WEEKLY COACH',
+                  'THIS WEEK',
                   style: AppFonts.sf(
                       size: 11,
                       weight: FontWeight.w700,
@@ -607,23 +625,13 @@ class _PalCoachNote extends StatelessWidget {
                       letterSpacing: 0.3),
                 ),
                 const SizedBox(height: 3),
-                Text.rich(
-                  TextSpan(
-                    style: AppFonts.sf(
-                        size: 14,
-                        color: c.ink,
-                        letterSpacing: -0.15,
-                        height: 1.45),
-                    children: const [
-                      TextSpan(text: "You're on a "),
-                      TextSpan(
-                          text: '2-week 5/7 streak',
-                          style: TextStyle(fontWeight: FontWeight.w700)),
-                      TextSpan(
-                          text:
-                              '. Legs day usually slips — want me to shorten it to 45 min?'),
-                    ],
-                  ),
+                Text(
+                  _summary,
+                  style: AppFonts.sf(
+                      size: 14,
+                      color: c.ink,
+                      letterSpacing: -0.15,
+                      height: 1.45),
                 ),
               ],
             ),
