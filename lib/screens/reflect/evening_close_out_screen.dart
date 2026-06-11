@@ -12,12 +12,16 @@ import '../../widgets/press_scale.dart';
 ///
 /// A nighttime wind-down. This is the one screen that ignores the app theme:
 /// always a dark purple gradient with white text and a `#BF5AF2` accent. The
-/// checklist flattens every routine step from [ritualsControllerProvider] into
-/// rows; tapping a row toggles its completion. The first incomplete step gets a
-/// purple highlight + "Now" pill. The CTA stays disabled ("{n} to go") until
-/// every step is done, then turns into an enabled purple "Good night".
+/// checklist is the Evening wind-down routine's steps from
+/// [ritualsControllerProvider] (closing the day is an evening-routine moment);
+/// tapping a row toggles its completion. The first incomplete step gets a
+/// purple highlight + "Now" pill — landing on Reflect last to close the ring.
+/// The CTA stays disabled ("{n} to go") until every step is done, then turns
+/// into an enabled purple "Good night".
 class EveningCloseOutScreen extends ConsumerWidget {
   const EveningCloseOutScreen({super.key});
+
+  static const _eveningRoutineId = 'evening';
 
   // This screen is theme-agnostic — always dark purple. Local constants instead
   // of context.colors so it renders identically in light and dark mode.
@@ -51,27 +55,34 @@ class EveningCloseOutScreen extends ConsumerWidget {
         '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
     final dayLabel = '$clock · ${_days[now.weekday - 1]}';
 
-    final done = state?.doneSteps ?? 0;
-    final total = state?.totalSteps ?? 0;
+    // Drive the checklist from the Evening wind-down routine only.
+    RitualRoutine? evening;
+    for (final r in state?.routines ?? const <RitualRoutine>[]) {
+      if (r.id == _eveningRoutineId) {
+        evening = r;
+        break;
+      }
+    }
+
+    final total = evening?.steps.length ?? 0;
+    final done = evening == null ? 0 : state!.doneCount(evening.id);
     final allDone = total > 0 && done == total;
 
-    // Flatten every routine step into ordered (routine, index) rows, tracking
-    // the first incomplete one for the "Now" highlight.
+    // The evening steps as ordered rows, tracking the first incomplete one for
+    // the "Now" highlight (lands on Reflect last — the step that closes the ring).
     final rows = <_StepRow>[];
-    var firstIncompleteSeen = false;
-    if (state != null) {
-      for (final routine in state.routines) {
-        for (var i = 0; i < routine.steps.length; i++) {
-          final isDone = state.isStepDone(routine.id, i);
-          final isActive = !isDone && !firstIncompleteSeen;
-          if (isActive) firstIncompleteSeen = true;
-          rows.add(_StepRow(
-            routine: routine,
-            index: i,
-            done: isDone,
-            active: isActive,
-          ));
-        }
+    if (evening != null && state != null) {
+      var firstIncompleteSeen = false;
+      for (var i = 0; i < evening.steps.length; i++) {
+        final isDone = state.isStepDone(evening.id, i);
+        final isActive = !isDone && !firstIncompleteSeen;
+        if (isActive) firstIncompleteSeen = true;
+        rows.add(_StepRow(
+          routine: evening,
+          index: i,
+          done: isDone,
+          active: isActive,
+        ));
       }
     }
 
@@ -139,7 +150,7 @@ class EveningCloseOutScreen extends ConsumerWidget {
                         height: 1.15)),
                 const SizedBox(height: 10),
                 Text(
-                  '$done of $total routines done. One more to close the ring.',
+                  '$done of $total rituals done. One more to close the ring.',
                   style: AppFonts.sf(
                       size: 15,
                       color: _white65,
@@ -264,11 +275,8 @@ class _StepRow {
 
   RitualStep get step => routine.steps[index];
 
-  /// "{routine} · {step note or time}".
-  String get subtitle {
-    final detail = step.note.isNotEmpty ? step.note : routine.time;
-    return '${routine.name} · $detail';
-  }
+  /// The step's note (falling back to the routine time if it has none).
+  String get subtitle => step.note.isNotEmpty ? step.note : routine.time;
 }
 
 class _ChecklistRow extends StatelessWidget {

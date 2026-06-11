@@ -26,24 +26,6 @@ class OnboardingScreen extends ConsumerStatefulWidget {
   ConsumerState<OnboardingScreen> createState() => _OnboardingScreenState();
 }
 
-/// One suggested ritual offered on step 4 (icon + title + default-on flag).
-class _SuggestedRitual {
-  const _SuggestedRitual(this.icon, this.title, {this.defaultOn = false});
-  final String icon;
-  final String title;
-  final bool defaultOn;
-}
-
-const _suggestedRituals = <_SuggestedRitual>[
-  _SuggestedRitual('book.closed.fill', 'Morning pages', defaultOn: true),
-  _SuggestedRitual('tray.fill', 'Inbox zero', defaultOn: true),
-  _SuggestedRitual('character.book.closed.fill', 'Language practice',
-      defaultOn: true),
-  _SuggestedRitual('dumbbell.fill', 'Stretch'),
-  _SuggestedRitual('books.vertical.fill', 'Read before bed', defaultOn: true),
-  _SuggestedRitual('heart.fill', 'Meditate', defaultOn: true),
-];
-
 /// Budget chip options (handoff: $50/$85/$120/$200, default $85).
 const _budgetOptions = <double>[50, 85, 120, 200];
 
@@ -66,10 +48,13 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     super.dispose();
   }
 
-  /// Selected ritual titles, seeded from the default-on suggestions.
-  late final Set<String> _selectedRituals = {
-    for (final r in _suggestedRituals)
-      if (r.defaultOn) r.title,
+  /// The three time-of-day routines offered on step 4.
+  static final _routines = SeedData.ritualRoutines();
+
+  /// Routine ids enabled on step 4 — all three on by default. Controls which
+  /// routines get seeded on finish.
+  late final Set<String> _selectedRoutineIds = {
+    for (final r in _routines) r.id,
   };
 
   Future<void> _next() async {
@@ -99,10 +84,12 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     ));
 
     // Rituals are now the three time-of-day routines (Morning / Midday /
-    // Evening). Seed them idempotently so onboarding is self-sufficient even
-    // when the DB seeder hasn't run; the step-4 picks express intent only.
-    for (final routine in SeedData.ritualRoutines()) {
-      await rituals.upsertRoutine(routine);
+    // Evening). Seed the enabled ones idempotently so onboarding is
+    // self-sufficient even when the DB seeder hasn't run.
+    for (final routine in _routines) {
+      if (_selectedRoutineIds.contains(routine.id)) {
+        await rituals.upsertRoutine(routine);
+      }
     }
 
     await settings.setOnboardingComplete(true);
@@ -206,9 +193,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   // --- Per-step content -----------------------------------------------------
 
   bool _canContinue(int step) {
-    // Require at least one ritual on the final step; other steps always have a
+    // Require at least one routine on the final step; other steps always have a
     // default selection, so they're always continuable.
-    if (step == 3) return _selectedRituals.isNotEmpty;
+    if (step == 3) return _selectedRoutineIds.isNotEmpty;
     return true;
   }
 
@@ -246,14 +233,14 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         ];
       case 3:
         return [
-          _RitualPicker(
-            suggestions: _suggestedRituals,
-            selected: _selectedRituals,
-            onToggle: (title) => setState(() {
-              if (_selectedRituals.contains(title)) {
-                _selectedRituals.remove(title);
+          _RoutinePicker(
+            routines: _routines,
+            selected: _selectedRoutineIds,
+            onToggle: (id) => setState(() {
+              if (_selectedRoutineIds.contains(id)) {
+                _selectedRoutineIds.remove(id);
               } else {
-                _selectedRituals.add(title);
+                _selectedRoutineIds.add(id);
               }
             }),
           ),
@@ -281,7 +268,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         1 => "We'll help you stay under it — gently.",
         2 => 'Any session counts — lift, run, walk, yoga. You log the minutes.',
         3 =>
-          'Five small things you want to do each day. You can edit these anytime.',
+          'Three time-of-day routines to anchor your day — Morning, Midday, Evening. Edit the steps anytime.',
         _ =>
           "One app for money, workouts, and the little routines that hold your day together. What should we call you?",
       };
@@ -481,15 +468,15 @@ class _ChipRow extends StatelessWidget {
   }
 }
 
-/// Multi-select rituals list with per-row toggle switches.
-class _RitualPicker extends StatelessWidget {
-  const _RitualPicker({
-    required this.suggestions,
+/// The three time-of-day routines with per-row toggle switches.
+class _RoutinePicker extends StatelessWidget {
+  const _RoutinePicker({
+    required this.routines,
     required this.selected,
     required this.onToggle,
   });
 
-  final List<_SuggestedRitual> suggestions;
+  final List<RitualRoutine> routines;
   final Set<String> selected;
   final ValueChanged<String> onToggle;
 
@@ -504,12 +491,12 @@ class _RitualPicker extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: Column(
         children: [
-          for (var i = 0; i < suggestions.length; i++)
-            _RitualRow(
-              ritual: suggestions[i],
-              on: selected.contains(suggestions[i].title),
-              showDivider: i < suggestions.length - 1,
-              onToggle: () => onToggle(suggestions[i].title),
+          for (var i = 0; i < routines.length; i++)
+            _RoutineRow(
+              routine: routines[i],
+              on: selected.contains(routines[i].id),
+              showDivider: i < routines.length - 1,
+              onToggle: () => onToggle(routines[i].id),
             ),
         ],
       ),
@@ -517,15 +504,15 @@ class _RitualPicker extends StatelessWidget {
   }
 }
 
-class _RitualRow extends StatelessWidget {
-  const _RitualRow({
-    required this.ritual,
+class _RoutineRow extends StatelessWidget {
+  const _RoutineRow({
+    required this.routine,
     required this.on,
     required this.showDivider,
     required this.onToggle,
   });
 
-  final _SuggestedRitual ritual;
+  final RitualRoutine routine;
   final bool on;
   final bool showDivider;
   final VoidCallback onToggle;
@@ -533,6 +520,8 @@ class _RitualRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
+    final tone = c.forType(routine.colorKey);
+    final steps = routine.steps.length;
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: onToggle,
@@ -542,24 +531,41 @@ class _RitualRow extends StatelessWidget {
               ? Border(bottom: BorderSide(color: c.hair, width: 0.5))
               : null,
         ),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         child: Row(
           children: [
             Container(
-              width: 28,
-              height: 28,
+              width: 32,
+              height: 32,
               decoration: BoxDecoration(
-                color: c.rituals,
-                borderRadius: BorderRadius.circular(7),
+                color: tone,
+                borderRadius: BorderRadius.circular(9),
               ),
               alignment: Alignment.center,
-              child: AppIcon(ritual.icon, size: 15, color: const Color(0xFFFFFFFF)),
+              child:
+                  AppIcon(routine.icon, size: 16, color: const Color(0xFFFFFFFF)),
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: Text(
-                ritual.title,
-                style: AppFonts.sf(size: 15, color: c.ink, letterSpacing: -0.24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    routine.name,
+                    style: AppFonts.sf(
+                      size: 15,
+                      weight: FontWeight.w600,
+                      color: c.ink,
+                      letterSpacing: -0.24,
+                    ),
+                  ),
+                  const SizedBox(height: 1),
+                  Text(
+                    '${routine.time} · $steps ${steps == 1 ? 'step' : 'steps'}',
+                    style: AppFonts.sf(
+                        size: 12, color: c.ink3, letterSpacing: -0.08),
+                  ),
+                ],
               ),
             ),
             _Toggle(on: on, color: c.move, track: c.fill),

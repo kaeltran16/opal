@@ -639,6 +639,11 @@ class _Composer extends StatelessWidget {
                   style: AppFonts.sf(size: 15, color: c.ink, letterSpacing: -0.24),
                   decoration: InputDecoration(
                     isDense: true,
+                    // Match the handoff textarea's ~10px vertical padding;
+                    // without this, InputBorder.none's large default padding
+                    // inflates the pill past the 38px send button. Horizontal
+                    // padding comes from the wrapping container.
+                    contentPadding: const EdgeInsets.symmetric(vertical: 9),
                     border: InputBorder.none,
                     hintText: hint,
                     hintStyle: AppFonts.sf(
