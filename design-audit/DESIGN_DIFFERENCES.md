@@ -77,6 +77,42 @@ and applied in neither place completely.** Rebuild before judging copy.
 
 ---
 
+## Resolution status — Wave 7 reconciliation (2026-06-11, commit `f3817d9`)
+
+Everything below this section is the original point-in-time audit, left intact. This block records
+what the Wave 7 pass changed. ✅ resolved · ⊘ resolved by removal · ⏳ deferred.
+
+**Executive-summary gaps**
+1. ✅ **Move→Workout** rename completed across all user-facing strings (kept, per user decision).
+2. ✅ **HealthKit / calorie UI** removed from the Workout "This week" hero and the Today timeline
+   badge (kcal→min). No Settings "HealthKit" row actually existed to remove. The native iOS
+   `HealthKitService` stays as intended device-gated dead code (U27).
+3. ✅ **You tab** rebuilt as `YouTabScreen` — profile card + Goals/Reviews/Integrations/Data/Account
+   inset sections; the old README-era stat grid was dropped.
+4. ✅ **Budget editor** added (`lib/widgets/budget_sheet.dart`, Daily/Weekly) wired to the Goals
+   "Daily budget" row.
+5. ⊘ **Bills & Subscriptions** — per user decision, **removed entirely** (screens + routes + the You
+   "Money" section), not restored. No broken routes remain. The `Bill`/`Subscription` models, repos,
+   and `money_recurring_controller` now survive as **dormant/unreachable code** (flagged for deletion).
+6. ✅ **Workout post-session / PR surfaces** present (PR card, Sets stat, per-set volume chart,
+   per-muscle breakdown, rest-timer spinner).
+7. ✅ **Email Sync dashboard** rebuilt (Stats tiles, "Pal noticed" card + Review CTA, Sync settings,
+   Gmail glyph).
+8. ✅ **Monthly/Weekly review** copy aligned to the design.
+9. ✅ **ritual→routine drift** confirmed intentional and completed (kept, per user decision).
+
+**Subtabs:** ✅ the one genuinely-missing control — the Budget editor Daily/Weekly toggle — now exists.
+
+**Stale-build caveat (in the header above):** now obsolete — the renames are committed; rebuild to verify.
+
+⏳ **Remaining (Windows-now long-tail, not yet done):** assorted `[STYLE]`/`[LAYOUT]` nits; data-model
+gaps (routine `estMin`/`lastDone`, cardio distance/pace, richer Start-workout cards); a few SF-Symbol
+map entries (`arrow.right`, `timer`, `list.number`); status-bar style; the Day/Week Today-timeline
+toggle (still inert); Pal-insight / timeline-row tap wiring; and removing the dormant Bills/Subs data
+layer. Full test suite: **109 green**.
+
+---
+
 ## Subtabs / segmented controls — explicit status (per your focus)
 
 | Surface | Design intent | Current state |
