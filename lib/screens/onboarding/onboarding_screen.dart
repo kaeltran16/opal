@@ -58,6 +58,14 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   int _moveMinutes = 60;
   bool _saving = false;
 
+  final _nameController = TextEditingController();
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    super.dispose();
+  }
+
   /// Selected ritual titles, seeded from the default-on suggestions.
   late final Set<String> _selectedRituals = {
     for (final r in _suggestedRituals)
@@ -81,6 +89,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     final goals = ref.read(goalsRepositoryProvider);
     final rituals = ref.read(ritualRepositoryProvider);
     final settings = ref.read(settingsRepositoryProvider);
+
+    await settings.setDisplayName(_nameController.text);
 
     await goals.save(Goals(
       dailyBudget: _budget,
@@ -204,6 +214,14 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
   List<Widget> _stepContent(int step, AppColors c, Color heroColor) {
     switch (step) {
+      case 0:
+        return [
+          _NameField(
+            controller: _nameController,
+            accent: heroColor,
+            onSubmitted: (_) => _next(),
+          ),
+        ];
       case 1:
         return [
           _BigValue(text: '\$${_budget.toStringAsFixed(0)}', color: c.ink),
@@ -265,7 +283,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         3 =>
           'Five small things you want to do each day. You can edit these anytime.',
         _ =>
-          'One app for money, workouts, and the little routines that hold your day together.',
+          "One app for money, workouts, and the little routines that hold your day together. What should we call you?",
       };
 
   String _cta(int step) => switch (step) {
@@ -273,6 +291,55 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         3 => 'Start tracking',
         _ => 'Continue',
       };
+}
+
+/// Optional name input shown on the Welcome step. Styled to match the budget /
+/// move chips (surface fill, hairline border). Empty is allowed — the profile
+/// falls back to "You".
+class _NameField extends StatelessWidget {
+  const _NameField({
+    required this.controller,
+    required this.accent,
+    required this.onSubmitted,
+  });
+
+  final TextEditingController controller;
+  final Color accent;
+  final ValueChanged<String> onSubmitted;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: TextField(
+        controller: controller,
+        textAlign: TextAlign.center,
+        textCapitalization: TextCapitalization.words,
+        textInputAction: TextInputAction.done,
+        cursorColor: accent,
+        onSubmitted: onSubmitted,
+        style: AppFonts.sf(size: 17, color: c.ink, letterSpacing: -0.43),
+        decoration: InputDecoration(
+          hintText: 'Your name',
+          hintStyle:
+              AppFonts.sf(size: 17, color: c.ink3, letterSpacing: -0.43),
+          filled: true,
+          fillColor: c.surface,
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide(color: c.hair, width: 0.5),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide(color: accent, width: 1.5),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 /// Centered progress dots: active = 20px accent, inactive = 6px fill.

@@ -57,7 +57,13 @@ class _Body extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final c = context.colors;
-    final exerciseCount = ref.watch(exercisesProvider).asData?.value.length;
+    final exercisesList = ref.watch(exercisesProvider).asData?.value;
+    final exerciseCount = exercisesList?.length;
+
+    // exerciseId -> name, for the exercise-preview chips and card mini-stack.
+    final exerciseNames = <String, String>{
+      for (final e in exercisesList ?? const <Exercise>[]) e.id: e.name,
+    };
 
     void openSession(String routineId) => context.pushNamed(
           'activeSession',
@@ -80,7 +86,11 @@ class _Body extends ConsumerWidget {
         // --- Pal's pick gradient card ---------------------------------------
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 4, 16, 22),
-          child: _PalPickCard(state: state, onStart: openSession),
+          child: _PalPickCard(
+            state: state,
+            exerciseNames: exerciseNames,
+            onStart: openSession,
+          ),
         ),
 
         // --- Strength grid ---------------------------------------------------
@@ -97,7 +107,12 @@ class _Body extends ConsumerWidget {
               childAspectRatio: 1.35,
               children: [
                 for (final r in state.strength)
-                  _RoutineCard(routine: r, onTap: () => openSession(r.id)),
+                  _RoutineCard(
+                    routine: r,
+                    exerciseNames: exerciseNames,
+                    lastDoneDays: state.daysSinceLastDone(r.id),
+                    onTap: () => openSession(r.id),
+                  ),
               ],
             ),
           ),
@@ -112,7 +127,11 @@ class _Body extends ConsumerWidget {
             child: Column(
               children: [
                 for (final r in state.cardio) ...[
-                  _CardioRow(routine: r, onTap: () => openSession(r.id)),
+                  _CardioRow(
+                    routine: r,
+                    lastDoneDays: state.daysSinceLastDone(r.id),
+                    onTap: () => openSession(r.id),
+                  ),
                   const SizedBox(height: 10),
                 ],
               ],
@@ -187,14 +206,28 @@ class _SectionHeader extends StatelessWidget {
 /// rationale + est min/focus), an "Another" pill that re-requests a different
 /// pick, and a Start CTA that opens the picked routine's session.
 class _PalPickCard extends ConsumerWidget {
-  const _PalPickCard({required this.state, required this.onStart});
+  const _PalPickCard({
+    required this.state,
+    required this.exerciseNames,
+    required this.onStart,
+  });
   final StartWorkoutState state;
+  final Map<String, String> exerciseNames;
   final ValueChanged<String> onStart;
 
   /// Resolve the routine the Start CTA should open: the suggestion's routineId
   /// when present, else the first strength routine. Null disables Start.
   String? _targetId(WorkoutSuggestion? s) =>
       s?.routineId ?? state.firstStrength?.id;
+
+  /// The routine the card is previewing (the Start target), if resolvable.
+  Routine? _targetRoutine(String? id) {
+    if (id == null) return null;
+    for (final r in [...state.strength, ...state.cardio]) {
+      if (r.id == id) return r;
+    }
+    return null;
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -203,6 +236,7 @@ class _PalPickCard extends ConsumerWidget {
     final loading = async.isLoading;
     final suggestion = async.asData?.value;
     final targetId = _targetId(suggestion);
+    final routine = _targetRoutine(targetId);
 
     return DecoratedBox(
       decoration: BoxDecoration(
@@ -284,15 +318,23 @@ class _PalPickCard extends ConsumerWidget {
                 height: 1.1),
           ),
 
-          // Meta (est min · focus).
-          if (suggestion != null && _meta(suggestion).isNotEmpty) ...[
-            const SizedBox(height: 4),
-            Text(_meta(suggestion),
-                style: AppFonts.sf(
-                    size: 13,
-                    color: _white.withValues(alpha: 0.7),
-                    letterSpacing: -0.08)),
-          ],
+          // Meta sub-line: prefer the resolved routine's own
+          // "{n} exercises · {est} min · last done {n}d ago"; else fall back to
+          // the suggestion's focus/est meta.
+          Builder(builder: (_) {
+            final meta = routine != null
+                ? _routineMeta(routine)
+                : (suggestion == null ? '' : _meta(suggestion));
+            if (meta.isEmpty) return const SizedBox.shrink();
+            return Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(meta,
+                  style: AppFonts.sf(
+                      size: 13,
+                      color: _white.withValues(alpha: 0.7),
+                      letterSpacing: -0.08)),
+            );
+          }),
           const SizedBox(height: 12),
 
           // Rationale.
@@ -308,6 +350,15 @@ class _PalPickCard extends ConsumerWidget {
                 letterSpacing: -0.2,
                 height: 1.45),
           ),
+
+          // Exercise-preview chip strip (top names + "+N more").
+          if (routine != null && routine.exercises.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            _ExercisePreviewChips(
+              routine: routine,
+              exerciseNames: exerciseNames,
+            ),
+          ],
           const SizedBox(height: 16),
 
           // Actions: Start + Another.
@@ -348,6 +399,16 @@ class _PalPickCard extends ConsumerWidget {
       if (s.estimatedMinutes != null) '${s.estimatedMinutes} min',
     ];
     return parts.join(' · ');
+  }
+
+  /// "{n} exercises · {est} min · last done {n}d ago" for the resolved routine.
+  String _routineMeta(Routine routine) {
+    final lastDone = _lastDoneLabel(state.daysSinceLastDone(routine.id));
+    return [
+      '${routine.exerciseCount} exercises',
+      '${_displayEstMinutes(routine)} min',
+      if (lastDone != null) 'last done $lastDone',
+    ].join(' · ');
   }
 }
 
@@ -431,17 +492,77 @@ class _AnotherButton extends StatelessWidget {
   }
 }
 
+/// Rounded translucent pills naming the routine's top exercises, with a final
+/// "+N more" pill when the routine has more than [_maxChips] exercises.
+class _ExercisePreviewChips extends StatelessWidget {
+  const _ExercisePreviewChips({
+    required this.routine,
+    required this.exerciseNames,
+  });
+  final Routine routine;
+  final Map<String, String> exerciseNames;
+
+  static const int _maxChips = 5;
+
+  @override
+  Widget build(BuildContext context) {
+    final ordered = routine.orderedExercises;
+    final names = [
+      for (final ex in ordered.take(_maxChips))
+        exerciseNames[ex.exerciseId] ?? ex.exerciseId,
+    ];
+    final remaining = ordered.length - names.length;
+
+    return Wrap(
+      spacing: 6,
+      runSpacing: 6,
+      children: [
+        for (final name in names) _chip(name),
+        if (remaining > 0) _chip('+$remaining more'),
+      ],
+    );
+  }
+
+  Widget _chip(String label) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          color: const Color(0x1FFFFFFF),
+          borderRadius: BorderRadius.circular(100),
+          border: Border.all(color: const Color(0x26FFFFFF), width: 0.5),
+        ),
+        child: Text(label,
+            style: AppFonts.sf(
+                size: 12,
+                weight: FontWeight.w500,
+                color: _white.withValues(alpha: 0.92),
+                letterSpacing: -0.1)),
+      );
+}
+
 /// One Strength grid card: tag eyebrow + name on a colored band, then exercise
 /// count + est. minutes. Tapping opens the routine's session.
 class _RoutineCard extends StatelessWidget {
-  const _RoutineCard({required this.routine, required this.onTap});
+  const _RoutineCard({
+    required this.routine,
+    required this.exerciseNames,
+    required this.lastDoneDays,
+    required this.onTap,
+  });
   final Routine routine;
+  final Map<String, String> exerciseNames;
+  final int? lastDoneDays;
   final VoidCallback onTap;
+
+  /// Total planned sets across the routine (the "SETS" stat).
+  int get _totalSets =>
+      routine.exercises.fold<int>(0, (s, e) => s + e.targetSets);
 
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
     final band = _bandColor(c, routine.tag);
+    final lastDone = _lastDoneLabel(lastDoneDays);
+    final preview = _exercisePreviewLine(routine, exerciseNames);
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
@@ -508,17 +629,47 @@ class _RoutineCard extends StatelessWidget {
                   ],
                 ),
               ),
-              // Footer stats.
+              // Footer: exercise preview line + stats + last-done.
               Expanded(
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.end,
+                  padding: const EdgeInsets.fromLTRB(12, 8, 12, 10),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      _MiniStat(
-                          value: '${routine.exerciseCount}', label: 'EXERCISES'),
-                      const SizedBox(width: 14),
-                      _MiniStat(value: '${_estMinutes(routine)}', label: 'EST'),
+                      if (preview.isNotEmpty)
+                        Text(preview,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppFonts.sf(
+                                size: 11,
+                                color: c.ink3,
+                                letterSpacing: -0.08)),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          _MiniStat(
+                              value: '${routine.exerciseCount}',
+                              label: 'EXERCISES'),
+                          const SizedBox(width: 14),
+                          _MiniStat(value: '$_totalSets', label: 'SETS'),
+                          const SizedBox(width: 14),
+                          _MiniStat(
+                              value: '${_displayEstMinutes(routine)}',
+                              label: 'EST'),
+                          const Spacer(),
+                          if (lastDone != null)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 1),
+                              child: Text(lastDone,
+                                  style: AppFonts.sf(
+                                      size: 10,
+                                      weight: FontWeight.w600,
+                                      color: c.ink3,
+                                      letterSpacing: -0.08)),
+                            ),
+                        ],
+                      ),
                     ],
                   ),
                 ),
@@ -531,10 +682,16 @@ class _RoutineCard extends StatelessWidget {
   }
 }
 
-/// One Cardio row: move-tinted icon panel + name + est. minutes + play affordance.
+/// One Cardio row: move-tinted icon panel + name + distance/pace (or minutes) +
+/// last-done + play affordance.
 class _CardioRow extends StatelessWidget {
-  const _CardioRow({required this.routine, required this.onTap});
+  const _CardioRow({
+    required this.routine,
+    required this.lastDoneDays,
+    required this.onTap,
+  });
   final Routine routine;
+  final int? lastDoneDays;
   final VoidCallback onTap;
 
   @override
@@ -581,20 +738,43 @@ class _CardioRow extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.baseline,
                           textBaseline: TextBaseline.alphabetic,
                           children: [
-                            Text('${_estMinutes(routine)}',
+                            // Primary metric: distance if authored, else minutes.
+                            Text(
+                                routine.distanceKm != null
+                                    ? _trimKm(routine.distanceKm!)
+                                    : '${_displayEstMinutes(routine)}',
                                 style: AppFonts.sfr(
                                     size: 16,
                                     weight: FontWeight.w700,
                                     color: c.ink,
                                     letterSpacing: -0.2)),
                             const SizedBox(width: 2),
-                            Text('min',
+                            Text(routine.distanceKm != null ? 'km' : 'min',
                                 style: AppFonts.sf(
                                     size: 11,
                                     color: c.ink3,
                                     letterSpacing: -0.08)),
+                            if (routine.pace != null) ...[
+                              Text('  ·  ',
+                                  style: AppFonts.sf(
+                                      size: 11, color: c.ink3)),
+                              Text(routine.pace!,
+                                  style: AppFonts.sf(
+                                      size: 13,
+                                      weight: FontWeight.w600,
+                                      color: c.ink2,
+                                      letterSpacing: -0.1)),
+                            ],
                           ],
                         ),
+                        if (_lastDoneLabel(lastDoneDays) != null) ...[
+                          const SizedBox(height: 3),
+                          Text('last done ${_lastDoneLabel(lastDoneDays)}',
+                              style: AppFonts.sf(
+                                  size: 11,
+                                  color: c.ink3,
+                                  letterSpacing: -0.08)),
+                        ],
                       ],
                     ),
                   ),
@@ -682,9 +862,13 @@ Color _bandColor(AppColors c, RoutineTag tag) => switch (tag) {
       RoutineTag.cardio => c.move,
     };
 
+/// Displayed session-length estimate (minutes): the routine's authored
+/// [Routine.estMin] when present, else the [_estMinutes] heuristic.
+int _displayEstMinutes(Routine routine) => routine.estMin ?? _estMinutes(routine);
+
 /// Rough session-length estimate (minutes): total target sets across the
 /// routine times the rest interval, plus per-set work, rounded to 5 min. Pure
-/// display heuristic — the prototype hard-codes `estMin` per routine.
+/// display heuristic — fallback when a routine has no authored `estMin`.
 int _estMinutes(Routine routine) {
   final totalSets =
       routine.exercises.fold<int>(0, (s, e) => s + e.targetSets);
@@ -693,4 +877,35 @@ int _estMinutes(Routine routine) {
   final seconds = totalSets * (routine.restSeconds + 35);
   final minutes = (seconds / 60).round();
   return (minutes / 5).round() * 5;
+}
+
+/// Compact "last done Nd ago" label from a whole-day count, or null. Renders
+/// "today" / "1d ago" / "{n}d ago".
+String? _lastDoneLabel(int? daysAgo) {
+  if (daysAgo == null) return null;
+  if (daysAgo <= 0) return 'today';
+  return '${daysAgo}d ago';
+}
+
+/// Formats a km distance without a trailing ".0" (e.g. 5.0 → "5", 4.8 → "4.8").
+String _trimKm(double km) {
+  final s = km.toStringAsFixed(1);
+  return s.endsWith('.0') ? s.substring(0, s.length - 2) : s;
+}
+
+/// Bullet-joined preview of the routine's top exercise names (+ "+N more"),
+/// e.g. "Bench · OHP · Incline · +2 more". Empty when no exercises.
+String _exercisePreviewLine(Routine routine, Map<String, String> names) {
+  const max = 3;
+  final ordered = routine.orderedExercises;
+  if (ordered.isEmpty) return '';
+  final shown = [
+    for (final ex in ordered.take(max))
+      names[ex.exerciseId] ?? ex.exerciseId,
+  ];
+  final remaining = ordered.length - shown.length;
+  return [
+    ...shown,
+    if (remaining > 0) '+$remaining more',
+  ].join(' · ');
 }

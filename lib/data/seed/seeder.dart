@@ -16,10 +16,10 @@ class Seeder {
 
   /// Marker key written once the initial seed completes.
   ///
-  /// Bumped to `v3` for Handoff #2: the flat rituals are replaced by the three
-  /// time-of-day ritual routines (+ steps), and Bills/Subscriptions/PalNotes
-  /// arrive — so DBs seeded under `initial_seed_v2` re-run and pick them up.
-  static const String _markerKey = 'initial_seed_v3';
+  /// Bumped to `v4`: routines gain authored `estMin` (+ cardio `distanceKm`/
+  /// `pace`), so DBs seeded under `initial_seed_v3` re-run (insertOrReplace) and
+  /// backfill those fields on the seed routines.
+  static const String _markerKey = 'initial_seed_v4';
 
   /// Seeds the DB if it hasn't been seeded yet. Safe to call on every launch.
   Future<void> seedIfNeeded() async {
@@ -59,13 +59,7 @@ class Seeder {
         }
       }
 
-      // Bills, subscriptions, Pal notes.
-      for (final b in SeedData.bills()) {
-        await _db.into(_db.bills).insert(b.toCompanion(), mode: replace);
-      }
-      for (final s in SeedData.subscriptions()) {
-        await _db.into(_db.subscriptions).insert(s.toCompanion(), mode: replace);
-      }
+      // Pal notes.
       for (final n in SeedData.palNotes()) {
         await _db.into(_db.palNotes).insert(n.toCompanion(), mode: replace);
       }

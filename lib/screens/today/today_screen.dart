@@ -47,7 +47,7 @@ class TodayScreen extends ConsumerWidget {
   }
 }
 
-class _TodayBody extends StatelessWidget {
+class _TodayBody extends ConsumerWidget {
   const _TodayBody({required this.today});
   final TodayState today;
 
@@ -80,7 +80,7 @@ class _TodayBody extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final c = context.colors;
     final goals = today.goals;
     final moneySpent = today.moneySpent;
@@ -340,9 +340,18 @@ class _TodayBody extends StatelessWidget {
                       weight: FontWeight.w700,
                       color: c.ink,
                       letterSpacing: 0.35)),
-              Text('Week',
-                  style:
-                      AppFonts.sf(size: 15, color: c.ink3, letterSpacing: -0.24)),
+              SizedBox(
+                width: 124,
+                child: Segmented<TimelineMode>(
+                  options: const [
+                    (TimelineMode.day, 'Day'),
+                    (TimelineMode.week, 'Week'),
+                  ],
+                  value: today.mode,
+                  onChanged: (m) =>
+                      ref.read(timelineModeControllerProvider.notifier).set(m),
+                ),
+              ),
             ],
           ),
         ),

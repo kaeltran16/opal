@@ -21,6 +21,7 @@ class SettingsRepository {
   static const _kOnboardingComplete = 'settings.onboardingComplete';
   static const _kRitualReminders = 'settings.ritualReminders';
   static const _kBudgetAlerts = 'settings.budgetAlerts';
+  static const _kDisplayName = 'settings.displayName';
 
   // --- Accent -------------------------------------------------------------
 
@@ -57,6 +58,14 @@ class SettingsRepository {
 
   Future<void> setOnboardingComplete(bool complete) =>
       _prefs.setBool(_kOnboardingComplete, complete);
+
+  // --- Profile ------------------------------------------------------------
+
+  /// The user's display name, captured during onboarding. Empty when unset.
+  String get displayName => _prefs.getString(_kDisplayName) ?? '';
+
+  Future<void> setDisplayName(String name) =>
+      _prefs.setString(_kDisplayName, name.trim());
 
   // --- Notification preferences -------------------------------------------
 

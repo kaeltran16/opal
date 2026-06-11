@@ -99,6 +99,9 @@ class Routine {
     this.restSeconds = 120,
     this.warmupReminder = false,
     this.autoProgress = false,
+    this.estMin,
+    this.distanceKm,
+    this.pace,
   });
 
   /// Caller-supplied id (never self-generated).
@@ -113,6 +116,16 @@ class Routine {
   final int restSeconds;
   final bool warmupReminder;
   final bool autoProgress;
+
+  /// Authored session-length estimate in minutes. Null falls back to a derived
+  /// heuristic at the display layer.
+  final int? estMin;
+
+  /// Planned distance in km for cardio routines. Null for strength.
+  final double? distanceKm;
+
+  /// Display pace string for cardio routines, e.g. "5:00 /km". Null otherwise.
+  final String? pace;
 
   /// Number of exercises in the routine.
   int get exerciseCount => exercises.length;
@@ -131,6 +144,9 @@ class Routine {
     int? restSeconds,
     bool? warmupReminder,
     bool? autoProgress,
+    int? estMin,
+    double? distanceKm,
+    String? pace,
   }) {
     return Routine(
       id: id ?? this.id,
@@ -140,6 +156,9 @@ class Routine {
       restSeconds: restSeconds ?? this.restSeconds,
       warmupReminder: warmupReminder ?? this.warmupReminder,
       autoProgress: autoProgress ?? this.autoProgress,
+      estMin: estMin ?? this.estMin,
+      distanceKm: distanceKm ?? this.distanceKm,
+      pace: pace ?? this.pace,
     );
   }
 
@@ -153,7 +172,10 @@ class Routine {
           _exListEquals(other.exercises, exercises) &&
           other.restSeconds == restSeconds &&
           other.warmupReminder == warmupReminder &&
-          other.autoProgress == autoProgress;
+          other.autoProgress == autoProgress &&
+          other.estMin == estMin &&
+          other.distanceKm == distanceKm &&
+          other.pace == pace;
 
   @override
   int get hashCode => Object.hash(
@@ -164,6 +186,9 @@ class Routine {
         restSeconds,
         warmupReminder,
         autoProgress,
+        estMin,
+        distanceKm,
+        pace,
       );
 
   @override

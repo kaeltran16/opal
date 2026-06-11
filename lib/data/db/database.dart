@@ -20,8 +20,6 @@ part 'database.g.dart';
     SetLogs,
     RitualRoutines,
     RitualSteps,
-    Bills,
-    Subscriptions,
     PalNotes,
     GoalsTable,
     SeedMarkers,
@@ -35,7 +33,7 @@ class LoopDatabase extends _$LoopDatabase {
   LoopDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -43,18 +41,34 @@ class LoopDatabase extends _$LoopDatabase {
           await m.createAll();
         },
         // v1 -> v2 (Handoff #2): the flat `rituals` table is replaced by
-        // `ritual_routines` + `ritual_steps`, and Bills/Subscriptions/PalNotes
-        // arrive. Ritual definitions were seed-only (no user-authored rows yet),
-        // so dropping the old table is non-destructive to real data; the seeder
-        // (marker bump) repopulates the new routines on next launch.
+        // `ritual_routines` + `ritual_steps`, and PalNotes arrive. Ritual
+        // definitions were seed-only (no user-authored rows yet), so dropping
+        // the old table is non-destructive to real data; the seeder (marker
+        // bump) repopulates the new routines on next launch.
+        //
+        // v2 -> v3: the Bills and Subscriptions features were removed, so their
+        // backing tables are dropped. They held seed-only data, so this is
+        // non-destructive to real user data.
+        //
+        // v3 -> v4: routines gain authored per-routine fields (estMin, plus
+        // cardio distanceKm/pace) for richer Start-workout cards. All nullable,
+        // so existing rows survive; the seeder (marker bump) backfills seed
+        // routines on next launch.
         onUpgrade: (m, from, to) async {
           if (from < 2) {
             await customStatement('DROP TABLE IF EXISTS rituals');
             await m.createTable(ritualRoutines);
             await m.createTable(ritualSteps);
-            await m.createTable(bills);
-            await m.createTable(subscriptions);
             await m.createTable(palNotes);
+          }
+          if (from < 3) {
+            await customStatement('DROP TABLE IF EXISTS bills');
+            await customStatement('DROP TABLE IF EXISTS subscriptions');
+          }
+          if (from < 4) {
+            await m.addColumn(routines, routines.estMin);
+            await m.addColumn(routines, routines.distanceKm);
+            await m.addColumn(routines, routines.pace);
           }
         },
         beforeOpen: (details) async {

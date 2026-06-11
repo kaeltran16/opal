@@ -74,6 +74,15 @@ class Routines extends Table {
   BoolColumn get autoProgress =>
       boolean().withDefault(const Constant(false))();
 
+  /// Authored session-length estimate in minutes (null → derived heuristic).
+  IntColumn get estMin => integer().nullable()();
+
+  /// Planned cardio distance in km (null for strength).
+  RealColumn get distanceKm => real().nullable()();
+
+  /// Display cardio pace string, e.g. "5:00 /km" (null for strength).
+  TextColumn get pace => text().nullable()();
+
   @override
   Set<Column> get primaryKey => {id};
 }
@@ -179,40 +188,6 @@ class RitualSteps extends Table {
   List<String> get customConstraints => [
         'FOREIGN KEY (routine_id) REFERENCES ritual_routines (id) ON DELETE CASCADE',
       ];
-}
-
-/// Recurring obligations (Bills / Recurring screen).
-@DataClassName('BillRow')
-class Bills extends Table {
-  TextColumn get id => text()();
-  TextColumn get name => text()();
-  TextColumn get payee => text()();
-  TextColumn get category => text()();
-  RealColumn get amount => real()();
-  DateTimeColumn get dueDate => dateTime()();
-  BoolColumn get autoPay => boolean().withDefault(const Constant(false))();
-  TextColumn get icon => text()();
-  TextColumn get color => text()();
-
-  @override
-  Set<Column> get primaryKey => {id};
-}
-
-/// Auto-detected recurring services (Subscriptions screen).
-@DataClassName('SubscriptionRow')
-class Subscriptions extends Table {
-  TextColumn get id => text()();
-  TextColumn get name => text()();
-  TextColumn get category => text()();
-  RealColumn get amount => real()();
-  DateTimeColumn get nextChargeDate => dateTime()();
-  TextColumn get icon => text()();
-  TextColumn get color => text()();
-  BoolColumn get detectedFromEmail =>
-      boolean().withDefault(const Constant(true))();
-
-  @override
-  Set<Column> get primaryKey => {id};
 }
 
 /// Passive Pal observations (Pal inbox).

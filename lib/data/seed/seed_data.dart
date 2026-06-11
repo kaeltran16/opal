@@ -25,12 +25,6 @@ class SeedData {
     return d.subtract(Duration(days: daysAgo));
   }
 
-  /// Helper: midnight [days] days from today (for bill/subscription due dates).
-  static DateTime _inDays(int days) {
-    final now = DateTime.now();
-    return DateTime(now.year, now.month, now.day).add(Duration(days: days));
-  }
-
   /// Helper: [minutesAgo] minutes back from now (for Pal-note timestamps).
   static DateTime _minutesAgo(int minutesAgo) =>
       DateTime.now().subtract(Duration(minutes: minutesAgo));
@@ -154,144 +148,6 @@ class SeedData {
               icon: 'character.book.closed.fill',
             ),
           ],
-        ),
-      ];
-
-  /// Recurring bills (Bills / Recurring screen). Due dates are anchored ahead
-  /// of "today" so "due in N days" stays meaningful regardless of run date.
-  static List<Bill> bills() => [
-        Bill(
-          id: 'seed-bill-rent',
-          name: 'Rent',
-          payee: 'Greenwood Property Co.',
-          category: 'Housing',
-          amount: 2400.00,
-          dueDate: _inDays(3),
-          autoPay: true,
-          icon: 'house.fill',
-          color: '#0A84FF',
-        ),
-        Bill(
-          id: 'seed-bill-electric',
-          name: 'PG&E',
-          payee: 'Electric + gas',
-          category: 'Utility',
-          amount: 94.20,
-          dueDate: _inDays(6),
-          autoPay: true,
-          icon: 'bolt.fill',
-          color: '#FF9500',
-        ),
-        Bill(
-          id: 'seed-bill-internet',
-          name: 'Sonic Fiber',
-          payee: '1 Gbps internet',
-          category: 'Utility',
-          amount: 50.00,
-          dueDate: _inDays(9),
-          autoPay: false,
-          icon: 'bolt.fill',
-          color: '#5856D6',
-        ),
-        Bill(
-          id: 'seed-bill-health',
-          name: 'Blue Shield',
-          payee: 'Health premium',
-          category: 'Insurance',
-          amount: 312.00,
-          dueDate: _inDays(13),
-          autoPay: true,
-          icon: 'heart.fill',
-          color: '#FF2D55',
-        ),
-        Bill(
-          id: 'seed-bill-card',
-          name: 'Chase Sapphire',
-          payee: 'Credit card · min \$75',
-          category: 'Credit',
-          amount: 1240.16,
-          dueDate: _inDays(17),
-          autoPay: false,
-          icon: 'dollarsign.circle.fill',
-          color: '#1565C0',
-        ),
-        Bill(
-          id: 'seed-bill-phone',
-          name: 'T-Mobile',
-          payee: 'Phone plan',
-          category: 'Utility',
-          amount: 70.00,
-          dueDate: _inDays(22),
-          autoPay: true,
-          icon: 'bell.fill',
-          color: '#E50914',
-        ),
-      ];
-
-  /// Auto-detected subscriptions (Subscriptions screen).
-  static List<Subscription> subscriptions() => [
-        Subscription(
-          id: 'seed-sub-spotify',
-          name: 'Spotify',
-          category: 'Music',
-          amount: 10.99,
-          nextChargeDate: _inDays(2),
-          icon: 'music.note',
-          color: '#1DB954',
-        ),
-        Subscription(
-          id: 'seed-sub-netflix',
-          name: 'Netflix',
-          category: 'Video',
-          amount: 15.49,
-          nextChargeDate: _inDays(5),
-          icon: 'play.fill',
-          color: '#E50914',
-        ),
-        Subscription(
-          id: 'seed-sub-icloud',
-          name: 'iCloud+',
-          category: 'Storage',
-          amount: 2.99,
-          nextChargeDate: _inDays(8),
-          icon: 'tray.fill',
-          color: '#007AFF',
-        ),
-        Subscription(
-          id: 'seed-sub-nyt',
-          name: 'NYT',
-          category: 'News',
-          amount: 17.00,
-          nextChargeDate: _inDays(12),
-          icon: 'book.closed.fill',
-          color: '#1C1C1E',
-        ),
-        Subscription(
-          id: 'seed-sub-figma',
-          name: 'Figma',
-          category: 'Work',
-          amount: 15.00,
-          nextChargeDate: _inDays(14),
-          icon: 'square.grid.2x2.fill',
-          color: '#F24E1E',
-        ),
-        Subscription(
-          id: 'seed-sub-gym',
-          name: 'Gym',
-          category: 'Fitness',
-          amount: 89.00,
-          nextChargeDate: _inDays(19),
-          icon: 'dumbbell.fill',
-          color: '#FF6B35',
-        ),
-        Subscription(
-          id: 'seed-sub-chatgpt',
-          name: 'ChatGPT',
-          category: 'AI',
-          amount: 20.00,
-          nextChargeDate: _inDays(23),
-          icon: 'sparkles',
-          color: '#10A37F',
         ),
       ];
 
@@ -604,6 +460,7 @@ class SeedData {
           name: 'Push Day A',
           tag: RoutineTag.upper,
           restSeconds: 120,
+          estMin: 55,
           exercises: [
             RoutineExercise(
               id: 'seed-rex-push-bench',
@@ -652,6 +509,7 @@ class SeedData {
           name: 'Pull Day A',
           tag: RoutineTag.upper,
           restSeconds: 120,
+          estMin: 58,
           exercises: [
             RoutineExercise(
               id: 'seed-rex-pull-deadlift',
@@ -699,6 +557,7 @@ class SeedData {
           name: 'Leg Day',
           tag: RoutineTag.lower,
           restSeconds: 150,
+          estMin: 62,
           exercises: [
             RoutineExercise(
               id: 'seed-rex-legs-squat',
@@ -747,6 +606,7 @@ class SeedData {
           name: 'Upper Power',
           tag: RoutineTag.custom,
           restSeconds: 180,
+          estMin: 45,
           exercises: [
             RoutineExercise(
               id: 'seed-rex-up-bench',
@@ -786,6 +646,9 @@ class SeedData {
           name: 'Treadmill Intervals',
           tag: RoutineTag.cardio,
           restSeconds: 60,
+          estMin: 30,
+          distanceKm: 5.0,
+          pace: '5:00 /km',
           exercises: [
             RoutineExercise(
               id: 'seed-rex-cardio-treadmill',

@@ -169,6 +169,9 @@ extension RoutineModelMapper on Routine {
         restSeconds: Value(restSeconds),
         warmupReminder: Value(warmupReminder),
         autoProgress: Value(autoProgress),
+        estMin: Value(estMin),
+        distanceKm: Value(distanceKm),
+        pace: Value(pace),
       );
 }
 
@@ -182,6 +185,9 @@ Routine routineFromRow(RoutineRow row, List<RoutineExercise> exercises) =>
       restSeconds: row.restSeconds,
       warmupReminder: row.warmupReminder,
       autoProgress: row.autoProgress,
+      estMin: row.estMin,
+      distanceKm: row.distanceKm,
+      pace: row.pace,
     );
 
 // ---------------------------------------------------------------------------
@@ -238,68 +244,6 @@ RitualRoutine ritualRoutineFromRow(
       order: row.position,
       steps: steps,
     );
-
-// ---------------------------------------------------------------------------
-// Bill
-// ---------------------------------------------------------------------------
-
-extension BillRowMapper on BillRow {
-  Bill toModel() => Bill(
-        id: id,
-        name: name,
-        payee: payee,
-        category: category,
-        amount: amount,
-        dueDate: dueDate,
-        autoPay: autoPay,
-        icon: icon,
-        color: color,
-      );
-}
-
-extension BillModelMapper on Bill {
-  BillsCompanion toCompanion() => BillsCompanion(
-        id: Value(id),
-        name: Value(name),
-        payee: Value(payee),
-        category: Value(category),
-        amount: Value(amount),
-        dueDate: Value(dueDate),
-        autoPay: Value(autoPay),
-        icon: Value(icon),
-        color: Value(color),
-      );
-}
-
-// ---------------------------------------------------------------------------
-// Subscription
-// ---------------------------------------------------------------------------
-
-extension SubscriptionRowMapper on SubscriptionRow {
-  Subscription toModel() => Subscription(
-        id: id,
-        name: name,
-        category: category,
-        amount: amount,
-        nextChargeDate: nextChargeDate,
-        icon: icon,
-        color: color,
-        detectedFromEmail: detectedFromEmail,
-      );
-}
-
-extension SubscriptionModelMapper on Subscription {
-  SubscriptionsCompanion toCompanion() => SubscriptionsCompanion(
-        id: Value(id),
-        name: Value(name),
-        category: Value(category),
-        amount: Value(amount),
-        nextChargeDate: Value(nextChargeDate),
-        icon: Value(icon),
-        color: Value(color),
-        detectedFromEmail: Value(detectedFromEmail),
-      );
-}
 
 // ---------------------------------------------------------------------------
 // PalNote

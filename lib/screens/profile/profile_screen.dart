@@ -25,6 +25,7 @@ class ProfileScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final c = context.colors;
     final async = ref.watch(goalsStreamProvider);
+    final name = ref.watch(settingsRepositoryProvider).displayName;
 
     return async.when(
       loading: () => Center(

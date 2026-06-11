@@ -8,6 +8,70 @@ part of 'today_controller.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
+/// The selected timeline mode. Tapping the Today timeline toggle flips it; the
+/// [todayState] stream watches it and rebuilds its buckets accordingly.
+
+@ProviderFor(TimelineModeController)
+const timelineModeControllerProvider = TimelineModeControllerProvider._();
+
+/// The selected timeline mode. Tapping the Today timeline toggle flips it; the
+/// [todayState] stream watches it and rebuilds its buckets accordingly.
+final class TimelineModeControllerProvider
+    extends $NotifierProvider<TimelineModeController, TimelineMode> {
+  /// The selected timeline mode. Tapping the Today timeline toggle flips it; the
+  /// [todayState] stream watches it and rebuilds its buckets accordingly.
+  const TimelineModeControllerProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'timelineModeControllerProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$timelineModeControllerHash();
+
+  @$internal
+  @override
+  TimelineModeController create() => TimelineModeController();
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(TimelineMode value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<TimelineMode>(value),
+    );
+  }
+}
+
+String _$timelineModeControllerHash() =>
+    r'f1b7c92f90e418e7015eccb22016e32b880366cd';
+
+/// The selected timeline mode. Tapping the Today timeline toggle flips it; the
+/// [todayState] stream watches it and rebuilds its buckets accordingly.
+
+abstract class _$TimelineModeController extends $Notifier<TimelineMode> {
+  TimelineMode build();
+  @$mustCallSuper
+  @override
+  void runBuild() {
+    final created = build();
+    final ref = this.ref as $Ref<TimelineMode, TimelineMode>;
+    final element =
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<TimelineMode, TimelineMode>,
+              TimelineMode,
+              Object?,
+              Object?
+            >;
+    element.handleValue(ref, created);
+  }
+}
+
 /// The live goals row (defaults until set). Watched by [todayState] so a
 /// goals-only edit (budget/targets in Settings) re-emits Today on its own.
 
@@ -99,4 +163,4 @@ final class TodayStateProvider
   }
 }
 
-String _$todayStateHash() => r'44a83932629ff08a262a339bfd705f516b696fce';
+String _$todayStateHash() => r'2c361d3c1164e8747d262fbd0a34df349a4e4842';

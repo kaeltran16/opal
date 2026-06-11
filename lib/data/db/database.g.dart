@@ -1431,6 +1431,35 @@ class $RoutinesTable extends Routines
     ),
     defaultValue: const Constant(false),
   );
+  static const VerificationMeta _estMinMeta = const VerificationMeta('estMin');
+  @override
+  late final GeneratedColumn<int> estMin = GeneratedColumn<int>(
+    'est_min',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _distanceKmMeta = const VerificationMeta(
+    'distanceKm',
+  );
+  @override
+  late final GeneratedColumn<double> distanceKm = GeneratedColumn<double>(
+    'distance_km',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _paceMeta = const VerificationMeta('pace');
+  @override
+  late final GeneratedColumn<String> pace = GeneratedColumn<String>(
+    'pace',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -1439,6 +1468,9 @@ class $RoutinesTable extends Routines
     restSeconds,
     warmupReminder,
     autoProgress,
+    estMin,
+    distanceKm,
+    pace,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -1500,6 +1532,24 @@ class $RoutinesTable extends Routines
         ),
       );
     }
+    if (data.containsKey('est_min')) {
+      context.handle(
+        _estMinMeta,
+        estMin.isAcceptableOrUnknown(data['est_min']!, _estMinMeta),
+      );
+    }
+    if (data.containsKey('distance_km')) {
+      context.handle(
+        _distanceKmMeta,
+        distanceKm.isAcceptableOrUnknown(data['distance_km']!, _distanceKmMeta),
+      );
+    }
+    if (data.containsKey('pace')) {
+      context.handle(
+        _paceMeta,
+        pace.isAcceptableOrUnknown(data['pace']!, _paceMeta),
+      );
+    }
     return context;
   }
 
@@ -1533,6 +1583,18 @@ class $RoutinesTable extends Routines
         DriftSqlType.bool,
         data['${effectivePrefix}auto_progress'],
       )!,
+      estMin: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}est_min'],
+      ),
+      distanceKm: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}distance_km'],
+      ),
+      pace: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}pace'],
+      ),
     );
   }
 
@@ -1551,6 +1613,15 @@ class RoutineRow extends DataClass implements Insertable<RoutineRow> {
   final int restSeconds;
   final bool warmupReminder;
   final bool autoProgress;
+
+  /// Authored session-length estimate in minutes (null → derived heuristic).
+  final int? estMin;
+
+  /// Planned cardio distance in km (null for strength).
+  final double? distanceKm;
+
+  /// Display cardio pace string, e.g. "5:00 /km" (null for strength).
+  final String? pace;
   const RoutineRow({
     required this.id,
     required this.name,
@@ -1558,6 +1629,9 @@ class RoutineRow extends DataClass implements Insertable<RoutineRow> {
     required this.restSeconds,
     required this.warmupReminder,
     required this.autoProgress,
+    this.estMin,
+    this.distanceKm,
+    this.pace,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -1568,6 +1642,15 @@ class RoutineRow extends DataClass implements Insertable<RoutineRow> {
     map['rest_seconds'] = Variable<int>(restSeconds);
     map['warmup_reminder'] = Variable<bool>(warmupReminder);
     map['auto_progress'] = Variable<bool>(autoProgress);
+    if (!nullToAbsent || estMin != null) {
+      map['est_min'] = Variable<int>(estMin);
+    }
+    if (!nullToAbsent || distanceKm != null) {
+      map['distance_km'] = Variable<double>(distanceKm);
+    }
+    if (!nullToAbsent || pace != null) {
+      map['pace'] = Variable<String>(pace);
+    }
     return map;
   }
 
@@ -1579,6 +1662,13 @@ class RoutineRow extends DataClass implements Insertable<RoutineRow> {
       restSeconds: Value(restSeconds),
       warmupReminder: Value(warmupReminder),
       autoProgress: Value(autoProgress),
+      estMin: estMin == null && nullToAbsent
+          ? const Value.absent()
+          : Value(estMin),
+      distanceKm: distanceKm == null && nullToAbsent
+          ? const Value.absent()
+          : Value(distanceKm),
+      pace: pace == null && nullToAbsent ? const Value.absent() : Value(pace),
     );
   }
 
@@ -1594,6 +1684,9 @@ class RoutineRow extends DataClass implements Insertable<RoutineRow> {
       restSeconds: serializer.fromJson<int>(json['restSeconds']),
       warmupReminder: serializer.fromJson<bool>(json['warmupReminder']),
       autoProgress: serializer.fromJson<bool>(json['autoProgress']),
+      estMin: serializer.fromJson<int?>(json['estMin']),
+      distanceKm: serializer.fromJson<double?>(json['distanceKm']),
+      pace: serializer.fromJson<String?>(json['pace']),
     );
   }
   @override
@@ -1606,6 +1699,9 @@ class RoutineRow extends DataClass implements Insertable<RoutineRow> {
       'restSeconds': serializer.toJson<int>(restSeconds),
       'warmupReminder': serializer.toJson<bool>(warmupReminder),
       'autoProgress': serializer.toJson<bool>(autoProgress),
+      'estMin': serializer.toJson<int?>(estMin),
+      'distanceKm': serializer.toJson<double?>(distanceKm),
+      'pace': serializer.toJson<String?>(pace),
     };
   }
 
@@ -1616,6 +1712,9 @@ class RoutineRow extends DataClass implements Insertable<RoutineRow> {
     int? restSeconds,
     bool? warmupReminder,
     bool? autoProgress,
+    Value<int?> estMin = const Value.absent(),
+    Value<double?> distanceKm = const Value.absent(),
+    Value<String?> pace = const Value.absent(),
   }) => RoutineRow(
     id: id ?? this.id,
     name: name ?? this.name,
@@ -1623,6 +1722,9 @@ class RoutineRow extends DataClass implements Insertable<RoutineRow> {
     restSeconds: restSeconds ?? this.restSeconds,
     warmupReminder: warmupReminder ?? this.warmupReminder,
     autoProgress: autoProgress ?? this.autoProgress,
+    estMin: estMin.present ? estMin.value : this.estMin,
+    distanceKm: distanceKm.present ? distanceKm.value : this.distanceKm,
+    pace: pace.present ? pace.value : this.pace,
   );
   RoutineRow copyWithCompanion(RoutinesCompanion data) {
     return RoutineRow(
@@ -1638,6 +1740,11 @@ class RoutineRow extends DataClass implements Insertable<RoutineRow> {
       autoProgress: data.autoProgress.present
           ? data.autoProgress.value
           : this.autoProgress,
+      estMin: data.estMin.present ? data.estMin.value : this.estMin,
+      distanceKm: data.distanceKm.present
+          ? data.distanceKm.value
+          : this.distanceKm,
+      pace: data.pace.present ? data.pace.value : this.pace,
     );
   }
 
@@ -1649,14 +1756,26 @@ class RoutineRow extends DataClass implements Insertable<RoutineRow> {
           ..write('tag: $tag, ')
           ..write('restSeconds: $restSeconds, ')
           ..write('warmupReminder: $warmupReminder, ')
-          ..write('autoProgress: $autoProgress')
+          ..write('autoProgress: $autoProgress, ')
+          ..write('estMin: $estMin, ')
+          ..write('distanceKm: $distanceKm, ')
+          ..write('pace: $pace')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, name, tag, restSeconds, warmupReminder, autoProgress);
+  int get hashCode => Object.hash(
+    id,
+    name,
+    tag,
+    restSeconds,
+    warmupReminder,
+    autoProgress,
+    estMin,
+    distanceKm,
+    pace,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -1666,7 +1785,10 @@ class RoutineRow extends DataClass implements Insertable<RoutineRow> {
           other.tag == this.tag &&
           other.restSeconds == this.restSeconds &&
           other.warmupReminder == this.warmupReminder &&
-          other.autoProgress == this.autoProgress);
+          other.autoProgress == this.autoProgress &&
+          other.estMin == this.estMin &&
+          other.distanceKm == this.distanceKm &&
+          other.pace == this.pace);
 }
 
 class RoutinesCompanion extends UpdateCompanion<RoutineRow> {
@@ -1676,6 +1798,9 @@ class RoutinesCompanion extends UpdateCompanion<RoutineRow> {
   final Value<int> restSeconds;
   final Value<bool> warmupReminder;
   final Value<bool> autoProgress;
+  final Value<int?> estMin;
+  final Value<double?> distanceKm;
+  final Value<String?> pace;
   final Value<int> rowid;
   const RoutinesCompanion({
     this.id = const Value.absent(),
@@ -1684,6 +1809,9 @@ class RoutinesCompanion extends UpdateCompanion<RoutineRow> {
     this.restSeconds = const Value.absent(),
     this.warmupReminder = const Value.absent(),
     this.autoProgress = const Value.absent(),
+    this.estMin = const Value.absent(),
+    this.distanceKm = const Value.absent(),
+    this.pace = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   RoutinesCompanion.insert({
@@ -1693,6 +1821,9 @@ class RoutinesCompanion extends UpdateCompanion<RoutineRow> {
     this.restSeconds = const Value.absent(),
     this.warmupReminder = const Value.absent(),
     this.autoProgress = const Value.absent(),
+    this.estMin = const Value.absent(),
+    this.distanceKm = const Value.absent(),
+    this.pace = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        name = Value(name),
@@ -1704,6 +1835,9 @@ class RoutinesCompanion extends UpdateCompanion<RoutineRow> {
     Expression<int>? restSeconds,
     Expression<bool>? warmupReminder,
     Expression<bool>? autoProgress,
+    Expression<int>? estMin,
+    Expression<double>? distanceKm,
+    Expression<String>? pace,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -1713,6 +1847,9 @@ class RoutinesCompanion extends UpdateCompanion<RoutineRow> {
       if (restSeconds != null) 'rest_seconds': restSeconds,
       if (warmupReminder != null) 'warmup_reminder': warmupReminder,
       if (autoProgress != null) 'auto_progress': autoProgress,
+      if (estMin != null) 'est_min': estMin,
+      if (distanceKm != null) 'distance_km': distanceKm,
+      if (pace != null) 'pace': pace,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -1724,6 +1861,9 @@ class RoutinesCompanion extends UpdateCompanion<RoutineRow> {
     Value<int>? restSeconds,
     Value<bool>? warmupReminder,
     Value<bool>? autoProgress,
+    Value<int?>? estMin,
+    Value<double?>? distanceKm,
+    Value<String?>? pace,
     Value<int>? rowid,
   }) {
     return RoutinesCompanion(
@@ -1733,6 +1873,9 @@ class RoutinesCompanion extends UpdateCompanion<RoutineRow> {
       restSeconds: restSeconds ?? this.restSeconds,
       warmupReminder: warmupReminder ?? this.warmupReminder,
       autoProgress: autoProgress ?? this.autoProgress,
+      estMin: estMin ?? this.estMin,
+      distanceKm: distanceKm ?? this.distanceKm,
+      pace: pace ?? this.pace,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -1758,6 +1901,15 @@ class RoutinesCompanion extends UpdateCompanion<RoutineRow> {
     if (autoProgress.present) {
       map['auto_progress'] = Variable<bool>(autoProgress.value);
     }
+    if (estMin.present) {
+      map['est_min'] = Variable<int>(estMin.value);
+    }
+    if (distanceKm.present) {
+      map['distance_km'] = Variable<double>(distanceKm.value);
+    }
+    if (pace.present) {
+      map['pace'] = Variable<String>(pace.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -1773,6 +1925,9 @@ class RoutinesCompanion extends UpdateCompanion<RoutineRow> {
           ..write('restSeconds: $restSeconds, ')
           ..write('warmupReminder: $warmupReminder, ')
           ..write('autoProgress: $autoProgress, ')
+          ..write('estMin: $estMin, ')
+          ..write('distanceKm: $distanceKm, ')
+          ..write('pace: $pace, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -4024,1072 +4179,6 @@ class RitualStepsCompanion extends UpdateCompanion<RitualStepRow> {
   }
 }
 
-class $BillsTable extends Bills with TableInfo<$BillsTable, BillRow> {
-  @override
-  final GeneratedDatabase attachedDatabase;
-  final String? _alias;
-  $BillsTable(this.attachedDatabase, [this._alias]);
-  static const VerificationMeta _idMeta = const VerificationMeta('id');
-  @override
-  late final GeneratedColumn<String> id = GeneratedColumn<String>(
-    'id',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _nameMeta = const VerificationMeta('name');
-  @override
-  late final GeneratedColumn<String> name = GeneratedColumn<String>(
-    'name',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _payeeMeta = const VerificationMeta('payee');
-  @override
-  late final GeneratedColumn<String> payee = GeneratedColumn<String>(
-    'payee',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _categoryMeta = const VerificationMeta(
-    'category',
-  );
-  @override
-  late final GeneratedColumn<String> category = GeneratedColumn<String>(
-    'category',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _amountMeta = const VerificationMeta('amount');
-  @override
-  late final GeneratedColumn<double> amount = GeneratedColumn<double>(
-    'amount',
-    aliasedName,
-    false,
-    type: DriftSqlType.double,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _dueDateMeta = const VerificationMeta(
-    'dueDate',
-  );
-  @override
-  late final GeneratedColumn<DateTime> dueDate = GeneratedColumn<DateTime>(
-    'due_date',
-    aliasedName,
-    false,
-    type: DriftSqlType.dateTime,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _autoPayMeta = const VerificationMeta(
-    'autoPay',
-  );
-  @override
-  late final GeneratedColumn<bool> autoPay = GeneratedColumn<bool>(
-    'auto_pay',
-    aliasedName,
-    false,
-    type: DriftSqlType.bool,
-    requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'CHECK ("auto_pay" IN (0, 1))',
-    ),
-    defaultValue: const Constant(false),
-  );
-  static const VerificationMeta _iconMeta = const VerificationMeta('icon');
-  @override
-  late final GeneratedColumn<String> icon = GeneratedColumn<String>(
-    'icon',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _colorMeta = const VerificationMeta('color');
-  @override
-  late final GeneratedColumn<String> color = GeneratedColumn<String>(
-    'color',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
-  @override
-  List<GeneratedColumn> get $columns => [
-    id,
-    name,
-    payee,
-    category,
-    amount,
-    dueDate,
-    autoPay,
-    icon,
-    color,
-  ];
-  @override
-  String get aliasedName => _alias ?? actualTableName;
-  @override
-  String get actualTableName => $name;
-  static const String $name = 'bills';
-  @override
-  VerificationContext validateIntegrity(
-    Insertable<BillRow> instance, {
-    bool isInserting = false,
-  }) {
-    final context = VerificationContext();
-    final data = instance.toColumns(true);
-    if (data.containsKey('id')) {
-      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
-    } else if (isInserting) {
-      context.missing(_idMeta);
-    }
-    if (data.containsKey('name')) {
-      context.handle(
-        _nameMeta,
-        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_nameMeta);
-    }
-    if (data.containsKey('payee')) {
-      context.handle(
-        _payeeMeta,
-        payee.isAcceptableOrUnknown(data['payee']!, _payeeMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_payeeMeta);
-    }
-    if (data.containsKey('category')) {
-      context.handle(
-        _categoryMeta,
-        category.isAcceptableOrUnknown(data['category']!, _categoryMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_categoryMeta);
-    }
-    if (data.containsKey('amount')) {
-      context.handle(
-        _amountMeta,
-        amount.isAcceptableOrUnknown(data['amount']!, _amountMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_amountMeta);
-    }
-    if (data.containsKey('due_date')) {
-      context.handle(
-        _dueDateMeta,
-        dueDate.isAcceptableOrUnknown(data['due_date']!, _dueDateMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_dueDateMeta);
-    }
-    if (data.containsKey('auto_pay')) {
-      context.handle(
-        _autoPayMeta,
-        autoPay.isAcceptableOrUnknown(data['auto_pay']!, _autoPayMeta),
-      );
-    }
-    if (data.containsKey('icon')) {
-      context.handle(
-        _iconMeta,
-        icon.isAcceptableOrUnknown(data['icon']!, _iconMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_iconMeta);
-    }
-    if (data.containsKey('color')) {
-      context.handle(
-        _colorMeta,
-        color.isAcceptableOrUnknown(data['color']!, _colorMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_colorMeta);
-    }
-    return context;
-  }
-
-  @override
-  Set<GeneratedColumn> get $primaryKey => {id};
-  @override
-  BillRow map(Map<String, dynamic> data, {String? tablePrefix}) {
-    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return BillRow(
-      id: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}id'],
-      )!,
-      name: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}name'],
-      )!,
-      payee: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}payee'],
-      )!,
-      category: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}category'],
-      )!,
-      amount: attachedDatabase.typeMapping.read(
-        DriftSqlType.double,
-        data['${effectivePrefix}amount'],
-      )!,
-      dueDate: attachedDatabase.typeMapping.read(
-        DriftSqlType.dateTime,
-        data['${effectivePrefix}due_date'],
-      )!,
-      autoPay: attachedDatabase.typeMapping.read(
-        DriftSqlType.bool,
-        data['${effectivePrefix}auto_pay'],
-      )!,
-      icon: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}icon'],
-      )!,
-      color: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}color'],
-      )!,
-    );
-  }
-
-  @override
-  $BillsTable createAlias(String alias) {
-    return $BillsTable(attachedDatabase, alias);
-  }
-}
-
-class BillRow extends DataClass implements Insertable<BillRow> {
-  final String id;
-  final String name;
-  final String payee;
-  final String category;
-  final double amount;
-  final DateTime dueDate;
-  final bool autoPay;
-  final String icon;
-  final String color;
-  const BillRow({
-    required this.id,
-    required this.name,
-    required this.payee,
-    required this.category,
-    required this.amount,
-    required this.dueDate,
-    required this.autoPay,
-    required this.icon,
-    required this.color,
-  });
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    map['id'] = Variable<String>(id);
-    map['name'] = Variable<String>(name);
-    map['payee'] = Variable<String>(payee);
-    map['category'] = Variable<String>(category);
-    map['amount'] = Variable<double>(amount);
-    map['due_date'] = Variable<DateTime>(dueDate);
-    map['auto_pay'] = Variable<bool>(autoPay);
-    map['icon'] = Variable<String>(icon);
-    map['color'] = Variable<String>(color);
-    return map;
-  }
-
-  BillsCompanion toCompanion(bool nullToAbsent) {
-    return BillsCompanion(
-      id: Value(id),
-      name: Value(name),
-      payee: Value(payee),
-      category: Value(category),
-      amount: Value(amount),
-      dueDate: Value(dueDate),
-      autoPay: Value(autoPay),
-      icon: Value(icon),
-      color: Value(color),
-    );
-  }
-
-  factory BillRow.fromJson(
-    Map<String, dynamic> json, {
-    ValueSerializer? serializer,
-  }) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return BillRow(
-      id: serializer.fromJson<String>(json['id']),
-      name: serializer.fromJson<String>(json['name']),
-      payee: serializer.fromJson<String>(json['payee']),
-      category: serializer.fromJson<String>(json['category']),
-      amount: serializer.fromJson<double>(json['amount']),
-      dueDate: serializer.fromJson<DateTime>(json['dueDate']),
-      autoPay: serializer.fromJson<bool>(json['autoPay']),
-      icon: serializer.fromJson<String>(json['icon']),
-      color: serializer.fromJson<String>(json['color']),
-    );
-  }
-  @override
-  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return <String, dynamic>{
-      'id': serializer.toJson<String>(id),
-      'name': serializer.toJson<String>(name),
-      'payee': serializer.toJson<String>(payee),
-      'category': serializer.toJson<String>(category),
-      'amount': serializer.toJson<double>(amount),
-      'dueDate': serializer.toJson<DateTime>(dueDate),
-      'autoPay': serializer.toJson<bool>(autoPay),
-      'icon': serializer.toJson<String>(icon),
-      'color': serializer.toJson<String>(color),
-    };
-  }
-
-  BillRow copyWith({
-    String? id,
-    String? name,
-    String? payee,
-    String? category,
-    double? amount,
-    DateTime? dueDate,
-    bool? autoPay,
-    String? icon,
-    String? color,
-  }) => BillRow(
-    id: id ?? this.id,
-    name: name ?? this.name,
-    payee: payee ?? this.payee,
-    category: category ?? this.category,
-    amount: amount ?? this.amount,
-    dueDate: dueDate ?? this.dueDate,
-    autoPay: autoPay ?? this.autoPay,
-    icon: icon ?? this.icon,
-    color: color ?? this.color,
-  );
-  BillRow copyWithCompanion(BillsCompanion data) {
-    return BillRow(
-      id: data.id.present ? data.id.value : this.id,
-      name: data.name.present ? data.name.value : this.name,
-      payee: data.payee.present ? data.payee.value : this.payee,
-      category: data.category.present ? data.category.value : this.category,
-      amount: data.amount.present ? data.amount.value : this.amount,
-      dueDate: data.dueDate.present ? data.dueDate.value : this.dueDate,
-      autoPay: data.autoPay.present ? data.autoPay.value : this.autoPay,
-      icon: data.icon.present ? data.icon.value : this.icon,
-      color: data.color.present ? data.color.value : this.color,
-    );
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('BillRow(')
-          ..write('id: $id, ')
-          ..write('name: $name, ')
-          ..write('payee: $payee, ')
-          ..write('category: $category, ')
-          ..write('amount: $amount, ')
-          ..write('dueDate: $dueDate, ')
-          ..write('autoPay: $autoPay, ')
-          ..write('icon: $icon, ')
-          ..write('color: $color')
-          ..write(')'))
-        .toString();
-  }
-
-  @override
-  int get hashCode => Object.hash(
-    id,
-    name,
-    payee,
-    category,
-    amount,
-    dueDate,
-    autoPay,
-    icon,
-    color,
-  );
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      (other is BillRow &&
-          other.id == this.id &&
-          other.name == this.name &&
-          other.payee == this.payee &&
-          other.category == this.category &&
-          other.amount == this.amount &&
-          other.dueDate == this.dueDate &&
-          other.autoPay == this.autoPay &&
-          other.icon == this.icon &&
-          other.color == this.color);
-}
-
-class BillsCompanion extends UpdateCompanion<BillRow> {
-  final Value<String> id;
-  final Value<String> name;
-  final Value<String> payee;
-  final Value<String> category;
-  final Value<double> amount;
-  final Value<DateTime> dueDate;
-  final Value<bool> autoPay;
-  final Value<String> icon;
-  final Value<String> color;
-  final Value<int> rowid;
-  const BillsCompanion({
-    this.id = const Value.absent(),
-    this.name = const Value.absent(),
-    this.payee = const Value.absent(),
-    this.category = const Value.absent(),
-    this.amount = const Value.absent(),
-    this.dueDate = const Value.absent(),
-    this.autoPay = const Value.absent(),
-    this.icon = const Value.absent(),
-    this.color = const Value.absent(),
-    this.rowid = const Value.absent(),
-  });
-  BillsCompanion.insert({
-    required String id,
-    required String name,
-    required String payee,
-    required String category,
-    required double amount,
-    required DateTime dueDate,
-    this.autoPay = const Value.absent(),
-    required String icon,
-    required String color,
-    this.rowid = const Value.absent(),
-  }) : id = Value(id),
-       name = Value(name),
-       payee = Value(payee),
-       category = Value(category),
-       amount = Value(amount),
-       dueDate = Value(dueDate),
-       icon = Value(icon),
-       color = Value(color);
-  static Insertable<BillRow> custom({
-    Expression<String>? id,
-    Expression<String>? name,
-    Expression<String>? payee,
-    Expression<String>? category,
-    Expression<double>? amount,
-    Expression<DateTime>? dueDate,
-    Expression<bool>? autoPay,
-    Expression<String>? icon,
-    Expression<String>? color,
-    Expression<int>? rowid,
-  }) {
-    return RawValuesInsertable({
-      if (id != null) 'id': id,
-      if (name != null) 'name': name,
-      if (payee != null) 'payee': payee,
-      if (category != null) 'category': category,
-      if (amount != null) 'amount': amount,
-      if (dueDate != null) 'due_date': dueDate,
-      if (autoPay != null) 'auto_pay': autoPay,
-      if (icon != null) 'icon': icon,
-      if (color != null) 'color': color,
-      if (rowid != null) 'rowid': rowid,
-    });
-  }
-
-  BillsCompanion copyWith({
-    Value<String>? id,
-    Value<String>? name,
-    Value<String>? payee,
-    Value<String>? category,
-    Value<double>? amount,
-    Value<DateTime>? dueDate,
-    Value<bool>? autoPay,
-    Value<String>? icon,
-    Value<String>? color,
-    Value<int>? rowid,
-  }) {
-    return BillsCompanion(
-      id: id ?? this.id,
-      name: name ?? this.name,
-      payee: payee ?? this.payee,
-      category: category ?? this.category,
-      amount: amount ?? this.amount,
-      dueDate: dueDate ?? this.dueDate,
-      autoPay: autoPay ?? this.autoPay,
-      icon: icon ?? this.icon,
-      color: color ?? this.color,
-      rowid: rowid ?? this.rowid,
-    );
-  }
-
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    if (id.present) {
-      map['id'] = Variable<String>(id.value);
-    }
-    if (name.present) {
-      map['name'] = Variable<String>(name.value);
-    }
-    if (payee.present) {
-      map['payee'] = Variable<String>(payee.value);
-    }
-    if (category.present) {
-      map['category'] = Variable<String>(category.value);
-    }
-    if (amount.present) {
-      map['amount'] = Variable<double>(amount.value);
-    }
-    if (dueDate.present) {
-      map['due_date'] = Variable<DateTime>(dueDate.value);
-    }
-    if (autoPay.present) {
-      map['auto_pay'] = Variable<bool>(autoPay.value);
-    }
-    if (icon.present) {
-      map['icon'] = Variable<String>(icon.value);
-    }
-    if (color.present) {
-      map['color'] = Variable<String>(color.value);
-    }
-    if (rowid.present) {
-      map['rowid'] = Variable<int>(rowid.value);
-    }
-    return map;
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('BillsCompanion(')
-          ..write('id: $id, ')
-          ..write('name: $name, ')
-          ..write('payee: $payee, ')
-          ..write('category: $category, ')
-          ..write('amount: $amount, ')
-          ..write('dueDate: $dueDate, ')
-          ..write('autoPay: $autoPay, ')
-          ..write('icon: $icon, ')
-          ..write('color: $color, ')
-          ..write('rowid: $rowid')
-          ..write(')'))
-        .toString();
-  }
-}
-
-class $SubscriptionsTable extends Subscriptions
-    with TableInfo<$SubscriptionsTable, SubscriptionRow> {
-  @override
-  final GeneratedDatabase attachedDatabase;
-  final String? _alias;
-  $SubscriptionsTable(this.attachedDatabase, [this._alias]);
-  static const VerificationMeta _idMeta = const VerificationMeta('id');
-  @override
-  late final GeneratedColumn<String> id = GeneratedColumn<String>(
-    'id',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _nameMeta = const VerificationMeta('name');
-  @override
-  late final GeneratedColumn<String> name = GeneratedColumn<String>(
-    'name',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _categoryMeta = const VerificationMeta(
-    'category',
-  );
-  @override
-  late final GeneratedColumn<String> category = GeneratedColumn<String>(
-    'category',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _amountMeta = const VerificationMeta('amount');
-  @override
-  late final GeneratedColumn<double> amount = GeneratedColumn<double>(
-    'amount',
-    aliasedName,
-    false,
-    type: DriftSqlType.double,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _nextChargeDateMeta = const VerificationMeta(
-    'nextChargeDate',
-  );
-  @override
-  late final GeneratedColumn<DateTime> nextChargeDate =
-      GeneratedColumn<DateTime>(
-        'next_charge_date',
-        aliasedName,
-        false,
-        type: DriftSqlType.dateTime,
-        requiredDuringInsert: true,
-      );
-  static const VerificationMeta _iconMeta = const VerificationMeta('icon');
-  @override
-  late final GeneratedColumn<String> icon = GeneratedColumn<String>(
-    'icon',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _colorMeta = const VerificationMeta('color');
-  @override
-  late final GeneratedColumn<String> color = GeneratedColumn<String>(
-    'color',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _detectedFromEmailMeta = const VerificationMeta(
-    'detectedFromEmail',
-  );
-  @override
-  late final GeneratedColumn<bool> detectedFromEmail = GeneratedColumn<bool>(
-    'detected_from_email',
-    aliasedName,
-    false,
-    type: DriftSqlType.bool,
-    requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'CHECK ("detected_from_email" IN (0, 1))',
-    ),
-    defaultValue: const Constant(true),
-  );
-  @override
-  List<GeneratedColumn> get $columns => [
-    id,
-    name,
-    category,
-    amount,
-    nextChargeDate,
-    icon,
-    color,
-    detectedFromEmail,
-  ];
-  @override
-  String get aliasedName => _alias ?? actualTableName;
-  @override
-  String get actualTableName => $name;
-  static const String $name = 'subscriptions';
-  @override
-  VerificationContext validateIntegrity(
-    Insertable<SubscriptionRow> instance, {
-    bool isInserting = false,
-  }) {
-    final context = VerificationContext();
-    final data = instance.toColumns(true);
-    if (data.containsKey('id')) {
-      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
-    } else if (isInserting) {
-      context.missing(_idMeta);
-    }
-    if (data.containsKey('name')) {
-      context.handle(
-        _nameMeta,
-        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_nameMeta);
-    }
-    if (data.containsKey('category')) {
-      context.handle(
-        _categoryMeta,
-        category.isAcceptableOrUnknown(data['category']!, _categoryMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_categoryMeta);
-    }
-    if (data.containsKey('amount')) {
-      context.handle(
-        _amountMeta,
-        amount.isAcceptableOrUnknown(data['amount']!, _amountMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_amountMeta);
-    }
-    if (data.containsKey('next_charge_date')) {
-      context.handle(
-        _nextChargeDateMeta,
-        nextChargeDate.isAcceptableOrUnknown(
-          data['next_charge_date']!,
-          _nextChargeDateMeta,
-        ),
-      );
-    } else if (isInserting) {
-      context.missing(_nextChargeDateMeta);
-    }
-    if (data.containsKey('icon')) {
-      context.handle(
-        _iconMeta,
-        icon.isAcceptableOrUnknown(data['icon']!, _iconMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_iconMeta);
-    }
-    if (data.containsKey('color')) {
-      context.handle(
-        _colorMeta,
-        color.isAcceptableOrUnknown(data['color']!, _colorMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_colorMeta);
-    }
-    if (data.containsKey('detected_from_email')) {
-      context.handle(
-        _detectedFromEmailMeta,
-        detectedFromEmail.isAcceptableOrUnknown(
-          data['detected_from_email']!,
-          _detectedFromEmailMeta,
-        ),
-      );
-    }
-    return context;
-  }
-
-  @override
-  Set<GeneratedColumn> get $primaryKey => {id};
-  @override
-  SubscriptionRow map(Map<String, dynamic> data, {String? tablePrefix}) {
-    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return SubscriptionRow(
-      id: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}id'],
-      )!,
-      name: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}name'],
-      )!,
-      category: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}category'],
-      )!,
-      amount: attachedDatabase.typeMapping.read(
-        DriftSqlType.double,
-        data['${effectivePrefix}amount'],
-      )!,
-      nextChargeDate: attachedDatabase.typeMapping.read(
-        DriftSqlType.dateTime,
-        data['${effectivePrefix}next_charge_date'],
-      )!,
-      icon: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}icon'],
-      )!,
-      color: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}color'],
-      )!,
-      detectedFromEmail: attachedDatabase.typeMapping.read(
-        DriftSqlType.bool,
-        data['${effectivePrefix}detected_from_email'],
-      )!,
-    );
-  }
-
-  @override
-  $SubscriptionsTable createAlias(String alias) {
-    return $SubscriptionsTable(attachedDatabase, alias);
-  }
-}
-
-class SubscriptionRow extends DataClass implements Insertable<SubscriptionRow> {
-  final String id;
-  final String name;
-  final String category;
-  final double amount;
-  final DateTime nextChargeDate;
-  final String icon;
-  final String color;
-  final bool detectedFromEmail;
-  const SubscriptionRow({
-    required this.id,
-    required this.name,
-    required this.category,
-    required this.amount,
-    required this.nextChargeDate,
-    required this.icon,
-    required this.color,
-    required this.detectedFromEmail,
-  });
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    map['id'] = Variable<String>(id);
-    map['name'] = Variable<String>(name);
-    map['category'] = Variable<String>(category);
-    map['amount'] = Variable<double>(amount);
-    map['next_charge_date'] = Variable<DateTime>(nextChargeDate);
-    map['icon'] = Variable<String>(icon);
-    map['color'] = Variable<String>(color);
-    map['detected_from_email'] = Variable<bool>(detectedFromEmail);
-    return map;
-  }
-
-  SubscriptionsCompanion toCompanion(bool nullToAbsent) {
-    return SubscriptionsCompanion(
-      id: Value(id),
-      name: Value(name),
-      category: Value(category),
-      amount: Value(amount),
-      nextChargeDate: Value(nextChargeDate),
-      icon: Value(icon),
-      color: Value(color),
-      detectedFromEmail: Value(detectedFromEmail),
-    );
-  }
-
-  factory SubscriptionRow.fromJson(
-    Map<String, dynamic> json, {
-    ValueSerializer? serializer,
-  }) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return SubscriptionRow(
-      id: serializer.fromJson<String>(json['id']),
-      name: serializer.fromJson<String>(json['name']),
-      category: serializer.fromJson<String>(json['category']),
-      amount: serializer.fromJson<double>(json['amount']),
-      nextChargeDate: serializer.fromJson<DateTime>(json['nextChargeDate']),
-      icon: serializer.fromJson<String>(json['icon']),
-      color: serializer.fromJson<String>(json['color']),
-      detectedFromEmail: serializer.fromJson<bool>(json['detectedFromEmail']),
-    );
-  }
-  @override
-  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return <String, dynamic>{
-      'id': serializer.toJson<String>(id),
-      'name': serializer.toJson<String>(name),
-      'category': serializer.toJson<String>(category),
-      'amount': serializer.toJson<double>(amount),
-      'nextChargeDate': serializer.toJson<DateTime>(nextChargeDate),
-      'icon': serializer.toJson<String>(icon),
-      'color': serializer.toJson<String>(color),
-      'detectedFromEmail': serializer.toJson<bool>(detectedFromEmail),
-    };
-  }
-
-  SubscriptionRow copyWith({
-    String? id,
-    String? name,
-    String? category,
-    double? amount,
-    DateTime? nextChargeDate,
-    String? icon,
-    String? color,
-    bool? detectedFromEmail,
-  }) => SubscriptionRow(
-    id: id ?? this.id,
-    name: name ?? this.name,
-    category: category ?? this.category,
-    amount: amount ?? this.amount,
-    nextChargeDate: nextChargeDate ?? this.nextChargeDate,
-    icon: icon ?? this.icon,
-    color: color ?? this.color,
-    detectedFromEmail: detectedFromEmail ?? this.detectedFromEmail,
-  );
-  SubscriptionRow copyWithCompanion(SubscriptionsCompanion data) {
-    return SubscriptionRow(
-      id: data.id.present ? data.id.value : this.id,
-      name: data.name.present ? data.name.value : this.name,
-      category: data.category.present ? data.category.value : this.category,
-      amount: data.amount.present ? data.amount.value : this.amount,
-      nextChargeDate: data.nextChargeDate.present
-          ? data.nextChargeDate.value
-          : this.nextChargeDate,
-      icon: data.icon.present ? data.icon.value : this.icon,
-      color: data.color.present ? data.color.value : this.color,
-      detectedFromEmail: data.detectedFromEmail.present
-          ? data.detectedFromEmail.value
-          : this.detectedFromEmail,
-    );
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('SubscriptionRow(')
-          ..write('id: $id, ')
-          ..write('name: $name, ')
-          ..write('category: $category, ')
-          ..write('amount: $amount, ')
-          ..write('nextChargeDate: $nextChargeDate, ')
-          ..write('icon: $icon, ')
-          ..write('color: $color, ')
-          ..write('detectedFromEmail: $detectedFromEmail')
-          ..write(')'))
-        .toString();
-  }
-
-  @override
-  int get hashCode => Object.hash(
-    id,
-    name,
-    category,
-    amount,
-    nextChargeDate,
-    icon,
-    color,
-    detectedFromEmail,
-  );
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      (other is SubscriptionRow &&
-          other.id == this.id &&
-          other.name == this.name &&
-          other.category == this.category &&
-          other.amount == this.amount &&
-          other.nextChargeDate == this.nextChargeDate &&
-          other.icon == this.icon &&
-          other.color == this.color &&
-          other.detectedFromEmail == this.detectedFromEmail);
-}
-
-class SubscriptionsCompanion extends UpdateCompanion<SubscriptionRow> {
-  final Value<String> id;
-  final Value<String> name;
-  final Value<String> category;
-  final Value<double> amount;
-  final Value<DateTime> nextChargeDate;
-  final Value<String> icon;
-  final Value<String> color;
-  final Value<bool> detectedFromEmail;
-  final Value<int> rowid;
-  const SubscriptionsCompanion({
-    this.id = const Value.absent(),
-    this.name = const Value.absent(),
-    this.category = const Value.absent(),
-    this.amount = const Value.absent(),
-    this.nextChargeDate = const Value.absent(),
-    this.icon = const Value.absent(),
-    this.color = const Value.absent(),
-    this.detectedFromEmail = const Value.absent(),
-    this.rowid = const Value.absent(),
-  });
-  SubscriptionsCompanion.insert({
-    required String id,
-    required String name,
-    required String category,
-    required double amount,
-    required DateTime nextChargeDate,
-    required String icon,
-    required String color,
-    this.detectedFromEmail = const Value.absent(),
-    this.rowid = const Value.absent(),
-  }) : id = Value(id),
-       name = Value(name),
-       category = Value(category),
-       amount = Value(amount),
-       nextChargeDate = Value(nextChargeDate),
-       icon = Value(icon),
-       color = Value(color);
-  static Insertable<SubscriptionRow> custom({
-    Expression<String>? id,
-    Expression<String>? name,
-    Expression<String>? category,
-    Expression<double>? amount,
-    Expression<DateTime>? nextChargeDate,
-    Expression<String>? icon,
-    Expression<String>? color,
-    Expression<bool>? detectedFromEmail,
-    Expression<int>? rowid,
-  }) {
-    return RawValuesInsertable({
-      if (id != null) 'id': id,
-      if (name != null) 'name': name,
-      if (category != null) 'category': category,
-      if (amount != null) 'amount': amount,
-      if (nextChargeDate != null) 'next_charge_date': nextChargeDate,
-      if (icon != null) 'icon': icon,
-      if (color != null) 'color': color,
-      if (detectedFromEmail != null) 'detected_from_email': detectedFromEmail,
-      if (rowid != null) 'rowid': rowid,
-    });
-  }
-
-  SubscriptionsCompanion copyWith({
-    Value<String>? id,
-    Value<String>? name,
-    Value<String>? category,
-    Value<double>? amount,
-    Value<DateTime>? nextChargeDate,
-    Value<String>? icon,
-    Value<String>? color,
-    Value<bool>? detectedFromEmail,
-    Value<int>? rowid,
-  }) {
-    return SubscriptionsCompanion(
-      id: id ?? this.id,
-      name: name ?? this.name,
-      category: category ?? this.category,
-      amount: amount ?? this.amount,
-      nextChargeDate: nextChargeDate ?? this.nextChargeDate,
-      icon: icon ?? this.icon,
-      color: color ?? this.color,
-      detectedFromEmail: detectedFromEmail ?? this.detectedFromEmail,
-      rowid: rowid ?? this.rowid,
-    );
-  }
-
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    if (id.present) {
-      map['id'] = Variable<String>(id.value);
-    }
-    if (name.present) {
-      map['name'] = Variable<String>(name.value);
-    }
-    if (category.present) {
-      map['category'] = Variable<String>(category.value);
-    }
-    if (amount.present) {
-      map['amount'] = Variable<double>(amount.value);
-    }
-    if (nextChargeDate.present) {
-      map['next_charge_date'] = Variable<DateTime>(nextChargeDate.value);
-    }
-    if (icon.present) {
-      map['icon'] = Variable<String>(icon.value);
-    }
-    if (color.present) {
-      map['color'] = Variable<String>(color.value);
-    }
-    if (detectedFromEmail.present) {
-      map['detected_from_email'] = Variable<bool>(detectedFromEmail.value);
-    }
-    if (rowid.present) {
-      map['rowid'] = Variable<int>(rowid.value);
-    }
-    return map;
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('SubscriptionsCompanion(')
-          ..write('id: $id, ')
-          ..write('name: $name, ')
-          ..write('category: $category, ')
-          ..write('amount: $amount, ')
-          ..write('nextChargeDate: $nextChargeDate, ')
-          ..write('icon: $icon, ')
-          ..write('color: $color, ')
-          ..write('detectedFromEmail: $detectedFromEmail, ')
-          ..write('rowid: $rowid')
-          ..write(')'))
-        .toString();
-  }
-}
-
 class $PalNotesTable extends PalNotes
     with TableInfo<$PalNotesTable, PalNoteRow> {
   @override
@@ -6145,8 +5234,6 @@ abstract class _$LoopDatabase extends GeneratedDatabase {
   late final $SetLogsTable setLogs = $SetLogsTable(this);
   late final $RitualRoutinesTable ritualRoutines = $RitualRoutinesTable(this);
   late final $RitualStepsTable ritualSteps = $RitualStepsTable(this);
-  late final $BillsTable bills = $BillsTable(this);
-  late final $SubscriptionsTable subscriptions = $SubscriptionsTable(this);
   late final $PalNotesTable palNotes = $PalNotesTable(this);
   late final $GoalsTableTable goalsTable = $GoalsTableTable(this);
   late final $SeedMarkersTable seedMarkers = $SeedMarkersTable(this);
@@ -6163,8 +5250,6 @@ abstract class _$LoopDatabase extends GeneratedDatabase {
     setLogs,
     ritualRoutines,
     ritualSteps,
-    bills,
-    subscriptions,
     palNotes,
     goalsTable,
     seedMarkers,
@@ -6822,6 +5907,9 @@ typedef $$RoutinesTableCreateCompanionBuilder =
       Value<int> restSeconds,
       Value<bool> warmupReminder,
       Value<bool> autoProgress,
+      Value<int?> estMin,
+      Value<double?> distanceKm,
+      Value<String?> pace,
       Value<int> rowid,
     });
 typedef $$RoutinesTableUpdateCompanionBuilder =
@@ -6832,6 +5920,9 @@ typedef $$RoutinesTableUpdateCompanionBuilder =
       Value<int> restSeconds,
       Value<bool> warmupReminder,
       Value<bool> autoProgress,
+      Value<int?> estMin,
+      Value<double?> distanceKm,
+      Value<String?> pace,
       Value<int> rowid,
     });
 
@@ -6871,6 +5962,21 @@ class $$RoutinesTableFilterComposer
 
   ColumnFilters<bool> get autoProgress => $composableBuilder(
     column: $table.autoProgress,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get estMin => $composableBuilder(
+    column: $table.estMin,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get distanceKm => $composableBuilder(
+    column: $table.distanceKm,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get pace => $composableBuilder(
+    column: $table.pace,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -6913,6 +6019,21 @@ class $$RoutinesTableOrderingComposer
     column: $table.autoProgress,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<int> get estMin => $composableBuilder(
+    column: $table.estMin,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get distanceKm => $composableBuilder(
+    column: $table.distanceKm,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get pace => $composableBuilder(
+    column: $table.pace,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$RoutinesTableAnnotationComposer
@@ -6947,6 +6068,17 @@ class $$RoutinesTableAnnotationComposer
     column: $table.autoProgress,
     builder: (column) => column,
   );
+
+  GeneratedColumn<int> get estMin =>
+      $composableBuilder(column: $table.estMin, builder: (column) => column);
+
+  GeneratedColumn<double> get distanceKm => $composableBuilder(
+    column: $table.distanceKm,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get pace =>
+      $composableBuilder(column: $table.pace, builder: (column) => column);
 }
 
 class $$RoutinesTableTableManager
@@ -6986,6 +6118,9 @@ class $$RoutinesTableTableManager
                 Value<int> restSeconds = const Value.absent(),
                 Value<bool> warmupReminder = const Value.absent(),
                 Value<bool> autoProgress = const Value.absent(),
+                Value<int?> estMin = const Value.absent(),
+                Value<double?> distanceKm = const Value.absent(),
+                Value<String?> pace = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => RoutinesCompanion(
                 id: id,
@@ -6994,6 +6129,9 @@ class $$RoutinesTableTableManager
                 restSeconds: restSeconds,
                 warmupReminder: warmupReminder,
                 autoProgress: autoProgress,
+                estMin: estMin,
+                distanceKm: distanceKm,
+                pace: pace,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -7004,6 +6142,9 @@ class $$RoutinesTableTableManager
                 Value<int> restSeconds = const Value.absent(),
                 Value<bool> warmupReminder = const Value.absent(),
                 Value<bool> autoProgress = const Value.absent(),
+                Value<int?> estMin = const Value.absent(),
+                Value<double?> distanceKm = const Value.absent(),
+                Value<String?> pace = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => RoutinesCompanion.insert(
                 id: id,
@@ -7012,6 +6153,9 @@ class $$RoutinesTableTableManager
                 restSeconds: restSeconds,
                 warmupReminder: warmupReminder,
                 autoProgress: autoProgress,
+                estMin: estMin,
+                distanceKm: distanceKm,
+                pace: pace,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -8224,540 +7368,6 @@ typedef $$RitualStepsTableProcessedTableManager =
       RitualStepRow,
       PrefetchHooks Function()
     >;
-typedef $$BillsTableCreateCompanionBuilder =
-    BillsCompanion Function({
-      required String id,
-      required String name,
-      required String payee,
-      required String category,
-      required double amount,
-      required DateTime dueDate,
-      Value<bool> autoPay,
-      required String icon,
-      required String color,
-      Value<int> rowid,
-    });
-typedef $$BillsTableUpdateCompanionBuilder =
-    BillsCompanion Function({
-      Value<String> id,
-      Value<String> name,
-      Value<String> payee,
-      Value<String> category,
-      Value<double> amount,
-      Value<DateTime> dueDate,
-      Value<bool> autoPay,
-      Value<String> icon,
-      Value<String> color,
-      Value<int> rowid,
-    });
-
-class $$BillsTableFilterComposer extends Composer<_$LoopDatabase, $BillsTable> {
-  $$BillsTableFilterComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnFilters<String> get id => $composableBuilder(
-    column: $table.id,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get name => $composableBuilder(
-    column: $table.name,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get payee => $composableBuilder(
-    column: $table.payee,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get category => $composableBuilder(
-    column: $table.category,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<double> get amount => $composableBuilder(
-    column: $table.amount,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<DateTime> get dueDate => $composableBuilder(
-    column: $table.dueDate,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<bool> get autoPay => $composableBuilder(
-    column: $table.autoPay,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get icon => $composableBuilder(
-    column: $table.icon,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get color => $composableBuilder(
-    column: $table.color,
-    builder: (column) => ColumnFilters(column),
-  );
-}
-
-class $$BillsTableOrderingComposer
-    extends Composer<_$LoopDatabase, $BillsTable> {
-  $$BillsTableOrderingComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnOrderings<String> get id => $composableBuilder(
-    column: $table.id,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get name => $composableBuilder(
-    column: $table.name,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get payee => $composableBuilder(
-    column: $table.payee,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get category => $composableBuilder(
-    column: $table.category,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<double> get amount => $composableBuilder(
-    column: $table.amount,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<DateTime> get dueDate => $composableBuilder(
-    column: $table.dueDate,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<bool> get autoPay => $composableBuilder(
-    column: $table.autoPay,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get icon => $composableBuilder(
-    column: $table.icon,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get color => $composableBuilder(
-    column: $table.color,
-    builder: (column) => ColumnOrderings(column),
-  );
-}
-
-class $$BillsTableAnnotationComposer
-    extends Composer<_$LoopDatabase, $BillsTable> {
-  $$BillsTableAnnotationComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  GeneratedColumn<String> get id =>
-      $composableBuilder(column: $table.id, builder: (column) => column);
-
-  GeneratedColumn<String> get name =>
-      $composableBuilder(column: $table.name, builder: (column) => column);
-
-  GeneratedColumn<String> get payee =>
-      $composableBuilder(column: $table.payee, builder: (column) => column);
-
-  GeneratedColumn<String> get category =>
-      $composableBuilder(column: $table.category, builder: (column) => column);
-
-  GeneratedColumn<double> get amount =>
-      $composableBuilder(column: $table.amount, builder: (column) => column);
-
-  GeneratedColumn<DateTime> get dueDate =>
-      $composableBuilder(column: $table.dueDate, builder: (column) => column);
-
-  GeneratedColumn<bool> get autoPay =>
-      $composableBuilder(column: $table.autoPay, builder: (column) => column);
-
-  GeneratedColumn<String> get icon =>
-      $composableBuilder(column: $table.icon, builder: (column) => column);
-
-  GeneratedColumn<String> get color =>
-      $composableBuilder(column: $table.color, builder: (column) => column);
-}
-
-class $$BillsTableTableManager
-    extends
-        RootTableManager<
-          _$LoopDatabase,
-          $BillsTable,
-          BillRow,
-          $$BillsTableFilterComposer,
-          $$BillsTableOrderingComposer,
-          $$BillsTableAnnotationComposer,
-          $$BillsTableCreateCompanionBuilder,
-          $$BillsTableUpdateCompanionBuilder,
-          (BillRow, BaseReferences<_$LoopDatabase, $BillsTable, BillRow>),
-          BillRow,
-          PrefetchHooks Function()
-        > {
-  $$BillsTableTableManager(_$LoopDatabase db, $BillsTable table)
-    : super(
-        TableManagerState(
-          db: db,
-          table: table,
-          createFilteringComposer: () =>
-              $$BillsTableFilterComposer($db: db, $table: table),
-          createOrderingComposer: () =>
-              $$BillsTableOrderingComposer($db: db, $table: table),
-          createComputedFieldComposer: () =>
-              $$BillsTableAnnotationComposer($db: db, $table: table),
-          updateCompanionCallback:
-              ({
-                Value<String> id = const Value.absent(),
-                Value<String> name = const Value.absent(),
-                Value<String> payee = const Value.absent(),
-                Value<String> category = const Value.absent(),
-                Value<double> amount = const Value.absent(),
-                Value<DateTime> dueDate = const Value.absent(),
-                Value<bool> autoPay = const Value.absent(),
-                Value<String> icon = const Value.absent(),
-                Value<String> color = const Value.absent(),
-                Value<int> rowid = const Value.absent(),
-              }) => BillsCompanion(
-                id: id,
-                name: name,
-                payee: payee,
-                category: category,
-                amount: amount,
-                dueDate: dueDate,
-                autoPay: autoPay,
-                icon: icon,
-                color: color,
-                rowid: rowid,
-              ),
-          createCompanionCallback:
-              ({
-                required String id,
-                required String name,
-                required String payee,
-                required String category,
-                required double amount,
-                required DateTime dueDate,
-                Value<bool> autoPay = const Value.absent(),
-                required String icon,
-                required String color,
-                Value<int> rowid = const Value.absent(),
-              }) => BillsCompanion.insert(
-                id: id,
-                name: name,
-                payee: payee,
-                category: category,
-                amount: amount,
-                dueDate: dueDate,
-                autoPay: autoPay,
-                icon: icon,
-                color: color,
-                rowid: rowid,
-              ),
-          withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
-              .toList(),
-          prefetchHooksCallback: null,
-        ),
-      );
-}
-
-typedef $$BillsTableProcessedTableManager =
-    ProcessedTableManager<
-      _$LoopDatabase,
-      $BillsTable,
-      BillRow,
-      $$BillsTableFilterComposer,
-      $$BillsTableOrderingComposer,
-      $$BillsTableAnnotationComposer,
-      $$BillsTableCreateCompanionBuilder,
-      $$BillsTableUpdateCompanionBuilder,
-      (BillRow, BaseReferences<_$LoopDatabase, $BillsTable, BillRow>),
-      BillRow,
-      PrefetchHooks Function()
-    >;
-typedef $$SubscriptionsTableCreateCompanionBuilder =
-    SubscriptionsCompanion Function({
-      required String id,
-      required String name,
-      required String category,
-      required double amount,
-      required DateTime nextChargeDate,
-      required String icon,
-      required String color,
-      Value<bool> detectedFromEmail,
-      Value<int> rowid,
-    });
-typedef $$SubscriptionsTableUpdateCompanionBuilder =
-    SubscriptionsCompanion Function({
-      Value<String> id,
-      Value<String> name,
-      Value<String> category,
-      Value<double> amount,
-      Value<DateTime> nextChargeDate,
-      Value<String> icon,
-      Value<String> color,
-      Value<bool> detectedFromEmail,
-      Value<int> rowid,
-    });
-
-class $$SubscriptionsTableFilterComposer
-    extends Composer<_$LoopDatabase, $SubscriptionsTable> {
-  $$SubscriptionsTableFilterComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnFilters<String> get id => $composableBuilder(
-    column: $table.id,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get name => $composableBuilder(
-    column: $table.name,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get category => $composableBuilder(
-    column: $table.category,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<double> get amount => $composableBuilder(
-    column: $table.amount,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<DateTime> get nextChargeDate => $composableBuilder(
-    column: $table.nextChargeDate,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get icon => $composableBuilder(
-    column: $table.icon,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get color => $composableBuilder(
-    column: $table.color,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<bool> get detectedFromEmail => $composableBuilder(
-    column: $table.detectedFromEmail,
-    builder: (column) => ColumnFilters(column),
-  );
-}
-
-class $$SubscriptionsTableOrderingComposer
-    extends Composer<_$LoopDatabase, $SubscriptionsTable> {
-  $$SubscriptionsTableOrderingComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnOrderings<String> get id => $composableBuilder(
-    column: $table.id,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get name => $composableBuilder(
-    column: $table.name,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get category => $composableBuilder(
-    column: $table.category,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<double> get amount => $composableBuilder(
-    column: $table.amount,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<DateTime> get nextChargeDate => $composableBuilder(
-    column: $table.nextChargeDate,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get icon => $composableBuilder(
-    column: $table.icon,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get color => $composableBuilder(
-    column: $table.color,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<bool> get detectedFromEmail => $composableBuilder(
-    column: $table.detectedFromEmail,
-    builder: (column) => ColumnOrderings(column),
-  );
-}
-
-class $$SubscriptionsTableAnnotationComposer
-    extends Composer<_$LoopDatabase, $SubscriptionsTable> {
-  $$SubscriptionsTableAnnotationComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  GeneratedColumn<String> get id =>
-      $composableBuilder(column: $table.id, builder: (column) => column);
-
-  GeneratedColumn<String> get name =>
-      $composableBuilder(column: $table.name, builder: (column) => column);
-
-  GeneratedColumn<String> get category =>
-      $composableBuilder(column: $table.category, builder: (column) => column);
-
-  GeneratedColumn<double> get amount =>
-      $composableBuilder(column: $table.amount, builder: (column) => column);
-
-  GeneratedColumn<DateTime> get nextChargeDate => $composableBuilder(
-    column: $table.nextChargeDate,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<String> get icon =>
-      $composableBuilder(column: $table.icon, builder: (column) => column);
-
-  GeneratedColumn<String> get color =>
-      $composableBuilder(column: $table.color, builder: (column) => column);
-
-  GeneratedColumn<bool> get detectedFromEmail => $composableBuilder(
-    column: $table.detectedFromEmail,
-    builder: (column) => column,
-  );
-}
-
-class $$SubscriptionsTableTableManager
-    extends
-        RootTableManager<
-          _$LoopDatabase,
-          $SubscriptionsTable,
-          SubscriptionRow,
-          $$SubscriptionsTableFilterComposer,
-          $$SubscriptionsTableOrderingComposer,
-          $$SubscriptionsTableAnnotationComposer,
-          $$SubscriptionsTableCreateCompanionBuilder,
-          $$SubscriptionsTableUpdateCompanionBuilder,
-          (
-            SubscriptionRow,
-            BaseReferences<
-              _$LoopDatabase,
-              $SubscriptionsTable,
-              SubscriptionRow
-            >,
-          ),
-          SubscriptionRow,
-          PrefetchHooks Function()
-        > {
-  $$SubscriptionsTableTableManager(_$LoopDatabase db, $SubscriptionsTable table)
-    : super(
-        TableManagerState(
-          db: db,
-          table: table,
-          createFilteringComposer: () =>
-              $$SubscriptionsTableFilterComposer($db: db, $table: table),
-          createOrderingComposer: () =>
-              $$SubscriptionsTableOrderingComposer($db: db, $table: table),
-          createComputedFieldComposer: () =>
-              $$SubscriptionsTableAnnotationComposer($db: db, $table: table),
-          updateCompanionCallback:
-              ({
-                Value<String> id = const Value.absent(),
-                Value<String> name = const Value.absent(),
-                Value<String> category = const Value.absent(),
-                Value<double> amount = const Value.absent(),
-                Value<DateTime> nextChargeDate = const Value.absent(),
-                Value<String> icon = const Value.absent(),
-                Value<String> color = const Value.absent(),
-                Value<bool> detectedFromEmail = const Value.absent(),
-                Value<int> rowid = const Value.absent(),
-              }) => SubscriptionsCompanion(
-                id: id,
-                name: name,
-                category: category,
-                amount: amount,
-                nextChargeDate: nextChargeDate,
-                icon: icon,
-                color: color,
-                detectedFromEmail: detectedFromEmail,
-                rowid: rowid,
-              ),
-          createCompanionCallback:
-              ({
-                required String id,
-                required String name,
-                required String category,
-                required double amount,
-                required DateTime nextChargeDate,
-                required String icon,
-                required String color,
-                Value<bool> detectedFromEmail = const Value.absent(),
-                Value<int> rowid = const Value.absent(),
-              }) => SubscriptionsCompanion.insert(
-                id: id,
-                name: name,
-                category: category,
-                amount: amount,
-                nextChargeDate: nextChargeDate,
-                icon: icon,
-                color: color,
-                detectedFromEmail: detectedFromEmail,
-                rowid: rowid,
-              ),
-          withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
-              .toList(),
-          prefetchHooksCallback: null,
-        ),
-      );
-}
-
-typedef $$SubscriptionsTableProcessedTableManager =
-    ProcessedTableManager<
-      _$LoopDatabase,
-      $SubscriptionsTable,
-      SubscriptionRow,
-      $$SubscriptionsTableFilterComposer,
-      $$SubscriptionsTableOrderingComposer,
-      $$SubscriptionsTableAnnotationComposer,
-      $$SubscriptionsTableCreateCompanionBuilder,
-      $$SubscriptionsTableUpdateCompanionBuilder,
-      (
-        SubscriptionRow,
-        BaseReferences<_$LoopDatabase, $SubscriptionsTable, SubscriptionRow>,
-      ),
-      SubscriptionRow,
-      PrefetchHooks Function()
-    >;
 typedef $$PalNotesTableCreateCompanionBuilder =
     PalNotesCompanion Function({
       required String id,
@@ -9349,10 +7959,6 @@ class $LoopDatabaseManager {
       $$RitualRoutinesTableTableManager(_db, _db.ritualRoutines);
   $$RitualStepsTableTableManager get ritualSteps =>
       $$RitualStepsTableTableManager(_db, _db.ritualSteps);
-  $$BillsTableTableManager get bills =>
-      $$BillsTableTableManager(_db, _db.bills);
-  $$SubscriptionsTableTableManager get subscriptions =>
-      $$SubscriptionsTableTableManager(_db, _db.subscriptions);
   $$PalNotesTableTableManager get palNotes =>
       $$PalNotesTableTableManager(_db, _db.palNotes);
   $$GoalsTableTableTableManager get goalsTable =>
