@@ -12,6 +12,8 @@ import 'package:opal/screens/review/monthly_review_screen.dart';
 import 'package:opal/services/pal/pal_service.dart';
 import 'package:opal/theme/app_colors.dart';
 
+import 'support/flush_provider_timers.dart';
+
 /// A timestamp on the [day]th of the current month at [hour]:00.
 DateTime _thisMonthAt(int day, int hour) {
   final n = DateTime.now();
@@ -55,6 +57,17 @@ class _SequencedPalService implements PalService {
 Widget _wrap(Widget child) {
   final colors = AppColors.light(AppAccent.blue);
   return MaterialApp(theme: ThemeData(extensions: [colors]), home: child);
+}
+
+/// Pumps until [finder] matches. The stats block is fed by an async,
+/// stream-backed provider and the screen has no animation to keep
+/// [WidgetTester.pumpAndSettle] alive until the first emission lands. Bounded
+/// so a genuine failure surfaces fast instead of hanging the suite.
+Future<void> _pumpUntil(WidgetTester tester, Finder finder,
+    {int maxFrames = 60}) async {
+  for (var i = 0; i < maxFrames && finder.evaluate().isEmpty; i++) {
+    await tester.pump(const Duration(milliseconds: 16));
+  }
 }
 
 void main() {
@@ -248,6 +261,8 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
+    // Wait for the async monthlyStats stream to emit before asserting.
+    await _pumpUntil(tester, find.text('Total spent'));
 
     // Section header + "Written by Pal" label render (above the fold).
     expect(find.text('By the numbers'), findsOneWidget);
@@ -270,6 +285,8 @@ void main() {
     // Tapping Regenerate swaps to the next mock review.
     await tester.tap(find.text('Regenerate'));
     await tester.pumpAndSettle();
+    await _pumpUntil(
+        tester, find.text('SECOND_REVIEW — movement was your anchor.'));
     expect(find.text('FIRST_REVIEW — a steady month.'), findsNothing);
     expect(
         find.text('SECOND_REVIEW — movement was your anchor.'), findsOneWidget);
@@ -283,5 +300,7 @@ void main() {
     expect(find.text('Patterns Pal found'), findsOneWidget);
     expect(find.text('Morning rituals lower food spending'), findsOneWidget);
     expect(find.text('On days you journal, food costs drop 32%'), findsOneWidget);
+
+    await flushProviderTimers(tester);
   });
 }

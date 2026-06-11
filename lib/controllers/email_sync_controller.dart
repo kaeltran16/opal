@@ -157,6 +157,9 @@ class EmailDashboardController extends _$EmailDashboardController {
   /// count is derived here.
   Future<void> _refreshCounts() async {
     final entries = await ref.read(entryRepositoryProvider).getAll();
+    // build() kicks this off unawaited; the dashboard may be disposed (user
+    // navigates away) before the query returns, so don't touch state if so.
+    if (!ref.mounted) return;
     final emailEntries =
         entries.where((e) => e.source == EntrySource.email).toList();
     final now = DateTime.now();

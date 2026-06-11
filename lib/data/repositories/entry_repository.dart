@@ -48,6 +48,17 @@ class EntryRepository {
     return rows.map((r) => r.toModel()).toList();
   }
 
+  /// One-shot fetch of entries in the half-open range [from, to), newest first.
+  /// For reads that don't need to be reactive (e.g. a closed prior month).
+  Future<List<Entry>> getEntriesInRange(DateTime from, DateTime to) async {
+    final q = _db.select(_db.entries)
+      ..where((t) => t.timestamp.isBiggerOrEqualValue(from) &
+          t.timestamp.isSmallerThanValue(to))
+      ..orderBy([(t) => OrderingTerm.desc(t.timestamp)]);
+    final rows = await q.get();
+    return rows.map((r) => r.toModel()).toList();
+  }
+
   /// Inserts [entry]; assigns a UUID if [entry.id] is empty. Returns the id.
   Future<String> insert(Entry entry) async {
     final id = entry.id.isEmpty ? _uuid.v4() : entry.id;

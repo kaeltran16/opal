@@ -232,8 +232,10 @@ Stream<MonthlyStats> monthlyStats(Ref ref) async* {
   final prevStart = DateTime(now.year, now.month - 1);
 
   await for (final entries in entriesRepo.watchEntriesInRange(start, end)) {
-    final previous =
-        await entriesRepo.watchEntriesInRange(prevStart, start).first;
+    // The prior month is closed, so a one-shot read (not a nested watch) is
+    // correct — and a watch's `.first` never resolves under flutter_test's
+    // fake async, which would wedge this stream in its loading state.
+    final previous = await entriesRepo.getEntriesInRange(prevStart, start);
     final routines = await ritualRepo.getAll();
     yield buildMonthlyStats(start, entries, previous, routines);
   }
