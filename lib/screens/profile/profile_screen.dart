@@ -96,15 +96,12 @@ class _ProfileBody extends StatelessWidget {
     final displayName = name.isEmpty ? 'You' : name;
     final initial = displayName.characters.first.toUpperCase();
 
-    return ListView(
+    return LargeTitleScrollView(
+      title: 'You',
+      subtitle: 'Reviews, patterns, settings',
+      trailing: const NavIconButton(name: 'gearshape.fill', semanticLabel: 'Settings'),
       padding: const EdgeInsets.only(bottom: 110),
       children: [
-        const LargeTitleNavBar(
-          title: 'You',
-          subtitle: 'Reviews, patterns, settings',
-          trailing: NavIconButton(name: 'gearshape.fill', semanticLabel: 'Settings'),
-        ),
-
         // --- Profile card ---
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),

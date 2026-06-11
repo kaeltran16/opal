@@ -83,26 +83,23 @@ class _RoutineGeneratorScreenState
 
     return Scaffold(
       backgroundColor: c.bg,
-      body: ListView(
+      body: LargeTitleScrollView(
+        title: 'Generate with AI',
+        leading: PressScale(
+          onTap: () => context.pop(),
+          semanticLabel: 'Cancel',
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              AppIcon('chevron.left', size: 20, color: c.accent),
+              Text('Cancel',
+                  style: AppFonts.sf(
+                      size: 17, color: c.accent, letterSpacing: -0.43)),
+            ],
+          ),
+        ),
         padding: const EdgeInsets.only(bottom: 110),
         children: [
-          LargeTitleNavBar(
-            title: 'Generate with AI',
-            leading: PressScale(
-              onTap: () => context.pop(),
-              semanticLabel: 'Cancel',
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  AppIcon('chevron.left', size: 20, color: c.accent),
-                  Text('Cancel',
-                      style: AppFonts.sf(
-                          size: 17, color: c.accent, letterSpacing: -0.43)),
-                ],
-              ),
-            ),
-          ),
-
           if (!isResult) ...[
             const Padding(
               padding: EdgeInsets.fromLTRB(16, 4, 16, 18),

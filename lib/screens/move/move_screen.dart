@@ -57,13 +57,13 @@ class _MoveBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListView(
+    return LargeTitleScrollView(
+      title: 'Workout',
+      subtitle: 'Workouts, routines & sessions',
+      trailing:
+          const NavIconButton(name: 'ellipsis', semanticLabel: 'More options'),
       padding: const EdgeInsets.only(bottom: 110),
       children: [
-        const LargeTitleNavBar(
-          title: 'Workout',
-          subtitle: 'Workouts, routines & sessions',
-        ),
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 4, 16, 18),
           child: _WeekHero(state: state),
@@ -723,6 +723,9 @@ class _SessionCard extends StatelessWidget {
                                   label: 'volume',
                                 ),
                               ],
+                              const Spacer(),
+                              _VolumeSparkline(
+                                  bars: _sparkBars(w.sets), color: color),
                             ],
                           ),
                         ),
@@ -734,6 +737,59 @@ class _SessionCard extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Derives 6 normalised (0–1) sparkline bars from a session's completed sets by
+/// bucketing their per-set volume into 6 equal slices. When there is no volume
+/// data (e.g. cardio), falls back to the design's decorative ramp.
+List<double> _sparkBars(List<SetLog> sets) {
+  const buckets = 6;
+  final done = sets.where((s) => s.done).toList();
+  final vols = [for (final s in done) s.volumeKg];
+  final total = vols.fold<double>(0, (a, b) => a + b);
+  if (vols.isEmpty || total <= 0) {
+    return const [0.375, 0.625, 0.5, 0.75, 1, 0.875]; // design ramp [3,5,4,6,8,7]/8
+  }
+  final agg = List<double>.filled(buckets, 0);
+  for (var i = 0; i < vols.length; i++) {
+    agg[(i * buckets) ~/ vols.length] += vols[i];
+  }
+  final max = agg.reduce(math.max);
+  if (max <= 0) return List<double>.filled(buckets, 0.15);
+  return [for (final v in agg) (v / max).clamp(0.15, 1.0)];
+}
+
+/// 6-bar mini volume sparkline, right-aligned in the session-card stat row
+/// (design tab-landings.jsx L317-324): 3px bars, 2px gap, 18px tall, increasing
+/// opacity left→right.
+class _VolumeSparkline extends StatelessWidget {
+  const _VolumeSparkline({required this.bars, required this.color});
+  final List<double> bars;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 18,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          for (var i = 0; i < bars.length; i++) ...[
+            if (i != 0) const SizedBox(width: 2),
+            Container(
+              width: 3,
+              height: 18 * bars[i],
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.4 + i * 0.1),
+                borderRadius: BorderRadius.circular(1),
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }

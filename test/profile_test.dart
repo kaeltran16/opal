@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:opal/controllers/profile_controller.dart';
 import 'package:opal/controllers/providers.dart';
 import 'package:opal/data/db/database.dart';
+import 'package:opal/data/repositories/settings_repository.dart';
 import 'package:opal/models/models.dart';
 import 'package:opal/router.dart';
 import 'package:opal/theme/app_colors.dart';
@@ -109,8 +110,16 @@ void main() {
       'You tab renders the profile card + inset sections; Daily budget opens '
       'the budget sheet, Integrations targets the email stub',
       (WidgetTester tester) async {
+    // Tall surface so the full You-tab list lays out below the pinned nav
+    // header; row taps (Daily budget, Email sync) then land clear of it.
+    tester.view.physicalSize = const Size(1200, 6000);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
     SharedPreferences.setMockInitialValues({});
     final prefs = await SharedPreferences.getInstance();
+    // Onboarding captures a display name; the profile card surfaces it.
+    await SettingsRepository(prefs).setDisplayName('Mira Okafor');
     final db = LoopDatabase.forTesting(NativeDatabase.memory());
     addTearDown(db.close);
 

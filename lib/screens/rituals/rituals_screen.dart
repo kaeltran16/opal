@@ -49,18 +49,16 @@ class _RitualsBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListView(
+    return LargeTitleScrollView(
+      title: 'Routines',
+      subtitle: '${state.doneSteps} of ${state.totalSteps} steps today',
+      trailing: NavIconButton(
+        name: 'plus',
+        semanticLabel: 'New routine',
+        onTap: () => context.go('/rituals/manage'),
+      ),
       padding: const EdgeInsets.only(bottom: 110),
       children: [
-        LargeTitleNavBar(
-          title: 'Routines',
-          subtitle: '${state.doneSteps} of ${state.totalSteps} steps today',
-          trailing: NavIconButton(
-            name: 'plus',
-            semanticLabel: 'New routine',
-            onTap: () => context.go('/rituals/manage'),
-          ),
-        ),
         _UpNextHero(state: state),
         _Timeline(state: state),
         const _NewRoutineButton(),

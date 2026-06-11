@@ -162,6 +162,56 @@ Full test suite: **109 green** after both waves.
 
 ---
 
+## Resolution status — Wave 9 (2026-06-11)
+
+Cleared the entire Wave 8 `⏳ Still deferred` list. ✅ resolved · ◇ decision noted.
+Verified by `flutter analyze` (clean) + full suite **111 green** (109 prior + the
+profile fix + a new collapsing-header behavior test).
+
+**Workout-detail / post-workout visualizations** (`workout_detail_screen.dart`,
+`post_workout_screen.dart`)
+- ✅ **Per-set volume sparkline** + top-set value label on each exercise block.
+- ✅ **Volume-trend pill** (`+X% in 4 wks`, recent-half vs prior-half of the 8-week
+  window) + a latest-week tonnage label on the volume chart.
+- ✅ **"PERSONAL RECORD" card** and ✅ **per-muscle %/bars** — found to be **already
+  implemented** in `post_workout_screen.dart` (the Wave 8 note was stale on these);
+  verified against the design, no change needed. PR subtitle shows
+  "New best this session" (the design's "+5kg from previous best · Oct 14" delta isn't
+  derivable without a previous-best lookup — kept as the no-new-field fallback).
+
+**SF-Symbol call-site**
+- ✅ Workout-detail **"Sets" tile** swapped `chart.bar.fill` → `list.number`.
+
+**Long-tail `[STYLE]`/`[LAYOUT]`**
+- ✅ **Move recent-session 6-bar volume sparkline** (`move_screen.dart`).
+- ✅ **Exercise-library group-tinted icon tiles** — per-group tile bg + matching glyph
+  (Cardio solid move/white; Push move-tint; Pull rituals-tint; Legs money-tint; else
+  accent-tint). Built inline (the shared `ListRow` can't tint the glyph).
+- ✅ **Delete-routine button** on Workout detail, wired to `workoutRepository.deleteById`.
+- ✅ **Trailing `ellipsis` nav buttons** — added to the active-session current-exercise
+  hero card; Move-tab nav. Ask Pal & Monthly Review already had them (audit stale).
+- ✅ **Weekly-plan "Swap" CTA** — found already present (audit stale); verified.
+- ✅ **Nav collapse-on-scroll** — new `LargeTitleScrollView` (a `CustomScrollView` with a
+  pinned, collapsing large-title header: 34/700 large → 17/600 compact). Migrated 10 of
+  the 12 large-title screens (Today, Move, Workout-detail, Start-workout,
+  Routine-generator, Profile, Rituals, Monthly-review, Email-dashboard, Appearance).
+
+**Decisions / intentionally not migrated**
+- ◇ `routine_editor_screen.dart` and `rituals_builder_screen.dart` keep the **static**
+  `LargeTitleNavBar`: both use a fixed header above an `Expanded` scrolling body (one a
+  `ReorderableListView`, the other carrying a Save action) — a different pattern from the
+  large-title-collapse screens. `LargeTitleNavBar` is retained for these.
+
+**Adjacent fix (not a design-audit item):** the pre-existing `profile_test` failure
+(expected the old hardcoded "Mira Okafor") was corrected — the You-tab profile card now
+reads the onboarding-captured display name; the test seeds it via `SettingsRepository`.
+
+⏳ **Remaining:** only the various intentionally-retained copy items and the two
+fixed-header screens above (by decision). No functional design gaps from the original
+audit remain open.
+
+---
+
 ## Subtabs / segmented controls — explicit status (per your focus)
 
 | Surface | Design intent | Current state |

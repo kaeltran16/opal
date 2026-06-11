@@ -90,28 +90,25 @@ class _TodayBody extends ConsumerWidget {
         ? 'All routines done · nice close'
         : '$ritualsRemaining routine${ritualsRemaining == 1 ? '' : 's'} to close';
 
-    return ListView(
+    return LargeTitleScrollView(
+      title: 'Today',
+      subtitle: _dateSubtitle,
+      leading: Text(_monthAbbrev(),
+          style: AppFonts.sf(size: 17, color: c.accent)),
+      trailing: Row(children: [
+        NavIconButton(
+          name: 'bell.fill',
+          semanticLabel: 'Notifications',
+          onTap: () => context.pushNamed(AppRoute.palInbox.name),
+        ),
+        const SizedBox(width: 8),
+        const NavIconButton(
+          name: 'magnifyingglass',
+          semanticLabel: 'Search',
+        ),
+      ]),
       padding: const EdgeInsets.only(bottom: 110),
       children: [
-        LargeTitleNavBar(
-          title: 'Today',
-          subtitle: _dateSubtitle,
-          leading: Text(_monthAbbrev(),
-              style: AppFonts.sf(size: 17, color: c.accent)),
-          trailing: Row(children: [
-            NavIconButton(
-              name: 'bell.fill',
-              semanticLabel: 'Notifications',
-              onTap: () => context.pushNamed(AppRoute.palInbox.name),
-            ),
-            const SizedBox(width: 8),
-            const NavIconButton(
-              name: 'magnifyingglass',
-              semanticLabel: 'Search',
-            ),
-          ]),
-        ),
-
         // Activity rings hero.
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 4, 16, 14),

@@ -24,10 +24,10 @@ class AppearanceScreen extends ConsumerWidget {
 
     return ColoredBox(
       color: c.bg,
-      child: ListView(
+      child: LargeTitleScrollView(
+        title: 'Appearance',
         padding: const EdgeInsets.only(bottom: 40),
         children: [
-          const LargeTitleNavBar(title: 'Appearance'),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
             child: Column(

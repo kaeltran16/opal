@@ -27,6 +27,8 @@ class ExerciseLibraryScreen extends ConsumerStatefulWidget {
 /// The filter groups, in display order. `null` (= All) is rendered first.
 const List<String> _groups = ['Push', 'Pull', 'Legs', 'Core', 'Cardio'];
 
+const _white = Color(0xFFFFFFFF);
+
 class _ExerciseLibraryScreenState extends ConsumerState<ExerciseLibraryScreen> {
   final _searchController = TextEditingController();
   String _query = '';
@@ -307,7 +309,11 @@ class _Chip extends StatelessWidget {
   }
 }
 
-/// A single catalog row: tinted icon + name + "group · equipment" meta + PR.
+/// A single catalog row: group-tinted icon tile + name + "group · equipment"
+/// meta + PR. Built inline (not via [ListRow]) so the icon tile can carry a
+/// group-tinted background with a matching coloured glyph — design
+/// workout-screens2.jsx L218-225: Cardio = solid move + white glyph; Push =
+/// move-tint; Pull = rituals-tint; Legs = money-tint; else accent-tint.
 class _ExerciseRow extends StatelessWidget {
   const _ExerciseRow({required this.exercise, required this.last});
 
@@ -332,27 +338,93 @@ class _ExerciseRow extends StatelessWidget {
     return '$w kg';
   }
 
-  /// Group-coded icon tile color (matches the design's per-group tinting).
-  Color _iconBg(AppColors c) => switch (exercise.group) {
-        'Pull' => c.rituals,
-        'Legs' => c.money,
-        'Push' || 'Cardio' => c.move,
-        _ => c.accent,
+  /// Group-coded tile background + glyph color. Cardio fills solid (white glyph);
+  /// every other group uses the low-alpha tint with a full-color glyph.
+  ({Color bg, Color icon}) _tile(AppColors c) => switch (exercise.group) {
+        'Cardio' => (bg: c.move, icon: _white),
+        'Push' => (bg: c.moveTint, icon: c.move),
+        'Pull' => (bg: c.ritualsTint, icon: c.rituals),
+        'Legs' => (bg: c.moneyTint, icon: c.money),
+        _ => (bg: c.accentTint, icon: c.accent),
       };
 
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
     final pr = _prText;
-    return ListRow(
-      icon: exercise.icon,
-      iconBg: _iconBg(c),
-      title: exercise.name,
-      subtitle: _meta,
-      value: pr,
-      valueColor: c.ink2,
-      chevron: false,
-      last: last,
+    final tile = _tile(c);
+    return Stack(
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 40),
+            child: Row(
+              children: [
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: tile.bg,
+                    borderRadius: BorderRadius.circular(9),
+                  ),
+                  alignment: Alignment.center,
+                  child: AppIcon(exercise.icon, size: 17, color: tile.icon),
+                ),
+                const SizedBox(width: 11),
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        exercise.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppFonts.sf(
+                            size: 15,
+                            weight: FontWeight.w500,
+                            color: c.ink,
+                            letterSpacing: -0.24),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.only(top: 1),
+                        child: Text(
+                          _meta,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppFonts.sf(
+                              size: 12, color: c.ink3, letterSpacing: -0.08),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (pr != null)
+                  Padding(
+                    padding: const EdgeInsets.only(left: 8),
+                    child: Text(
+                      pr,
+                      style: AppFonts.sf(
+                          size: 15,
+                          weight: FontWeight.w600,
+                          color: c.ink2,
+                          letterSpacing: -0.1,
+                          tabular: true),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+        if (!last)
+          Positioned(
+            left: 61,
+            right: 0,
+            bottom: 0,
+            child: Container(height: 0.5, color: c.hair),
+          ),
+      ],
     );
   }
 }

@@ -124,16 +124,28 @@ void main() {
     // Workout title.
     expect(find.text('Push Day A'), findsOneWidget);
 
-    // Summary PR tile is present, and the seed push workout has exactly 1 PR —
-    // surfaced as a single "PR" badge in the set tables.
+    // Above-the-fold: summary PR tile + the fl_chart bar chart. Asserted before
+    // scrolling, since the chart scrolls out of the lazy list once we move down.
     expect(find.text('PRS'), findsOneWidget); // 'PRs' label, uppercased
+    expect(find.byType(BarChart), findsOneWidget);
+
+    // The set tables sit below the fold; scroll the single PR badge into view.
+    // (Stopping at the PR badge keeps the Pal-note card culled, so its mock
+    // 600ms timer never starts.) The seed push workout has exactly 1 PR.
+    await tester.scrollUntilVisible(
+      find.text('PR'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
     expect(find.text('PR'), findsOneWidget); // exactly one PR-flagged set
 
     // Per-exercise row for Bench (seed name: "Barbell Bench Press").
     expect(find.text('Barbell Bench Press'), findsOneWidget);
 
-    // The fl_chart bar chart is present.
-    expect(find.byType(BarChart), findsOneWidget);
+    // Scrolling brought the Pal-note card into view, which starts a 600ms mock
+    // timer; fire it before teardown so it isn't left pending.
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.pumpAndSettle();
 
     // Unmount and flush: disposing the autoDispose drift stream provider makes
     // drift schedule a zero-duration cleanup timer (StreamQueryStore

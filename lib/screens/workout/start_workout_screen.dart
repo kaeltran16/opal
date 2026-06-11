@@ -70,19 +70,16 @@ class _Body extends ConsumerWidget {
           pathParameters: {'routineId': routineId},
         );
 
-    return ListView(
+    return LargeTitleScrollView(
+      title: 'Start workout',
+      subtitle: 'Pick a routine or freestyle',
+      leading: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () => Navigator.of(context).maybePop(),
+        child: AppIcon('chevron.left', size: 20, color: c.accent),
+      ),
       padding: const EdgeInsets.only(bottom: 110),
       children: [
-        LargeTitleNavBar(
-          title: 'Start workout',
-          subtitle: 'Pick a routine or freestyle',
-          leading: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: () => Navigator.of(context).maybePop(),
-            child: AppIcon('chevron.left', size: 20, color: c.accent),
-          ),
-        ),
-
         // --- Pal's pick gradient card ---------------------------------------
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 4, 16, 22),

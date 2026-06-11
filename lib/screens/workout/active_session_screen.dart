@@ -579,6 +579,15 @@ class _CurrentExerciseCard extends StatelessWidget {
                   ],
                 ),
               ),
+              const SizedBox(width: 12),
+              // decorative menu trigger; no-op like the app's other ellipsis buttons
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(color: c.fill, shape: BoxShape.circle),
+                alignment: Alignment.center,
+                child: AppIcon('ellipsis', size: 13, color: c.ink2),
+              ),
             ],
           ),
           if (exercise?.pr != null) ...[

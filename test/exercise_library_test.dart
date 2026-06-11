@@ -72,7 +72,6 @@ void main() {
 
     // Grouped sections render (one per group present in the catalog).
     expect(find.byType(InsetSection), findsWidgets);
-    expect(find.byType(ListRow), findsWidgets);
 
     // A representative row from several groups is present.
     expect(find.text('Barbell Bench Press'), findsOneWidget); // Push

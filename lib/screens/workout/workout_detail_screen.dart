@@ -3,12 +3,14 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../controllers/providers.dart';
 import '../../controllers/workout_detail_controller.dart';
 import '../../models/models.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_text.dart';
 import '../../widgets/app_icon.dart';
 import '../../widgets/nav_bar.dart';
+import '../../widgets/press_scale.dart';
 
 const _white = Color(0xFFFFFFFF);
 
@@ -71,20 +73,17 @@ class _Body extends StatelessWidget {
     final minutes = w.duration?.inMinutes ?? 0;
     final reps = w.sets.where((s) => s.done).fold<int>(0, (s, x) => s + x.reps);
 
-    return ListView(
+    return LargeTitleScrollView(
+      title: w.name,
+      subtitle: _dateLabel,
+      leading: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () => context.pop(),
+        child: AppIcon('chevron.left', size: 20, color: c.accent),
+      ),
+      trailing: const NavIconButton(name: 'ellipsis', semanticLabel: 'More options'),
       padding: const EdgeInsets.only(bottom: 48),
       children: [
-        LargeTitleNavBar(
-          title: w.name,
-          subtitle: _dateLabel,
-          leading: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: () => context.pop(),
-            child: AppIcon('chevron.left', size: 20, color: c.accent),
-          ),
-          trailing: const NavIconButton(name: 'ellipsis', semanticLabel: 'More options'),
-        ),
-
         // --- 2×2 summary grid -------------------------------------------------
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
@@ -119,7 +118,7 @@ class _Body extends StatelessWidget {
                   Expanded(
                     child: _SummaryTile(
                       type: 'rituals',
-                      icon: 'chart.bar.fill',
+                      icon: 'list.number',
                       label: 'Sets',
                       value: '${w.completedSetCount}',
                       unit: '$reps reps',
@@ -178,7 +177,42 @@ class _Body extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
           child: _PalNote(workoutId: workoutId),
         ),
+
+        // --- Delete ----------------------------------------------------------
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+          child: _DeleteButton(workoutId: workoutId),
+        ),
       ],
+    );
+  }
+}
+
+/// Red destructive "Delete routine" text button. Removes this session via the
+/// repository the screen already consumes, then pops back.
+class _DeleteButton extends ConsumerWidget {
+  const _DeleteButton({required this.workoutId});
+  final String workoutId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final c = context.colors;
+    return PressScale(
+      onTap: () async {
+        await ref.read(workoutRepositoryProvider).deleteById(workoutId);
+        if (context.mounted) context.pop();
+      },
+      child: Container(
+        width: double.infinity,
+        alignment: Alignment.center,
+        padding: const EdgeInsets.symmetric(vertical: 13),
+        child: Text('Delete routine',
+            style: AppFonts.sf(
+                size: 15,
+                weight: FontWeight.w500,
+                color: c.red,
+                letterSpacing: -0.24)),
+      ),
     );
   }
 }
@@ -284,6 +318,8 @@ class _VolumeChart extends StatelessWidget {
         weeks.fold<double>(0, (s, w) => s + w.volumeKg) / 1000;
     final maxKg = weeks.fold<double>(0, (m, w) => w.volumeKg > m ? w.volumeKg : m);
     final maxY = maxKg <= 0 ? 1.0 : maxKg;
+    final latestT = weeks.isEmpty ? 0.0 : weeks.last.volumeKg / 1000;
+    final trend = _trendPct(weeks);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -302,9 +338,33 @@ class _VolumeChart extends StatelessWidget {
                     weight: FontWeight.w500,
                     color: c.ink3,
                     letterSpacing: -0.08)),
+            const Spacer(),
+            if (trend != null) _TrendPill(pct: trend),
           ],
         ),
         const SizedBox(height: 14),
+        // value label sits above the latest (highlighted) bar, which spaceBetween
+        // pins to the right edge.
+        if (weeks.isNotEmpty)
+          Align(
+            alignment: Alignment.centerRight,
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                decoration: BoxDecoration(
+                  color: c.move.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text('${latestT.toStringAsFixed(1)}t',
+                    style: AppFonts.sfr(
+                        size: 10,
+                        weight: FontWeight.w700,
+                        color: c.move,
+                        letterSpacing: -0.08)),
+              ),
+            ),
+          ),
         SizedBox(
           height: 120,
           child: BarChart(
@@ -369,6 +429,56 @@ class _VolumeChart extends StatelessWidget {
   }
 }
 
+/// Percent change of the recent half vs the prior half of the 8-week window.
+/// Null when there's no prior baseline to compare against (avoids /0 and a
+/// meaningless "+0%").
+int? _trendPct(List<WeekVolume> weeks) {
+  if (weeks.length < 2) return null;
+  final half = weeks.length ~/ 2;
+  final prior = weeks.take(half).fold<double>(0, (s, w) => s + w.volumeKg);
+  final recent = weeks.skip(half).fold<double>(0, (s, w) => s + w.volumeKg);
+  if (prior <= 0) return null;
+  return (((recent - prior) / prior) * 100).round();
+}
+
+/// The "+15% in 4 wks" volume-trend pill next to the chart headline. Green for
+/// gains (or flat), red for a drop, with a matching directional arrow.
+class _TrendPill extends StatelessWidget {
+  const _TrendPill({required this.pct});
+  final int pct;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    final up = pct >= 0;
+    final color = up ? c.move : c.red;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(100),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // only arrow.up.right is mapped in app_icon; rotate it for the drop case.
+          Transform.rotate(
+            angle: up ? 0 : 1.5707963267948966,
+            child: AppIcon('arrow.up.right', size: 10, color: color),
+          ),
+          const SizedBox(width: 4),
+          Text('${up ? '+' : ''}$pct% in 4 wks',
+              style: AppFonts.sf(
+                  size: 11,
+                  weight: FontWeight.w700,
+                  color: color,
+                  letterSpacing: -0.08)),
+        ],
+      ),
+    );
+  }
+}
+
 /// One exercise's header (name + set count × volume) and its set table.
 class _ExerciseBlock extends StatelessWidget {
   const _ExerciseBlock({required this.group, required this.last});
@@ -410,7 +520,9 @@ class _ExerciseBlock extends StatelessWidget {
                       letterSpacing: -0.08)),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
+          _SetVolumeSparkline(sets: group.sets),
+          const SizedBox(height: 10),
           _SetTableHeader(),
           for (var i = 0; i < group.sets.length; i++)
             _SetRow(
@@ -421,6 +533,93 @@ class _ExerciseBlock extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+/// Per-set volume sparkline: one bar per set sized by its volume (weightKg ×
+/// reps), with the top set's volume labeled. The highlighted bar is the
+/// heaviest set; bodyweight-only sets (zero weight) fall back to rep count so
+/// the bar isn't invisible.
+class _SetVolumeSparkline extends StatelessWidget {
+  const _SetVolumeSparkline({required this.sets});
+  final List<SetLog> sets;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    final vols = [
+      for (final s in sets)
+        s.weightKg > 0 ? s.weightKg * s.reps : s.reps.toDouble(),
+    ];
+    final maxVol = vols.fold<double>(0, (m, v) => v > m ? v : m);
+    if (maxVol <= 0) return const SizedBox.shrink();
+    final topIdx = vols.indexOf(maxVol);
+    final topSet = sets[topIdx];
+    final topLabel = topSet.weightKg > 0
+        ? '${(topSet.weightKg * topSet.reps).round()}kg'
+        : '${topSet.reps} reps';
+
+    return SizedBox(
+      height: 46,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            height: 14,
+            child: Align(
+              alignment: Alignment(_labelX(topIdx, sets.length), 0),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                decoration: BoxDecoration(
+                  color: c.move.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(topLabel,
+                    style: AppFonts.sfr(
+                        size: 9,
+                        weight: FontWeight.w700,
+                        color: c.move,
+                        letterSpacing: -0.08)),
+              ),
+            ),
+          ),
+          const SizedBox(height: 3),
+          Expanded(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                for (var i = 0; i < vols.length; i++) ...[
+                  if (i > 0) const SizedBox(width: 5),
+                  Expanded(
+                    child: FractionallySizedBox(
+                      heightFactor: (vols[i] / maxVol).clamp(0.08, 1.0),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: i == topIdx
+                              ? c.move
+                              : c.move.withValues(alpha: 0.27),
+                          borderRadius: const BorderRadius.vertical(
+                            top: Radius.circular(4),
+                            bottom: Radius.circular(2),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // aligns the value label horizontally over the i-th of n equal-width bars,
+  // mapping the bar's center to Alignment's [-1, 1] x axis.
+  double _labelX(int i, int n) {
+    if (n <= 1) return 0;
+    return (i + 0.5) / n * 2 - 1;
   }
 }
 

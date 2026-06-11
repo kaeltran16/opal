@@ -53,20 +53,17 @@ class MonthlyReviewScreen extends ConsumerWidget {
     final narrative = ref.watch(monthlyReviewControllerProvider);
     final statsAsync = ref.watch(monthlyStatsProvider);
 
-    return ListView(
+    return LargeTitleScrollView(
+      title: monthName,
+      subtitle: 'Monthly review',
+      leading: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () => Navigator.of(context).maybePop(),
+        child: AppIcon('chevron.left', size: 20, color: c.accent),
+      ),
+      trailing: const NavIconButton(name: 'ellipsis'),
       padding: const EdgeInsets.only(bottom: 48),
       children: [
-        LargeTitleNavBar(
-          title: monthName,
-          subtitle: 'Monthly review',
-          leading: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: () => Navigator.of(context).maybePop(),
-            child: AppIcon('chevron.left', size: 20, color: c.accent),
-          ),
-          trailing: const NavIconButton(name: 'ellipsis'),
-        ),
-
         // --- Narrative card (gradient accent bg, "Written by Pal") -----------
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 4, 16, 22),
