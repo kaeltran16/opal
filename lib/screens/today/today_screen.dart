@@ -11,6 +11,7 @@ import '../../widgets/activity_rings.dart';
 import '../../widgets/app_icon.dart';
 import '../../widgets/controls.dart';
 import '../../widgets/nav_bar.dart';
+import '../../widgets/press_scale.dart';
 import '../../widgets/summary_tile.dart';
 
 /// Screen 02 — Today, on live data.
@@ -243,64 +244,85 @@ class _TodayBody extends StatelessWidget {
         // Pal insight hero (static copy until U16 wires the real Pal note).
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 18),
-          child: Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-                color: c.surface, borderRadius: BorderRadius.circular(18)),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      width: 22,
-                      height: 22,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [c.accent, c.rituals],
-                        ),
-                      ),
-                      alignment: Alignment.center,
-                      child: const AppIcon('sparkles',
-                          size: 11, color: Color(0xFFFFFFFF)),
-                    ),
-                    const SizedBox(width: 8),
-                    Text('PAL NOTICED',
-                        style: AppFonts.sf(
-                            size: 12,
-                            weight: FontWeight.w700,
-                            color: c.ink3,
-                            letterSpacing: 0.3)),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                Text.rich(
-                  TextSpan(
-                    style: AppFonts.sf(
-                        size: 17,
-                        color: c.ink,
-                        letterSpacing: -0.43,
-                        height: 1.38),
+          child: PressScale(
+            semanticLabel: 'Pal noticed',
+            onTap: () => context.pushNamed(AppRoute.palComposer.name),
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                  color: c.surface, borderRadius: BorderRadius.circular(18)),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
                     children: [
-                      const TextSpan(text: "You've worked out "),
-                      TextSpan(
-                          text: '11 days in a row',
-                          style: const TextStyle(fontWeight: FontWeight.w700)),
-                      const TextSpan(
-                          text:
-                              '. On days you finish morning routines, you spend '),
-                      TextSpan(
-                          text: '32% less',
-                          style: TextStyle(
-                              color: c.money, fontWeight: FontWeight.w600)),
-                      const TextSpan(text: ' on food.'),
+                      Container(
+                        width: 22,
+                        height: 22,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [c.accent, c.rituals],
+                          ),
+                        ),
+                        alignment: Alignment.center,
+                        child: const AppIcon('sparkles',
+                            size: 11, color: Color(0xFFFFFFFF)),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text('PAL NOTICED',
+                            style: AppFonts.sf(
+                                size: 12,
+                                weight: FontWeight.w700,
+                                color: c.ink3,
+                                letterSpacing: 0.3)),
+                      ),
+                      AppIcon('chevron.right', size: 13, color: c.ink4),
                     ],
                   ),
-                ),
-              ],
+                  const SizedBox(height: 10),
+                  Text.rich(
+                    TextSpan(
+                      style: AppFonts.sf(
+                          size: 17,
+                          color: c.ink,
+                          letterSpacing: -0.43,
+                          height: 1.38),
+                      children: [
+                        const TextSpan(text: "You've worked out "),
+                        TextSpan(
+                            text: '11 days in a row',
+                            style:
+                                const TextStyle(fontWeight: FontWeight.w700)),
+                        const TextSpan(
+                            text:
+                                '. On days you finish morning routines, you spend '),
+                        TextSpan(
+                            text: '32% less',
+                            style: TextStyle(
+                                color: c.money, fontWeight: FontWeight.w600)),
+                        const TextSpan(text: ' on food.'),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      for (final label in const [
+                        'Why?',
+                        'Show me the days',
+                        'How to keep it up'
+                      ])
+                        _PalReplyChip(label: label),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -343,48 +365,57 @@ class _TodayBody extends StatelessWidget {
         // Close-out prompt.
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 6, 16, 0),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            decoration: BoxDecoration(
-              color: c.ritualsTint,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(
-                  color: c.rituals.withValues(alpha: 0.33), width: 0.5),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 30,
-                  height: 30,
-                  decoration: BoxDecoration(
-                      color: c.rituals,
-                      borderRadius: BorderRadius.circular(9)),
-                  alignment: Alignment.center,
-                  child: const AppIcon('sparkles',
-                      size: 15, color: Color(0xFFFFFFFF)),
+          child: PressScale(
+            semanticLabel: 'Close out your day',
+            onTap: () => context.pushNamed(AppRoute.eveningCloseOut.name),
+            child: _DashedBorderBox(
+              color: c.rituals.withValues(alpha: 0.33),
+              radius: 14,
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                decoration: BoxDecoration(
+                  color: c.ritualsTint,
+                  borderRadius: BorderRadius.circular(14),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Close out your day',
-                          style: AppFonts.sf(
-                              size: 15,
-                              weight: FontWeight.w600,
-                              color: c.ink,
-                              letterSpacing: -0.24)),
-                      Padding(
-                        padding: const EdgeInsets.only(top: 1),
-                        child: Text('$closePrompt · 30 min before sleep',
-                            style: AppFonts.sf(
-                                size: 12, color: c.ink3, letterSpacing: -0.08)),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 30,
+                      height: 30,
+                      decoration: BoxDecoration(
+                          color: c.rituals,
+                          borderRadius: BorderRadius.circular(9)),
+                      alignment: Alignment.center,
+                      child: const AppIcon('sparkles',
+                          size: 15, color: Color(0xFFFFFFFF)),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Close out your day',
+                              style: AppFonts.sf(
+                                  size: 15,
+                                  weight: FontWeight.w600,
+                                  color: c.ink,
+                                  letterSpacing: -0.24)),
+                          Padding(
+                            padding: const EdgeInsets.only(top: 1),
+                            child: Text('$closePrompt · 30 min before sleep',
+                                style: AppFonts.sf(
+                                    size: 12,
+                                    color: c.ink3,
+                                    letterSpacing: -0.08)),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
+                    ),
+                    AppIcon('chevron.right', size: 13, color: c.ink4),
+                  ],
                 ),
-                AppIcon('chevron.right', size: 13, color: c.ink4),
-              ],
+              ),
             ),
           ),
         ),
@@ -469,6 +500,28 @@ class _TimelineRow extends StatelessWidget {
   final Entry entry;
   final bool last;
 
+  /// Wires a row to an existing detail route, or null for types/entries with no
+  /// destination yet. money → spending detail; move w/ workoutId → workout
+  /// detail; rituals (and move without a workout) have no detail route today.
+  void _open(BuildContext context) {
+    switch (entry.type) {
+      case EntryType.money:
+        context.goNamed(AppRoute.spendingDetail.name);
+      case EntryType.move:
+        final id = entry.workoutId;
+        if (id != null) {
+          context.pushNamed(AppRoute.workoutDetail.name,
+              pathParameters: {'id': id});
+        }
+      case EntryType.rituals:
+        break;
+    }
+  }
+
+  bool get _tappable =>
+      entry.type == EntryType.money ||
+      (entry.type == EntryType.move && entry.workoutId != null);
+
   /// SF Symbol for the row icon, derived from entry type/category.
   String get _icon {
     switch (entry.type) {
@@ -514,7 +567,7 @@ class _TimelineRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     final value = _valueText;
-    return Container(
+    final row = Container(
       decoration: BoxDecoration(
         border:
             last ? null : Border(bottom: BorderSide(color: c.hair, width: 0.5)),
@@ -580,5 +633,100 @@ class _TimelineRow extends StatelessWidget {
         ],
       ),
     );
+    if (!_tappable) return row;
+    return PressScale(
+      semanticLabel: entry.title,
+      onTap: () => _open(context),
+      child: row,
+    );
   }
+}
+
+/// Quick-reply chip under the Pal-insight card; tapping seeds the Pal composer.
+class _PalReplyChip extends StatelessWidget {
+  const _PalReplyChip({required this.label});
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return PressScale(
+      semanticLabel: label,
+      onTap: () => context.pushNamed(AppRoute.palComposer.name,
+          queryParameters: {'seed': label}),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+        decoration: BoxDecoration(
+          color: c.surface2,
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(color: c.hair, width: 0.5),
+        ),
+        child: Text(label,
+            style: AppFonts.sf(
+                size: 13,
+                weight: FontWeight.w500,
+                color: c.ink2,
+                letterSpacing: -0.08)),
+      ),
+    );
+  }
+}
+
+/// Rounded box with a dashed border, painted via [CustomPaint] (Flutter has no
+/// built-in dashed border). Local equivalent of rituals' DottedBorderBox.
+class _DashedBorderBox extends StatelessWidget {
+  const _DashedBorderBox({
+    required this.child,
+    required this.color,
+    this.radius = 12,
+  });
+
+  final Widget child;
+  final Color color;
+  final double radius;
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomPaint(
+      painter: _DashedBorderPainter(color: color, radius: radius),
+      child: child,
+    );
+  }
+}
+
+class _DashedBorderPainter extends CustomPainter {
+  _DashedBorderPainter({required this.color, required this.radius});
+
+  final Color color;
+  final double radius;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 0.5
+      ..style = PaintingStyle.stroke;
+    final rrect = RRect.fromRectAndRadius(
+      Offset.zero & size,
+      Radius.circular(radius),
+    );
+    final path = Path()..addRRect(rrect);
+
+    const dash = 5.0;
+    const gap = 4.0;
+    for (final metric in path.computeMetrics()) {
+      var distance = 0.0;
+      while (distance < metric.length) {
+        canvas.drawPath(
+          metric.extractPath(distance, distance + dash),
+          paint,
+        );
+        distance += dash + gap;
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(_DashedBorderPainter old) =>
+      old.color != color || old.radius != radius;
 }

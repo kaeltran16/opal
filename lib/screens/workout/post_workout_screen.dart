@@ -123,6 +123,8 @@ class _Hero extends StatelessWidget {
             left: -30,
             child: _Blob(size: 180, alpha: 0.06),
           ),
+          // diagonal hairline stripe overlay.
+          Positioned.fill(child: CustomPaint(painter: _StripePainter())),
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 56, 20, 28),
             child: Column(
@@ -239,6 +241,27 @@ class _Blob extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Diagonal hairline stripe texture for the hero (~125°, 25px spacing).
+class _StripePainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = _white.withValues(alpha: 0.04)
+      ..strokeWidth = 1;
+    const spacing = 25.0;
+    for (var d = -size.height; d < size.width + size.height; d += spacing) {
+      canvas.drawLine(
+        Offset(d, 0),
+        Offset(d + size.height * 1.43, size.height),
+        paint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(_StripePainter old) => false;
 }
 
 class _Pill extends StatelessWidget {

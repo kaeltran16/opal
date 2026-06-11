@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -71,11 +72,19 @@ class _LoopAppState extends ConsumerState<LoopApp> {
   @override
   Widget build(BuildContext context) {
     final settings = ref.watch(appSettingsControllerProvider);
-    return MaterialApp.router(
-      title: 'Opal',
-      debugShowCheckedModeBanner: false,
-      theme: _buildTheme(settings.brightness, settings.accent),
-      routerConfig: _router,
+    // Dark background needs light status-bar glyphs, and vice versa, or the
+    // system clock/battery render invisibly against the app background.
+    final overlay = settings.brightness == Brightness.dark
+        ? SystemUiOverlayStyle.light
+        : SystemUiOverlayStyle.dark;
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: overlay,
+      child: MaterialApp.router(
+        title: 'Opal',
+        debugShowCheckedModeBanner: false,
+        theme: _buildTheme(settings.brightness, settings.accent),
+        routerConfig: _router,
+      ),
     );
   }
 

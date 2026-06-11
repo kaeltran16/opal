@@ -134,6 +134,8 @@ class _WeekHero extends StatelessWidget {
                 ),
               ),
             ),
+            // diagonal hairline hatch overlay.
+            Positioned.fill(child: CustomPaint(painter: _HatchPainter())),
             Padding(
               padding: const EdgeInsets.all(18),
               child: Column(
@@ -299,6 +301,29 @@ class _RingPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_RingPainter old) => old.progress != progress;
+}
+
+/// Diagonal hairline hatch overlay (~125° from horizontal, 25px spacing),
+/// matching the design hero's `repeating-linear-gradient` decoration.
+class _HatchPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = _white.withValues(alpha: 0.04)
+      ..strokeWidth = 1;
+    const spacing = 25.0;
+    final extent = size.width + size.height;
+    for (var d = -size.height; d < extent; d += spacing) {
+      canvas.drawLine(
+        Offset(d, 0),
+        Offset(d + size.height * 1.43, size.height),
+        paint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(_HatchPainter old) => false;
 }
 
 /// 7-day Mon→Sun strip: filled white + checkmark when done, dashed border for

@@ -204,20 +204,50 @@ class _PalPickCard extends ConsumerWidget {
     final suggestion = async.asData?.value;
     final targetId = _targetId(suggestion);
 
-    return Container(
-      padding: const EdgeInsets.all(18),
+    return DecoratedBox(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(18),
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [c.move, c.accent],
         ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Eyebrow.
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(18),
+        child: Stack(
+          children: [
+            // two soft decorative light blobs.
+            Positioned(
+              top: -50,
+              right: -40,
+              child: Container(
+                width: 150,
+                height: 150,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: _white.withValues(alpha: 0.1),
+                ),
+              ),
+            ),
+            Positioned(
+              bottom: -60,
+              left: -30,
+              child: Container(
+                width: 130,
+                height: 130,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: _white.withValues(alpha: 0.06),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(18),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Eyebrow.
           Row(
             children: [
               Container(
@@ -303,7 +333,11 @@ class _PalPickCard extends ConsumerWidget {
               ),
             ],
           ),
-        ],
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -418,9 +452,8 @@ class _RoutineCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Colored header band.
-              Container(
-                padding: const EdgeInsets.fromLTRB(12, 12, 12, 14),
+              // Colored header band with a diagonal-stripe texture.
+              DecoratedBox(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topLeft,
@@ -428,9 +461,16 @@ class _RoutineCard extends StatelessWidget {
                     colors: [band, band.withValues(alpha: 0.85)],
                   ),
                 ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                child: Stack(
                   children: [
+                    Positioned.fill(
+                      child: CustomPaint(painter: _BandStripePainter()),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(12, 12, 12, 14),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -461,6 +501,9 @@ class _RoutineCard extends StatelessWidget {
                           shape: BoxShape.circle, color: Color(0x38FFFFFF)),
                       alignment: Alignment.center,
                       child: const AppIcon('play.fill', size: 11, color: _white),
+                    ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
@@ -575,6 +618,27 @@ class _CardioRow extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Diagonal hairline stripe texture for the routine-card header band (~45°).
+class _BandStripePainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = _white.withValues(alpha: 0.07)
+      ..strokeWidth = 1;
+    const spacing = 14.0;
+    for (var d = -size.height; d < size.width + size.height; d += spacing) {
+      canvas.drawLine(
+        Offset(d, 0),
+        Offset(d + size.height, size.height),
+        paint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(_BandStripePainter old) => false;
 }
 
 /// Small "big number / UPPERCASE label" stat used in routine cards.

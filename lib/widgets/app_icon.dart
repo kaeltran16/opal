@@ -68,6 +68,10 @@ const Map<String, IconData> _sfMap = {
   'leaf.fill': Icons.eco,
   'music.note': CupertinoIcons.music_note,
   'square.grid.2x2.fill': CupertinoIcons.square_grid_2x2_fill,
+  'creditcard.fill': CupertinoIcons.creditcard_fill,
+  'arrow.right': CupertinoIcons.arrow_right,
+  'timer': CupertinoIcons.timer,
+  'list.number': CupertinoIcons.list_number,
 };
 
 IconData iconForSf(String name) => _sfMap[name] ?? CupertinoIcons.circle;
