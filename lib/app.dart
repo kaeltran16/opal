@@ -69,7 +69,38 @@ class _LoopAppState extends ConsumerState<LoopApp> {
     }
     _lastDeepLink = path;
     _lastDeepLinkAt = now;
-    _router.go(path);
+    // Modal / focus routes (the Pal composer, New Entry sheet, workout session,
+    // …) live ABOVE the shell. `go`-ing to one replaces the whole stack, leaving
+    // nothing beneath it — so the backdrop tap / swipe-down / `context.pop()`
+    // would have no page to reveal and the sheet looks stuck. PUSH those onto
+    // the shell instead (mirroring the in-app FAB's `pushNamed`); `go` stays
+    // correct for tab roots and their nested sub-routes (e.g. `/move/start`).
+    if (_isOverlayRoute(path)) {
+      _router.push(path);
+    } else {
+      _router.go(path);
+    }
+  }
+
+  /// Whether [path] targets a route presented above the shell (its own page on
+  /// the root navigator). Compares the path only, ignoring any query string.
+  bool _isOverlayRoute(String path) {
+    final loc = path.split('?').first;
+    const overlays = <String>{
+      '/pal-composer',
+      '/pal-inbox',
+      '/pal',
+      '/entry/new',
+      '/quick-actions',
+      '/post-workout',
+      '/monthly-review',
+      '/close-out',
+      '/streak',
+      '/weekly-review',
+    };
+    return overlays.contains(loc) ||
+        loc.startsWith('/session/') ||
+        loc.startsWith('/rituals/player/');
   }
 
   @override
