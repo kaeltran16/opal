@@ -2,7 +2,9 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../controllers/insights_controller.dart';
 import '../../controllers/weekly_review_controller.dart';
+import '../../services/pal/pal_service.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_text.dart';
 import '../../widgets/app_icon.dart';
@@ -22,39 +24,19 @@ import '../../widgets/nav_bar.dart';
 class WeeklyReviewScreen extends ConsumerWidget {
   const WeeklyReviewScreen({super.key});
 
-  /// "Wins" rows: (icon, colorToken, title, sub). Qualitative Pal-found
-  /// highlights — these have no structured data source yet, so they stay canned
-  /// rather than fabricating numbers from the tiles.
-  // TODO(pal): structured insights endpoint — replace canned Wins.
-  static const _wins = <(String, String, String, String)>[
-    ('figure.run', 'move', '11-day workout streak', 'Longest in 3 months'),
-    ('dollarsign.circle.fill', 'money', '\$160 under budget', '\$435 of \$595'),
-    ('sparkles', 'rituals', 'Morning pages 6/7', 'Missed only Saturday'),
-  ];
-
-  /// "Patterns" cards: (colorToken, rich text). Qualitative Pal insights with no
-  /// structured data source yet; kept canned rather than inventing numbers.
-  // TODO(pal): structured insights endpoint — replace canned Patterns.
-  static const _patterns = <(String, String)>[
-    (
-      'money',
-      'Fridays cost you 2.8× an average day — Verve + Tartine + dinner out.',
-    ),
-    (
-      'move',
-      'You worked out 73 min on routine days vs 42 min on skipped-routine days.',
-    ),
-    (
-      'rituals',
-      'Reading Pachinko averaged 28 min, 3 nights this week.',
-    ),
-  ];
+  static const _fallbackHeadline = 'Your week in review';
+  static const _fallbackLede =
+      'A look at how your spending, movement, and routines came together.';
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final c = context.colors;
     final statsAsync = ref.watch(weeklyStatsProvider);
     final stats = statsAsync.asData?.value;
+    final insightsAsync = ref.watch(insightsProvider(InsightRange.week));
+    final insights = insightsAsync.asData?.value;
+    final headline = insights?.headline ?? _fallbackHeadline;
+    final lede = insights?.lede ?? _fallbackLede;
 
     return ListView(
       padding: const EdgeInsets.only(bottom: 40),
@@ -105,7 +87,7 @@ class WeeklyReviewScreen extends ConsumerWidget {
                       color: c.accent,
                       letterSpacing: 0.5)),
               const SizedBox(height: 4),
-              Text('Your steadiest week this month.',
+              Text(headline,
                   style: AppFonts.sf(
                       size: 30,
                       weight: FontWeight.w700,
@@ -114,8 +96,7 @@ class WeeklyReviewScreen extends ConsumerWidget {
                       height: 1.15)),
               const SizedBox(height: 8),
               Text(
-                "Workouts stayed consistent, routines held together, and you "
-                "came in under budget. Let's look closer.",
+                lede,
                 style: AppFonts.sf(
                     size: 15,
                     color: c.ink3,
@@ -150,49 +131,8 @@ class WeeklyReviewScreen extends ConsumerWidget {
           ),
         ),
 
-        // --- Wins -----------------------------------------------------------
-        _SectionHeader('Wins'),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 18),
-          child: Container(
-            decoration: BoxDecoration(
-                color: c.surface, borderRadius: BorderRadius.circular(14)),
-            clipBehavior: Clip.antiAlias,
-            child: Column(
-              children: [
-                for (var i = 0; i < _wins.length; i++)
-                  _WinRow(
-                    icon: _wins[i].$1,
-                    colorToken: _wins[i].$2,
-                    title: _wins[i].$3,
-                    sub: _wins[i].$4,
-                    last: i == _wins.length - 1,
-                  ),
-              ],
-            ),
-          ),
-        ),
-
-        // --- Patterns -------------------------------------------------------
-        _SectionHeader('Patterns'),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 18),
-          child: Column(
-            children: [
-              for (var i = 0; i < _patterns.length; i++) ...[
-                if (i > 0) const SizedBox(height: 8),
-                _PatternCard(
-                    colorToken: _patterns[i].$1, text: _patterns[i].$2),
-              ],
-            ],
-          ),
-        ),
-
-        // --- One thing to try -----------------------------------------------
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 18),
-          child: _OneThingCard(),
-        ),
+        // --- Wins / Patterns / One thing to try (Pal insights) --------------
+        ..._qualitativeSection(context, insightsAsync.isLoading, insights),
 
         // --- Footer ---------------------------------------------------------
         Padding(
@@ -206,6 +146,96 @@ class WeeklyReviewScreen extends ConsumerWidget {
                   size: 13, color: c.ink3, letterSpacing: -0.08)),
         ),
       ],
+    );
+  }
+
+  /// The Pal-found qualitative block (Wins / Patterns / One thing to try). Shows
+  /// a single encouraging notice while loading or when there isn't enough data,
+  /// rather than fabricating wins/patterns.
+  List<Widget> _qualitativeSection(
+      BuildContext context, bool loading, PalInsights? insights) {
+    final c = context.colors;
+    if (insights == null) {
+      return [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 18),
+          child: _NoticeCard(
+            text: loading
+                ? 'Pal is reviewing your week…'
+                : 'Keep logging through the week and Pal will gather your '
+                    'wins and patterns here.',
+          ),
+        ),
+      ];
+    }
+    return [
+      if (insights.wins.isNotEmpty) ...[
+        _SectionHeader('Wins'),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 18),
+          child: Container(
+            decoration: BoxDecoration(
+                color: c.surface, borderRadius: BorderRadius.circular(14)),
+            clipBehavior: Clip.antiAlias,
+            child: Column(
+              children: [
+                for (var i = 0; i < insights.wins.length; i++)
+                  _WinRow(
+                    icon: insightIcon(insights.wins[i].colorToken),
+                    colorToken: insights.wins[i].colorToken,
+                    title: insights.wins[i].title,
+                    sub: insights.wins[i].sub,
+                    last: i == insights.wins.length - 1,
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ],
+      if (insights.patterns.isNotEmpty) ...[
+        _SectionHeader('Patterns'),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 18),
+          child: Column(
+            children: [
+              for (var i = 0; i < insights.patterns.length; i++) ...[
+                if (i > 0) const SizedBox(height: 8),
+                _PatternCard(
+                  colorToken: insights.patterns[i].colorToken,
+                  text: insights.patterns[i].detail.isEmpty
+                      ? insights.patterns[i].title
+                      : '${insights.patterns[i].title} — '
+                          '${insights.patterns[i].detail}',
+                ),
+              ],
+            ],
+          ),
+        ),
+      ],
+      if (insights.suggestion != null && insights.suggestion!.isNotEmpty)
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 18),
+          child: _OneThingCard(text: insights.suggestion!),
+        ),
+    ];
+  }
+}
+
+/// A muted surface card used for the Weekly Review's loading / empty notice.
+class _NoticeCard extends StatelessWidget {
+  const _NoticeCard({required this.text});
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+          color: c.surface, borderRadius: BorderRadius.circular(14)),
+      child: Text(text,
+          style: AppFonts.sf(
+              size: 15, color: c.ink3, letterSpacing: -0.24, height: 1.4)),
     );
   }
 }
@@ -383,9 +413,10 @@ class _PatternCard extends StatelessWidget {
 /// "One thing to try" gradient card: gradient sparkle circle + uppercase label
 /// + suggestion + "Ask Pal more" pill that opens the Pal composer pre-filled.
 class _OneThingCard extends StatelessWidget {
-  const _OneThingCard();
+  const _OneThingCard({required this.text});
+  final String text;
 
-  static const _seed = 'Tell me more about my Friday spending';
+  static const _seed = 'Tell me more about this week';
 
   @override
   Widget build(BuildContext context) {
@@ -436,8 +467,7 @@ class _OneThingCard extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'Plan a grocery trip Thursday evening — your Friday splurges drop '
-            '60% the weeks you do.',
+            text,
             style: AppFonts.sf(
                 size: 17, color: c.ink, letterSpacing: -0.43, height: 1.4),
           ),

@@ -1,4 +1,5 @@
 import '../../models/models.dart';
+import 'pal_service.dart' show InsightRange;
 
 /// Formats one timeline entry as the handoff's `HH:MM Title (type, detail)`.
 String formatEntryLine(Entry e) {
@@ -78,6 +79,101 @@ Map<String, Object?> buildReviewContext({
     'topCategory': topCategory,
     'topCategoryPct': topCategoryPct,
     'discoveredPattern': discoveredPattern,
+  };
+}
+
+/// Caps the entry texture sent with an insights request so the prompt stays
+/// bounded regardless of how busy a window is.
+const _maxInsightEntries = 60;
+
+/// Current move streak in days: consecutive calendar days, ending today (or
+/// yesterday — a streak isn't broken until a full day passes without moving),
+/// that have at least one move entry. Pure so it can be unit-tested with a
+/// fixed [now]; pass a lookback window of [entries] (e.g. the last 60 days).
+int moveStreakDays(List<Entry> entries, {DateTime? now}) {
+  final today = now ?? DateTime.now();
+  final moveDays = <int>{};
+  for (final e in entries) {
+    if (e.type != EntryType.move) continue;
+    final t = e.timestamp;
+    moveDays.add(t.year * 10000 + t.month * 100 + t.day);
+  }
+  int key(DateTime d) => d.year * 10000 + d.month * 100 + d.day;
+
+  var cursor = DateTime(today.year, today.month, today.day);
+  // allow the streak to anchor on yesterday if today has no move entry yet
+  if (!moveDays.contains(key(cursor))) {
+    cursor = cursor.subtract(const Duration(days: 1));
+    if (!moveDays.contains(key(cursor))) return 0;
+  }
+  var streak = 0;
+  while (moveDays.contains(key(cursor))) {
+    streak++;
+    cursor = cursor.subtract(const Duration(days: 1));
+  }
+  return streak;
+}
+
+String _insightRangeWire(InsightRange range) => switch (range) {
+      InsightRange.day => 'day',
+      InsightRange.week => 'week',
+      InsightRange.month => 'month',
+    };
+
+/// Builds the structured aggregate map for an `/insights` request over the
+/// window's [entries]. `spendByWeekday` is Monday→Sunday so the model can spot
+/// day-of-week patterns; `topCategory`/`topCategoryPct` and the totals give it
+/// grounded numbers. [streakDays] is the current move streak (computed upstream).
+Map<String, Object?> buildInsightsContext({
+  required InsightRange range,
+  required List<Entry> entries,
+  required Goals goals,
+  required int periodDays,
+  required int streakDays,
+}) {
+  final spendByWeekday = List<double>.filled(7, 0);
+  final activeMoveDays = <int>{};
+  final byCat = <String, double>{};
+  for (final e in entries) {
+    switch (e.type) {
+      case EntryType.money:
+        if ((e.amount ?? 0) < 0) {
+          final abs = e.amount!.abs();
+          spendByWeekday[e.timestamp.weekday - 1] += abs;
+          byCat[e.category ?? 'Other'] = (byCat[e.category ?? 'Other'] ?? 0) + abs;
+        }
+      case EntryType.move:
+        final t = e.timestamp;
+        activeMoveDays.add(t.year * 10000 + t.month * 100 + t.day);
+      case EntryType.rituals:
+        break;
+    }
+  }
+
+  final spent = _spent(entries);
+  var topCategory = '—';
+  var topVal = 0.0;
+  byCat.forEach((k, v) {
+    if (v > topVal) {
+      topVal = v;
+      topCategory = k;
+    }
+  });
+
+  return {
+    'range': _insightRangeWire(range),
+    'spent': spent,
+    'budget': goals.dailyBudget * periodDays,
+    'moveMinutes': _movedMin(entries),
+    'moveTarget': goals.dailyMoveMinutes * periodDays,
+    'ritualsKept': _rituals(entries),
+    'ritualsTarget': goals.dailyRitualTarget * periodDays,
+    'activeDays': activeMoveDays.length,
+    'streakDays': streakDays,
+    'topCategory': topCategory,
+    'topCategoryPct': spent == 0 ? 0 : ((topVal / spent) * 100).round(),
+    'spendByWeekday': spendByWeekday,
+    'entries': entries.take(_maxInsightEntries).map(formatEntryLine).toList(),
   };
 }
 

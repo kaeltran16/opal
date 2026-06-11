@@ -2,8 +2,10 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../controllers/insights_controller.dart';
 import '../../controllers/today_controller.dart';
 import '../../models/models.dart';
+import '../../services/pal/pal_service.dart' show InsightRange;
 import '../../router.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_text.dart';
@@ -79,10 +81,18 @@ class _TodayBody extends ConsumerWidget {
     return '${days[now.weekday - 1]}, ${months[now.month - 1]} ${now.day}';
   }
 
+  /// Shown in the "Pal noticed" card when there isn't enough data (or Pal is
+  /// unreachable) — never fabricated numbers.
+  static const _palEmptyCopy =
+      "Keep logging and Pal will surface what's working.";
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final c = context.colors;
     final goals = today.goals;
+    final insightAsync = ref.watch(insightsProvider(InsightRange.day));
+    final headline = insightAsync.asData?.value?.headline;
+    final hasInsight = headline != null && headline.isNotEmpty;
     final moneySpent = today.moneySpent;
     final ritualsDone = today.ritualsDone;
     final ritualsRemaining = today.ritualsRemaining;
@@ -281,43 +291,33 @@ class _TodayBody extends ConsumerWidget {
                     ],
                   ),
                   const SizedBox(height: 10),
-                  Text.rich(
-                    TextSpan(
-                      style: AppFonts.sf(
-                          size: 17,
-                          color: c.ink,
-                          letterSpacing: -0.43,
-                          height: 1.38),
+                  Text(
+                    insightAsync.isLoading
+                        ? 'Pal is reading your week…'
+                        : (hasInsight ? headline : _palEmptyCopy),
+                    style: AppFonts.sf(
+                        size: 17,
+                        color: hasInsight ? c.ink : c.ink3,
+                        letterSpacing: -0.43,
+                        height: 1.38),
+                  ),
+                  // Reply chips only make sense when there's a real observation
+                  // to ask Pal about; hidden in the loading/empty states.
+                  if (hasInsight) ...[
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
                       children: [
-                        const TextSpan(text: "You've worked out "),
-                        TextSpan(
-                            text: '11 days in a row',
-                            style:
-                                const TextStyle(fontWeight: FontWeight.w700)),
-                        const TextSpan(
-                            text:
-                                '. On days you finish morning routines, you spend '),
-                        TextSpan(
-                            text: '32% less',
-                            style: TextStyle(
-                                color: c.money, fontWeight: FontWeight.w600)),
-                        const TextSpan(text: ' on food.'),
+                        for (final label in const [
+                          'Why?',
+                          'Show me the days',
+                          'How to keep it up'
+                        ])
+                          _PalReplyChip(label: label),
                       ],
                     ),
-                  ),
-                  const SizedBox(height: 12),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      for (final label in const [
-                        'Why?',
-                        'Show me the days',
-                        'How to keep it up'
-                      ])
-                        _PalReplyChip(label: label),
-                    ],
-                  ),
+                  ],
                 ],
               ),
             ),

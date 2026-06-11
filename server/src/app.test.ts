@@ -8,6 +8,7 @@ function fakePal() {
     chat: async () => 'reply text',
     parse: async () => ({ type: 'money', amount: 5, duration: null, category: 'Coffee', title: 'Coffee', note: null }),
     review: async () => 'review text',
+    insights: async () => ({ headline: 'Spending eased mid-week.', lede: null, suggestion: null, wins: [], patterns: [] }),
     suggestWorkout: async () => ({ routineId: 'r2', reason: 'Legs rested.' }),
     postWorkoutNote: async () => 'note text',
   }
@@ -94,6 +95,33 @@ describe('app', () => {
     })
     expect(res.statusCode).toBe(200)
     expect(res.json().reply).toBe('reply text')
+  })
+
+  const insightsCtx = {
+    range: 'week', spent: 200, budget: 420, moveMinutes: 140, moveTarget: 210,
+    ritualsKept: 18, ritualsTarget: 35, activeDays: 5, streakDays: 11,
+    topCategory: 'Food', topCategoryPct: 34, spendByWeekday: [10, 20, 30, 40, 50, 25, 25], entries: [],
+  }
+
+  it('serves /v1/insights with a valid token', async () => {
+    const token = store.issue('d1')
+    const res = await app.inject({
+      method: 'POST', url: '/v1/insights',
+      headers: { authorization: `Bearer ${token}` },
+      payload: { context: insightsCtx },
+    })
+    expect(res.statusCode).toBe(200)
+    expect(res.json().headline).toBe('Spending eased mid-week.')
+  })
+
+  it('returns 400 on a malformed /v1/insights body', async () => {
+    const token = store.issue('d1')
+    const res = await app.inject({
+      method: 'POST', url: '/v1/insights',
+      headers: { authorization: `Bearer ${token}` },
+      payload: { context: { range: 'week' } }, // missing the numeric fields
+    })
+    expect(res.statusCode).toBe(400)
   })
 
   const creds = { host: 'imap.gmail.com', port: 993, address: 'a@b.com', appPassword: 'pw' }

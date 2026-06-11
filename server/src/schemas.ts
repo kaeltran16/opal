@@ -37,6 +37,17 @@ export const reviewContext = z.object({
 })
 export const reviewBody = z.object({ context: reviewContext })
 
+export const insightsContext = z.object({
+  range: z.enum(['day', 'month', 'week']),
+  spent: z.number(), budget: z.number(),
+  moveMinutes: z.number(), moveTarget: z.number(),
+  ritualsKept: z.number(), ritualsTarget: z.number(),
+  activeDays: z.number(), streakDays: z.number(),
+  topCategory: z.string(), topCategoryPct: z.number(),
+  spendByWeekday: z.array(z.number()), entries: z.array(z.string()),
+})
+export const insightsBody = z.object({ context: insightsContext })
+
 export const suggestContext = z.object({
   recentWorkouts: z.array(z.object({ routineName: z.string(), date: z.string(), muscles: z.string() })),
   dayOfWeek: z.string(),

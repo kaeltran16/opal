@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import {
-  chatSystemPrompt, reviewPrompt, parsePrompt, suggestPrompt, postWorkoutPrompt,
-  type ChatContext, type ReviewContext, type SuggestContext, type PostWorkoutContext,
+  chatSystemPrompt, reviewPrompt, insightsPrompt, parsePrompt, suggestPrompt, postWorkoutPrompt,
+  type ChatContext, type ReviewContext, type InsightsContext, type SuggestContext, type PostWorkoutContext,
 } from './prompts.js'
 
 const MAX_TOKENS = 1024
@@ -71,6 +71,16 @@ export type ParsedEntry = z.infer<typeof parseSchema>
 export const suggestSchema = z.object({ routineId: z.string(), reason: z.string() })
 export type Suggestion = z.infer<typeof suggestSchema>
 
+const colorToken = z.enum(['money', 'move', 'rituals'])
+export const insightsSchema = z.object({
+  headline: z.string().nullable(),
+  lede: z.string().nullable(),
+  suggestion: z.string().nullable(),
+  wins: z.array(z.object({ colorToken, title: z.string(), sub: z.string() })).default([]),
+  patterns: z.array(z.object({ colorToken, title: z.string(), detail: z.string() })).default([]),
+})
+export type Insights = z.infer<typeof insightsSchema>
+
 // Pull a JSON object out of a model reply: tolerate code fences and surrounding prose.
 export function extractJson(raw: string): unknown {
   let s = raw.trim()
@@ -98,6 +108,11 @@ export class Pal {
 
   async review(ctx: ReviewContext): Promise<string> {
     return this.client.complete([{ role: 'user', content: reviewPrompt(ctx) }])
+  }
+
+  async insights(ctx: InsightsContext): Promise<Insights> {
+    const raw = await this.client.complete([{ role: 'user', content: insightsPrompt(ctx) }])
+    return insightsSchema.parse(extractJson(raw))
   }
 
   async postWorkoutNote(ctx: PostWorkoutContext): Promise<string> {

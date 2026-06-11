@@ -568,7 +568,7 @@ final class PalServiceProvider
   }
 }
 
-String _$palServiceHash() => r'05c0043ace5428b3bb729425991b48139359cecc';
+String _$palServiceHash() => r'fc873de302efbbd543a740b6b2832fc26861ca69';
 
 /// Real IMAP-backed sync (U24) when `PAL_BASE_URL` is set; [MockEmailSyncService]
 /// otherwise (tests, backend-less preview). Shares the proxy's http client +

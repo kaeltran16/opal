@@ -198,6 +198,33 @@ PalService palService(Ref ref) {
         discoveredPattern: 'steady tracking this month',
       );
     },
+    insights: (range) async {
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day);
+      final weekStart = today.subtract(Duration(days: now.weekday - 1));
+      final (DateTime start, DateTime end, int periodDays) = switch (range) {
+        InsightRange.day => (today, today.add(const Duration(days: 1)), 1),
+        InsightRange.week => (weekStart, weekStart.add(const Duration(days: 7)), 7),
+        InsightRange.month => (
+            DateTime(now.year, now.month),
+            DateTime(now.year, now.month + 1),
+            DateTime(now.year, now.month + 1, 0).day,
+          ),
+      };
+      final windowEntries = await entries.watchEntriesInRange(start, end).first;
+      // streak needs a longer lookback than the window itself
+      final lookback = await entries.getEntriesInRange(
+        today.subtract(const Duration(days: 60)),
+        today.add(const Duration(days: 1)),
+      );
+      return buildInsightsContext(
+        range: range,
+        entries: windowEntries,
+        goals: await goals.get(),
+        periodDays: periodDays,
+        streakDays: moveStreakDays(lookback, now: now),
+      );
+    },
     suggest: (another) async {
       final recent = await workouts.watchWorkouts().first;
       final all = await routines.getAll();

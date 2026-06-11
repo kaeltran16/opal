@@ -188,6 +188,95 @@ class GeneratedRoutineDraft {
   final String? rationale;
 }
 
+/// The time window a structured insights request covers. [day] feeds the Today
+/// "Pal noticed" card; [week]/[month] feed the Weekly/Monthly Review screens.
+enum InsightRange { day, week, month }
+
+/// A qualitative "Win" row in the Weekly Review (handoff screen 17). The icon is
+/// derived on the client from [colorToken] — the model only chooses the metric.
+class InsightWin {
+  const InsightWin({
+    required this.colorToken,
+    required this.title,
+    required this.sub,
+  });
+
+  /// 'money' | 'move' | 'rituals' — drives the row's accent and icon.
+  final String colorToken;
+  final String title;
+  final String sub;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is InsightWin &&
+          other.colorToken == colorToken &&
+          other.title == title &&
+          other.sub == sub;
+
+  @override
+  int get hashCode => Object.hash(colorToken, title, sub);
+}
+
+/// A qualitative "Pattern" Pal found, used by the Weekly + Monthly Reviews.
+class InsightPattern {
+  const InsightPattern({
+    required this.colorToken,
+    required this.title,
+    required this.detail,
+  });
+
+  /// 'money' | 'move' | 'rituals' — drives the accent bar / icon.
+  final String colorToken;
+  final String title;
+  final String detail;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is InsightPattern &&
+          other.colorToken == colorToken &&
+          other.title == title &&
+          other.detail == detail;
+
+  @override
+  int get hashCode => Object.hash(colorToken, title, detail);
+}
+
+/// Structured, Pal-found insights for a window (the `/insights` seam). Each
+/// surface reads the fields it needs: Today uses [headline]; Weekly uses
+/// [headline] + [lede] (hero), [wins], [patterns], and [suggestion]; Monthly
+/// uses [patterns]. Fields are nullable/empty when the range doesn't fill them.
+class PalInsights {
+  const PalInsights({
+    this.headline,
+    this.lede,
+    this.suggestion,
+    this.wins = const [],
+    this.patterns = const [],
+  });
+
+  /// One warm lead observation (Today card + Weekly hero headline).
+  final String? headline;
+
+  /// A one-sentence sub-headline for the Weekly hero.
+  final String? lede;
+
+  /// One concrete thing to try (Weekly "One thing to try" card).
+  final String? suggestion;
+
+  final List<InsightWin> wins;
+  final List<InsightPattern> patterns;
+
+  /// True when there is nothing qualitative to show — the surfaces render their
+  /// encouraging empty state instead.
+  bool get isEmpty =>
+      (headline == null || headline!.isEmpty) &&
+      (suggestion == null || suggestion!.isEmpty) &&
+      wins.isEmpty &&
+      patterns.isEmpty;
+}
+
 /// The Pal AI interface. All methods are async to model network latency.
 abstract interface class PalService {
   /// `/chat`: continue a conversation given prior [history] and the new
@@ -199,6 +288,10 @@ abstract interface class PalService {
 
   /// `/review`: a monthly narrative summary for [month] (U18).
   Future<String> review(DateTime month);
+
+  /// `/insights`: structured Pal-found insights (wins/patterns/headline) for the
+  /// given [range]. Powers the Today "Pal noticed" card and the Review screens.
+  Future<PalInsights> insights(InsightRange range);
 
   /// Suggest a workout for the Start-Workout picker (U12). [another] true asks
   /// for a different pick than the last.

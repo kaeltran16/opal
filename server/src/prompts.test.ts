@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { chatSystemPrompt, reviewPrompt, parsePrompt, suggestPrompt, postWorkoutPrompt } from './prompts.js'
+import { chatSystemPrompt, reviewPrompt, insightsPrompt, parsePrompt, suggestPrompt, postWorkoutPrompt } from './prompts.js'
 
 describe('prompts', () => {
   it('chat system prompt substitutes user data', () => {
@@ -32,6 +32,31 @@ describe('prompts', () => {
     expect(p).toContain('$1840')
     expect(p).toContain('12-day move streak')
     expect(p).toContain('Food 34%')
+  })
+
+  it('insights prompt embeds data, weekday spend, and tailors to range', () => {
+    const p = insightsPrompt({
+      range: 'week', spent: 200, budget: 420, moveMinutes: 140, moveTarget: 210,
+      ritualsKept: 18, ritualsTarget: 35, activeDays: 5, streakDays: 11,
+      topCategory: 'Food', topCategoryPct: 34, spendByWeekday: [10, 20, 30, 40, 50, 25, 25], entries: ['08:00 Coffee'],
+    })
+    expect(p).toContain('$200 of $420')
+    expect(p).toContain('Food 34%')
+    expect(p).toContain('11-day move streak')
+    expect(p).toContain('Mon $10')
+    expect(p).toContain('08:00 Coffee')
+    expect(p).toContain('Range is "week"')
+    expect(p).toContain('colorToken')
+  })
+
+  it('insights prompt for a day range fills only the headline', () => {
+    const p = insightsPrompt({
+      range: 'day', spent: 12, budget: 60, moveMinutes: 20, moveTarget: 30,
+      ritualsKept: 3, ritualsTarget: 5, activeDays: 1, streakDays: 11,
+      topCategory: 'Food', topCategoryPct: 34, spendByWeekday: [12, 0, 0, 0, 0, 0, 0], entries: [],
+    })
+    expect(p).toContain('Range is "day"')
+    expect(p).toContain('fill "headline" only')
   })
 
   it('suggest prompt lists routines and day', () => {

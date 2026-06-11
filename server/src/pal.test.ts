@@ -34,6 +34,29 @@ describe('Pal', () => {
     expect(result).toEqual(parsed)
   })
 
+  it('insights parses headline, wins and patterns, tolerating a code fence', async () => {
+    const reply = {
+      headline: 'Spending eased mid-week.', lede: 'A calmer week than last.', suggestion: 'Try a no-spend Friday.',
+      wins: [{ colorToken: 'move', title: 'Moved 5 days', sub: 'matched your target' }],
+      patterns: [{ colorToken: 'money', title: 'Weekends spike', sub: 'ignored', detail: 'Sat and Sun lead spend' }],
+    }
+    const client = fakeClient('```json\n' + JSON.stringify(reply) + '\n```')
+    const pal = new Pal(client)
+    const result = await pal.insights(baseInsightsCtx())
+    expect(result.headline).toBe('Spending eased mid-week.')
+    expect(result.wins).toHaveLength(1)
+    expect(result.wins[0].colorToken).toBe('move')
+    expect(result.patterns[0].detail).toBe('Sat and Sun lead spend')
+  })
+
+  it('insights defaults wins and patterns to empty arrays when omitted', async () => {
+    const client = fakeClient(JSON.stringify({ headline: 'Today is on budget.', lede: null, suggestion: null }))
+    const pal = new Pal(client)
+    const result = await pal.insights(baseInsightsCtx())
+    expect(result.wins).toEqual([])
+    expect(result.patterns).toEqual([])
+  })
+
   it('suggestWorkout returns routineId + reason', async () => {
     const parsed = { routineId: 'r2', reason: 'Legs are rested.' }
     const client = fakeClient(JSON.stringify(parsed))
@@ -44,6 +67,14 @@ describe('Pal', () => {
     expect(result).toEqual(parsed)
   })
 })
+
+function baseInsightsCtx() {
+  return {
+    range: 'week' as const, spent: 200, budget: 420, moveMinutes: 140, moveTarget: 210,
+    ritualsKept: 18, ritualsTarget: 35, activeDays: 5, streakDays: 11,
+    topCategory: 'Food', topCategoryPct: 34, spendByWeekday: [10, 20, 30, 40, 50, 25, 25], entries: [],
+  }
+}
 
 function baseChatCtx() {
   return {

@@ -96,6 +96,67 @@ class MockPalService implements PalService {
   }
 
   @override
+  Future<PalInsights> insights(InsightRange range) async {
+    await Future<void>.delayed(latency);
+    switch (range) {
+      case InsightRange.day:
+        return const PalInsights(
+          headline: "You've worked out 11 days in a row. On days you finish "
+              "morning routines, you spend less on food.",
+        );
+      case InsightRange.week:
+        return const PalInsights(
+          headline: 'Your steadiest week this month.',
+          lede: 'Workouts stayed consistent, routines held together, and you '
+              'came in under budget.',
+          suggestion: 'Plan a grocery trip Thursday evening — your Friday '
+              'splurges drop the weeks you do.',
+          wins: [
+            InsightWin(
+                colorToken: 'move',
+                title: '11-day workout streak',
+                sub: 'Longest in 3 months'),
+            InsightWin(
+                colorToken: 'money',
+                title: 'Came in under budget',
+                sub: 'Spent below your weekly target'),
+            InsightWin(
+                colorToken: 'rituals',
+                title: 'Morning pages 6/7',
+                sub: 'Missed only Saturday'),
+          ],
+          patterns: [
+            InsightPattern(
+                colorToken: 'money',
+                title: 'Fridays cost the most',
+                detail: 'Dining out drives the spike.'),
+            InsightPattern(
+                colorToken: 'move',
+                title: 'Routine days move more',
+                detail: 'Longer workouts on days you keep your routines.'),
+          ],
+        );
+      case InsightRange.month:
+        return const PalInsights(
+          patterns: [
+            InsightPattern(
+                colorToken: 'rituals',
+                title: 'Morning rituals lower food spending',
+                detail: 'On days you journal, food costs drop.'),
+            InsightPattern(
+                colorToken: 'money',
+                title: 'Friday is your spendiest day',
+                detail: 'Mostly dinner out.'),
+            InsightPattern(
+                colorToken: 'move',
+                title: 'Movement clusters early in the week',
+                detail: 'Most active days land Monday–Wednesday.'),
+          ],
+        );
+    }
+  }
+
+  @override
   Future<WorkoutSuggestion> suggestWorkout({bool another = false}) async {
     await Future<void>.delayed(latency);
     if (another) _suggestionIndex = (_suggestionIndex + 1) % _suggestions.length;

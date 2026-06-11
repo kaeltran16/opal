@@ -6,7 +6,7 @@ import { OpenRouterError, type Pal } from './pal.js'
 import { ImapAuthError, type ImapCreds } from './imap.js'
 import type { EmailWorker } from './email.js'
 import type { TokenStore } from './store.js'
-import { registerBody, chatBody, parseBody, reviewBody, suggestBody, postWorkoutBody, emailTestBody, emailSyncBody } from './schemas.js'
+import { registerBody, chatBody, parseBody, reviewBody, insightsBody, suggestBody, postWorkoutBody, emailTestBody, emailSyncBody } from './schemas.js'
 
 export interface AppDeps {
   pal: Pal
@@ -72,6 +72,7 @@ export function buildApp(deps: AppDeps): FastifyInstance {
   app.post('/v1/chat', guard(chatBody, async (b) => ({ reply: await deps.pal.chat(b.history, b.message, b.context) })))
   app.post('/v1/parse', guard(parseBody, async (b) => deps.pal.parse(b.text)))
   app.post('/v1/review', guard(reviewBody, async (b) => ({ text: await deps.pal.review(b.context) })))
+  app.post('/v1/insights', guard(insightsBody, async (b) => deps.pal.insights(b.context)))
   app.post('/v1/suggest-workout', guard(suggestBody, async (b) => deps.pal.suggestWorkout(b.another, b.context)))
   app.post('/v1/post-workout-note', guard(postWorkoutBody, async (b) => ({ note: await deps.pal.postWorkoutNote(b.context) })))
 

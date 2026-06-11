@@ -1,7 +1,9 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../controllers/insights_controller.dart';
 import '../../controllers/monthly_review_controller.dart';
+import '../../services/pal/pal_service.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_text.dart';
 import '../../widgets/app_icon.dart';
@@ -26,26 +28,6 @@ class MonthlyReviewScreen extends ConsumerWidget {
     'July', 'August', 'September', 'October', 'November', 'December',
   ];
 
-  /// Qualitative "Patterns Pal found" insights. These are correlational claims
-  /// with no structured data source yet (the narrative `/review` seam returns
-  /// prose, not structured patterns), so they stay canned rather than
-  /// fabricating numbers from the aggregates above.
-  // TODO(pal): structured insights endpoint — replace canned Patterns.
-  static const _patterns = <(String, String)>[
-    (
-      'Morning rituals lower food spending',
-      'On days you journal, food costs drop 32%',
-    ),
-    (
-      'Friday is your spendiest day',
-      'Average \$94 — mostly dinner out',
-    ),
-    (
-      'Movement and sleep are linked',
-      'You move 40% more after 7+ hour nights',
-    ),
-  ];
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final c = context.colors;
@@ -54,6 +36,8 @@ class MonthlyReviewScreen extends ConsumerWidget {
 
     final narrative = ref.watch(monthlyReviewControllerProvider);
     final statsAsync = ref.watch(monthlyStatsProvider);
+    final insightsAsync = ref.watch(insightsProvider(InsightRange.month));
+    final patterns = insightsAsync.asData?.value?.patterns ?? const [];
 
     return LargeTitleScrollView(
       title: monthName,
@@ -109,16 +93,32 @@ class MonthlyReviewScreen extends ConsumerWidget {
             decoration: BoxDecoration(
                 color: c.surface, borderRadius: BorderRadius.circular(16)),
             clipBehavior: Clip.antiAlias,
-            child: Column(
-              children: [
-                for (var i = 0; i < _patterns.length; i++)
-                  _PatternRow(
-                    title: _patterns[i].$1,
-                    detail: _patterns[i].$2,
-                    last: i == _patterns.length - 1,
+            child: patterns.isEmpty
+                ? Padding(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 16),
+                    child: Text(
+                      insightsAsync.isLoading
+                          ? 'Pal is reading your month…'
+                          : 'Keep logging and Pal will surface the patterns '
+                              'it finds here.',
+                      style: AppFonts.sf(
+                          size: 15,
+                          color: c.ink3,
+                          letterSpacing: -0.24,
+                          height: 1.4),
+                    ),
+                  )
+                : Column(
+                    children: [
+                      for (var i = 0; i < patterns.length; i++)
+                        _PatternRow(
+                          title: patterns[i].title,
+                          detail: patterns[i].detail,
+                          last: i == patterns.length - 1,
+                        ),
+                    ],
                   ),
-              ],
-            ),
           ),
         ),
       ],

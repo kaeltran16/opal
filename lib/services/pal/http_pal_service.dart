@@ -27,12 +27,14 @@ class PalContextSource {
   const PalContextSource({
     required this.chat,
     required this.review,
+    required this.insights,
     required this.suggest,
     required this.postWorkout,
     required this.resolveRoutineTitle,
   });
   final Future<Map<String, Object?>> Function() chat;
   final Future<Map<String, Object?>> Function(DateTime month) review;
+  final Future<Map<String, Object?>> Function(InsightRange range) insights;
   final Future<Map<String, Object?>> Function(bool another) suggest;
   final Future<Map<String, Object?>> Function(Workout workout) postWorkout;
   final Future<String?> Function(String routineId) resolveRoutineTitle;
@@ -128,6 +130,44 @@ class HttpPalService implements PalService {
     final json = await _post('/v1/review', {'context': await context.review(month)});
     return json['text'] as String;
   }
+
+  @override
+  Future<PalInsights> insights(InsightRange range) async {
+    final json = await _post('/v1/insights', {'context': await context.insights(range)});
+    List<T> mapList<T>(String key, T Function(Map<String, dynamic>) f) =>
+        ((json[key] as List?) ?? const [])
+            .cast<Map<String, dynamic>>()
+            .map(f)
+            .toList();
+    return PalInsights(
+      headline: json['headline'] as String?,
+      lede: json['lede'] as String?,
+      suggestion: json['suggestion'] as String?,
+      wins: mapList(
+        'wins',
+        (w) => InsightWin(
+          colorToken: _colorToken(w['colorToken']),
+          title: w['title'] as String? ?? '',
+          sub: w['sub'] as String? ?? '',
+        ),
+      ),
+      patterns: mapList(
+        'patterns',
+        (p) => InsightPattern(
+          colorToken: _colorToken(p['colorToken']),
+          title: p['title'] as String? ?? '',
+          detail: p['detail'] as String? ?? '',
+        ),
+      ),
+    );
+  }
+
+  /// Clamps a wire colorToken to the three known accents, defaulting unknown
+  /// values to 'rituals' so a stray token never crashes the row.
+  String _colorToken(Object? raw) => switch (raw) {
+        'money' || 'move' || 'rituals' => raw! as String,
+        _ => 'rituals',
+      };
 
   @override
   Future<WorkoutSuggestion> suggestWorkout({bool another = false}) async {

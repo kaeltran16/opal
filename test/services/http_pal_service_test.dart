@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:opal/models/models.dart';
 import 'package:opal/services/pal/http_pal_service.dart';
+import 'package:opal/services/pal/pal_service.dart';
 
 void main() {
   // A token store stub that hands back a fixed token and counts clears.
@@ -25,6 +26,10 @@ void main() {
         review: (_) async => {'spent': 100, 'spentDeltaPct': 0, 'hoursMoved': 1, 'movedDeltaPct': 0,
           'activeDays': 1, 'ritualsKept': 1, 'ritualsTarget': 5, 'ritualsPct': 20, 'streakDays': 1,
           'topCategory': 'Food', 'topCategoryPct': 30, 'discoveredPattern': 'steady'},
+        insights: (_) async => {'range': 'week', 'spent': 100, 'budget': 420, 'moveMinutes': 60,
+          'moveTarget': 210, 'ritualsKept': 5, 'ritualsTarget': 35, 'activeDays': 2, 'streakDays': 3,
+          'topCategory': 'Food', 'topCategoryPct': 30, 'spendByWeekday': <double>[0,0,0,0,100,0,0],
+          'entries': <String>[]},
         suggest: (_) async => {'recentWorkouts': <Object>[], 'dayOfWeek': 'Wed',
           'availableRoutines': [{'id': 'r2', 'name': 'Legs'}]},
         postWorkout: (_) async => {'routineName': 'Push', 'setCount': 1, 'volumeKg': 60,
@@ -78,6 +83,39 @@ void main() {
     expect(s.routineId, 'r2');
     expect(s.rationale, 'Legs rested.');
     expect(s.title, 'Legs');
+  });
+
+  test('insights posts to /v1/insights and maps wins/patterns', () async {
+    late http.Request seen;
+    final service = build(MockClient((req) async {
+      seen = req;
+      return http.Response(
+        jsonEncode({
+          'headline': 'Steady week.',
+          'lede': null,
+          'suggestion': 'Plan groceries Thursday.',
+          'wins': [
+            {'colorToken': 'move', 'title': '11-day streak', 'sub': 'Longest in 3 months'}
+          ],
+          'patterns': [
+            {'colorToken': 'bogus', 'title': 'Fridays cost most', 'detail': 'Dining out.'}
+          ],
+        }),
+        200,
+        headers: {'content-type': 'application/json; charset=utf-8'},
+      );
+    }));
+
+    final result = await service.insights(InsightRange.week);
+
+    expect(seen.url.path, '/v1/insights');
+    expect(jsonDecode(seen.body)['context']['range'], 'week');
+    expect(result.headline, 'Steady week.');
+    expect(result.suggestion, 'Plan groceries Thursday.');
+    expect(result.wins.single.colorToken, 'move');
+    expect(result.wins.single.title, '11-day streak');
+    // unknown colorToken is clamped to a safe default
+    expect(result.patterns.single.colorToken, 'rituals');
   });
 
   test('re-registers once on 401 then retries', () async {

@@ -34,6 +34,17 @@ class _SequencedPalService implements PalService {
       _reviews[_i++ % _reviews.length];
 
   @override
+  Future<PalInsights> insights(InsightRange range) async => const PalInsights(
+        patterns: [
+          InsightPattern(
+            colorToken: 'rituals',
+            title: 'Morning rituals lower food spending',
+            detail: 'On days you journal, food costs drop 32%',
+          ),
+        ],
+      );
+
+  @override
   Future<String> chat(List<PalMessage> history, String message) async => '';
 
   @override

@@ -30,6 +30,22 @@ export interface ReviewContext {
   discoveredPattern: string
 }
 
+export interface InsightsContext {
+  range: 'day' | 'week' | 'month'
+  spent: number
+  budget: number
+  moveMinutes: number
+  moveTarget: number
+  ritualsKept: number
+  ritualsTarget: number
+  activeDays: number
+  streakDays: number
+  topCategory: string
+  topCategoryPct: number
+  spendByWeekday: number[]
+  entries: string[]
+}
+
 export interface SuggestContext {
   recentWorkouts: Array<{ routineName: string; date: string; muscles: string }>
   dayOfWeek: string
@@ -65,6 +81,33 @@ export function reviewPrompt(c: ReviewContext): string {
   return `Write a 2-3 sentence warm, specific, editorial reflection on this month's tracking data. Avoid hype words like "amazing" or "crushed it". Be specific and observational.
 
 Data: $${c.spent} spent (down ${c.spentDeltaPct}% vs last month), ${c.hoursMoved}h moved (up ${c.movedDeltaPct}%), ${c.activeDays} active days, ${c.ritualsKept}/${c.ritualsTarget} rituals kept (${c.ritualsPct}%). Current ${c.streakDays}-day move streak. Top category: ${c.topCategory} ${c.topCategoryPct}%. Pattern: ${c.discoveredPattern}.`
+}
+
+export function insightsPrompt(c: InsightsContext): string {
+  const weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+  const byDay = weekdays.map((d, i) => `${d} $${c.spendByWeekday[i] ?? 0}`).join(', ')
+  const entries = c.entries.length ? c.entries.join('\n') : '(none)'
+  const shape = `{"headline": string|null, "lede": string|null, "suggestion": string|null, "wins": [{"colorToken": "money"|"move"|"rituals", "title": string, "sub": string}], "patterns": [{"colorToken": "money"|"move"|"rituals", "title": string, "detail": string}]}`
+
+  const byRange: Record<InsightsContext['range'], string> = {
+    day: 'Range is "day": fill "headline" only with one observation about today versus the goals. Leave "lede" and "suggestion" null, and "wins" and "patterns" empty.',
+    week: 'Range is "week": fill "headline" and a 1-sentence "lede" sub-headline, up to 3 "wins", up to 3 "patterns", and one concrete "suggestion".',
+    month: 'Range is "month": fill up to 3 "patterns". "headline", "lede" and "suggestion" may be null; leave "wins" empty.',
+  }
+
+  return `Reflect on this ${c.range}'s tracking data. Be specific and observational. Avoid hype words like "amazing", "crushed it", or "great job".
+
+Data: $${c.spent} of $${c.budget} budget, ${c.moveMinutes} of ${c.moveTarget} move minutes, ${c.ritualsKept}/${c.ritualsTarget} rituals kept, ${c.activeDays} active days, ${c.streakDays}-day move streak. Top category: ${c.topCategory} ${c.topCategoryPct}%.
+Spend by weekday: ${byDay}.
+Entries:
+${entries}
+
+Only make claims grounded in this data: use the spend-by-weekday numbers for day-of-week patterns, the top category for spending patterns, and the streak for streaks. Do not invent numbers that are not derivable from the data. Set "colorToken" to the metric each item is about (money, move or rituals).
+
+${byRange[c.range]}
+
+Return strictly this JSON shape: ${shape}
+"wins" and "patterns" must always be arrays (use [] when empty). No prose, no code fence. Output only the JSON object.`
 }
 
 export function parsePrompt(input: string): string {
