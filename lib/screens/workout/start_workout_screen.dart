@@ -32,20 +32,27 @@ class StartWorkoutScreen extends ConsumerWidget {
     final c = context.colors;
     final async = ref.watch(startWorkoutProvider);
 
-    return async.when(
-      loading: () => Center(
-        child: Text('…',
-            style: AppFonts.sf(size: 17, color: c.ink3, letterSpacing: -0.43)),
-      ),
-      error: (e, _) => Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Text("Couldn't load workouts.\n$e",
-              textAlign: TextAlign.center,
-              style: AppFonts.sf(size: 15, color: c.ink3, letterSpacing: -0.24)),
+    // Opaque background so the Cupertino push parallax doesn't show the
+    // outgoing page through this one (ghosting). Mirrors the shell's c.bg.
+    return ColoredBox(
+      color: c.bg,
+      child: async.when(
+        loading: () => Center(
+          child: Text('…',
+              style:
+                  AppFonts.sf(size: 17, color: c.ink3, letterSpacing: -0.43)),
         ),
+        error: (e, _) => Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Text("Couldn't load workouts.\n$e",
+                textAlign: TextAlign.center,
+                style: AppFonts.sf(
+                    size: 15, color: c.ink3, letterSpacing: -0.24)),
+          ),
+        ),
+        data: (state) => _Body(state: state),
       ),
-      data: (state) => _Body(state: state),
     );
   }
 }

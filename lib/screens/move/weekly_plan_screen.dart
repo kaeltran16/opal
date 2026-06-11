@@ -50,8 +50,12 @@ class WeeklyPlanScreen extends ConsumerWidget {
         const WeeklyPlan(days: []);
     final today = plan.today;
 
-    return ListView(
-      padding: const EdgeInsets.only(bottom: 110),
+    // Opaque background so the Cupertino push parallax doesn't show the
+    // outgoing page through this one (ghosting). Mirrors the shell's c.bg.
+    return ColoredBox(
+      color: c.bg,
+      child: ListView(
+        padding: const EdgeInsets.only(bottom: 110),
       children: [
         // Nav: back "Move" + trailing ellipsis.
         Padding(
@@ -169,6 +173,7 @@ class WeeklyPlanScreen extends ConsumerWidget {
           child: _WeekProgressNote(plan: plan),
         ),
       ],
+      ),
     );
   }
 }
