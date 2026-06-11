@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../controllers/profile_controller.dart';
 import '../../controllers/providers.dart';
 import '../../controllers/today_controller.dart';
 import '../../models/models.dart';
@@ -27,6 +28,8 @@ class ProfileScreen extends ConsumerWidget {
     final c = context.colors;
     final async = ref.watch(goalsStreamProvider);
     final name = ref.watch(settingsRepositoryProvider).displayName;
+    final memberSince =
+        ref.watch(profileStatsProvider).asData?.value.memberSince;
 
     return async.when(
       loading: () => Center(
@@ -42,17 +45,42 @@ class ProfileScreen extends ConsumerWidget {
                   AppFonts.sf(size: 15, color: c.ink3, letterSpacing: -0.24)),
         ),
       ),
-      data: (goals) => _ProfileBody(goals: goals, name: name),
+      data: (goals) =>
+          _ProfileBody(goals: goals, name: name, tenure: _tenure(memberSince)),
     );
+  }
+
+  /// Builds the `Tracking since <Month Year> · N days` line from the earliest
+  /// entry date. Returns an honest placeholder when there's no entry history.
+  static String _tenure(DateTime? memberSince, {DateTime? now}) {
+    if (memberSince == null) return 'Just getting started';
+    final today = now ?? DateTime.now();
+    const months = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December',
+    ];
+    final month = months[memberSince.month - 1];
+    final start =
+        DateTime(memberSince.year, memberSince.month, memberSince.day);
+    final end = DateTime(today.year, today.month, today.day);
+    final days = end.difference(start).inDays;
+    return 'Tracking since $month ${memberSince.year} · $days days';
   }
 }
 
 class _ProfileBody extends StatelessWidget {
-  const _ProfileBody({required this.goals, required this.name});
+  const _ProfileBody({
+    required this.goals,
+    required this.name,
+    required this.tenure,
+  });
   final Goals goals;
 
   /// User's display name from onboarding; empty falls back to "You".
   final String name;
+
+  /// Pre-computed tenure line (e.g. "Tracking since April 2026 · 70 days").
+  final String tenure;
 
   String _grouped(int n) {
     final s = n.toString();
@@ -146,7 +174,7 @@ class _ProfileBody extends StatelessWidget {
                               color: c.ink,
                               letterSpacing: -0.3)),
                       const SizedBox(height: 2),
-                      Text('Tracking since October · 182 days',
+                      Text(tenure,
                           style: AppFonts.sf(
                               size: 13, color: c.ink3, letterSpacing: -0.08)),
                     ],

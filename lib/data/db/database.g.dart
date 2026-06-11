@@ -5221,6 +5221,218 @@ class SeedMarkersCompanion extends UpdateCompanion<SeedMarker> {
   }
 }
 
+class $WeeklyPlanDaysTable extends WeeklyPlanDays
+    with TableInfo<$WeeklyPlanDaysTable, WeeklyPlanDayRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $WeeklyPlanDaysTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _weekdayMeta = const VerificationMeta(
+    'weekday',
+  );
+  @override
+  late final GeneratedColumn<int> weekday = GeneratedColumn<int>(
+    'weekday',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _routineIdMeta = const VerificationMeta(
+    'routineId',
+  );
+  @override
+  late final GeneratedColumn<String> routineId = GeneratedColumn<String>(
+    'routine_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [weekday, routineId];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'weekly_plan_days';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<WeeklyPlanDayRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('weekday')) {
+      context.handle(
+        _weekdayMeta,
+        weekday.isAcceptableOrUnknown(data['weekday']!, _weekdayMeta),
+      );
+    }
+    if (data.containsKey('routine_id')) {
+      context.handle(
+        _routineIdMeta,
+        routineId.isAcceptableOrUnknown(data['routine_id']!, _routineIdMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {weekday};
+  @override
+  WeeklyPlanDayRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return WeeklyPlanDayRow(
+      weekday: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}weekday'],
+      )!,
+      routineId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}routine_id'],
+      ),
+    );
+  }
+
+  @override
+  $WeeklyPlanDaysTable createAlias(String alias) {
+    return $WeeklyPlanDaysTable(attachedDatabase, alias);
+  }
+}
+
+class WeeklyPlanDayRow extends DataClass
+    implements Insertable<WeeklyPlanDayRow> {
+  /// ISO weekday: 1=Mon .. 7=Sun (also the primary key).
+  final int weekday;
+
+  /// FK to [Routines.id]; null = Rest day.
+  final String? routineId;
+  const WeeklyPlanDayRow({required this.weekday, this.routineId});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['weekday'] = Variable<int>(weekday);
+    if (!nullToAbsent || routineId != null) {
+      map['routine_id'] = Variable<String>(routineId);
+    }
+    return map;
+  }
+
+  WeeklyPlanDaysCompanion toCompanion(bool nullToAbsent) {
+    return WeeklyPlanDaysCompanion(
+      weekday: Value(weekday),
+      routineId: routineId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(routineId),
+    );
+  }
+
+  factory WeeklyPlanDayRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return WeeklyPlanDayRow(
+      weekday: serializer.fromJson<int>(json['weekday']),
+      routineId: serializer.fromJson<String?>(json['routineId']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'weekday': serializer.toJson<int>(weekday),
+      'routineId': serializer.toJson<String?>(routineId),
+    };
+  }
+
+  WeeklyPlanDayRow copyWith({
+    int? weekday,
+    Value<String?> routineId = const Value.absent(),
+  }) => WeeklyPlanDayRow(
+    weekday: weekday ?? this.weekday,
+    routineId: routineId.present ? routineId.value : this.routineId,
+  );
+  WeeklyPlanDayRow copyWithCompanion(WeeklyPlanDaysCompanion data) {
+    return WeeklyPlanDayRow(
+      weekday: data.weekday.present ? data.weekday.value : this.weekday,
+      routineId: data.routineId.present ? data.routineId.value : this.routineId,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('WeeklyPlanDayRow(')
+          ..write('weekday: $weekday, ')
+          ..write('routineId: $routineId')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(weekday, routineId);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is WeeklyPlanDayRow &&
+          other.weekday == this.weekday &&
+          other.routineId == this.routineId);
+}
+
+class WeeklyPlanDaysCompanion extends UpdateCompanion<WeeklyPlanDayRow> {
+  final Value<int> weekday;
+  final Value<String?> routineId;
+  const WeeklyPlanDaysCompanion({
+    this.weekday = const Value.absent(),
+    this.routineId = const Value.absent(),
+  });
+  WeeklyPlanDaysCompanion.insert({
+    this.weekday = const Value.absent(),
+    this.routineId = const Value.absent(),
+  });
+  static Insertable<WeeklyPlanDayRow> custom({
+    Expression<int>? weekday,
+    Expression<String>? routineId,
+  }) {
+    return RawValuesInsertable({
+      if (weekday != null) 'weekday': weekday,
+      if (routineId != null) 'routine_id': routineId,
+    });
+  }
+
+  WeeklyPlanDaysCompanion copyWith({
+    Value<int>? weekday,
+    Value<String?>? routineId,
+  }) {
+    return WeeklyPlanDaysCompanion(
+      weekday: weekday ?? this.weekday,
+      routineId: routineId ?? this.routineId,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (weekday.present) {
+      map['weekday'] = Variable<int>(weekday.value);
+    }
+    if (routineId.present) {
+      map['routine_id'] = Variable<String>(routineId.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('WeeklyPlanDaysCompanion(')
+          ..write('weekday: $weekday, ')
+          ..write('routineId: $routineId')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$LoopDatabase extends GeneratedDatabase {
   _$LoopDatabase(QueryExecutor e) : super(e);
   $LoopDatabaseManager get managers => $LoopDatabaseManager(this);
@@ -5237,6 +5449,7 @@ abstract class _$LoopDatabase extends GeneratedDatabase {
   late final $PalNotesTable palNotes = $PalNotesTable(this);
   late final $GoalsTableTable goalsTable = $GoalsTableTable(this);
   late final $SeedMarkersTable seedMarkers = $SeedMarkersTable(this);
+  late final $WeeklyPlanDaysTable weeklyPlanDays = $WeeklyPlanDaysTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -5253,6 +5466,7 @@ abstract class _$LoopDatabase extends GeneratedDatabase {
     palNotes,
     goalsTable,
     seedMarkers,
+    weeklyPlanDays,
   ];
 }
 
@@ -7939,6 +8153,149 @@ typedef $$SeedMarkersTableProcessedTableManager =
       SeedMarker,
       PrefetchHooks Function()
     >;
+typedef $$WeeklyPlanDaysTableCreateCompanionBuilder =
+    WeeklyPlanDaysCompanion Function({
+      Value<int> weekday,
+      Value<String?> routineId,
+    });
+typedef $$WeeklyPlanDaysTableUpdateCompanionBuilder =
+    WeeklyPlanDaysCompanion Function({
+      Value<int> weekday,
+      Value<String?> routineId,
+    });
+
+class $$WeeklyPlanDaysTableFilterComposer
+    extends Composer<_$LoopDatabase, $WeeklyPlanDaysTable> {
+  $$WeeklyPlanDaysTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get weekday => $composableBuilder(
+    column: $table.weekday,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get routineId => $composableBuilder(
+    column: $table.routineId,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$WeeklyPlanDaysTableOrderingComposer
+    extends Composer<_$LoopDatabase, $WeeklyPlanDaysTable> {
+  $$WeeklyPlanDaysTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get weekday => $composableBuilder(
+    column: $table.weekday,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get routineId => $composableBuilder(
+    column: $table.routineId,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$WeeklyPlanDaysTableAnnotationComposer
+    extends Composer<_$LoopDatabase, $WeeklyPlanDaysTable> {
+  $$WeeklyPlanDaysTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get weekday =>
+      $composableBuilder(column: $table.weekday, builder: (column) => column);
+
+  GeneratedColumn<String> get routineId =>
+      $composableBuilder(column: $table.routineId, builder: (column) => column);
+}
+
+class $$WeeklyPlanDaysTableTableManager
+    extends
+        RootTableManager<
+          _$LoopDatabase,
+          $WeeklyPlanDaysTable,
+          WeeklyPlanDayRow,
+          $$WeeklyPlanDaysTableFilterComposer,
+          $$WeeklyPlanDaysTableOrderingComposer,
+          $$WeeklyPlanDaysTableAnnotationComposer,
+          $$WeeklyPlanDaysTableCreateCompanionBuilder,
+          $$WeeklyPlanDaysTableUpdateCompanionBuilder,
+          (
+            WeeklyPlanDayRow,
+            BaseReferences<
+              _$LoopDatabase,
+              $WeeklyPlanDaysTable,
+              WeeklyPlanDayRow
+            >,
+          ),
+          WeeklyPlanDayRow,
+          PrefetchHooks Function()
+        > {
+  $$WeeklyPlanDaysTableTableManager(
+    _$LoopDatabase db,
+    $WeeklyPlanDaysTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$WeeklyPlanDaysTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$WeeklyPlanDaysTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$WeeklyPlanDaysTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> weekday = const Value.absent(),
+                Value<String?> routineId = const Value.absent(),
+              }) => WeeklyPlanDaysCompanion(
+                weekday: weekday,
+                routineId: routineId,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> weekday = const Value.absent(),
+                Value<String?> routineId = const Value.absent(),
+              }) => WeeklyPlanDaysCompanion.insert(
+                weekday: weekday,
+                routineId: routineId,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$WeeklyPlanDaysTableProcessedTableManager =
+    ProcessedTableManager<
+      _$LoopDatabase,
+      $WeeklyPlanDaysTable,
+      WeeklyPlanDayRow,
+      $$WeeklyPlanDaysTableFilterComposer,
+      $$WeeklyPlanDaysTableOrderingComposer,
+      $$WeeklyPlanDaysTableAnnotationComposer,
+      $$WeeklyPlanDaysTableCreateCompanionBuilder,
+      $$WeeklyPlanDaysTableUpdateCompanionBuilder,
+      (
+        WeeklyPlanDayRow,
+        BaseReferences<_$LoopDatabase, $WeeklyPlanDaysTable, WeeklyPlanDayRow>,
+      ),
+      WeeklyPlanDayRow,
+      PrefetchHooks Function()
+    >;
 
 class $LoopDatabaseManager {
   final _$LoopDatabase _db;
@@ -7965,4 +8322,6 @@ class $LoopDatabaseManager {
       $$GoalsTableTableTableManager(_db, _db.goalsTable);
   $$SeedMarkersTableTableManager get seedMarkers =>
       $$SeedMarkersTableTableManager(_db, _db.seedMarkers);
+  $$WeeklyPlanDaysTableTableManager get weeklyPlanDays =>
+      $$WeeklyPlanDaysTableTableManager(_db, _db.weeklyPlanDays);
 }

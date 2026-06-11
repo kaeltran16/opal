@@ -239,3 +239,26 @@ class SeedMarkers extends Table {
   @override
   Set<Column> get primaryKey => {key};
 }
+
+/// Weekly workout schedule, keyed by ISO weekday (1=Mon..7=Sun).
+///
+/// Each row assigns an optional [Routines] row to a weekday; a NULL `routineId`
+/// (or an absent row) is a Rest day. Only the assignment is persisted — type,
+/// est-minutes, and target muscles are derived from the referenced [Routines]
+/// row at read time (no duplicated routine fields here).
+@DataClassName('WeeklyPlanDayRow')
+class WeeklyPlanDays extends Table {
+  /// ISO weekday: 1=Mon .. 7=Sun (also the primary key).
+  IntColumn get weekday => integer()();
+
+  /// FK to [Routines.id]; null = Rest day.
+  TextColumn get routineId => text().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {weekday};
+
+  @override
+  List<String> get customConstraints => [
+        'FOREIGN KEY (routine_id) REFERENCES routines (id) ON DELETE SET NULL',
+      ];
+}

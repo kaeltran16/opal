@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../controllers/email_sync_controller.dart';
+import '../../data/repositories/settings_repository.dart' show SyncCadence;
 import '../../models/models.dart';
 import '../../services/email/email_sync_service.dart';
 import '../../theme/app_colors.dart';
@@ -37,6 +38,12 @@ class EmailDashboardScreen extends ConsumerWidget {
         SyncStatus.error => ('Sync failed — try again', 0),
       };
 
+  /// Next cadence in the cycle (wraps), for tap-to-cycle on the settings row.
+  static SyncCadence _nextCadence(SyncCadence current) {
+    final values = SyncCadence.values;
+    return values[(current.index + 1) % values.length];
+  }
+
   static String _lastSyncLabel(DateTime? at) {
     if (at == null) return 'Never synced';
     final mins = DateTime.now().difference(at).inMinutes;
@@ -55,7 +62,7 @@ class EmailDashboardScreen extends ConsumerWidget {
         status == SyncStatus.filtering ||
         status == SyncStatus.categorizing;
     final (line, progress) = _stage(status, dash.lastSyncAt);
-    final address = dash.account?.address ?? 'alex@gmail.com';
+    final address = dash.account?.address ?? 'Not connected';
 
     return ColoredBox(
       color: c.bg,
@@ -145,7 +152,7 @@ class EmailDashboardScreen extends ConsumerWidget {
                         ),
                       ),
                       const SizedBox(width: 8),
-                      _ScheduleChip(),
+                      _ScheduleChip(cadence: dash.syncCadence),
                     ],
                   ),
                 ],
@@ -154,7 +161,9 @@ class EmailDashboardScreen extends ConsumerWidget {
           ),
 
           // --- Stats tiles --------------------------------------------------
-          // values are design mocks; no provider exposes import counts yet.
+          // Real counts of email-sourced entries from the dashboard controller.
+          // No "recurring"/subscription tile: that data model was removed and is
+          // not reconstructed here (would be fabricated).
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
             child: Container(
@@ -168,72 +177,14 @@ class EmailDashboardScreen extends ConsumerWidget {
                 children: [
                   Expanded(
                       child: _StatTile(
-                          label: 'This month', value: '147', color: c.accent)),
+                          label: 'This month',
+                          value: '${dash.importsThisMonth}',
+                          color: c.accent)),
                   Expanded(
                       child: _StatTile(
-                          label: 'All time', value: '2,143', color: c.money)),
-                  Expanded(
-                      child: _StatTile(
-                          label: 'Recurring', value: '7', color: c.rituals)),
-                ],
-              ),
-            ),
-          ),
-
-          // --- Pal noticed (subscriptions) ----------------------------------
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-            child: Container(
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: c.accentTint,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(
-                    color: c.accent.withValues(alpha: 0.13), width: 0.5),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      AppIcon('sparkles', size: 12, color: c.accent),
-                      const SizedBox(width: 6),
-                      Text('PAL NOTICED',
-                          style: AppFonts.sf(
-                              size: 11,
-                              weight: FontWeight.w700,
-                              color: c.accent,
-                              letterSpacing: 0.5)),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    'You have 7 recurring subscriptions totaling \$84/mo. Two of '
-                    "them you haven't opened in 30+ days — want me to flag cancel "
-                    'candidates?',
-                    style: AppFonts.sf(
-                        size: 14,
-                        color: c.ink,
-                        letterSpacing: -0.2,
-                        height: 1.45),
-                  ),
-                  const SizedBox(height: 10),
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 7),
-                      decoration: BoxDecoration(
-                          color: c.accent,
-                          borderRadius: BorderRadius.circular(100)),
-                      child: Text('Review subscriptions',
-                          style: AppFonts.sf(
-                              size: 13,
-                              weight: FontWeight.w600,
-                              color: const Color(0xFFFFFFFF),
-                              letterSpacing: -0.08)),
-                    ),
-                  ),
+                          label: 'All time',
+                          value: '${dash.importsAllTime}',
+                          color: c.money)),
                 ],
               ),
             ),
@@ -271,8 +222,8 @@ class EmailDashboardScreen extends ConsumerWidget {
             ),
 
           // --- Sync settings ------------------------------------------------
-          // values are design mocks; cadence/notify/auto-categorize prefs and a
-          // detected-sender count aren't exposed by any provider yet.
+          // Wired to persisted prefs (SettingsRepository) via the dashboard
+          // controller: tapping cadence cycles options; the toggles flip.
           InsetSection(
             header: 'Sync settings',
             children: [
@@ -280,29 +231,28 @@ class EmailDashboardScreen extends ConsumerWidget {
                 icon: 'arrow.triangle.2.circlepath',
                 iconBg: c.accent,
                 title: 'Background sync',
-                value: 'Every 15 min',
-                chevron: false,
+                value: dash.syncCadence.label,
+                onTap: () => ref
+                    .read(emailDashboardControllerProvider.notifier)
+                    .setSyncCadence(_nextCadence(dash.syncCadence)),
               ),
               ListRow(
                 icon: 'bell.fill',
                 iconBg: c.money,
                 title: 'Notify on new detection',
-                value: 'Off',
-                chevron: false,
+                value: dash.importNotifications ? 'On' : 'Off',
+                onTap: () => ref
+                    .read(emailDashboardControllerProvider.notifier)
+                    .setImportNotifications(!dash.importNotifications),
               ),
               ListRow(
                 icon: 'sparkles',
                 iconBg: c.rituals,
                 title: 'Pal auto-categorize',
-                value: 'On',
-                chevron: false,
-              ),
-              ListRow(
-                icon: 'magnifyingglass',
-                iconBg: c.money,
-                title: 'Detected senders',
-                value: '47',
-                chevron: false,
+                value: dash.autoCategorize ? 'On' : 'Off',
+                onTap: () => ref
+                    .read(emailDashboardControllerProvider.notifier)
+                    .setAutoCategorize(!dash.autoCategorize),
                 last: true,
               ),
             ],
@@ -478,8 +428,11 @@ class _SyncNowButton extends StatelessWidget {
   }
 }
 
-/// The "Every 15m" schedule chip (static; cadence selection is out of scope).
+/// Schedule chip reflecting the persisted [SyncCadence] (label from the enum).
 class _ScheduleChip extends StatelessWidget {
+  const _ScheduleChip({required this.cadence});
+  final SyncCadence cadence;
+
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
@@ -492,7 +445,7 @@ class _ScheduleChip extends StatelessWidget {
         children: [
           AppIcon('clock.fill', size: 13, color: c.ink2),
           const SizedBox(width: 6),
-          Text('Every 15m',
+          Text(cadence.label,
               style: AppFonts.sf(
                   size: 14,
                   weight: FontWeight.w500,

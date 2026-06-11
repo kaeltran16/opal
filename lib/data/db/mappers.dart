@@ -278,6 +278,22 @@ extension PalNoteModelMapper on PalNote {
 }
 
 // ---------------------------------------------------------------------------
+// WeeklyPlanAssignment (weekday -> routineId)
+// ---------------------------------------------------------------------------
+
+extension WeeklyPlanDayRowMapper on WeeklyPlanDayRow {
+  WeeklyPlanAssignment toModel() =>
+      WeeklyPlanAssignment(weekday: weekday, routineId: routineId);
+}
+
+extension WeeklyPlanAssignmentModelMapper on WeeklyPlanAssignment {
+  WeeklyPlanDaysCompanion toCompanion() => WeeklyPlanDaysCompanion(
+        weekday: Value(weekday),
+        routineId: Value(routineId),
+      );
+}
+
+// ---------------------------------------------------------------------------
 // Goals (single row)
 // ---------------------------------------------------------------------------
 

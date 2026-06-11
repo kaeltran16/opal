@@ -168,6 +168,8 @@ void main() {
   // --- Container: syncNow materialises imports as Entries, deduped by ref -----
   test('Dashboard syncNow writes imports as Entries and dedupes on re-sync',
       () async {
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
     final db = LoopDatabase.forTesting(NativeDatabase.memory());
     addTearDown(db.close);
 
@@ -187,6 +189,7 @@ void main() {
     ];
 
     final container = ProviderContainer(overrides: [
+      sharedPreferencesProvider.overrideWithValue(prefs),
       loopDatabaseProvider.overrideWithValue(db),
       emailSyncServiceProvider.overrideWithValue(_StubSyncService(items)),
       hapticsServiceProvider.overrideWithValue(_NoHaptics()),
@@ -210,5 +213,90 @@ void main() {
     await dash.syncNow();
     all = await entries.getAll();
     expect(all, hasLength(2));
+  });
+
+  // --- Container: import counts come from email-sourced entries -------------
+  test('Dashboard counts only email-sourced entries; month vs all-time', () async {
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
+    final db = LoopDatabase.forTesting(NativeDatabase.memory());
+    addTearDown(db.close);
+
+    final entries = EntryRepository(db);
+    final now = DateTime.now();
+    final thisMonth = DateTime(now.year, now.month, 5);
+    final lastMonth = DateTime(now.year, now.month - 1, 20);
+
+    // Two email entries this month, one email entry a prior month, and a manual
+    // entry this month that must NOT be counted.
+    await entries.insert(Entry(
+        id: '', timestamp: thisMonth, type: EntryType.money, title: 'A',
+        amount: -1, source: EntrySource.email, sourceRef: 'e1'));
+    await entries.insert(Entry(
+        id: '', timestamp: thisMonth, type: EntryType.money, title: 'B',
+        amount: -2, source: EntrySource.email, sourceRef: 'e2'));
+    await entries.insert(Entry(
+        id: '', timestamp: lastMonth, type: EntryType.money, title: 'C',
+        amount: -3, source: EntrySource.email, sourceRef: 'e3'));
+    await entries.insert(Entry(
+        id: '', timestamp: thisMonth, type: EntryType.money, title: 'manual',
+        amount: -4, source: EntrySource.manual));
+
+    final container = ProviderContainer(overrides: [
+      sharedPreferencesProvider.overrideWithValue(prefs),
+      loopDatabaseProvider.overrideWithValue(db),
+      emailSyncServiceProvider.overrideWithValue(_StubSyncService(const [])),
+      hapticsServiceProvider.overrideWithValue(_NoHaptics()),
+    ]);
+    addTearDown(container.dispose);
+    container.listen(emailDashboardControllerProvider, (_, _) {});
+
+    // build() fires the async count refresh; let the DB query + microtask land.
+    await Future<void>.delayed(Duration.zero);
+    await Future<void>.delayed(Duration.zero);
+
+    final state = container.read(emailDashboardControllerProvider);
+    expect(state.importsAllTime, 3); // three email entries
+    expect(state.importsThisMonth, 2); // two of them this month
+  });
+
+  // --- Container: sync prefs read from and write back to SettingsRepository -
+  test('Dashboard sync prefs reflect and persist via SettingsRepository', () async {
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
+    final db = LoopDatabase.forTesting(NativeDatabase.memory());
+    addTearDown(db.close);
+
+    final container = ProviderContainer(overrides: [
+      sharedPreferencesProvider.overrideWithValue(prefs),
+      loopDatabaseProvider.overrideWithValue(db),
+      emailSyncServiceProvider.overrideWithValue(_StubSyncService(const [])),
+      hapticsServiceProvider.overrideWithValue(_NoHaptics()),
+    ]);
+    addTearDown(container.dispose);
+    container.listen(emailDashboardControllerProvider, (_, _) {});
+
+    final notifier = container.read(emailDashboardControllerProvider.notifier);
+
+    // Defaults mirror the repository.
+    expect(container.read(emailDashboardControllerProvider).syncCadence,
+        SyncCadence.every15min);
+    expect(container.read(emailDashboardControllerProvider).autoCategorize,
+        isTrue);
+
+    await notifier.setSyncCadence(SyncCadence.hourly);
+    await notifier.setImportNotifications(true);
+    await notifier.setAutoCategorize(false);
+
+    final state = container.read(emailDashboardControllerProvider);
+    expect(state.syncCadence, SyncCadence.hourly);
+    expect(state.importNotifications, isTrue);
+    expect(state.autoCategorize, isFalse);
+
+    // Persisted: a fresh repository over the same prefs sees the new values.
+    final settings = SettingsRepository(prefs);
+    expect(settings.syncCadence, SyncCadence.hourly);
+    expect(settings.importNotifications, isTrue);
+    expect(settings.autoCategorize, isFalse);
   });
 }

@@ -46,4 +46,40 @@ void main() {
         SettingsRepository(await SharedPreferences.getInstance());
     expect(reloaded.displayName, 'Mira');
   });
+
+  test('email sync prefs default to 15-min / notify off / auto-categorize on',
+      () async {
+    SharedPreferences.setMockInitialValues({});
+    final repo = SettingsRepository(await SharedPreferences.getInstance());
+    expect(repo.syncCadence, SyncCadence.every15min);
+    expect(repo.importNotifications, isFalse);
+    expect(repo.autoCategorize, isTrue);
+  });
+
+  test('email sync prefs persist across reloads', () async {
+    SharedPreferences.setMockInitialValues({});
+
+    final repo = SettingsRepository(await SharedPreferences.getInstance());
+    await repo.setSyncCadence(SyncCadence.hourly);
+    await repo.setImportNotifications(true);
+    await repo.setAutoCategorize(false);
+
+    final reloaded =
+        SettingsRepository(await SharedPreferences.getInstance());
+    expect(reloaded.syncCadence, SyncCadence.hourly);
+    expect(reloaded.importNotifications, isTrue);
+    expect(reloaded.autoCategorize, isFalse);
+  });
+
+  test('SyncCadence persists by minutes and maps back', () async {
+    SharedPreferences.setMockInitialValues({});
+    final repo = SettingsRepository(await SharedPreferences.getInstance());
+
+    await repo.setSyncCadence(SyncCadence.manual);
+    expect(repo.syncCadence, SyncCadence.manual);
+    expect(repo.syncCadence.minutes, 0);
+
+    // An unknown stored minute count falls back to the default.
+    expect(SyncCadence.fromMinutes(999), SyncCadence.every15min);
+  });
 }

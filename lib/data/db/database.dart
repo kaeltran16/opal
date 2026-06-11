@@ -23,6 +23,7 @@ part 'database.g.dart';
     PalNotes,
     GoalsTable,
     SeedMarkers,
+    WeeklyPlanDays,
   ],
 )
 class LoopDatabase extends _$LoopDatabase {
@@ -33,7 +34,7 @@ class LoopDatabase extends _$LoopDatabase {
   LoopDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -54,6 +55,11 @@ class LoopDatabase extends _$LoopDatabase {
         // cardio distanceKm/pace) for richer Start-workout cards. All nullable,
         // so existing rows survive; the seeder (marker bump) backfills seed
         // routines on next launch.
+        //
+        // v4 -> v5: a new weekly_plan_days table (weekday -> routineId) backs
+        // the Weekly Plan screen. It's a brand-new table, so creating it leaves
+        // every existing table and row untouched; the seeder (marker bump)
+        // populates a default schedule on next launch.
         onUpgrade: (m, from, to) async {
           if (from < 2) {
             await customStatement('DROP TABLE IF EXISTS rituals');
@@ -69,6 +75,9 @@ class LoopDatabase extends _$LoopDatabase {
             await m.addColumn(routines, routines.estMin);
             await m.addColumn(routines, routines.distanceKm);
             await m.addColumn(routines, routines.pace);
+          }
+          if (from < 5) {
+            await m.createTable(weeklyPlanDays);
           }
         },
         beforeOpen: (details) async {
