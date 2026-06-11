@@ -4,6 +4,13 @@
 <dict>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
+	<!-- Opt out of Flutter's implicit deep-link routing: `opal://` URLs are
+	     parsed and routed explicitly by OpalIntentsBridge -> the `opal/intents`
+	     channel -> GoRouter (see SceneDelegate / OpalIntentsBridge). Leaving this
+	     on lets the engine also feed the raw `opal://host` URI to GoRouter, which
+	     can't match it and throws "GoException: no routes for location". -->
+	<key>FlutterDeepLinkingEnabled</key>
+	<false/>
 	<key>NSSupportsLiveActivities</key>
 	<true/>
 	<key>CFBundleURLTypes</key>
