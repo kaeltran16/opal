@@ -47,3 +47,4 @@ app.*.map.json
 # Backend dart-define secrets: real values are local-only; only *.example.json is tracked
 /dart_defines/*.json
 !/dart_defines/*.example.json
+/.superpowers

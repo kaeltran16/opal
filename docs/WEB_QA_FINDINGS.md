@@ -137,3 +137,13 @@ Severity legend: **[BUG]** broken/error · **[UX]** usability/polish · **[IDEA]
 **Smaller fixes:** onboarding "Five small things" vs six rituals; iOS-specific copy + "Apple Health · Connected" on the web build; the "@mira · ExpensePal" share-card brand leak; seed data dated to April while "today" is June 11; routine-editor steps occluded by the bottom nav; free-text time fields with no picker/validation; misleading "check the password" on a backend failure.
 
 **Process note:** Flutter web pauses repaints when the tab isn't foregrounded under automation — clicks register but the screen only catches up on the next input. Several apparent "frozen/dead" moments were this, not real hangs; each was re-verified with a forced repaint. Where I call something dead/static above, it's confirmed in source.
+
+---
+
+## Follow-up (2026-06-11): hardcoded placeholder content (not wired to data)
+
+Observed while verifying the seed-data gate on an **empty (unseeded) DB**. These surfaces render fixed demo-flavored copy regardless of the database, so they do **not** clear when data is empty — a fresh user still sees them. Unrelated to seeding; they need wiring to real data. The stat tiles on these screens *are* live (read $0/0/0 on empty); only the qualitative narrative/wins/patterns are static.
+
+- **[UX] Today — "PAL NOTICED" card.** `today_screen.dart:241` (comment: "static copy until U16 wires the real Pal note"); `today_screen.dart:294` hardcodes "11 days in a row" (+ "spend 32% less on food"). Shows the streak/insight claim even with zero entries.
+- **[UX] Weekly Review — Wins + Patterns + hero.** `weekly_review_screen.dart:30-32` static "Wins" ("11-day workout streak", "$160 under budget / $435 of $595", "Morning pages 6/7"); `:41-49` static "Patterns" ("Fridays cost you 2.8×…", etc.); `:108` fixed hero "Your steadiest week this month."
+- **[UX] Monthly Review — Patterns (+ narrative).** `monthly_review_screen.dart:34-40` static `_patterns` ("Morning rituals lower food spending", "Friday is your spendiest day"); narrative card is Pal-generated with a hardcoded fallback string (shown when the backend is unreachable, e.g. on web).
