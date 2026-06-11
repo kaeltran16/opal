@@ -15,10 +15,13 @@
 		331C808B294A63AB00263BE5 /* RunnerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 331C807B294A618700263BE5 /* RunnerTests.swift */; };
 		38B92D6E0BC484D526553F6C /* Pods_RunnerTests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9390AE165F43CFDF33CD9725 /* Pods_RunnerTests.framework */; };
 		3B3967161E833CAA004F5970 /* AppFrameworkInfo.plist in Resources */ = {isa = PBXBuildFile; fileRef = 3B3967151E833CAA004F5970 /* AppFrameworkInfo.plist */; };
+		3B8617E3DB5DE4A350E7AFE5 /* OpalWidgetSyncBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68A2EFE1BC745471D0B42670 /* OpalWidgetSyncBridge.swift */; };
 		4DAD41273F0BE5A6459AC0CC /* OpalWidgets.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = 8C91445606E57A3FDD4DF1A6 /* OpalWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		5394C52912242A1FF145C44B /* OpalRingsSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9833E70474599A641C6DD4D0 /* OpalRingsSnapshot.swift */; };
 		74858FAF1ED2DC5600515810 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74858FAE1ED2DC5600515810 /* AppDelegate.swift */; };
 		7884E8682EC3CC0700C636F2 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7884E8672EC3CC0400C636F2 /* SceneDelegate.swift */; };
 		78A318202AECB46A00862997 /* FlutterGeneratedPluginSwiftPackage in Frameworks */ = {isa = PBXBuildFile; productRef = 78A3181F2AECB46A00862997 /* FlutterGeneratedPluginSwiftPackage */; };
+		80C690049F10FD0A4C94AD16 /* OpalRingsSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9833E70474599A641C6DD4D0 /* OpalRingsSnapshot.swift */; };
 		80ED3B0D16389D07A6CBA6BA /* OpalIntentsBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 26FA5F821EA2DB271298E4C9 /* OpalIntentsBridge.swift */; };
 		97C146FC1CF9000F007C117D /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FA1CF9000F007C117D /* Main.storyboard */; };
 		97C146FE1CF9000F007C117D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FD1CF9000F007C117D /* Assets.xcassets */; };
@@ -27,6 +30,7 @@
 		DFE1CC610D4C1E0AED440B77 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2B5FB051B5D8A129AA29FE54 /* Foundation.framework */; };
 		E9C12AE94FF2D1A02DEF47E5 /* OpalWorkoutAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6EA884984D00A57860286D6F /* OpalWorkoutAttributes.swift */; };
 		F5C7ED3E4A930292B7A1C680 /* OpalLiveActivityBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E77ABB9E9F46DA1A6B5CB68 /* OpalLiveActivityBridge.swift */; };
+		FB1DCB3C5D9C916F8C232529 /* OpalRingsWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91843632A66BFDC3904709C4 /* OpalRingsWidget.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -83,6 +87,7 @@
 		3AC87F596265C0ED8AC4CB10 /* Pods-Runner.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.release.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.release.xcconfig"; sourceTree = "<group>"; };
 		3B3967151E833CAA004F5970 /* AppFrameworkInfo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = AppFrameworkInfo.plist; path = Flutter/AppFrameworkInfo.plist; sourceTree = "<group>"; };
 		4C1E01739FDD0DC11560A92C /* Pods-RunnerTests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RunnerTests.release.xcconfig"; path = "Target Support Files/Pods-RunnerTests/Pods-RunnerTests.release.xcconfig"; sourceTree = "<group>"; };
+		68A2EFE1BC745471D0B42670 /* OpalWidgetSyncBridge.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = OpalWidgetSyncBridge.swift; sourceTree = "<group>"; };
 		6EA884984D00A57860286D6F /* OpalWorkoutAttributes.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = OpalWorkoutAttributes.swift; sourceTree = "<group>"; };
 		73022080087B638EE4BB2700 /* Pods-Runner.profile.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.profile.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.profile.xcconfig"; sourceTree = "<group>"; };
 		74858FAD1ED2DC5600515810 /* Runner-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "Runner-Bridging-Header.h"; sourceTree = "<group>"; };
@@ -91,6 +96,7 @@
 		78E0A7A72DC9AD7400C4905E /* FlutterGeneratedPluginSwiftPackage */ = {isa = PBXFileReference; lastKnownFileType = wrapper; name = FlutterGeneratedPluginSwiftPackage; path = Flutter/ephemeral/Packages/FlutterGeneratedPluginSwiftPackage; sourceTree = "<group>"; };
 		7AFA3C8E1D35360C0083082E /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Release.xcconfig; path = Flutter/Release.xcconfig; sourceTree = "<group>"; };
 		8C91445606E57A3FDD4DF1A6 /* OpalWidgets.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = OpalWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		91843632A66BFDC3904709C4 /* OpalRingsWidget.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = OpalRingsWidget.swift; sourceTree = "<group>"; };
 		9390AE165F43CFDF33CD9725 /* Pods_RunnerTests.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_RunnerTests.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		9740EEB21CF90195004384FC /* Debug.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; name = Debug.xcconfig; path = Flutter/Debug.xcconfig; sourceTree = "<group>"; };
 		9740EEB31CF90195004384FC /* Generated.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; name = Generated.xcconfig; path = Flutter/Generated.xcconfig; sourceTree = "<group>"; };
@@ -99,6 +105,7 @@
 		97C146FD1CF9000F007C117D /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		97C147001CF9000F007C117D /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		97C147021CF9000F007C117D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		9833E70474599A641C6DD4D0 /* OpalRingsSnapshot.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = OpalRingsSnapshot.swift; sourceTree = "<group>"; };
 		9CD4C993B82D03FC1FE7EDD3 /* Pods-Runner.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.debug.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.debug.xcconfig"; sourceTree = "<group>"; };
 		9E77ABB9E9F46DA1A6B5CB68 /* OpalLiveActivityBridge.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = OpalLiveActivityBridge.swift; sourceTree = "<group>"; };
 		C75B617C22B89E263DEAF8C9 /* Pods_Runner.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_Runner.framework; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -162,6 +169,15 @@
 			name = Frameworks;
 			sourceTree = "<group>";
 		};
+		6259BA70741399A85B7AD4B3 /* Widgets */ = {
+			isa = PBXGroup;
+			children = (
+				68A2EFE1BC745471D0B42670 /* OpalWidgetSyncBridge.swift */,
+			);
+			name = Widgets;
+			path = Widgets;
+			sourceTree = "<group>";
+		};
 		6E2AE66A4A6741CC32D15565 /* LiveActivities */ = {
 			isa = PBXGroup;
 			children = (
@@ -178,6 +194,8 @@
 				2C35B747FFED6CBE0D34C10D /* OpalWorkoutLiveActivity.swift */,
 				E80AC2FD855A8D78A4635FF2 /* OpalWidgetsBundle.swift */,
 				12637B9F849050FB95738E19 /* Info.plist */,
+				91843632A66BFDC3904709C4 /* OpalRingsWidget.swift */,
+				9833E70474599A641C6DD4D0 /* OpalRingsSnapshot.swift */,
 			);
 			name = OpalWidgets;
 			path = OpalWidgets;
@@ -232,6 +250,7 @@
 				74858FAD1ED2DC5600515810 /* Runner-Bridging-Header.h */,
 				6E2AE66A4A6741CC32D15565 /* LiveActivities */,
 				B6F41099477B7BE74D0476AD /* Intents */,
+				6259BA70741399A85B7AD4B3 /* Widgets */,
 			);
 			path = Runner;
 			sourceTree = "<group>";
@@ -515,6 +534,8 @@
 				F5C7ED3E4A930292B7A1C680 /* OpalLiveActivityBridge.swift in Sources */,
 				1178DCC2449AFFDCC30F9835 /* OpalAppIntents.swift in Sources */,
 				80ED3B0D16389D07A6CBA6BA /* OpalIntentsBridge.swift in Sources */,
+				3B8617E3DB5DE4A350E7AFE5 /* OpalWidgetSyncBridge.swift in Sources */,
+				80C690049F10FD0A4C94AD16 /* OpalRingsSnapshot.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -525,6 +546,8 @@
 				11B37E17B7C1FB0979334541 /* OpalWorkoutLiveActivity.swift in Sources */,
 				16BCF2EA98B65F1F021D02BE /* OpalWidgetsBundle.swift in Sources */,
 				1E931D4F91C400BA98165991 /* OpalWorkoutAttributes.swift in Sources */,
+				FB1DCB3C5D9C916F8C232529 /* OpalRingsWidget.swift in Sources */,
+				5394C52912242A1FF145C44B /* OpalRingsSnapshot.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -622,6 +645,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;
 				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = Runner/Info.plist;
@@ -692,6 +716,7 @@
 			buildSettings = {
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_ENTITLEMENTS = OpalWidgets/OpalWidgets.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = NO;
@@ -832,6 +857,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;
 				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = Runner/Info.plist;
@@ -854,6 +880,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;
 				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = Runner/Info.plist;
@@ -874,6 +901,7 @@
 			buildSettings = {
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_ENTITLEMENTS = OpalWidgets/OpalWidgets.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = NO;
@@ -903,6 +931,7 @@
 			buildSettings = {
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_ENTITLEMENTS = OpalWidgets/OpalWidgets.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = NO;
