@@ -113,6 +113,55 @@ layer. Full test suite: **109 green**.
 
 ---
 
+## Resolution status — Wave 8 (2026-06-11, commits `ef2c4d4`, `70fd052`)
+
+Two further passes resolved nearly all of the Wave 7 `⏳ Remaining` long-tail.
+✅ resolved · ⊘ resolved by removal · ⏳ still deferred.
+
+**Wave 1 — `ef2c4d4`**
+- ✅ **Status-bar style** — per-theme `SystemUiOverlayStyle` via `AnnotatedRegion`
+  in `app.dart` (light glyphs on the dark theme, dark glyphs on light).
+- ✅ **SF-Symbol map** — added `creditcard.fill` (was referenced but unmapped, so it
+  rendered a blank fallback circle — a real bug), plus `arrow.right`, `timer`,
+  `list.number`.
+- ✅ **Today tap wiring** — Pal-insight card tappable + `chevron.right` + three reply
+  chips ("Why?", "Show me the days", "How to keep it up") seeding the Pal composer;
+  timeline rows tappable (money→Spending detail, workout→Workout detail); close-out
+  card → evening close-out. Dashed close-out border (was solid). ⏳ `rituals` rows and
+  generic (workout-less) move rows stay non-tappable — no destination screen yet.
+- ✅ **Decorative `[STYLE]` nits** — Move-hero hatch overlay, Start-workout Pal-pick
+  blobs + radii (20→18) + band stripe, post-workout hero stripe. (Most decorative
+  items were already done in Wave 7; only these remained.)
+
+**Wave 2 — `70fd052`**
+- ✅ **Day/Week timeline toggle** — now functional: a Day/Week segmented control drives
+  the timeline, which regroups today's time-of-day buckets (Day) vs the current week's
+  entries by calendar day, newest-first (Week). Rings/tiles still always reflect today.
+- ✅ **Routine data-model** — authored per-routine `estMin`, cardio `distanceKm`/`pace`,
+  and a derived `lastDone` (newest matching workout); the Start-workout cards now show
+  the exercise-preview chip strip, a Sets stat, and the
+  "{n} exercises · {est} min · last done {n}d ago" meta line. Drift schema `v3→v4`
+  (additive nullable columns).
+- ⊘ **Dormant Bills/Subscriptions data layer removed** — the `Bill`/`Subscription`
+  models, repos, `money_recurring_controller`, and Drift tables (flagged for deletion
+  in the Wave 7 block) are deleted. Drift schema `v2→v3` `DROP TABLE` migration.
+
+⏳ **Still deferred:**
+- **Post-workout / Workout-detail richer visualizations** — per-set volume bar chart /
+  sparkline, the standalone "PERSONAL RECORD" card, per-muscle %/bars, the volume trend
+  pill + per-bar value label. (Explicitly out of scope for the Wave 2 data-model pass.)
+- **SF-Symbol call-sites** — the new glyphs are mapped, but e.g. the Workout-detail
+  "Sets" tile still uses `chart.bar.fill` rather than `list.number` (map entry exists;
+  the swap was not applied).
+- **Long-tail `[STYLE]`/`[LAYOUT]`/copy items** — e.g. exercise-library group-tinted
+  icon tiles, Weekly-plan "Swap" CTA, post-workout "Share" label, header ellipsis
+  buttons, delete-routine action, nav collapse-on-scroll, and the various
+  intentionally-retained copy items.
+
+Full test suite: **109 green** after both waves.
+
+---
+
 ## Subtabs / segmented controls — explicit status (per your focus)
 
 | Surface | Design intent | Current state |
