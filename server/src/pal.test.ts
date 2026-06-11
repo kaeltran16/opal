@@ -66,6 +66,39 @@ describe('Pal', () => {
     })
     expect(result).toEqual(parsed)
   })
+
+  it('generateRoutine parses the draft, tolerating a code fence', async () => {
+    const draft = {
+      name: 'Push Day', tag: 'upper', estMin: 45, rationale: 'compound first',
+      exercises: [{ exerciseId: 'e1', sets: [{ reps: 8, weight: 40, duration: null }] }],
+    }
+    const client = fakeClient('```json\n' + JSON.stringify(draft) + '\n```')
+    const pal = new Pal(client)
+    const result = await pal.generateRoutine('push', [{ id: 'e1', name: 'Bench', group: 'Push', equipment: 'Barbell' }])
+    expect(result).toEqual(draft)
+  })
+
+  it('generateRoutine drops exercises whose id is not in the catalog', async () => {
+    const draft = {
+      name: 'Full', tag: 'full',
+      exercises: [
+        { exerciseId: 'e1', sets: [{ reps: 10 }] },
+        { exerciseId: 'ghost', sets: [{ reps: 5 }] },
+      ],
+    }
+    const client = fakeClient(JSON.stringify(draft))
+    const pal = new Pal(client)
+    const result = await pal.generateRoutine('full body', [{ id: 'e1', name: 'Squat', group: 'Legs', equipment: null }])
+    expect(result.exercises).toHaveLength(1)
+    expect(result.exercises[0].exerciseId).toBe('e1')
+  })
+
+  it('generateRoutine coerces an off-list tag to custom (client RoutineTag.fromWire would throw)', async () => {
+    const client = fakeClient(JSON.stringify({ name: 'X', tag: 'strength', exercises: [] }))
+    const pal = new Pal(client)
+    const result = await pal.generateRoutine('x', [])
+    expect(result.tag).toBe('custom')
+  })
 })
 
 function baseInsightsCtx() {

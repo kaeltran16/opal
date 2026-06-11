@@ -161,3 +161,28 @@ export function postWorkoutPrompt(c: PostWorkoutContext): string {
 
 Write 1-2 sentences observing the trend and recommending one concrete change next session (e.g. add 2.5kg, add a set, drop weight and focus on form). Warm, specific, no hype.`
 }
+
+export interface RoutineExercise {
+  id: string
+  name: string
+  group: string
+  equipment: string | null
+}
+
+export function routinePrompt(goal: string, exercises: RoutineExercise[]): string {
+  const list = exercises
+    .map((e) => `${e.id}: ${e.name} (${e.group}${e.equipment ? `, ${e.equipment}` : ''})`)
+    .join('\n')
+  return `Design a workout routine for this goal: "${goal}".
+
+Choose from ONLY these exercises (use the exact id):
+${list}
+
+Decide which exercises fit, how many, and the sets — reps and weight (kg) for strength, or duration (minutes) for cardio/timed work. Omit fields that don't apply to a set.
+
+Return strictly this JSON, no prose:
+{"name": string, "tag": "upper|lower|full|cardio|custom", "estMin": number, "rationale": "one short sentence", "exercises": [{"exerciseId": string, "sets": [{"reps": number|null, "weight": number|null, "duration": number|null}]}]}
+- exerciseId MUST be one of the ids listed above.
+- tag: pick the closest of upper, lower, full, cardio, custom.
+- Output only the JSON object.`
+}

@@ -61,6 +61,16 @@ export const postWorkoutContext = z.object({
 })
 export const postWorkoutBody = z.object({ context: postWorkoutContext })
 
+export const routineBody = z.object({
+  goal: z.string().min(1),
+  exercises: z.array(z.object({
+    id: z.string(),
+    name: z.string(),
+    group: z.string(),
+    equipment: z.string().nullable(),
+  })),
+})
+
 const imapCreds = {
   host: z.string().min(1),
   port: z.number().int().positive(),

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { chatSystemPrompt, reviewPrompt, insightsPrompt, parsePrompt, suggestPrompt, postWorkoutPrompt } from './prompts.js'
+import { chatSystemPrompt, reviewPrompt, insightsPrompt, parsePrompt, suggestPrompt, postWorkoutPrompt, routinePrompt } from './prompts.js'
 
 describe('prompts', () => {
   it('chat system prompt substitutes user data', () => {
@@ -78,5 +78,16 @@ describe('prompts', () => {
     expect(p).toContain('Push A')
     expect(p).toContain('2 PRs')
     expect(p).toContain('Bench')
+  })
+
+  it('routine prompt embeds the goal and lists exercises by id (equipment optional)', () => {
+    const p = routinePrompt('build a push day', [
+      { id: 'e1', name: 'Bench Press', group: 'Push', equipment: 'Barbell' },
+      { id: 'e2', name: 'Push-up', group: 'Push', equipment: null },
+    ])
+    expect(p).toContain('build a push day')
+    expect(p).toContain('e1: Bench Press (Push, Barbell)')
+    expect(p).toContain('e2: Push-up (Push)')
+    expect(p).toContain('upper|lower|full|cardio|custom')
   })
 })

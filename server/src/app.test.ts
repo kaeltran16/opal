@@ -11,6 +11,10 @@ function fakePal() {
     insights: async () => ({ headline: 'Spending eased mid-week.', lede: null, suggestion: null, wins: [], patterns: [] }),
     suggestWorkout: async () => ({ routineId: 'r2', reason: 'Legs rested.' }),
     postWorkoutNote: async () => 'note text',
+    generateRoutine: async () => ({
+      name: 'Push Day', tag: 'upper', estMin: 45, rationale: 'compound first',
+      exercises: [{ exerciseId: 'e1', sets: [{ reps: 8, weight: 40, duration: null }] }],
+    }),
   }
 }
 
@@ -120,6 +124,27 @@ describe('app', () => {
       method: 'POST', url: '/v1/insights',
       headers: { authorization: `Bearer ${token}` },
       payload: { context: { range: 'week' } }, // missing the numeric fields
+    })
+    expect(res.statusCode).toBe(400)
+  })
+
+  it('serves /v1/routine with a valid token', async () => {
+    const token = store.issue('d1')
+    const res = await app.inject({
+      method: 'POST', url: '/v1/routine',
+      headers: { authorization: `Bearer ${token}` },
+      payload: { goal: 'push day', exercises: [{ id: 'e1', name: 'Bench', group: 'Push', equipment: 'Barbell' }] },
+    })
+    expect(res.statusCode).toBe(200)
+    expect(res.json().name).toBe('Push Day')
+  })
+
+  it('returns 400 on a malformed /v1/routine body (missing goal)', async () => {
+    const token = store.issue('d1')
+    const res = await app.inject({
+      method: 'POST', url: '/v1/routine',
+      headers: { authorization: `Bearer ${token}` },
+      payload: { exercises: [] },
     })
     expect(res.statusCode).toBe(400)
   })

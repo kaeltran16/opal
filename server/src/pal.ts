@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import {
-  chatSystemPrompt, reviewPrompt, insightsPrompt, parsePrompt, suggestPrompt, postWorkoutPrompt,
-  type ChatContext, type ReviewContext, type InsightsContext, type SuggestContext, type PostWorkoutContext,
+  chatSystemPrompt, reviewPrompt, insightsPrompt, parsePrompt, suggestPrompt, postWorkoutPrompt, routinePrompt,
+  type ChatContext, type ReviewContext, type InsightsContext, type SuggestContext, type PostWorkoutContext, type RoutineExercise,
 } from './prompts.js'
 
 const MAX_TOKENS = 1024
@@ -81,6 +81,22 @@ export const insightsSchema = z.object({
 })
 export type Insights = z.infer<typeof insightsSchema>
 
+const routineSetSchema = z.object({
+  reps: z.number().nullable().optional(),
+  weight: z.number().nullable().optional(),
+  duration: z.number().nullable().optional(),
+})
+// tag is constrained to the client's RoutineTag wire values; an off-list tag
+// would otherwise throw in the client's RoutineTag.fromWire. catch() coerces.
+export const routineSchema = z.object({
+  name: z.string(),
+  tag: z.enum(['upper', 'lower', 'full', 'cardio', 'custom']).catch('custom'),
+  estMin: z.number().nullable().optional(),
+  rationale: z.string().nullable().optional(),
+  exercises: z.array(z.object({ exerciseId: z.string(), sets: z.array(routineSetSchema) })),
+})
+export type GeneratedRoutine = z.infer<typeof routineSchema>
+
 // Pull a JSON object out of a model reply: tolerate code fences and surrounding prose.
 export function extractJson(raw: string): unknown {
   let s = raw.trim()
@@ -128,5 +144,13 @@ export class Pal {
     const nudge = another ? '\n\nPick a DIFFERENT routine than you would normally default to.' : ''
     const raw = await this.client.complete([{ role: 'user', content: suggestPrompt(ctx) + nudge }])
     return suggestSchema.parse(extractJson(raw))
+  }
+
+  async generateRoutine(goal: string, exercises: RoutineExercise[]): Promise<GeneratedRoutine> {
+    const raw = await this.client.complete([{ role: 'user', content: routinePrompt(goal, exercises) }])
+    const parsed = routineSchema.parse(extractJson(raw))
+    // drop any exercise the model invented — the client can only resolve catalog ids.
+    const known = new Set(exercises.map((e) => e.id))
+    return { ...parsed, exercises: parsed.exercises.filter((e) => known.has(e.exerciseId)) }
   }
 }
