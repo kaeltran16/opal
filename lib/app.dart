@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import 'controllers/providers.dart';
 import 'router.dart';
 import 'theme/app_colors.dart';
+import 'theme/app_text.dart';
 
 /// The root app widget: `MaterialApp.router` wired to go_router, with theme
 /// driven by the persisted `AppSettingsController` (brightness + accent).
@@ -84,6 +85,16 @@ class _LoopAppState extends ConsumerState<LoopApp> {
         debugShowCheckedModeBanner: false,
         theme: _buildTheme(settings.brightness, settings.accent),
         routerConfig: _router,
+        // Full-screen routes above the shell (reviews, pal inbox, email, etc.)
+        // render outside any Material, so without an ambient default text style
+        // Flutter falls back to its yellow double-underline debug style. One
+        // app-level DefaultTextStyle covers every route; Material screens still
+        // get their own (inner) style.
+        builder: (context, child) => DefaultTextStyle(
+          style: AppFonts.sf(
+              size: 17, color: context.colors.ink, letterSpacing: -0.43),
+          child: child!,
+        ),
       ),
     );
   }

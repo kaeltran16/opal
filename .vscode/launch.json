@@ -7,6 +7,12 @@
       "type": "dart"
     },
     {
+      "name": "opal (dev, seeded + mock backend)",
+      "request": "launch",
+      "type": "dart",
+      "toolArgs": ["--dart-define-from-file=dart_defines/dev.json"]
+    },
+    {
       "name": "opal (prod backend)",
       "request": "launch",
       "type": "dart",

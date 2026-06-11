@@ -10,6 +10,11 @@ import 'app.dart';
 import 'controllers/providers.dart';
 import 'data/seed/seeder.dart';
 
+/// When true (set via `--dart-define=SEED_DATA=true`, e.g. the "dev (seeded)"
+/// launch config), first-run demo content is seeded. Defaults to false so real
+/// usage builds start with an empty database.
+const _seedData = bool.fromEnvironment('SEED_DATA');
+
 /// Composition root: loads `shared_preferences`, initializes the timezone DB
 /// (so U27 local notifications can `zonedSchedule`), builds the `ProviderScope`,
 /// seeds the DB once, and runs the app.
@@ -32,8 +37,10 @@ Future<void> main() async {
     ],
   );
 
-  // Seed first-run content before the first frame.
-  await Seeder(container.read(loopDatabaseProvider)).seedIfNeeded();
+  // Seed first-run demo content before the first frame, dev builds only.
+  if (_seedData) {
+    await Seeder(container.read(loopDatabaseProvider)).seedIfNeeded();
+  }
 
   runApp(
     UncontrolledProviderScope(
