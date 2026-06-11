@@ -1,4 +1,5 @@
 import 'package:drift/native.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -63,8 +64,9 @@ void main() {
       (tester) async {
     final h = await _pumpApp(tester, onboardingComplete: false);
 
-    // Step 1 (Welcome) → Get started.
+    // Step 1 (Welcome) — enter a name, then Get started.
     expect(find.byType(OnboardingScreen), findsOneWidget);
+    await tester.enterText(find.byType(TextField), 'Mira');
     await tester.tap(find.text('Get started'));
     await tester.pumpAndSettle();
 
@@ -91,8 +93,9 @@ void main() {
     expect(find.byType(TodayScreen), findsOneWidget);
     expect(find.byType(OnboardingScreen), findsNothing);
 
-    // Flag flipped.
+    // Flag flipped and the entered name persisted.
     expect(SettingsRepository(h.prefs).onboardingComplete, isTrue);
+    expect(SettingsRepository(h.prefs).displayName, 'Mira');
 
     // Goals persisted with the chosen budget/move goal + ritual target 5.
     final goals = await GoalsRepository(h.db).get();

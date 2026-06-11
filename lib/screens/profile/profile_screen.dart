@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../controllers/providers.dart';
 import '../../controllers/today_controller.dart';
 import '../../models/models.dart';
 import '../../router.dart';
@@ -41,14 +42,17 @@ class ProfileScreen extends ConsumerWidget {
                   AppFonts.sf(size: 15, color: c.ink3, letterSpacing: -0.24)),
         ),
       ),
-      data: (goals) => _ProfileBody(goals: goals),
+      data: (goals) => _ProfileBody(goals: goals, name: name),
     );
   }
 }
 
 class _ProfileBody extends StatelessWidget {
-  const _ProfileBody({required this.goals});
+  const _ProfileBody({required this.goals, required this.name});
   final Goals goals;
+
+  /// User's display name from onboarding; empty falls back to "You".
+  final String name;
 
   String _grouped(int n) {
     final s = n.toString();
@@ -89,6 +93,8 @@ class _ProfileBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
+    final displayName = name.isEmpty ? 'You' : name;
+    final initial = displayName.characters.first.toUpperCase();
 
     return ListView(
       padding: const EdgeInsets.only(bottom: 110),
@@ -125,7 +131,7 @@ class _ProfileBody extends StatelessWidget {
                     ),
                   ),
                   alignment: Alignment.center,
-                  child: Text('M',
+                  child: Text(initial,
                       style: AppFonts.sf(
                           size: 22,
                           weight: FontWeight.w700,
@@ -136,7 +142,7 @@ class _ProfileBody extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Mira Okafor',
+                      Text(displayName,
                           style: AppFonts.sf(
                               size: 17,
                               weight: FontWeight.w600,

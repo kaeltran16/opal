@@ -33,4 +33,17 @@ void main() {
     expect(reloaded.brightness, Brightness.dark);
     expect(reloaded.onboardingComplete, isTrue);
   });
+
+  test('display name defaults to empty and persists trimmed', () async {
+    SharedPreferences.setMockInitialValues({});
+
+    final repo = SettingsRepository(await SharedPreferences.getInstance());
+    expect(repo.displayName, '');
+
+    await repo.setDisplayName('  Mira  ');
+
+    final reloaded =
+        SettingsRepository(await SharedPreferences.getInstance());
+    expect(reloaded.displayName, 'Mira');
+  });
 }
