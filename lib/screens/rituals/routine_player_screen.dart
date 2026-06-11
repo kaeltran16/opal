@@ -55,6 +55,7 @@ class _RoutinePlayerScreenState extends ConsumerState<RoutinePlayerScreen> {
           return _Player(
             routine: routine,
             idx: _idx!,
+            done: state.doneFor(routine.id),
             onBack: () => setState(() => _idx = (_idx! - 1).clamp(0, _idx!)),
             onSkip: () => setState(
                 () => _idx = (_idx! + 1).clamp(0, routine.steps.length)),
@@ -76,6 +77,7 @@ class _Player extends StatelessWidget {
   const _Player({
     required this.routine,
     required this.idx,
+    required this.done,
     required this.onBack,
     required this.onSkip,
     required this.onMarkDone,
@@ -83,6 +85,7 @@ class _Player extends StatelessWidget {
 
   final RitualRoutine routine;
   final int idx;
+  final Set<int> done;
   final VoidCallback onBack;
   final VoidCallback onSkip;
   final VoidCallback onMarkDone;
@@ -93,6 +96,8 @@ class _Player extends StatelessWidget {
     final tone = c.forType(routine.colorKey);
     final total = routine.steps.length;
     final onDeck = idx < total;
+    // already-completed steps stay filled, even when ahead of the cursor.
+    final stepDone = onDeck && done.contains(idx);
 
     return DecoratedBox(
       decoration: BoxDecoration(
@@ -158,7 +163,7 @@ class _Player extends StatelessWidget {
                     child: Container(
                       height: 5,
                       decoration: BoxDecoration(
-                        color: i < idx ? tone : c.fill,
+                        color: (i < idx || done.contains(i)) ? tone : c.fill,
                         borderRadius: BorderRadius.circular(3),
                       ),
                     ),
@@ -168,15 +173,35 @@ class _Player extends StatelessWidget {
             ),
           ),
           Expanded(
-            child: onDeck
-                ? _StepView(
-                    key: ValueKey(idx),
-                    step: routine.steps[idx],
-                    idx: idx,
-                    total: total,
-                    tone: tone,
-                  )
-                : _CompletionView(routine: routine, tone: tone),
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 320),
+              switchInCurve: const Cubic(0.22, 1, 0.36, 1),
+              // each step slides up + fades, matching the design's ritualStep
+              // keyframe; only the incoming child animates.
+              transitionBuilder: (child, animation) => FadeTransition(
+                opacity: animation,
+                child: SlideTransition(
+                  position: Tween<Offset>(
+                    begin: const Offset(0, 0.06),
+                    end: Offset.zero,
+                  ).animate(animation),
+                  child: child,
+                ),
+              ),
+              child: onDeck
+                  ? _StepView(
+                      key: ValueKey(idx),
+                      step: routine.steps[idx],
+                      idx: idx,
+                      total: total,
+                      tone: tone,
+                    )
+                  : _CompletionView(
+                      key: const ValueKey('done'),
+                      routine: routine,
+                      tone: tone,
+                    ),
+            ),
           ),
           // controls.
           Padding(
@@ -185,7 +210,7 @@ class _Player extends StatelessWidget {
                 ? Column(
                     children: [
                       _PrimaryButton(
-                        label: 'Mark done',
+                        label: stepDone ? 'Next step' : 'Mark done',
                         icon: 'checkmark',
                         tone: tone,
                         onTap: onMarkDone,
@@ -304,7 +329,7 @@ class _StepView extends StatelessWidget {
 }
 
 class _CompletionView extends StatelessWidget {
-  const _CompletionView({required this.routine, required this.tone});
+  const _CompletionView({super.key, required this.routine, required this.tone});
 
   final RitualRoutine routine;
   final Color tone;

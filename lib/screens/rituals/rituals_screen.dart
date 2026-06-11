@@ -126,18 +126,7 @@ class _UpNextHero extends StatelessWidget {
         onTap: () => context.go('/rituals/player/${routine.id}'),
         pressedScale: 0.985,
         child: Container(
-          padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                tone,
-                tone.withValues(alpha: 0.87),
-                tone.withValues(alpha: 0.69),
-              ],
-              stops: const [0.0, 0.55, 1.0],
-            ),
             borderRadius: BorderRadius.circular(22),
             boxShadow: [
               BoxShadow(
@@ -147,9 +136,51 @@ class _UpNextHero extends StatelessWidget {
               ),
             ],
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(22),
+            child: Stack(
+              children: [
+                // base tone gradient.
+                Positioned.fill(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          tone,
+                          tone.withValues(alpha: 0.87),
+                          tone.withValues(alpha: 0.69),
+                        ],
+                        stops: const [0.0, 0.55, 1.0],
+                      ),
+                    ),
+                  ),
+                ),
+                // translucent white blob, top-right.
+                Positioned(
+                  top: -50,
+                  right: -40,
+                  child: Container(
+                    width: 170,
+                    height: 170,
+                    decoration: const BoxDecoration(
+                      color: Color(0x1AFFFFFF),
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                ),
+                // diagonal hairline hatch overlay.
+                Positioned.fill(
+                  child: CustomPaint(
+                    painter: _HatchPainter(),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -241,12 +272,42 @@ class _UpNextHero extends StatelessWidget {
                   ],
                 ),
               ),
-            ],
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
+}
+
+/// Paints the hero's diagonal hairline hatch — repeating 1px translucent-white
+/// stripes at ~125°, matching the design's `repeating-linear-gradient`.
+class _HatchPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = const Color(0x0AFFFFFF)
+      ..strokeWidth = 1;
+    // 125° from horizontal; step 25px along the perpendicular, drawn as long
+    // diagonal lines that cover the box corner-to-corner.
+    const spacing = 25.0;
+    final extent = size.width + size.height;
+    for (var d = -size.height; d < extent; d += spacing) {
+      // slope for 125° (down-left to up-right), tan(125°) ≈ -1.43.
+      canvas.drawLine(
+        Offset(d, 0),
+        Offset(d + size.height * 1.43, size.height),
+        paint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(_HatchPainter old) => false;
 }
 
 // ─── Timeline body ──────────────────────────────────────────────────────────
@@ -425,7 +486,10 @@ class _StepRow extends ConsumerWidget {
         padding: const EdgeInsets.symmetric(vertical: 6),
         child: Row(
           children: [
-            Container(
+            // 180ms fill matches the shared CheckButton's check animation.
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 180),
+              curve: Curves.easeOut,
               width: 20,
               height: 20,
               decoration: BoxDecoration(

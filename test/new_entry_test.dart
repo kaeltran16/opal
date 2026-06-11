@@ -68,8 +68,10 @@ void main() {
 
     final repo = await _pumpSheet(tester, db);
 
-    // Default kind is Expense; display starts at $0.00.
-    expect(find.text('\$0.00'), findsOneWidget);
+    // Default kind is Expense; the big display renders the "$" prefix and the
+    // number as separate runs (design AddSheet). Empty shows the "0" placeholder.
+    expect(find.text('\$'), findsOneWidget);
+    expect(find.text('0'), findsWidgets);
 
     // Tap keypad: 5, ., 7, 5 (each key's text is unique to the keypad, which is
     // pinned at the bottom of the sheet).
@@ -83,8 +85,8 @@ void main() {
     await tapKey('7');
     await tapKey('5');
 
-    // Display reflects the typed amount.
-    expect(find.text('\$5.75'), findsOneWidget);
+    // Display reflects the typed amount (number run, "$" rendered separately).
+    expect(find.text('5.75'), findsOneWidget);
 
     // Tap Add.
     await tester.tap(find.text('Add'));
@@ -123,28 +125,21 @@ void main() {
       pal: MockPalService(latency: const Duration(milliseconds: 20)),
     );
 
-    // Open the "Type it" field (it sits at the bottom of the scrollable list,
-    // which lazily builds — scroll it into view first).
-    final typeIt = find.text('Type it');
-    await tester.scrollUntilVisible(
-      typeIt,
-      120,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await tester.pumpAndSettle();
-    await tester.tap(typeIt);
-    await tester.pumpAndSettle();
+    // The "Log with Pal" NL box sits inline at the top of the scrollable list.
+    expect(find.text('LOG WITH PAL'), findsOneWidget);
 
-    // Enter natural-language text and submit to parse.
-    await tester.enterText(find.byType(TextField).last, 'coffee 5');
+    // Enter natural-language text into the NL field and tap Parse.
+    await tester.enterText(find.byType(TextField).first, 'coffee 5');
+    await tester.pump();
     await tester.tap(find.text('Parse'));
-    await tester.pump(); // dismiss the modal, kick off parse
+    await tester.pump(); // kick off parse
     await tester.pump(const Duration(milliseconds: 40)); // fake latency
     await tester.pumpAndSettle();
 
     // The mock parses "coffee 5" → a money expense of $5 with category Coffee,
-    // pre-filled into the sheet (the amount shows in the fixed display).
-    expect(find.text('\$5.00'), findsOneWidget);
+    // pre-filled into the sheet (the amount shows in the fixed display as the
+    // number run "5.00", with the "$" prefix rendered separately).
+    expect(find.text('5.00'), findsOneWidget);
 
     // Tapping Add writes the pre-filled entry, proving type/amount/category all
     // flowed from the parse into the form.

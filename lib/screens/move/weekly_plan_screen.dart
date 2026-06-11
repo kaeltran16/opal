@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -182,6 +184,8 @@ class _WeekChip extends StatelessWidget {
     final Color circleBg;
     final Color dateColor;
     final BoxBorder? border;
+    // planned = not done, not rest, not today → dashed ring (design spec).
+    var dashedRing = false;
     if (day.today) {
       circleBg = c.move;
       dateColor = _white;
@@ -197,7 +201,8 @@ class _WeekChip extends StatelessWidget {
     } else {
       circleBg = c.surface;
       dateColor = c.ink;
-      border = Border.all(color: color.withValues(alpha: 0.33), width: 1.5);
+      border = null;
+      dashedRing = true;
     }
 
     return Column(
@@ -212,22 +217,27 @@ class _WeekChip extends StatelessWidget {
               letterSpacing: 0.3),
         ),
         const SizedBox(height: 6),
-        Container(
-          width: 36,
-          height: 36,
-          decoration: BoxDecoration(
-            color: circleBg,
-            shape: BoxShape.circle,
-            border: border,
-          ),
-          alignment: Alignment.center,
-          child: Text(
-            '${day.date}',
-            style: AppFonts.sfr(
-                size: 14,
-                weight: FontWeight.w700,
-                color: dateColor,
-                letterSpacing: -0.3),
+        CustomPaint(
+          foregroundPainter: dashedRing
+              ? _DashedCirclePainter(color: color.withValues(alpha: 0.33))
+              : null,
+          child: Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: circleBg,
+              shape: BoxShape.circle,
+              border: border,
+            ),
+            alignment: Alignment.center,
+            child: Text(
+              '${day.date}',
+              style: AppFonts.sfr(
+                  size: 14,
+                  weight: FontWeight.w700,
+                  color: dateColor,
+                  letterSpacing: -0.3),
+            ),
           ),
         ),
         const SizedBox(height: 6),
@@ -368,6 +378,27 @@ class _TodaySpotlight extends StatelessWidget {
                               ),
                             ],
                           ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    PressScale(
+                      onTap: () => context.go('/move/start'),
+                      semanticLabel: 'Swap workout',
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 12),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: c.hair, width: 0.5),
+                        ),
+                        child: Text(
+                          'Swap',
+                          style: AppFonts.sf(
+                              size: 14,
+                              weight: FontWeight.w500,
+                              color: c.ink2,
+                              letterSpacing: -0.15),
                         ),
                       ),
                     ),
@@ -601,4 +632,34 @@ class _PalCoachNote extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Dashed 1.5px ring for a planned (not-done) week-strip day.
+class _DashedCirclePainter extends CustomPainter {
+  _DashedCirclePainter({required this.color});
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.5
+      ..color = color;
+    final center = size.center(Offset.zero);
+    final radius = (size.shortestSide - 1.5) / 2;
+    const dashes = 16;
+    final sweep = (2 * math.pi) / dashes;
+    for (var i = 0; i < dashes; i++) {
+      canvas.drawArc(
+        Rect.fromCircle(center: center, radius: radius),
+        i * sweep,
+        sweep * 0.55,
+        false,
+        paint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(_DashedCirclePainter old) => old.color != color;
 }

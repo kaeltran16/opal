@@ -103,6 +103,11 @@ class _TodayBody extends StatelessWidget {
               semanticLabel: 'Notifications',
               onTap: () => context.pushNamed(AppRoute.palInbox.name),
             ),
+            const SizedBox(width: 8),
+            const NavIconButton(
+              name: 'magnifyingglass',
+              semanticLabel: 'Search',
+            ),
           ]),
         ),
 
@@ -157,7 +162,7 @@ class _TodayBody extends StatelessWidget {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
-                          Text('DAY',
+                          Text('DAY · 21:30',
                               style: AppFonts.sf(
                                   size: 12,
                                   weight: FontWeight.w600,
@@ -490,7 +495,7 @@ class _TimelineRow extends StatelessWidget {
             ? '−\$${v.abs().toStringAsFixed(2)}'
             : '\$${v.toStringAsFixed(2)}';
       case EntryType.move:
-        if (entry.calories != null) return '${entry.calories} kcal';
+        // design shows duration in minutes, not calories (no healthkit content)
         if (entry.duration != null) return '${entry.duration} min';
         return null;
       case EntryType.rituals:

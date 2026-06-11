@@ -132,7 +132,7 @@ void main() {
     await _pump(tester, const EmailIntroScreen(), prefs: prefs, db: db);
 
     // Value prop headline + read-only app-password pitch.
-    expect(find.text('Stop logging card charges by hand.'), findsOneWidget);
+    expect(find.text('Stop logging card\ncharges by hand.'), findsOneWidget);
 
     // "How it works" section + its three steps.
     expect(find.text('HOW IT WORKS'), findsOneWidget);

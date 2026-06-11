@@ -12,6 +12,8 @@ import 'package:opal/widgets/activity_rings.dart';
 import 'package:opal/widgets/summary_tile.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'support/flush_provider_timers.dart';
+
 /// A timestamp today at [hour]:[minute] so the entries land in `watchToday()`.
 DateTime _todayAt(int hour, int minute) {
   final n = DateTime.now();
@@ -122,6 +124,8 @@ void main() {
       scrollable: listFinder,
     );
     expect(find.text('Tartine'), findsOneWidget);
+
+    await flushProviderTimers(tester);
   });
 
   testWidgets('Today shows the empty-state copy when nothing is logged',
@@ -159,5 +163,7 @@ void main() {
 
     expect(find.text('Nothing logged yet. Tap + to start your day.'),
         findsOneWidget);
+
+    await flushProviderTimers(tester);
   });
 }

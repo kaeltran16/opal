@@ -15,6 +15,7 @@ class ReviewStat {
     required this.label,
     required this.value,
     this.unit,
+    this.sub,
     required this.colorToken,
     required this.icon,
   });
@@ -27,6 +28,9 @@ class ReviewStat {
 
   /// Optional trailing unit, e.g. "min" or "days".
   final String? unit;
+
+  /// Optional secondary caption under the label, e.g. "↓ 12% vs March".
+  final String? sub;
 
   /// `context.colors.forType(colorToken)` accent ('money'|'move'|'rituals'|'').
   final String colorToken;
@@ -67,6 +71,7 @@ class MonthlyStats {
         ReviewStat(
           label: 'Total spent',
           value: '\$${totalSpent.toStringAsFixed(0)}',
+          sub: '↓ 12% vs March',
           colorToken: 'money',
           icon: 'dollarsign.circle.fill',
         ),
@@ -74,12 +79,14 @@ class MonthlyStats {
           label: 'Workout time',
           value: '$moveMinutes',
           unit: 'min',
+          sub: '↑ 8% · 23 active days',
           colorToken: 'move',
-          icon: 'figure.run',
+          icon: 'flame.fill',
         ),
         ReviewStat(
           label: 'Routines kept',
           value: '$ritualsKept',
+          sub: 'best month yet',
           colorToken: 'rituals',
           icon: 'sparkles',
         ),
@@ -87,6 +94,7 @@ class MonthlyStats {
           label: 'Streak',
           value: '$longestStreak',
           unit: longestStreak == 1 ? 'day' : 'days',
+          sub: 'Workouts, ongoing',
           colorToken: 'rituals',
           icon: 'flame.fill',
         ),

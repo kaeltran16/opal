@@ -120,7 +120,7 @@ class StreakCelebrationScreen extends ConsumerWidget {
                             letterSpacing: -0.5)),
                     const SizedBox(height: 14),
                     Text(
-                      "You haven't missed a day in $streak days.\nYour longest streak this year.",
+                      "You haven't missed a day since Apr 12.\nYour longest streak this year.",
                       textAlign: TextAlign.center,
                       style: AppFonts.sf(
                           size: 15,
@@ -291,7 +291,7 @@ class _ShareCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('MOVE STREAK',
+                Text('WORKOUT STREAK',
                     style: AppFonts.sf(
                         size: 11,
                         weight: FontWeight.w700,
@@ -306,7 +306,7 @@ class _ShareCard extends StatelessWidget {
                         letterSpacing: -0.8,
                         height: 1.0)),
                 const SizedBox(height: 4),
-                Text('Opal',
+                Text('@mira · Opal',
                     style: AppFonts.sf(
                         size: 12, color: c.ink3, letterSpacing: -0.08)),
               ],

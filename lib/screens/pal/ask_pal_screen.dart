@@ -9,6 +9,7 @@ import '../../services/services.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_text.dart';
 import '../../widgets/app_icon.dart';
+import '../../widgets/nav_bar.dart';
 
 /// Screen 05 — Ask Pal chat (mock).
 ///
@@ -123,6 +124,7 @@ class _Header extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               GestureDetector(
                 behavior: HitTestBehavior.opaque,
@@ -131,6 +133,10 @@ class _Header extends StatelessWidget {
                   padding: const EdgeInsets.all(8),
                   child: AppIcon('chevron.left', size: 20, color: c.accent),
                 ),
+              ),
+              const NavIconButton(
+                name: 'ellipsis',
+                semanticLabel: 'More options',
               ),
             ],
           ),
@@ -150,7 +156,7 @@ class _Header extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  'Your money, workout & routines coach',
+                  'Your tracking companion',
                   style: AppFonts.sf(
                     size: 15,
                     color: c.ink3,
@@ -201,15 +207,14 @@ class _Bubble extends StatelessWidget {
             decoration: BoxDecoration(
               color: bg,
               borderRadius: shape,
-              border: isUser ? null : Border.all(color: c.hair, width: 0.5),
             ),
             child: Text(
               message.text,
               style: AppFonts.sf(
-                size: 16,
+                size: 15,
                 color: fg,
-                letterSpacing: -0.31,
-                height: 1.3,
+                letterSpacing: -0.24,
+                height: 1.4,
               ),
             ),
           ),
@@ -348,6 +353,21 @@ class _EmptyState extends StatelessWidget {
               style: AppFonts.sf(size: 15, color: c.ink3, letterSpacing: -0.24),
             ),
             const SizedBox(height: 24),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Padding(
+                padding: const EdgeInsets.only(left: 4, bottom: 8),
+                child: Text(
+                  'TRY ASKING',
+                  style: AppFonts.sf(
+                    size: 12,
+                    weight: FontWeight.w600,
+                    color: c.ink3,
+                    letterSpacing: -0.08,
+                  ),
+                ),
+              ),
+            ),
             for (final s in suggestions) ...[
               _SuggestionChip(label: s, onTap: () => onTap(s)),
               const SizedBox(height: 10),
@@ -468,13 +488,13 @@ class _InputBarState extends State<_InputBar> {
                       cursorColor: c.accent,
                       onSubmitted: widget.enabled ? widget.onSend : null,
                       style: AppFonts.sf(
-                          size: 16, color: c.ink, letterSpacing: -0.31),
+                          size: 15, color: c.ink, letterSpacing: -0.24),
                       decoration: InputDecoration(
                         isDense: true,
                         border: InputBorder.none,
-                        hintText: 'Message Pal',
+                        hintText: 'Ask about your day or log something…',
                         hintStyle: AppFonts.sf(
-                            size: 16, color: c.ink3, letterSpacing: -0.31),
+                            size: 15, color: c.ink3, letterSpacing: -0.24),
                       ),
                     ),
                   ),

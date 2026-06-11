@@ -19,6 +19,38 @@ class MuscleVolume {
   final double volumeKg;
 }
 
+/// The headline personal record of a session: the exercise name and the PR
+/// set's weight × reps. Drives the standalone "PERSONAL RECORD" card on the
+/// post-workout summary (screen 10).
+@immutable
+class PrHighlight {
+  const PrHighlight({
+    required this.exercise,
+    required this.weightKg,
+    required this.reps,
+  });
+
+  final String exercise;
+  final double weightKg;
+  final int reps;
+}
+
+/// The first completed PR set of [workout] (name resolved via [catalog]), or
+/// null when the session set no records. Pure, so it is unit-testable.
+PrHighlight? buildPrHighlight(Workout workout, List<Exercise> catalog) {
+  final nameOf = {for (final e in catalog) e.id: e.name};
+  for (final s in workout.sets) {
+    if (s.done && s.isPR) {
+      return PrHighlight(
+        exercise: nameOf[s.exerciseId] ?? s.exerciseId,
+        weightKg: s.weightKg,
+        reps: s.reps,
+      );
+    }
+  }
+  return null;
+}
+
 /// Aggregates [workout]'s completed-set volume by the primary muscle of each
 /// exercise (resolved via [catalog]), highest volume first. Not-done sets are
 /// ignored — the summary reflects what was actually logged. Sets whose exercise

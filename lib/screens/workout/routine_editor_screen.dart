@@ -81,7 +81,7 @@ class _Body extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           LargeTitleNavBar(
-            title: state.isEditing ? 'Edit workout' : 'New workout',
+            title: state.isEditing ? 'Edit routine' : 'New routine',
             subtitle: state.isEditing ? draft.name : 'Build from scratch',
             leading: GestureDetector(
               behavior: HitTestBehavior.opaque,
@@ -323,16 +323,16 @@ class _TogglesSection extends StatelessWidget {
     return InsetSection(
       children: [
         _SwitchRow(
-          icon: 'flame.fill',
+          icon: 'bell.fill',
           iconBg: c.money,
           title: 'Warmup reminder',
           value: warmup,
           onChanged: onWarmup,
         ),
         _SwitchRow(
-          icon: 'chart.bar.fill',
+          icon: 'arrow.triangle.2.circlepath',
           iconBg: c.move,
-          title: 'Auto-progress',
+          title: 'Auto-progress weights',
           value: autoProgress,
           onChanged: onAutoProgress,
           last: true,
@@ -453,6 +453,14 @@ class _ExerciseList extends StatelessWidget {
                 ),
             ],
           ),
+        if (slots.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+            child: Text(
+              'Drag to reorder · swipe left to remove · tap a set to edit targets',
+              style: AppFonts.sf(size: 12, color: c.ink3, letterSpacing: -0.08),
+            ),
+          ),
       ],
     );
   }
@@ -472,7 +480,10 @@ class _ExerciseTile extends StatelessWidget {
   final VoidCallback onRemove;
 
   String get _targets {
-    final parts = <String>['${slot.targetSets}×${slot.targetReps ?? '—'}'];
+    final parts = <String>[
+      if (exercise?.muscle case final m? when m.isNotEmpty) m,
+      '${slot.targetSets}×${slot.targetReps ?? '—'}',
+    ];
     final w = slot.targetWeightKg;
     if (w != null && w > 0) {
       final label = w == w.roundToDouble()

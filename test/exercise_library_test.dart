@@ -16,7 +16,7 @@ import 'package:opal/widgets/inset_section.dart';
 /// ThemeExtension (so `context.colors` resolves) + a ProviderScope whose DB is
 /// the seeded in-memory one passed in.
 ///
-/// Uses a tall surface so the full grouped catalog (~13 muscle sections) lays
+/// Uses a tall surface so the full grouped catalog (5 group sections) lays
 /// out without lazy-list culling, keeping `find.text` assertions simple.
 Future<void> _pumpLibrary(
     WidgetTester tester, LoopDatabase db, List<Exercise> catalog) async {
@@ -66,21 +66,23 @@ void main() {
     await db.close();
   });
 
-  testWidgets('renders muscle-grouped sections with rows from the seed',
+  testWidgets('renders group-grouped sections with rows from the seed',
       (tester) async {
     await _pumpLibrary(tester, db, catalog);
 
-    // Grouped sections render (one per muscle present in the catalog).
+    // Grouped sections render (one per group present in the catalog).
     expect(find.byType(InsetSection), findsWidgets);
     expect(find.byType(ListRow), findsWidgets);
 
     // A representative row from several groups is present.
-    expect(find.text('Barbell Bench Press'), findsOneWidget); // Push / Chest
-    expect(find.text('Back Squat'), findsOneWidget); // Legs / Quads
+    expect(find.text('Barbell Bench Press'), findsOneWidget); // Push
+    expect(find.text('Back Squat'), findsOneWidget); // Legs
     expect(find.text('Plank'), findsOneWidget); // Core
 
-    // Muscle section header (InsetSection uppercases it).
-    expect(find.text('CHEST'), findsOneWidget);
+    // Group section headers (InsetSection uppercases them).
+    expect(find.text('PUSH'), findsOneWidget);
+    expect(find.text('LEGS'), findsOneWidget);
+    expect(find.text('CORE'), findsOneWidget);
 
     // PR value renders for a lift with a fractional PR (bench = 92.5 kg).
     expect(find.text('92.5 kg'), findsOneWidget);

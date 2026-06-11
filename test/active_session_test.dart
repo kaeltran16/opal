@@ -115,21 +115,27 @@ void main() {
 
     // Log the first (active) set at its prefilled target.
     await tester.tap(find.text('Complete set'));
-    await tester.pumpAndSettle();
+    // The rest banner has a repeating spinner animation, so pumpAndSettle would
+    // hang; a single fixed frame settles the rebuild without draining the rest
+    // timer (which would otherwise expire and hide the banner).
+    await tester.pump(const Duration(milliseconds: 16));
 
     // A non-PR set fires the light cue (success is reserved for PRs).
     expect(haptics.lightCount, greaterThan(0));
 
-    // The rest banner now shows (engine started the 120s rest).
+    // The rest banner now shows (engine started the 120s rest): the REST label
+    // plus the m:ss countdown seeded at 120s == 2:00.
     expect(find.text('REST'), findsOneWidget);
+    expect(find.text('2:00'), findsOneWidget);
 
     // The first set rendered as a done row; a second active set remains.
     expect(find.text('SET 1'), findsWidgets);
 
     // Skip the rest to cancel the real periodic timer before the test ends
-    // (a pending Timer.periodic would trip the binding's timer check).
+    // (a pending Timer.periodic would trip the binding's timer check). Fixed
+    // pumps again to avoid settling on the spinner animation.
     await tester.tap(find.text('Skip'));
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 16));
     expect(find.text('REST'), findsNothing);
   });
 }

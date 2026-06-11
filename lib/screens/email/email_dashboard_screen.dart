@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/cupertino.dart' show CupertinoActivityIndicator;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -63,6 +64,7 @@ class EmailDashboardScreen extends ConsumerWidget {
         children: [
           LargeTitleNavBar(
             title: 'Email sync',
+            subtitle: 'Gmail · connected',
             leading: GestureDetector(
               behavior: HitTestBehavior.opaque,
               onTap: () => context.pop(),
@@ -70,7 +72,7 @@ class EmailDashboardScreen extends ConsumerWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   AppIcon('chevron.left', size: 20, color: c.accent),
-                  Text('Settings',
+                  Text('You',
                       style: AppFonts.sf(
                           size: 17, color: c.accent, letterSpacing: -0.43)),
                 ],
@@ -94,17 +96,7 @@ class EmailDashboardScreen extends ConsumerWidget {
                 children: [
                   Row(
                     children: [
-                      Container(
-                        width: 32,
-                        height: 32,
-                        decoration: BoxDecoration(
-                          color: c.accentTint,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        alignment: Alignment.center,
-                        child: AppIcon('envelope.fill',
-                            size: 16, color: c.accent),
-                      ),
+                      const _GmailGlyph(size: 32),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Column(
@@ -164,6 +156,92 @@ class EmailDashboardScreen extends ConsumerWidget {
             ),
           ),
 
+          // --- Stats tiles --------------------------------------------------
+          // values are design mocks; no provider exposes import counts yet.
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 16),
+              decoration: BoxDecoration(
+                color: c.surface,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: c.hair, width: 0.5),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                      child: _StatTile(
+                          label: 'This month', value: '147', color: c.accent)),
+                  Expanded(
+                      child: _StatTile(
+                          label: 'All time', value: '2,143', color: c.money)),
+                  Expanded(
+                      child: _StatTile(
+                          label: 'Recurring', value: '7', color: c.rituals)),
+                ],
+              ),
+            ),
+          ),
+
+          // --- Pal noticed (subscriptions) ----------------------------------
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            child: Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: c.accentTint,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                    color: c.accent.withValues(alpha: 0.13), width: 0.5),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      AppIcon('sparkles', size: 12, color: c.accent),
+                      const SizedBox(width: 6),
+                      Text('PAL NOTICED',
+                          style: AppFonts.sf(
+                              size: 11,
+                              weight: FontWeight.w700,
+                              color: c.accent,
+                              letterSpacing: 0.5)),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'You have 7 recurring subscriptions totaling \$84/mo. Two of '
+                    "them you haven't opened in 30+ days — want me to flag cancel "
+                    'candidates?',
+                    style: AppFonts.sf(
+                        size: 14,
+                        color: c.ink,
+                        letterSpacing: -0.2,
+                        height: 1.45),
+                  ),
+                  const SizedBox(height: 10),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 7),
+                      decoration: BoxDecoration(
+                          color: c.accent,
+                          borderRadius: BorderRadius.circular(100)),
+                      child: Text('Review subscriptions',
+                          style: AppFonts.sf(
+                              size: 13,
+                              weight: FontWeight.w600,
+                              color: const Color(0xFFFFFFFF),
+                              letterSpacing: -0.08)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
           // --- Recently synced ----------------------------------------------
           if (dash.imports.isNotEmpty)
             InsetSection(
@@ -194,6 +272,44 @@ class EmailDashboardScreen extends ConsumerWidget {
                         size: 15, color: c.ink3, letterSpacing: -0.24)),
               ),
             ),
+
+          // --- Sync settings ------------------------------------------------
+          // values are design mocks; cadence/notify/auto-categorize prefs and a
+          // detected-sender count aren't exposed by any provider yet.
+          InsetSection(
+            header: 'Sync settings',
+            children: [
+              ListRow(
+                icon: 'arrow.triangle.2.circlepath',
+                iconBg: c.accent,
+                title: 'Background sync',
+                value: 'Every 15 min',
+                chevron: false,
+              ),
+              ListRow(
+                icon: 'bell.fill',
+                iconBg: c.money,
+                title: 'Notify on new detection',
+                value: 'Off',
+                chevron: false,
+              ),
+              ListRow(
+                icon: 'sparkles',
+                iconBg: c.rituals,
+                title: 'Pal auto-categorize',
+                value: 'On',
+                chevron: false,
+              ),
+              ListRow(
+                icon: 'magnifyingglass',
+                iconBg: c.money,
+                title: 'Detected senders',
+                value: '47',
+                chevron: false,
+                last: true,
+              ),
+            ],
+          ),
 
           // --- Disconnect ----------------------------------------------------
           Padding(
@@ -324,11 +440,19 @@ class _SyncNowButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    final (String icon, String label) = syncing
-        ? ('arrow.up.right', 'Syncing…')
+    final fg = syncing ? c.ink2 : c.bg;
+    final Widget leading = syncing
+        ? CupertinoActivityIndicator(radius: 7, color: fg)
+        : AppIcon(
+            done ? 'checkmark' : 'arrow.triangle.2.circlepath',
+            size: 13,
+            color: fg,
+          );
+    final label = syncing
+        ? 'Syncing…'
         : done
-            ? ('checkmark', 'Done')
-            : ('paperplane.fill', 'Sync now');
+            ? 'Done'
+            : 'Sync now';
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: syncing ? null : onTap,
@@ -342,13 +466,13 @@ class _SyncNowButton extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            AppIcon(icon, size: 13, color: syncing ? c.ink2 : c.bg),
+            leading,
             const SizedBox(width: 7),
             Text(label,
                 style: AppFonts.sf(
                     size: 14,
                     weight: FontWeight.w600,
-                    color: syncing ? c.ink2 : c.bg,
+                    color: fg,
                     letterSpacing: -0.1)),
           ],
         ),
@@ -501,4 +625,125 @@ class _ImportRowState extends State<_ImportRow> {
       ),
     );
   }
+}
+
+/// One stats tile: a colored SF-Rounded value over a muted caption.
+class _StatTile extends StatelessWidget {
+  const _StatTile(
+      {required this.label, required this.value, required this.color});
+  final String label;
+  final String value;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return Column(
+      children: [
+        Text(value,
+            style: AppFonts.sfr(
+                size: 22,
+                weight: FontWeight.w700,
+                color: color,
+                letterSpacing: -0.3)),
+        const SizedBox(height: 1),
+        Text(label,
+            style: AppFonts.sf(size: 11, color: c.ink3, letterSpacing: -0.08)),
+      ],
+    );
+  }
+}
+
+/// The 5-color Gmail brand mark (`GmailGlyph`, email-sync.jsx:546). SF Symbols
+/// can't represent it, so it's painted from the design's SVG paths.
+//
+// duplicated in email_intro_screen.dart / email_setup_screen.dart because the
+// task scopes edits to those screen files; a shared widget would be cleaner.
+class _GmailGlyph extends StatelessWidget {
+  const _GmailGlyph({this.size = 24});
+  final double size;
+
+  @override
+  Widget build(BuildContext context) =>
+      SizedBox(width: size, height: size, child: CustomPaint(painter: _GmailGlyphPainter()));
+}
+
+class _GmailGlyphPainter extends CustomPainter {
+  static const _white = Color(0xFFE8EAED);
+  static const _red = Color(0xFFEA4335);
+  static const _green = Color(0xFF34A853);
+  static const _blue = Color(0xFF4285F4);
+  static const _yellow = Color(0xFFFBBC04);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final s = size.width / 48; // viewBox is 0 0 48 48
+    canvas.scale(s);
+    final paint = Paint()..style = PaintingStyle.fill;
+    void fill(Color color, void Function(Path) build) {
+      final path = Path();
+      build(path);
+      canvas.drawPath(path, paint..color = color);
+    }
+
+    fill(_white, (p) {
+      p.moveTo(6, 14);
+      p.relativeLineTo(0, 22);
+      p.relativeArcToPoint(const Offset(2, 2), radius: const Radius.circular(2));
+      p.relativeLineTo(6, 0);
+      p.lineTo(14, 22);
+      p.lineTo(24, 29);
+      p.lineTo(34, 22);
+      p.relativeLineTo(0, 16);
+      p.relativeLineTo(6, 0);
+      p.relativeArcToPoint(const Offset(2, -2), radius: const Radius.circular(2));
+      p.lineTo(42, 14);
+      p.lineTo(24, 27);
+      p.lineTo(6, 14);
+      p.close();
+    });
+    fill(_red, (p) {
+      p.moveTo(6, 14);
+      p.lineTo(24, 27);
+      p.lineTo(42, 14);
+      p.relativeLineTo(0, -2);
+      p.relativeArcToPoint(const Offset(-2, -2), radius: const Radius.circular(2));
+      p.relativeLineTo(-2, 0);
+      p.lineTo(24, 22);
+      p.lineTo(10, 10);
+      p.lineTo(8, 10);
+      p.relativeArcToPoint(const Offset(-2, 2), radius: const Radius.circular(2));
+      p.relativeLineTo(0, 2);
+      p.close();
+    });
+    fill(_green, (p) {
+      p.moveTo(8, 38);
+      p.relativeLineTo(6, 0);
+      p.lineTo(14, 22);
+      p.lineTo(6, 16);
+      p.relativeLineTo(0, 20);
+      p.relativeArcToPoint(const Offset(2, 2), radius: const Radius.circular(2));
+      p.close();
+    });
+    fill(_blue, (p) {
+      p.moveTo(34, 38);
+      p.relativeLineTo(6, 0);
+      p.relativeArcToPoint(const Offset(2, -2), radius: const Radius.circular(2));
+      p.lineTo(42, 16);
+      p.lineTo(34, 22);
+      p.close();
+    });
+    fill(_yellow, (p) {
+      p.moveTo(14, 22);
+      p.lineTo(24, 29);
+      p.lineTo(34, 22);
+      p.relativeLineTo(0, -9);
+      p.lineTo(24, 22);
+      p.lineTo(14, 13);
+      p.close();
+    });
+  }
+
+  @override
+  bool shouldRepaint(_GmailGlyphPainter oldDelegate) => false;
 }

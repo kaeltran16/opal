@@ -231,6 +231,7 @@ void main() {
       scrollable: find.byType(Scrollable).first,
     );
     expect(find.text('Patterns Pal found'), findsOneWidget);
-    expect(find.text('Mornings set the tone'), findsOneWidget);
+    expect(find.text('Morning rituals lower food spending'), findsOneWidget);
+    expect(find.text('On days you journal, food costs drop 32%'), findsOneWidget);
   });
 }

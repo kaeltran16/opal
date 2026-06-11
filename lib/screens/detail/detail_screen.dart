@@ -100,11 +100,11 @@ class _DetailBody extends StatelessWidget {
             _NavBar(title: data.tracker.title, color: color),
             _HeroCard(data: data, color: color, fmt: _fmt),
             if (data.categories.isNotEmpty) ...[
-              const _SectionHeader('By category'),
+              const _SectionHeader('Breakdown'),
               _CategoryCard(data: data, color: color, fmt: _fmt),
             ],
             if (data.days.isNotEmpty) ...[
-              const _SectionHeader('Recent'),
+              _SectionHeader(data.tracker.recentHeader),
               for (final group in data.days)
                 _DayGroupCard(group: group, data: data, fmt: _fmt),
             ],
@@ -176,7 +176,8 @@ class _NavBar extends StatelessWidget {
   }
 }
 
-/// Hero card: big total numeral + budget caption + progress bar.
+/// Hero card: 56×56 icon tile + big total + colored sub-line + goal line, with
+/// a conic-gradient percent ring on the right (handoff screen 06 hero).
 class _HeroCard extends StatelessWidget {
   const _HeroCard(
       {required this.data, required this.color, required this.fmt});
@@ -187,51 +188,128 @@ class _HeroCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    final over = data.target > 0 && data.total > data.target;
+    final pct = data.progress.clamp(0.0, 1.0);
+    final goalLine = data.tracker == DetailTracker.money
+        ? 'of ${fmt(data.target)} daily budget'
+        : 'of ${fmt(data.target)} daily goal';
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
       child: Container(
-        padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
+        padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
-            color: c.surface, borderRadius: BorderRadius.circular(18)),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          color: color.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: color.withValues(alpha: 0.13), width: 0.5),
+        ),
+        child: Row(
           children: [
-            Text('TOTAL',
-                style: AppFonts.sf(
-                    size: 12,
-                    weight: FontWeight.w700,
-                    color: c.ink3,
-                    letterSpacing: 0.3)),
-            const SizedBox(height: 6),
-            Text(fmt(data.total),
-                style: AppFonts.sfr(
-                    size: 40, weight: FontWeight.w700, color: c.ink)),
-            const SizedBox(height: 14),
-            ProgressBar(value: data.progress, color: over ? c.red : color),
-            const SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text('of ${fmt(data.target)} budget',
-                    style: AppFonts.sf(
-                        size: 13, color: c.ink3, letterSpacing: -0.08)),
-                Text(
-                    over
-                        ? '${fmt(data.total - data.target)} over'
-                        : '${fmt(data.remaining)} left',
-                    style: AppFonts.sf(
-                        size: 13,
-                        weight: FontWeight.w600,
-                        color: over ? c.red : color,
-                        letterSpacing: -0.08)),
-              ],
+            Container(
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(
+                color: color,
+                borderRadius: BorderRadius.circular(14),
+                boxShadow: [
+                  BoxShadow(
+                      color: color.withValues(alpha: 0.33),
+                      blurRadius: 14,
+                      offset: const Offset(0, 6)),
+                ],
+              ),
+              alignment: Alignment.center,
+              child: AppIcon(data.tracker.heroIcon,
+                  size: 28, color: const Color(0xFFFFFFFF)),
             ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(fmt(data.total),
+                      style: AppFonts.sfr(
+                          size: 40,
+                          weight: FontWeight.w700,
+                          color: c.ink,
+                          letterSpacing: -1,
+                          height: 1)),
+                  const SizedBox(height: 4),
+                  Text(data.tracker.heroSub,
+                      style: AppFonts.sf(
+                          size: 15,
+                          weight: FontWeight.w600,
+                          color: color,
+                          letterSpacing: -0.24)),
+                  const SizedBox(height: 2),
+                  Text(goalLine,
+                      style: AppFonts.sf(
+                          size: 13, color: c.ink2, letterSpacing: -0.08)),
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
+            _PercentRing(pct: pct, color: color),
           ],
         ),
       ),
     );
   }
+}
+
+/// 52×52 conic-gradient progress donut with a centered rounded-percent label.
+class _PercentRing extends StatelessWidget {
+  const _PercentRing({required this.pct, required this.color});
+  final double pct; // 0..1
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 52,
+      height: 52,
+      child: CustomPaint(
+        painter: _RingPainter(pct: pct, color: color),
+        child: Center(
+          child: Text('${(pct * 100).round()}%',
+              style: AppFonts.sf(
+                  size: 12,
+                  weight: FontWeight.w700,
+                  color: color,
+                  letterSpacing: -0.08)),
+        ),
+      ),
+    );
+  }
+}
+
+class _RingPainter extends CustomPainter {
+  _RingPainter({required this.pct, required this.color});
+  final double pct;
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const stroke = 6.0;
+    final rect = Offset.zero & size;
+    final center = rect.center;
+    final radius = (size.width - stroke) / 2;
+    final track = Paint()
+      ..color = color.withValues(alpha: 0.13)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = stroke;
+    final fill = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = stroke
+      ..strokeCap = StrokeCap.round;
+    canvas.drawCircle(center, radius, track);
+    // start at 12 o'clock, sweep clockwise
+    canvas.drawArc(Rect.fromCircle(center: center, radius: radius), -1.5708,
+        6.2832 * pct, false, fill);
+  }
+
+  @override
+  bool shouldRepaint(_RingPainter old) =>
+      old.pct != pct || old.color != color;
 }
 
 class _SectionHeader extends StatelessWidget {
@@ -276,7 +354,10 @@ class _CategoryCard extends StatelessWidget {
                   top: i == 0 ? 12 : 10,
                   bottom: i == data.categories.length - 1 ? 12 : 10),
               child: _CategoryRow(
-                  row: data.categories[i], color: color, fmt: fmt),
+                  row: data.categories[i],
+                  color: color,
+                  fmt: fmt,
+                  fallbackIcon: data.tracker.heroIcon),
             ),
         ],
       ),
@@ -286,10 +367,14 @@ class _CategoryCard extends StatelessWidget {
 
 class _CategoryRow extends StatelessWidget {
   const _CategoryRow(
-      {required this.row, required this.color, required this.fmt});
+      {required this.row,
+      required this.color,
+      required this.fmt,
+      required this.fallbackIcon});
   final CategoryBreakdown row;
   final Color color;
   final String Function(double, {bool withSign}) fmt;
+  final String fallbackIcon;
 
   @override
   Widget build(BuildContext context) {
@@ -298,25 +383,40 @@ class _CategoryRow extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(row.label,
-                style: AppFonts.sf(
-                    size: 15,
-                    weight: FontWeight.w500,
-                    color: c.ink,
-                    letterSpacing: -0.24)),
+            Container(
+              width: 29,
+              height: 29,
+              decoration: BoxDecoration(
+                  color: color, borderRadius: BorderRadius.circular(7)),
+              alignment: Alignment.center,
+              child: AppIcon(_categoryIcon(row.label, fallbackIcon),
+                  size: 16, color: const Color(0xFFFFFFFF)),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(row.label,
+                  style: AppFonts.sf(
+                      size: 15,
+                      weight: FontWeight.w500,
+                      color: c.ink,
+                      letterSpacing: -0.24)),
+            ),
             Text(fmt(row.amount),
                 style: AppFonts.sf(
                     size: 15,
-                    weight: FontWeight.w600,
+                    weight: FontWeight.w500,
                     color: c.ink,
                     letterSpacing: -0.24,
                     tabular: true)),
           ],
         ),
-        const SizedBox(height: 6),
-        ProgressBar(value: row.fraction, color: color),
+        const SizedBox(height: 8),
+        Padding(
+          // align bar under the label, past the icon tile (29 + 12)
+          padding: const EdgeInsets.only(left: 41),
+          child: ProgressBar(value: row.fraction, color: color),
+        ),
       ],
     );
   }
@@ -384,6 +484,39 @@ class _DayGroupCard extends StatelessWidget {
   }
 }
 
+/// Best-effort SF symbol for a category label. The [Entry] model carries no
+/// per-row symbol (design `e.sf`), so we map common category words to glyphs and
+/// fall back to the tracker's hero icon for anything unmatched.
+String _categoryIcon(String label, String fallback) {
+  final l = label.toLowerCase();
+  if (l.contains('coffee')) return 'cup.and.saucer.fill';
+  if (l.contains('lunch') ||
+      l.contains('dinner') ||
+      l.contains('dining') ||
+      l.contains('food') ||
+      l.contains('meal')) {
+    return 'fork.knife';
+  }
+  if (l.contains('grocer') || l.contains('snack')) return 'basket.fill';
+  if (l.contains('transit') ||
+      l.contains('transport') ||
+      l.contains('car')) {
+    return 'paperplane.fill';
+  }
+  if (l.contains('run')) return 'figure.run';
+  if (l.contains('walk')) return 'figure.walk';
+  if (l.contains('gym') || l.contains('lift') || l.contains('strength')) {
+    return 'dumbbell.fill';
+  }
+  if (l.contains('journal') || l.contains('pages') || l.contains('write')) {
+    return 'book.closed.fill';
+  }
+  if (l.contains('read')) return 'books.vertical.fill';
+  if (l.contains('language')) return 'character.book.closed.fill';
+  if (l.contains('meditate') || l.contains('focus')) return 'heart.fill';
+  return fallback;
+}
+
 class _EntryRow extends StatelessWidget {
   const _EntryRow({
     required this.entry,
@@ -431,8 +564,11 @@ class _EntryRow extends StatelessWidget {
             decoration: BoxDecoration(
                 color: color, borderRadius: BorderRadius.circular(9)),
             alignment: Alignment.center,
-            child: const AppIcon('creditcard.fill',
-                size: 15, color: Color(0xFFFFFFFF)),
+            child: AppIcon(
+                _categoryIcon(
+                    entry.category ?? entry.title, data.tracker.heroIcon),
+                size: 15,
+                color: const Color(0xFFFFFFFF)),
           ),
           const SizedBox(width: 12),
           Expanded(

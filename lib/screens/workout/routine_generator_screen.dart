@@ -194,7 +194,7 @@ class _HeroCard extends StatelessWidget {
                       child: const AppIcon('sparkles', size: 12, color: _white),
                     ),
                     const SizedBox(width: 8),
-                    Text('PAL BUILDS YOUR WORKOUT',
+                    Text('PAL BUILDS YOUR ROUTINE',
                         style: AppFonts.sf(
                             size: 11,
                             weight: FontWeight.w700,
@@ -211,7 +211,8 @@ class _HeroCard extends StatelessWidget {
                         letterSpacing: -0.4,
                         height: 1.15)),
                 const SizedBox(height: 6),
-                Text('"A 30-min pull day I can do at the gym."',
+                Text('"A 30-min pull day I can do at the gym" or '
+                    '"legs at home with dumbbells."',
                     style: AppFonts.sf(
                         size: 13,
                         color: _white.withValues(alpha: 0.75),
@@ -494,7 +495,7 @@ class _LoadingPill extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              Text('Pal is building your workout…',
+              Text('Pal is building your routine…',
                   style: AppFonts.sf(
                       size: 13, color: c.ink2, letterSpacing: -0.1)),
             ],
@@ -665,10 +666,10 @@ class _ExerciseRow extends StatelessWidget {
   final bool last;
 
   String get _subtitle {
-    final group = exercise?.group ?? exercise?.muscle ?? '';
+    final muscle = exercise?.muscle ?? '';
     final equip = exercise?.equipment;
     final parts = <String>[
-      if (group.isNotEmpty) group,
+      if (muscle.isNotEmpty) muscle,
       if (equip != null && equip.isNotEmpty) equip,
     ];
     return parts.join(' · ');
@@ -817,7 +818,7 @@ class _ResultActions extends StatelessWidget {
           flex: 2,
           child: PressScale(
             onTap: onSave,
-            semanticLabel: 'Save workout',
+            semanticLabel: 'Save routine',
             child: Container(
               padding: const EdgeInsets.symmetric(vertical: 13),
               decoration: BoxDecoration(
@@ -825,7 +826,7 @@ class _ResultActions extends StatelessWidget {
                 borderRadius: BorderRadius.circular(12),
               ),
               alignment: Alignment.center,
-              child: Text('Save workout',
+              child: Text('Save routine',
                   style: AppFonts.sf(
                       size: 15,
                       weight: FontWeight.w700,

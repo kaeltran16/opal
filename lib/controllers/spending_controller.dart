@@ -23,6 +23,9 @@ enum DetailTracker {
     colorToken: 'money',
     askPalPrompt: 'Ask Pal about spending',
     unbudgetedLabel: 'Uncategorized',
+    heroSub: 'Spent today',
+    heroIcon: 'creditcard.fill',
+    recentHeader: "Today's spending",
   ),
   move(
     title: 'Workout',
@@ -30,6 +33,9 @@ enum DetailTracker {
     colorToken: 'move',
     askPalPrompt: 'Ask Pal about workouts',
     unbudgetedLabel: 'Other',
+    heroSub: 'Minutes logged',
+    heroIcon: 'figure.run',
+    recentHeader: "Today's workouts",
   ),
   rituals(
     title: 'Routines',
@@ -37,6 +43,9 @@ enum DetailTracker {
     colorToken: 'rituals',
     askPalPrompt: 'Ask Pal about routines',
     unbudgetedLabel: 'Other',
+    heroSub: 'Routines completed',
+    heroIcon: 'checkmark',
+    recentHeader: "Today's routines",
   );
 
   const DetailTracker({
@@ -45,6 +54,9 @@ enum DetailTracker {
     required this.colorToken,
     required this.askPalPrompt,
     required this.unbudgetedLabel,
+    required this.heroSub,
+    required this.heroIcon,
+    required this.recentHeader,
   });
 
   /// Large-title nav text for this detail screen.
@@ -61,6 +73,15 @@ enum DetailTracker {
 
   /// Category bucket label for entries with no category set.
   final String unbudgetedLabel;
+
+  /// Colored hero sub-line under the big number (design `cfg.sub`).
+  final String heroSub;
+
+  /// SF symbol for the hero icon tile and entry rows (design `cfg.icon`/`e.sf`).
+  final String heroIcon;
+
+  /// Section header over the recent-entries list (design `Today's …`).
+  final String recentHeader;
 
   /// Magnitude of one entry for totals/breakdown. For money this is the
   /// absolute expense amount; Move/Rituals override to minutes/count.

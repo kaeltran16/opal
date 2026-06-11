@@ -10,6 +10,8 @@ import 'package:opal/screens/onboarding/onboarding_screen.dart';
 import 'package:opal/screens/today/today_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'support/flush_provider_timers.dart';
+
 /// Boots [LoopApp] with an in-memory DB + mock prefs. [onboardingComplete]
 /// seeds the gate flag.
 Future<({LoopDatabase db, SharedPreferences prefs})> _pumpApp(
@@ -52,6 +54,8 @@ void main() {
 
     expect(find.byType(TodayScreen), findsOneWidget);
     expect(find.byType(OnboardingScreen), findsNothing);
+
+    await flushProviderTimers(tester);
   });
 
   testWidgets(
@@ -102,5 +106,7 @@ void main() {
     final names = routines.map((r) => r.name).toSet();
     expect(names, contains('Morning'));
     expect(routines.first.steps, isNotEmpty);
+
+    await flushProviderTimers(tester);
   });
 }

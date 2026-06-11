@@ -7,56 +7,45 @@ import '../../widgets/app_icon.dart';
 import '../../widgets/press_scale.dart';
 import '../../router.dart';
 
-/// Screen 03 — Quick Actions overlay.
+/// Screen 03 — Quick Actions sheet.
 ///
-/// A full-screen dim overlay (rgba(0,0,0,0.35)) holding a 2×3 grid of six
-/// action tiles. Triggered by the center FAB in [LoopShell]. Closes via the
-/// "×" (top-right) or by tapping outside the grid. Entrance is a scale-up of
-/// the grid from the FAB with the backdrop fading in (driven by the route's
-/// transition animation).
+/// A dim overlay (rgba(0,0,0,0.4)) with a bottom-anchored surface that slides
+/// up, holding a grabber, a "QUICK ACTIONS" eyebrow, and three full-width list
+/// rows (44×44 tinted icon + title + subtitle + chevron). Triggered by the
+/// center FAB in [LoopShell]. Closes by tapping outside.
 ///
-/// Tiles route to the relevant screen/sheet; targets that belong to later
-/// units fall back to existing stubs and are marked with a `// TODO Uxx`.
+/// Rows route to the relevant screen/sheet; targets that belong to later units
+/// fall back to existing stubs.
 class QuickActionsOverlay extends StatelessWidget {
   const QuickActionsOverlay({super.key, this.animation});
 
   /// The route transition animation (0→1 on enter). Drives the backdrop fade
-  /// and the grid scale-up. Falls back to a static (already-shown) value when
+  /// and the sheet slide-up. Falls back to a static (already-shown) value when
   /// pumped without a transition (e.g. in tests).
   final Animation<double>? animation;
 
   static const _spec = <_ActionSpec>[
-    _ActionSpec('Log expense', 'dollarsign.circle.fill', 'money'),
-    _ActionSpec('Log workout', 'dumbbell.fill', 'move'),
-    _ActionSpec('Start workout', 'figure.run', 'move'),
-    _ActionSpec('Complete routine', 'sparkles', 'rituals'),
-    _ActionSpec('Ask Pal', 'heart.fill', 'accent'),
-    _ActionSpec('Voice entry', 'paperplane.fill', 'accent'),
+    _ActionSpec('Log entry', 'Money, meal, or workout — natural language',
+        'plus.circle.fill', 'accent'),
+    _ActionSpec('Start workout', 'Pick a routine or freestyle', 'play.fill',
+        'move'),
+    _ActionSpec('Ask Pal', 'Chat about your patterns', 'sparkles', 'rituals'),
   ];
 
   void _close(BuildContext context) {
     if (context.canPop()) context.pop();
   }
 
-  void _onTile(BuildContext context, String label) {
-    // Dismiss the overlay first, then navigate to the target.
+  void _onRow(BuildContext context, String label) {
+    // Dismiss the sheet first, then navigate to the target.
     _close(context);
     switch (label) {
-      case 'Log expense':
+      case 'Log entry':
         context.pushNamed(AppRoute.newEntry.name); // U07
-      case 'Ask Pal':
-        context.pushNamed(AppRoute.askPal.name); // U16
-      case 'Log workout':
-        // Manual workout log: open New Entry on the Workout segment.
-        context.pushNamed(AppRoute.newEntry.name,
-            queryParameters: {'kind': 'workout'});
       case 'Start workout':
         context.pushNamed(AppRoute.startWorkout.name); // U12 -> /move/start
-      case 'Complete routine':
-        context.goNamed(AppRoute.rituals.name); // switch to the Routines tab
-      case 'Voice entry':
-        // Voice/NL capture lands on Ask Pal until a dedicated capture exists.
-        context.pushNamed(AppRoute.askPal.name);
+      case 'Ask Pal':
+        context.pushNamed(AppRoute.askPal.name); // U16
     }
   }
 
@@ -66,7 +55,7 @@ class QuickActionsOverlay extends StatelessWidget {
     final anim = animation ?? const AlwaysStoppedAnimation<double>(1);
     final curved = CurvedAnimation(
       parent: anim,
-      curve: const Cubic(0.2, 0.8, 0.2, 1),
+      curve: const Cubic(0.22, 1, 0.36, 1),
     );
 
     return Material(
@@ -80,59 +69,69 @@ class QuickActionsOverlay extends StatelessWidget {
               onTap: () => _close(context),
               child: FadeTransition(
                 opacity: anim,
-                child: const ColoredBox(color: Color(0x59000000)), // rgba(0,0,0,0.35)
+                child: const ColoredBox(color: Color(0x66000000)), // rgba(0,0,0,0.4)
               ),
             ),
           ),
-          // The grid scales up from near the FAB (bottom-center) and fades in.
-          Positioned.fill(
-            child: FadeTransition(
-              opacity: anim,
-              child: ScaleTransition(
-                scale: Tween<double>(begin: 0.85, end: 1).animate(curved),
-                alignment: const Alignment(0, 0.9),
-                child: SafeArea(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
-                    child: Column(
-                      children: [
-                        // Close "×" top-right.
-                        Align(
-                          alignment: Alignment.topRight,
-                          child: _CloseButton(onTap: () => _close(context)),
-                        ),
-                        // 2×3 grid of action tiles, centered in the remaining
-                        // space. Wrapped in a tap-absorbing detector so taps on
-                        // the tiles don't fall through to the backdrop, and made
-                        // scrollable so it never overflows on short screens.
-                        Expanded(
-                          child: GestureDetector(
-                            onTap: () {},
-                            child: Center(
-                              child: SingleChildScrollView(
-                                child: GridView.count(
-                                  shrinkWrap: true,
-                                  physics:
-                                      const NeverScrollableScrollPhysics(),
-                                  crossAxisCount: 2,
-                                  mainAxisSpacing: 16,
-                                  crossAxisSpacing: 16,
-                                  childAspectRatio: 1.45,
-                                  children: [
-                                    for (final a in _spec)
-                                      _ActionTile(
-                                        spec: a,
-                                        color: c.forType(a.typeToken),
-                                        onTap: () =>
-                                            _onTile(context, a.label),
-                                      ),
-                                  ],
-                                ),
+          // Bottom-anchored sheet that slides up.
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: SlideTransition(
+              position: Tween<Offset>(
+                begin: const Offset(0, 1),
+                end: Offset.zero,
+              ).animate(curved),
+              // Absorb taps so they don't fall through to the backdrop.
+              child: GestureDetector(
+                onTap: () {},
+                child: Container(
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: c.surface,
+                    borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(18)),
+                  ),
+                  child: SafeArea(
+                    top: false,
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(12, 6, 12, 12),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Grabber.
+                          Center(
+                            child: Container(
+                              width: 36,
+                              height: 5,
+                              margin: const EdgeInsets.only(bottom: 14),
+                              decoration: BoxDecoration(
+                                color: c.hair,
+                                borderRadius: BorderRadius.circular(3),
                               ),
                             ),
                           ),
-                        ),
-                      ],
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(6, 0, 6, 8),
+                            child: Text(
+                              'QUICK ACTIONS',
+                              style: AppFonts.sf(
+                                size: 11,
+                                weight: FontWeight.w700,
+                                color: c.ink3,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ),
+                          for (var i = 0; i < _spec.length; i++)
+                            _ActionRow(
+                              spec: _spec[i],
+                              color: c.forType(_spec[i].typeToken),
+                              showDivider: i < _spec.length - 1,
+                              onTap: () => _onRow(context, _spec[i].label),
+                            ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -146,21 +145,26 @@ class QuickActionsOverlay extends StatelessWidget {
 }
 
 class _ActionSpec {
-  const _ActionSpec(this.label, this.icon, this.typeToken);
-  final String label;
+  const _ActionSpec(this.title, this.subtitle, this.icon, this.typeToken);
+  final String title;
+  final String subtitle;
   final String icon;
   final String typeToken; // 'money' | 'move' | 'rituals' | 'accent'
+
+  String get label => title;
 }
 
-class _ActionTile extends StatelessWidget {
-  const _ActionTile({
+class _ActionRow extends StatelessWidget {
+  const _ActionRow({
     required this.spec,
     required this.color,
+    required this.showDivider,
     required this.onTap,
   });
 
   final _ActionSpec spec;
   final Color color;
+  final bool showDivider;
   final VoidCallback onTap;
 
   @override
@@ -168,71 +172,56 @@ class _ActionTile extends StatelessWidget {
     final c = context.colors;
     return PressScale(
       onTap: onTap,
-      semanticLabel: spec.label,
+      semanticLabel: spec.title,
       child: Container(
         decoration: BoxDecoration(
-          color: c.surface,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: c.hair, width: 0.5),
-          boxShadow: const [
-            BoxShadow(
-                color: Color(0x1F000000), blurRadius: 18, offset: Offset(0, 6)),
-          ],
+          border: showDivider
+              ? Border(bottom: BorderSide(color: c.hair, width: 0.5))
+              : null,
         ),
-        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 14),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.start,
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+        child: Row(
           children: [
-            // Type-tinted icon square (48×48).
             Container(
-              width: 48,
-              height: 48,
+              width: 44,
+              height: 44,
               decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.16),
+                color: color.withValues(alpha: 0.13),
                 borderRadius: BorderRadius.circular(12),
               ),
               alignment: Alignment.center,
-              child: AppIcon(spec.icon, size: 24, color: color),
+              child: AppIcon(spec.icon, size: 20, color: color),
             ),
-            const SizedBox(height: 12),
-            // Label (SF 14/500).
-            Text(
-              spec.label,
-              style: AppFonts.sf(
-                size: 14,
-                weight: FontWeight.w500,
-                color: c.ink,
-                letterSpacing: -0.15,
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    spec.title,
+                    style: AppFonts.sf(
+                      size: 16,
+                      weight: FontWeight.w600,
+                      color: c.ink,
+                      letterSpacing: -0.3,
+                    ),
+                  ),
+                  const SizedBox(height: 1),
+                  Text(
+                    spec.subtitle,
+                    style: AppFonts.sf(
+                      size: 13,
+                      color: c.ink3,
+                      letterSpacing: -0.08,
+                    ),
+                  ),
+                ],
               ),
             ),
+            const SizedBox(width: 8),
+            AppIcon('chevron.right', size: 14, color: c.ink4),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _CloseButton extends StatelessWidget {
-  const _CloseButton({required this.onTap});
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.colors;
-    return PressScale(
-      onTap: onTap,
-      semanticLabel: 'Close',
-      child: Container(
-        width: 36,
-        height: 36,
-        decoration: BoxDecoration(
-          color: c.surface.withValues(alpha: 0.92),
-          shape: BoxShape.circle,
-          border: Border.all(color: c.hair, width: 0.5),
-        ),
-        alignment: Alignment.center,
-        child: AppIcon('xmark', size: 16, color: c.ink2),
       ),
     );
   }

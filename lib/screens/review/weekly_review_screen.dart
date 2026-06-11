@@ -23,7 +23,7 @@ class WeeklyReviewScreen extends ConsumerWidget {
 
   /// "Wins" rows: (icon, colorToken, title, sub).
   static const _wins = <(String, String, String, String)>[
-    ('figure.run', 'move', '11-day move streak', 'Longest in 3 months'),
+    ('figure.run', 'move', '11-day workout streak', 'Longest in 3 months'),
     ('dollarsign.circle.fill', 'money', '\$160 under budget', '\$435 of \$595'),
     ('sparkles', 'rituals', 'Morning pages 6/7', 'Missed only Saturday'),
   ];

@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'support/flush_provider_timers.dart';
+
 import 'package:opal/app.dart';
 import 'package:opal/controllers/providers.dart';
 import 'package:opal/data/db/database.dart';
@@ -40,5 +42,7 @@ void main() {
     expect(find.text('Spent'), findsWidgets);
     expect(find.text('Workout'), findsWidgets);
     expect(find.text('Routines'), findsWidgets);
+
+    await flushProviderTimers(tester);
   });
 }

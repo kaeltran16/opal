@@ -31,16 +31,16 @@ class MonthlyReviewScreen extends ConsumerWidget {
   /// narrative in U23); kept here so the demo renders three rows.
   static const _patterns = <(String, String)>[
     (
-      'Mornings set the tone',
-      'On days you finished morning routines, you spent about 32% less.',
+      'Morning rituals lower food spending',
+      'On days you journal, food costs drop 32%',
     ),
     (
-      'Workouts are your anchor',
-      'Your longest training streak lined up with your calmest spending week.',
+      'Friday is your spendiest day',
+      'Average \$94 — mostly dinner out',
     ),
     (
-      'Weekends drift',
-      'Two-thirds of over-budget days landed on a Saturday or Sunday.',
+      'Movement and sleep are linked',
+      'You move 40% more after 7+ hour nights',
     ),
   ];
 
@@ -64,6 +64,7 @@ class MonthlyReviewScreen extends ConsumerWidget {
             onTap: () => Navigator.of(context).maybePop(),
             child: AppIcon('chevron.left', size: 20, color: c.accent),
           ),
+          trailing: const NavIconButton(name: 'ellipsis'),
         ),
 
         // --- Narrative card (gradient accent bg, "Written by Pal") -----------
@@ -159,7 +160,11 @@ class _NarrativeCard extends ConsumerWidget {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [c.accentTint, c.ritualsTint],
+          // design uses {accent}18 → {rituals}18 (~9% alpha)
+          colors: [
+            c.accent.withValues(alpha: 0.09),
+            c.rituals.withValues(alpha: 0.09),
+          ],
         ),
         border: Border.all(
             color: c.accent.withValues(alpha: 0.20), width: 0.5),
@@ -239,7 +244,7 @@ class _RegeneratePill extends ConsumerWidget {
           children: [
             AppIcon('sparkles', size: 13, color: c.accent),
             const SizedBox(width: 6),
-            Text('Regenerate',
+            Text(loading ? 'Writing…' : 'Regenerate',
                 style: AppFonts.sf(
                     size: 13,
                     weight: FontWeight.w600,
@@ -267,22 +272,36 @@ class _StatRow extends StatelessWidget {
         border:
             last ? null : Border(bottom: BorderSide(color: c.hair, width: 0.5)),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Row(
         children: [
           Container(
-            width: 32,
-            height: 32,
+            width: 36,
+            height: 36,
             decoration: BoxDecoration(
-                color: color, borderRadius: BorderRadius.circular(8)),
+                color: color, borderRadius: BorderRadius.circular(10)),
             alignment: Alignment.center,
-            child: AppIcon(stat.icon, size: 17, color: const Color(0xFFFFFFFF)),
+            child: AppIcon(stat.icon, size: 18, color: const Color(0xFFFFFFFF)),
           ),
           const SizedBox(width: 12),
           Expanded(
-            child: Text(stat.label,
-                style: AppFonts.sf(
-                    size: 17, color: c.ink, letterSpacing: -0.43)),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(stat.label,
+                    style: AppFonts.sf(
+                        size: 13,
+                        weight: FontWeight.w500,
+                        color: c.ink3,
+                        letterSpacing: -0.08)),
+                if (stat.sub != null) ...[
+                  const SizedBox(height: 1),
+                  Text(stat.sub!,
+                      style: AppFonts.sf(
+                          size: 12, color: c.ink3, letterSpacing: -0.08)),
+                ],
+              ],
+            ),
           ),
           Row(
             crossAxisAlignment: CrossAxisAlignment.baseline,
@@ -290,7 +309,7 @@ class _StatRow extends StatelessWidget {
             children: [
               Text(stat.value,
                   style: AppFonts.sfr(
-                      size: 24, weight: FontWeight.w700, color: c.ink, letterSpacing: -0.3)),
+                      size: 22, weight: FontWeight.w700, color: c.ink, letterSpacing: -0.3)),
               if (stat.unit != null) ...[
                 const SizedBox(width: 4),
                 Text(stat.unit!,
@@ -345,20 +364,7 @@ class _PatternRow extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 30,
-            height: 30,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [c.accent, c.rituals],
-              ),
-            ),
-            alignment: Alignment.center,
-            child: const AppIcon('sparkles', size: 14, color: Color(0xFFFFFFFF)),
-          ),
+          AppIcon('sparkles', size: 16, color: c.accent),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -367,7 +373,7 @@ class _PatternRow extends StatelessWidget {
                 Text(title,
                     style: AppFonts.sf(
                         size: 15,
-                        weight: FontWeight.w600,
+                        weight: FontWeight.w500,
                         color: c.ink,
                         letterSpacing: -0.24)),
                 const SizedBox(height: 2),

@@ -252,7 +252,7 @@ class _CompactBody extends StatelessWidget {
       ),
     ),
     // Open prompt, not a concrete log — no local fallback.
-    _Starter('chart.bar.fill', 'accent', "How's my week so far?"),
+    _Starter('chart.bar.fill', 'accent', 'How’s my week so far?'),
   ];
 
   @override

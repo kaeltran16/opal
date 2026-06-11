@@ -51,13 +51,13 @@ class _ExerciseLibraryScreenState extends ConsumerState<ExerciseLibraryScreen> {
     }).toList();
   }
 
-  /// Groups the filtered exercises by muscle, preserving the catalog's
-  /// (name-ascending) order within each muscle and ordering muscles by first
-  /// appearance so sections are stable.
-  List<MapEntry<String, List<Exercise>>> _byMuscle(List<Exercise> list) {
+  /// Groups the filtered exercises by group (Push/Pull/Legs/Core/Cardio),
+  /// preserving the catalog's order within each group and ordering groups by
+  /// first appearance so sections are stable.
+  List<MapEntry<String, List<Exercise>>> _byGroup(List<Exercise> list) {
     final map = <String, List<Exercise>>{};
     for (final e in list) {
-      (map[e.muscle] ??= <Exercise>[]).add(e);
+      (map[e.group] ??= <Exercise>[]).add(e);
     }
     return map.entries.toList();
   }
@@ -74,7 +74,7 @@ class _ExerciseLibraryScreenState extends ConsumerState<ExerciseLibraryScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _Header(),
+            _Header(count: async.asData?.value.length),
             _SearchPill(
               controller: _searchController,
               onChanged: (v) => setState(() => _query = v),
@@ -106,7 +106,7 @@ class _ExerciseLibraryScreenState extends ConsumerState<ExerciseLibraryScreen> {
                   if (filtered.isEmpty) {
                     return _EmptyState(query: _query);
                   }
-                  final sections = _byMuscle(filtered);
+                  final sections = _byGroup(filtered);
                   return ListView(
                     padding: const EdgeInsets.only(top: 4, bottom: 32),
                     children: [
@@ -135,6 +135,11 @@ class _ExerciseLibraryScreenState extends ConsumerState<ExerciseLibraryScreen> {
 
 /// Title row with a back affordance (this is a root-level focus route).
 class _Header extends StatelessWidget {
+  const _Header({this.count});
+
+  /// Total catalog size for the "{N} in library" subtitle (null while loading).
+  final int? count;
+
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
@@ -146,17 +151,36 @@ class _Header extends StatelessWidget {
             behavior: HitTestBehavior.opaque,
             onTap: () => context.pop(),
             child: Padding(
-              padding: const EdgeInsets.all(8),
-              child: AppIcon('chevron.left', size: 20, color: c.accent),
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  AppIcon('chevron.left', size: 20, color: c.accent),
+                  Text('Workout',
+                      style: AppFonts.sf(
+                          size: 17, color: c.accent, letterSpacing: -0.4)),
+                ],
+              ),
             ),
           ),
           const SizedBox(width: 4),
-          Text('Exercise Library',
-              style: AppFonts.sf(
-                  size: 22,
-                  weight: FontWeight.w700,
-                  color: c.ink,
-                  letterSpacing: 0.35)),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Exercises',
+                    style: AppFonts.sf(
+                        size: 22,
+                        weight: FontWeight.w700,
+                        color: c.ink,
+                        letterSpacing: 0.35)),
+                if (count != null)
+                  Text('$count in library',
+                      style: AppFonts.sf(
+                          size: 12, color: c.ink3, letterSpacing: -0.08)),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -308,13 +332,21 @@ class _ExerciseRow extends StatelessWidget {
     return '$w kg';
   }
 
+  /// Group-coded icon tile color (matches the design's per-group tinting).
+  Color _iconBg(AppColors c) => switch (exercise.group) {
+        'Pull' => c.rituals,
+        'Legs' => c.money,
+        'Push' || 'Cardio' => c.move,
+        _ => c.accent,
+      };
+
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
     final pr = _prText;
     return ListRow(
       icon: exercise.icon,
-      iconBg: c.move,
+      iconBg: _iconBg(c),
       title: exercise.name,
       subtitle: _meta,
       value: pr,

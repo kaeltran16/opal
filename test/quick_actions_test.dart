@@ -9,6 +9,8 @@ import 'package:opal/controllers/providers.dart';
 import 'package:opal/data/db/database.dart';
 import 'package:opal/data/seed/seeder.dart';
 
+import 'support/flush_provider_timers.dart';
+
 /// Handoff #2 — the center FAB now opens the unified **Pal composer** (the
 /// single input surface that replaced the old Quick-Actions menu). Pump the
 /// real app, tap the FAB, assert the composer surface appears, then dismiss it
@@ -53,5 +55,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Log, ask, or start anything'), findsNothing);
+
+    await flushProviderTimers(tester);
   });
 }

@@ -117,8 +117,7 @@ class _Key extends StatelessWidget {
           height: 52,
           decoration: BoxDecoration(
             color: c.surface,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: c.hair, width: 0.5),
+            borderRadius: BorderRadius.circular(14),
           ),
           alignment: Alignment.center,
           child: _isDelete

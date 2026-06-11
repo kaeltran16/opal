@@ -79,9 +79,12 @@ class _NewEntrySheetState extends ConsumerState<NewEntrySheet> {
   final TextEditingController _categoryCtrl = TextEditingController();
   final TextEditingController _noteCtrl = TextEditingController();
 
+  /// Natural-language "Log with Pal" input (inline at top of the sheet).
+  final TextEditingController _nlCtrl = TextEditingController();
+
   bool _saving = false;
 
-  /// True while a "Type it" natural-language parse is in flight.
+  /// True while a "Log with Pal" natural-language parse is in flight.
   bool _parsing = false;
 
   @override
@@ -145,6 +148,7 @@ class _NewEntrySheetState extends ConsumerState<NewEntrySheet> {
     _titleCtrl.dispose();
     _categoryCtrl.dispose();
     _noteCtrl.dispose();
+    _nlCtrl.dispose();
     super.dispose();
   }
 
@@ -259,25 +263,21 @@ class _NewEntrySheetState extends ConsumerState<NewEntrySheet> {
     });
   }
 
-  // --- "Type it" natural-language parse (U16) --------------------------------
+  // --- "Log with Pal" natural-language parse (U16) ---------------------------
 
-  /// Opens the NL-entry field, then parses the text via [PalService.parse] and
-  /// pre-fills the sheet's type/amount/category/title.
-  Future<void> _openTypeIt() async {
+  /// Parses the inline "Log with Pal" text via [PalService.parse] and pre-fills
+  /// the sheet's type/amount/category/title.
+  Future<void> _parseNl() async {
     if (_parsing) return;
-    final text = await showModalBottomSheet<String>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: const Color(0x00000000),
-      builder: (context) => const _TypeItInput(),
-    );
-    if (text == null || text.trim().isEmpty || !mounted) return;
+    final text = _nlCtrl.text.trim();
+    if (text.isEmpty) return;
 
     setState(() => _parsing = true);
-    final draft = await ref.read(palServiceProvider).parse(text.trim());
+    final draft = await ref.read(palServiceProvider).parse(text);
     if (!mounted) return;
     setState(() {
       _parsing = false;
+      _nlCtrl.clear();
       _applyParsed(draft);
     });
   }
@@ -441,13 +441,22 @@ class _NewEntrySheetState extends ConsumerState<NewEntrySheet> {
             Center(child: _buildDisplay(c, typeColor)),
             const SizedBox(height: 16),
 
-            // Scrollable middle: quick picks + optional fields + Type it.
+            // Scrollable middle: Log with Pal + quick picks + optional fields.
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
                 children: [
+                  // "Log with Pal" — inline natural-language entry (U16). Parses
+                  // free text via PalService and pre-fills the form.
+                  _LogWithPalBox(
+                    controller: _nlCtrl,
+                    accent: c.accent,
+                    parsing: _parsing,
+                    onParse: _parseNl,
+                  ),
+                  const SizedBox(height: 16),
                   Text(
-                    'QUICK PICKS',
+                    'CATEGORY',
                     style: AppFonts.sf(
                       size: 12,
                       weight: FontWeight.w600,
@@ -472,15 +481,6 @@ class _NewEntrySheetState extends ConsumerState<NewEntrySheet> {
                     controller: _noteCtrl,
                     hint: 'Note (optional)',
                     icon: 'character.book.closed.fill',
-                  ),
-                  const SizedBox(height: 16),
-
-                  // "✨ Type it" — natural-language entry (U16). Opens a field,
-                  // sends it to PalService.parse(), and pre-fills the form.
-                  _TypeItButton(
-                    accent: c.accent,
-                    parsing: _parsing,
-                    onTap: _openTypeIt,
                   ),
                 ],
               ),
@@ -521,14 +521,52 @@ class _NewEntrySheetState extends ConsumerState<NewEntrySheet> {
       );
     }
     final empty = _numericValue == null;
-    return Text(
-      _displayText,
-      style: AppFonts.sfr(
-        size: 56,
-        weight: FontWeight.w700,
-        color: empty ? c.ink4 : typeColor,
-        letterSpacing: -1,
-      ),
+    final numberColor = empty ? c.ink4 : c.ink;
+    // Money: 46px ink4 "$" prefix; Move: 20px ink3 "min" suffix (design AddSheet).
+    final number = _kind == _Kind.expense
+        ? (empty ? '0' : _formatMoney(_numericValue ?? 0))
+        : (_numericValue ?? 0).toStringAsFixed(0);
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.baseline,
+      textBaseline: TextBaseline.alphabetic,
+      children: [
+        if (_kind == _Kind.expense)
+          Padding(
+            padding: const EdgeInsets.only(right: 4),
+            child: Text(
+              '\$',
+              style: AppFonts.sfr(
+                size: 46,
+                weight: FontWeight.w300,
+                color: c.ink4,
+                letterSpacing: -1,
+              ),
+            ),
+          ),
+        Text(
+          number,
+          style: AppFonts.sfr(
+            size: 72,
+            weight: FontWeight.w700,
+            color: numberColor,
+            letterSpacing: -2,
+            height: 1,
+          ),
+        ),
+        if (_kind == _Kind.workout)
+          Padding(
+            padding: const EdgeInsets.only(left: 6),
+            child: Text(
+              'min',
+              style: AppFonts.sf(
+                size: 20,
+                weight: FontWeight.w600,
+                color: c.ink3,
+              ),
+            ),
+          ),
+      ],
     );
   }
 
@@ -732,159 +770,120 @@ class _RitualTitleField extends StatelessWidget {
   }
 }
 
-/// The "✨ Type it" natural-language entry button (U16). Tapping opens a text
-/// field; the text is parsed by [PalService.parse] and pre-fills the sheet.
-class _TypeItButton extends StatelessWidget {
-  const _TypeItButton({
+/// "Log with Pal" — inline natural-language entry (U16). An accent-tinted box
+/// with a "LOG WITH PAL" eyebrow, a free-text field, and a Parse button; the
+/// text is parsed by [PalService.parse] and pre-fills the sheet.
+class _LogWithPalBox extends StatelessWidget {
+  const _LogWithPalBox({
+    required this.controller,
     required this.accent,
     required this.parsing,
-    required this.onTap,
+    required this.onParse,
   });
 
+  final TextEditingController controller;
   final Color accent;
   final bool parsing;
-  final VoidCallback onTap;
+  final VoidCallback onParse;
 
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    return GestureDetector(
-      onTap: parsing ? null : onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        decoration: BoxDecoration(
-          color: c.fill,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        alignment: Alignment.center,
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (parsing)
-              SizedBox(
-                width: 15,
-                height: 15,
-                child: CircularProgressIndicator(strokeWidth: 2, color: accent),
-              )
-            else
-              AppIcon('sparkles', size: 15, color: accent),
-            const SizedBox(width: 6),
-            Text(
-              parsing ? 'Reading…' : 'Type it',
-              style: AppFonts.sf(
-                size: 15,
-                weight: FontWeight.w500,
-                color: c.ink2,
-                letterSpacing: -0.24,
-              ),
-            ),
-          ],
-        ),
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: accent.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: accent.withValues(alpha: 0.33), width: 0.5),
       ),
-    );
-  }
-}
-
-/// A modal input for the "Type it" flow: a free-text field that returns its
-/// trimmed contents on submit, e.g. "coffee 5" or "ran 30".
-class _TypeItInput extends StatefulWidget {
-  const _TypeItInput();
-
-  @override
-  State<_TypeItInput> createState() => _TypeItInputState();
-}
-
-class _TypeItInputState extends State<_TypeItInput> {
-  final TextEditingController _ctrl = TextEditingController();
-
-  @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
-  }
-
-  void _submit() => Navigator.of(context).pop(_ctrl.text);
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.colors;
-    final insets = MediaQuery.viewInsetsOf(context);
-    return Padding(
-      padding: EdgeInsets.only(bottom: insets.bottom),
-      child: Container(
-        margin: const EdgeInsets.all(16),
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
-        decoration: BoxDecoration(
-          color: c.surface,
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              children: [
-                AppIcon('sparkles', size: 16, color: c.accent),
-                const SizedBox(width: 8),
-                Text(
-                  'Type it',
-                  style: AppFonts.sf(
-                    size: 17,
-                    weight: FontWeight.w600,
-                    color: c.ink,
-                    letterSpacing: -0.43,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              AppIcon('sparkles', size: 14, color: accent),
+              const SizedBox(width: 6),
+              Text(
+                'LOG WITH PAL',
+                style: AppFonts.sf(
+                  size: 12,
+                  weight: FontWeight.w700,
+                  color: accent,
+                  letterSpacing: 0.3,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: c.surface,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: c.hair, width: 0.5),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: c.fill,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: TextField(
-                controller: _ctrl,
-                autofocus: true,
-                textInputAction: TextInputAction.done,
-                onSubmitted: (_) => _submit(),
-                cursorColor: c.accent,
-                style: AppFonts.sf(size: 17, color: c.ink, letterSpacing: -0.43),
-                decoration: InputDecoration(
-                  isDense: true,
-                  border: InputBorder.none,
-                  hintText: 'e.g. "coffee 5" or "ran 30 min"',
-                  hintStyle:
-                      AppFonts.sf(size: 17, color: c.ink4, letterSpacing: -0.43),
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            GestureDetector(
-              onTap: _submit,
-              behavior: HitTestBehavior.opaque,
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                decoration: BoxDecoration(
-                  color: c.accent,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                alignment: Alignment.center,
-                child: Text(
-                  'Parse',
-                  style: AppFonts.sf(
-                    size: 16,
-                    weight: FontWeight.w600,
-                    color: const Color(0xFFFFFFFF),
-                    letterSpacing: -0.31,
+                  child: TextField(
+                    controller: controller,
+                    textInputAction: TextInputAction.done,
+                    onSubmitted: (_) => onParse(),
+                    cursorColor: accent,
+                    style: AppFonts.sf(
+                        size: 15, color: c.ink, letterSpacing: -0.24),
+                    decoration: InputDecoration(
+                      isDense: true,
+                      border: InputBorder.none,
+                      hintText: 'spent \$14 on ramen',
+                      hintStyle: AppFonts.sf(
+                          size: 15, color: c.ink4, letterSpacing: -0.24),
+                    ),
                   ),
                 ),
               ),
-            ),
-          ],
-        ),
+              const SizedBox(width: 8),
+              ValueListenableBuilder<TextEditingValue>(
+                valueListenable: controller,
+                builder: (context, value, _) {
+                  final enabled = value.text.trim().isNotEmpty && !parsing;
+                  return GestureDetector(
+                    onTap: enabled ? onParse : null,
+                    behavior: HitTestBehavior.opaque,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: enabled ? accent : c.fill,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: parsing
+                          ? SizedBox(
+                              width: 15,
+                              height: 15,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: const Color(0xFFFFFFFF)),
+                            )
+                          : Text(
+                              'Parse',
+                              style: AppFonts.sf(
+                                size: 14,
+                                weight: FontWeight.w600,
+                                color: enabled
+                                    ? const Color(0xFFFFFFFF)
+                                    : c.ink3,
+                                letterSpacing: -0.2,
+                              ),
+                            ),
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

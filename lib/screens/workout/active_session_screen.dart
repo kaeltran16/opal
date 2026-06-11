@@ -330,7 +330,7 @@ class _HeaderStats extends StatelessWidget {
 
 // ─── Rest banner ─────────────────────────────────────────────────────────────
 
-class _RestBanner extends StatelessWidget {
+class _RestBanner extends StatefulWidget {
   const _RestBanner({
     required this.restRemaining,
     required this.onAddTime,
@@ -342,89 +342,158 @@ class _RestBanner extends StatelessWidget {
   final VoidCallback onSkip;
 
   @override
+  State<_RestBanner> createState() => _RestBannerState();
+}
+
+class _RestBannerState extends State<_RestBanner>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _spin =
+      AnimationController(vsync: this, duration: const Duration(seconds: 1))
+        ..repeat();
+
+  // The controller exposes only the remaining seconds, so capture the high-water
+  // mark across this rest period (incl. +30s bumps) as the progress denominator.
+  int _total = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _total = widget.restRemaining;
+  }
+
+  @override
+  void didUpdateWidget(_RestBanner old) {
+    super.didUpdateWidget(old);
+    if (widget.restRemaining > _total) _total = widget.restRemaining;
+  }
+
+  @override
+  void dispose() {
+    _spin.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    final m = (restRemaining ~/ 60).toString();
-    final s = (restRemaining % 60).toString().padLeft(2, '0');
+    final m = (widget.restRemaining ~/ 60).toString();
+    final s = (widget.restRemaining % 60).toString().padLeft(2, '0');
+    final elapsedFrac =
+        _total <= 0 ? 0.0 : (1 - widget.restRemaining / _total).clamp(0.0, 1.0);
 
     return Container(
       color: c.accent,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: Row(
+      child: Stack(
         children: [
-          Container(
-            width: 32,
-            height: 32,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(
-                  color: _white.withValues(alpha: 0.3), width: 2.5),
+          // left-anchored progress fill that grows as rest elapses.
+          Positioned.fill(
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: FractionallySizedBox(
+                widthFactor: elapsedFrac,
+                child: ColoredBox(color: _white.withValues(alpha: 0.12)),
+              ),
             ),
-            // Static glyph (not an animated spinner) so the screen settles and
-            // leaves no perpetual ticker; the countdown text conveys progress.
-            child: AppIcon('clock.fill', size: 14, color: _white),
           ),
-          const SizedBox(width: 10),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          Row(
             children: [
-              Text(
-                'REST',
-                style: AppFonts.sf(
-                  size: 10,
-                  weight: FontWeight.w700,
-                  color: _white.withValues(alpha: 0.85),
-                  letterSpacing: 1,
+              SizedBox(
+                width: 32,
+                height: 32,
+                child: RotationTransition(
+                  turns: _spin,
+                  child: CustomPaint(
+                    painter: _RestSpinnerPainter(
+                        color: _white.withValues(alpha: 0.3)),
+                  ),
                 ),
               ),
-              Text(
-                '$m:$s',
-                style: AppFonts.sfr(
-                    size: 22, color: _white, letterSpacing: -0.3),
+              const SizedBox(width: 10),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'REST',
+                    style: AppFonts.sf(
+                      size: 10,
+                      weight: FontWeight.w700,
+                      color: _white.withValues(alpha: 0.85),
+                      letterSpacing: 1,
+                    ),
+                  ),
+                  Text(
+                    '$m:$s',
+                    style: AppFonts.sfr(
+                        size: 22, color: _white, letterSpacing: -0.3),
+                  ),
+                ],
+              ),
+              const Spacer(),
+              GestureDetector(
+                onTap: widget.onAddTime,
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                  decoration: BoxDecoration(
+                    color: _white.withValues(alpha: 0.22),
+                    borderRadius: BorderRadius.circular(100),
+                  ),
+                  child: Text('+30s',
+                      style: AppFonts.sf(
+                          size: 12,
+                          weight: FontWeight.w600,
+                          color: _white,
+                          letterSpacing: -0.08)),
+                ),
+              ),
+              const SizedBox(width: 6),
+              GestureDetector(
+                onTap: widget.onSkip,
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                  decoration: BoxDecoration(
+                    color: _white,
+                    borderRadius: BorderRadius.circular(100),
+                  ),
+                  child: Text('Skip',
+                      style: AppFonts.sf(
+                          size: 12,
+                          weight: FontWeight.w700,
+                          color: c.accent,
+                          letterSpacing: -0.08)),
+                ),
               ),
             ],
-          ),
-          const Spacer(),
-          GestureDetector(
-            onTap: onAddTime,
-            child: Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-              decoration: BoxDecoration(
-                color: _white.withValues(alpha: 0.22),
-                borderRadius: BorderRadius.circular(100),
-              ),
-              child: Text('+30s',
-                  style: AppFonts.sf(
-                      size: 12,
-                      weight: FontWeight.w600,
-                      color: _white,
-                      letterSpacing: -0.08)),
-            ),
-          ),
-          const SizedBox(width: 6),
-          GestureDetector(
-            onTap: onSkip,
-            child: Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-              decoration: BoxDecoration(
-                color: _white,
-                borderRadius: BorderRadius.circular(100),
-              ),
-              child: Text('Skip',
-                  style: AppFonts.sf(
-                      size: 12,
-                      weight: FontWeight.w700,
-                      color: c.accent,
-                      letterSpacing: -0.08)),
-            ),
           ),
         ],
       ),
     );
   }
+}
+
+/// A 270° arc used as the rest-timer spinner (rotated by a RotationTransition).
+class _RestSpinnerPainter extends CustomPainter {
+  _RestSpinnerPainter({required this.color});
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.5
+      ..strokeCap = StrokeCap.round
+      ..color = color;
+    final rect = Rect.fromCircle(
+      center: size.center(Offset.zero),
+      radius: (size.shortestSide - 2.5) / 2,
+    );
+    canvas.drawArc(rect, 0, 4.71239, false, paint); // ~270°
+  }
+
+  @override
+  bool shouldRepaint(_RestSpinnerPainter old) => old.color != color;
 }
 
 // ─── Current exercise card ───────────────────────────────────────────────────
@@ -486,7 +555,7 @@ class _CurrentExerciseCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '● NOW · EXERCISE ${state.currentExerciseIndex + 1}',
+                      '● Now · exercise ${state.currentExerciseIndex + 1}',
                       style: AppFonts.sf(
                           size: 10,
                           weight: FontWeight.w700,

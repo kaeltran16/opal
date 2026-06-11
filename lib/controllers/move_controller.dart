@@ -28,6 +28,19 @@ class RecentSession {
   double get volumeTonnes => workout.totalVolumeKg / 1000;
 }
 
+/// One day of the hero week-strip: its weekday letter, whether a workout was
+/// completed that day, and whether it is today. The strip renders Mon→Sun.
+class WeekDay {
+  const WeekDay({required this.letter, required this.done, required this.today});
+
+  final String letter;
+  final bool done;
+  final bool today;
+}
+
+/// Weekly workout goal (no per-user data source yet — see controller FLAG).
+const int kWeeklyWorkoutGoal = 4;
+
 /// The fully-computed Move view model: today's logged move minutes, the recent
 /// sessions (newest 3, decorated), the non-workout movement entries, and the
 /// quick-link counts. The screen is dumb; all derivation lives here so it is
@@ -35,20 +48,19 @@ class RecentSession {
 class MoveState {
   const MoveState({
     required this.moveMinutes,
-    required this.activeEnergyKcal,
-    this.avgHeartRate,
     required this.recentSessions,
     required this.otherActivity,
     required this.routineCount,
+    required this.weekDays,
+    required this.weekWorkouts,
+    required this.weekVolumeKg,
+    required this.weekMinutes,
+    required this.weekPrCount,
     this.suggestedRoutineName,
   });
 
   /// Sum of today's logged move-entry durations (minutes).
   final int moveMinutes;
-
-  /// No data source after health removal; always null for now.
-  final int? activeEnergyKcal;
-  final int? avgHeartRate;
 
   /// The three newest workouts, decorated for the recent-sessions cards.
   final List<RecentSession> recentSessions;
@@ -60,9 +72,31 @@ class MoveState {
   /// Total routine count (drives the "My routines" quick-link value).
   final int routineCount;
 
+  /// Mon→Sun strip for the hero calendar (done/today states).
+  final List<WeekDay> weekDays;
+
+  /// Completed workouts in the current ISO week (hero focal number).
+  final int weekWorkouts;
+
+  /// This week's total completed-set volume in kilograms.
+  final double weekVolumeKg;
+
+  /// This week's total training minutes.
+  final int weekMinutes;
+
+  /// This week's personal-record count (hero "Records" stat).
+  final int weekPrCount;
+
   /// Pal's suggested routine name for the Start CTA, or null when there are no
   /// routines yet.
   final String? suggestedRoutineName;
+
+  /// Weekly goal the hero ring/headline measures against.
+  int get weekGoal => kWeeklyWorkoutGoal;
+
+  /// Workouts-vs-goal completion as a 0..1 fraction (capped at 1).
+  double get weekProgress =>
+      weekGoal == 0 ? 0 : (weekWorkouts / weekGoal).clamp(0.0, 1.0);
 
   /// Count of completed PRs across the recent sessions (hero "records" framing).
   int get recentPrCount =>
@@ -80,9 +114,33 @@ String relativeDateLabel(DateTime startedAt, DateTime now) {
   return '${days}d ago';
 }
 
-/// Streams the Move view model off the live workouts stream, plus the routines
-/// and non-workout move entries re-read each tick. Re-emits whenever the
-/// workouts table changes.
+/// Builds the Mon→Sun hero week-strip from this week's completed [workouts].
+/// A day reads "done" when at least one workout was completed on it; "today"
+/// follows [now]. Pure so it is unit-testable.
+List<WeekDay> buildWeekDays(List<Workout> workouts, DateTime now) {
+  const letters = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+  final today = DateTime(now.year, now.month, now.day);
+  final monday = today.subtract(Duration(days: today.weekday - DateTime.monday));
+  final doneDays = <int>{
+    for (final w in workouts)
+      if (w.isComplete)
+        DateTime(w.startedAt.year, w.startedAt.month, w.startedAt.day)
+            .difference(monday)
+            .inDays,
+  };
+  return [
+    for (var i = 0; i < 7; i++)
+      WeekDay(
+        letter: letters[i],
+        done: doneDays.contains(i),
+        today: monday.add(Duration(days: i)) == today,
+      ),
+  ];
+}
+
+/// Streams the Move view model off the live workouts stream, plus the routines,
+/// exercise catalog and non-workout move entries re-read each tick. Re-emits
+/// whenever the workouts table changes.
 @riverpod
 Stream<MoveState> moveState(Ref ref) async* {
   final workoutRepo = ref.watch(workoutRepositoryProvider);
@@ -124,13 +182,25 @@ Stream<MoveState> moveState(Ref ref) async* {
                 today)
         .fold<int>(0, (sum, e) => sum + (e.duration ?? 0));
 
+    // this-week aggregates (Mon 00:00 → now) drive the hero ring/strip/stats.
+    final monday =
+        today.subtract(Duration(days: today.weekday - DateTime.monday));
+    final weekWorkouts = workouts
+        .where((w) => w.isComplete && !w.startedAt.isBefore(monday))
+        .toList();
+
     yield MoveState(
       moveMinutes: moveMinutes,
-      activeEnergyKcal: null,
-      avgHeartRate: null,
       recentSessions: recent,
       otherActivity: other,
       routineCount: routines.length,
+      weekDays: buildWeekDays(workouts, now),
+      weekWorkouts: weekWorkouts.length,
+      weekVolumeKg:
+          weekWorkouts.fold<double>(0, (s, w) => s + w.totalVolumeKg),
+      weekMinutes: weekWorkouts.fold<int>(
+          0, (s, w) => s + (w.duration?.inMinutes ?? 0)),
+      weekPrCount: weekWorkouts.fold<int>(0, (s, w) => s + w.prCount),
       suggestedRoutineName: routines.isEmpty ? null : routines.first.name,
     );
   }

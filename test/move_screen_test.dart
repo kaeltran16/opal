@@ -10,9 +10,11 @@ import 'package:opal/router.dart';
 import 'package:opal/theme/app_colors.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'support/flush_provider_timers.dart';
+
 void main() {
   testWidgets(
-      'Move tab: renders health stats + recent session, Start CTA navigates',
+      'Move tab: renders this-week hero + recent session, Start CTA navigates',
       (WidgetTester tester) async {
     SharedPreferences.setMockInitialValues({});
     final prefs = await SharedPreferences.getInstance();
@@ -40,12 +42,15 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // Move hero: minutes are derived from logged move entries; energy + HR have
-    // no data source post-HealthKit, so both read '—'.
-    expect(find.text('WORKOUT'), findsOneWidget);
-    expect(find.text('ENERGY'), findsOneWidget);
-    expect(find.text('AVG HR'), findsOneWidget);
-    expect(find.text('—'), findsAtLeastNWidgets(2)); // energy + HR unavailable
+    // Move hero: redesigned "This week" hero with workouts-vs-goal headline and
+    // a Volume / Time / Records stat row (no HealthKit calorie/HR content).
+    expect(find.text('THIS WEEK'), findsOneWidget);
+    expect(find.text('/ 4 workouts'), findsOneWidget);
+    expect(find.text('VOLUME'), findsOneWidget);
+    expect(find.text('TIME'), findsOneWidget);
+    expect(find.text('RECORDS'), findsOneWidget);
+    expect(find.text('ENERGY'), findsNothing);
+    expect(find.text('AVG HR'), findsNothing);
 
     // The Start CTA is present (its navigation target is covered by
     // start_workout_test; here we only assert the Move tab surfaces it).
@@ -56,11 +61,14 @@ void main() {
     await tester.scrollUntilVisible(find.text('Push Day A'), 200,
         scrollable: find.byType(Scrollable).first);
     expect(find.text('Push Day A'), findsOneWidget);
-    expect(find.text('1 PR'), findsOneWidget);
+    // "1 PR" appears on the session card's PR badge and the hero Records stat.
+    expect(find.text('1 PR'), findsWidgets);
 
     // The non-workout move entry shows up in Other activity.
     await tester.scrollUntilVisible(find.text('Run · Mission loop'), 200,
         scrollable: find.byType(Scrollable).first);
     expect(find.text('Run · Mission loop'), findsOneWidget);
+
+    await flushProviderTimers(tester);
   });
 }

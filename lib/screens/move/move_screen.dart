@@ -1,8 +1,11 @@
+import 'dart:math' as math;
+
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../controllers/move_controller.dart';
+import '../../controllers/providers.dart';
 import '../../models/models.dart';
 import '../../router.dart';
 import '../../theme/app_colors.dart';
@@ -27,6 +30,7 @@ class MoveScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final c = context.colors;
     final async = ref.watch(moveStateProvider);
+    final exerciseCount = ref.watch(exercisesProvider).asData?.value.length;
 
     return async.when(
       loading: () => Center(
@@ -41,14 +45,15 @@ class MoveScreen extends ConsumerWidget {
               style: AppFonts.sf(size: 15, color: c.ink3, letterSpacing: -0.24)),
         ),
       ),
-      data: (state) => _MoveBody(state: state),
+      data: (state) => _MoveBody(state: state, exerciseCount: exerciseCount),
     );
   }
 }
 
 class _MoveBody extends StatelessWidget {
-  const _MoveBody({required this.state});
+  const _MoveBody({required this.state, required this.exerciseCount});
   final MoveState state;
+  final int? exerciseCount;
 
   @override
   Widget build(BuildContext context) {
@@ -57,7 +62,7 @@ class _MoveBody extends StatelessWidget {
       children: [
         const LargeTitleNavBar(
           title: 'Workout',
-          subtitle: 'Gym, cardio, daily movement',
+          subtitle: 'Workouts, routines & sessions',
         ),
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 4, 16, 18),
@@ -67,7 +72,10 @@ class _MoveBody extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 18),
           child: _StartCta(routineName: state.suggestedRoutineName),
         ),
-        _QuickLinks(routineCount: state.routineCount),
+        _QuickLinks(
+          routineCount: state.routineCount,
+          exerciseCount: exerciseCount,
+        ),
         if (state.recentSessions.isNotEmpty)
           _RecentSessions(sessions: state.recentSessions),
         if (state.otherActivity.isNotEmpty)
@@ -77,7 +85,8 @@ class _MoveBody extends StatelessWidget {
   }
 }
 
-/// Move-gradient "This week" hero showing today's 3-stat health summary.
+/// Move-gradient "This week" hero: workouts-vs-goal headline + mini progress
+/// ring, a 7-day calendar strip, and a Volume / Time / Records stat row.
 class _WeekHero extends StatelessWidget {
   const _WeekHero({required this.state});
   final MoveState state;
@@ -85,106 +94,320 @@ class _WeekHero extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    return Container(
-      padding: const EdgeInsets.all(18),
+    final pct = (state.weekProgress * 100).round();
+    return DecoratedBox(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(22),
+        borderRadius: BorderRadius.circular(18),
         gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [c.move, c.accent],
+          // 155° move → move·ee → accent·dd, matching the design hero.
+          begin: const Alignment(-0.7, -1),
+          end: const Alignment(0.7, 1),
+          colors: [
+            c.move,
+            c.move.withValues(alpha: 0.93),
+            c.accent.withValues(alpha: 0.87),
+          ],
+          stops: const [0, 0.6, 1],
         ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'THIS WEEK',
-            style: AppFonts.sf(
-                size: 11,
-                weight: FontWeight.w700,
-                color: _white.withValues(alpha: 0.82),
-                letterSpacing: 1.2),
-          ),
-          const SizedBox(height: 14),
-          Row(
-            children: [
-              _HeroStat(value: '${state.moveMinutes}', unit: 'min', label: 'WORKOUT'),
-              _heroDivider,
-              _HeroStat(
-                  value: state.activeEnergyKcal == null
-                      ? '—'
-                      : '${state.activeEnergyKcal}',
-                  unit: 'kcal',
-                  label: 'ENERGY'),
-              _heroDivider,
-              _HeroStat(
-                  value: state.avgHeartRate == null
-                      ? '—'
-                      : '${state.avgHeartRate}',
-                  unit: 'bpm',
-                  label: 'AVG HR'),
-            ],
+        boxShadow: [
+          BoxShadow(
+            color: c.move.withValues(alpha: 0.2),
+            blurRadius: 30,
+            offset: const Offset(0, 10),
           ),
         ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(18),
+        child: Stack(
+          children: [
+            // soft radial light blob, top-right.
+            Positioned(
+              top: -60,
+              right: -50,
+              child: Container(
+                width: 180,
+                height: 180,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: _white.withValues(alpha: 0.08),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(18),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'THIS WEEK',
+                              style: AppFonts.sf(
+                                  size: 11,
+                                  weight: FontWeight.w700,
+                                  color: _white.withValues(alpha: 0.82),
+                                  letterSpacing: 1.2),
+                            ),
+                            const SizedBox(height: 6),
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.baseline,
+                              textBaseline: TextBaseline.alphabetic,
+                              children: [
+                                Text(
+                                  '${state.weekWorkouts}',
+                                  style: AppFonts.sfr(
+                                      size: 48,
+                                      weight: FontWeight.w700,
+                                      color: _white,
+                                      letterSpacing: -1.2,
+                                      height: 0.95),
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  '/ ${state.weekGoal} workouts',
+                                  style: AppFonts.sf(
+                                      size: 15,
+                                      color: _white.withValues(alpha: 0.82),
+                                      letterSpacing: -0.1),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      _MiniRing(progress: state.weekProgress, percent: pct),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  _WeekStrip(days: state.weekDays, move: c.move),
+                  const SizedBox(height: 14),
+                  Container(
+                    margin: const EdgeInsets.only(top: 0),
+                    padding: const EdgeInsets.only(top: 14),
+                    decoration: BoxDecoration(
+                      border: Border(
+                        top: BorderSide(
+                            color: _white.withValues(alpha: 0.2), width: 0.5),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        _HeroStat(
+                          value:
+                              '${(state.weekVolumeKg / 1000).toStringAsFixed(1)}t',
+                          label: 'Volume',
+                        ),
+                        _heroDivider,
+                        _HeroStat(
+                          value: '${state.weekMinutes}',
+                          unit: 'm',
+                          label: 'Time',
+                        ),
+                        _heroDivider,
+                        _HeroStat(
+                          value: '${state.weekPrCount} PR',
+                          label: 'Records',
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
   Widget get _heroDivider => Container(
         width: 1,
-        height: 36,
+        height: 30,
         margin: const EdgeInsets.symmetric(horizontal: 14),
         color: _white.withValues(alpha: 0.2),
       );
 }
 
+/// 56px progress ring with a centered "%" label (private to the hero — the
+/// shared ActivityRings widget is intentionally untouched).
+class _MiniRing extends StatelessWidget {
+  const _MiniRing({required this.progress, required this.percent});
+  final double progress;
+  final int percent;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 56,
+      height: 56,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          CustomPaint(
+            size: const Size(56, 56),
+            painter: _RingPainter(progress: progress),
+          ),
+          Text(
+            '$percent%',
+            style: AppFonts.sfr(
+                size: 14,
+                weight: FontWeight.w700,
+                color: _white,
+                letterSpacing: -0.2),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RingPainter extends CustomPainter {
+  _RingPainter({required this.progress});
+  final double progress;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const stroke = 5.0;
+    final center = size.center(Offset.zero);
+    final radius = (size.width - stroke) / 2;
+    final track = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = stroke
+      ..color = _white.withValues(alpha: 0.22);
+    canvas.drawCircle(center, radius, track);
+
+    if (progress <= 0) return;
+    final arc = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = stroke
+      ..strokeCap = StrokeCap.round
+      ..color = _white;
+    canvas.drawArc(
+      Rect.fromCircle(center: center, radius: radius),
+      -math.pi / 2,
+      2 * math.pi * progress.clamp(0.0, 1.0),
+      false,
+      arc,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_RingPainter old) => old.progress != progress;
+}
+
+/// 7-day Mon→Sun strip: filled white + checkmark when done, dashed border for
+/// today (private to the hero).
+class _WeekStrip extends StatelessWidget {
+  const _WeekStrip({required this.days, required this.move});
+  final List<WeekDay> days;
+  final Color move;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        for (var i = 0; i < days.length; i++) ...[
+          if (i != 0) const SizedBox(width: 4),
+          Expanded(child: _DayCell(day: days[i], move: move)),
+        ],
+      ],
+    );
+  }
+}
+
+class _DayCell extends StatelessWidget {
+  const _DayCell({required this.day, required this.move});
+  final WeekDay day;
+  final Color move;
+
+  @override
+  Widget build(BuildContext context) {
+    final bg = day.done
+        ? _white
+        : day.today
+            ? _white.withValues(alpha: 0.25)
+            : _white.withValues(alpha: 0.1);
+    final dashed = day.today && !day.done;
+    return Column(
+      children: [
+        AspectRatio(
+          aspectRatio: 1,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: bg,
+              borderRadius: BorderRadius.circular(9),
+              border: dashed
+                  ? Border.all(
+                      color: _white.withValues(alpha: 0.7), width: 1.5)
+                  : null,
+            ),
+            child: day.done
+                ? Center(child: AppIcon('checkmark', size: 13, color: move))
+                : null,
+          ),
+        ),
+        const SizedBox(height: 5),
+        Text(
+          day.letter,
+          style: AppFonts.sf(
+              size: 10,
+              weight: FontWeight.w700,
+              color: _white.withValues(alpha: day.today ? 1 : 0.75),
+              letterSpacing: 0.3),
+        ),
+      ],
+    );
+  }
+}
+
 class _HeroStat extends StatelessWidget {
-  const _HeroStat({required this.value, required this.unit, required this.label});
+  const _HeroStat({required this.value, this.unit, required this.label});
   final String value;
-  final String unit;
+  final String? unit;
   final String label;
 
   @override
   Widget build(BuildContext context) {
-    return Expanded(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.baseline,
-            textBaseline: TextBaseline.alphabetic,
-            children: [
-              Text(
-                value,
-                style: AppFonts.sfr(
-                    size: 24,
-                    weight: FontWeight.w700,
-                    color: _white,
-                    letterSpacing: -0.3),
-              ),
-              const SizedBox(width: 3),
-              Text(
-                unit,
-                style: AppFonts.sf(
-                    size: 11,
-                    weight: FontWeight.w600,
-                    color: _white.withValues(alpha: 0.75),
-                    letterSpacing: 0.3),
-              ),
-            ],
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text.rich(
+          TextSpan(
+            text: value,
+            style: AppFonts.sfr(
+                size: 18,
+                weight: FontWeight.w700,
+                color: _white,
+                letterSpacing: -0.3,
+                height: 1),
+            children: unit == null
+                ? null
+                : [
+                    TextSpan(
+                      text: unit,
+                      style: AppFonts.sf(
+                          size: 11,
+                          color: _white.withValues(alpha: 0.75)),
+                    ),
+                  ],
           ),
-          const SizedBox(height: 3),
-          Text(
-            label,
-            style: AppFonts.sf(
-                size: 10,
-                weight: FontWeight.w600,
-                color: _white.withValues(alpha: 0.75),
-                letterSpacing: 0.5),
-          ),
-        ],
-      ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          label.toUpperCase(),
+          style: AppFonts.sf(
+              size: 10,
+              weight: FontWeight.w600,
+              color: _white.withValues(alpha: 0.75),
+              letterSpacing: 0.5),
+        ),
+      ],
     );
   }
 }
@@ -212,7 +435,21 @@ class _StartCta extends StatelessWidget {
             Container(
               width: 52,
               height: 52,
-              decoration: BoxDecoration(color: c.move, shape: BoxShape.circle),
+              decoration: BoxDecoration(
+                gradient: RadialGradient(
+                  center: const Alignment(-0.4, -0.4),
+                  radius: 0.9,
+                  colors: [c.move, c.move.withValues(alpha: 0.8)],
+                ),
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: c.move.withValues(alpha: 0.33),
+                    blurRadius: 14,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
               alignment: Alignment.center,
               child: const AppIcon('play.fill', size: 20, color: _white),
             ),
@@ -222,7 +459,7 @@ class _StartCta extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    "PAL'S PICK FOR TODAY",
+                    "● PAL'S PICK FOR TODAY",
                     style: AppFonts.sf(
                         size: 10,
                         weight: FontWeight.w700,
@@ -262,10 +499,12 @@ class _StartCta extends StatelessWidget {
   }
 }
 
-/// Quick-links inset section: My routines / Exercise library / History & trends.
+/// Quick-links inset section, design order: Weekly plan → My routines →
+/// Exercise library → History & trends.
 class _QuickLinks extends StatelessWidget {
-  const _QuickLinks({required this.routineCount});
+  const _QuickLinks({required this.routineCount, required this.exerciseCount});
   final int routineCount;
+  final int? exerciseCount;
 
   @override
   Widget build(BuildContext context) {
@@ -273,9 +512,15 @@ class _QuickLinks extends StatelessWidget {
     return InsetSection(
       children: [
         ListRow(
+          icon: 'calendar',
+          iconBg: c.move,
+          title: 'Weekly plan',
+          onTap: () => context.pushNamed(AppRoute.weeklyPlan.name),
+        ),
+        ListRow(
           icon: 'books.vertical.fill',
           iconBg: c.move,
-          title: 'My workouts',
+          title: 'My routines',
           value: '$routineCount',
           onTap: () => context.pushNamed(AppRoute.startWorkout.name),
         ),
@@ -283,13 +528,8 @@ class _QuickLinks extends StatelessWidget {
           icon: 'dumbbell.fill',
           iconBg: c.accent,
           title: 'Exercise library',
+          value: exerciseCount == null ? null : '$exerciseCount',
           onTap: () => context.pushNamed(AppRoute.exerciseLibrary.name),
-        ),
-        ListRow(
-          icon: 'calendar',
-          iconBg: c.move,
-          title: 'Weekly plan',
-          onTap: () => context.pushNamed(AppRoute.weeklyPlan.name),
         ),
         ListRow(
           icon: 'chart.bar.fill',

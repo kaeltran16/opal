@@ -157,7 +157,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                           ),
                         ),
                       ),
-                      const SizedBox(height: 32),
+                      const SizedBox(height: 20),
                       ..._stepContent(step, c, heroColor),
                     ],
                   ),
@@ -261,9 +261,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
   String _body(int step) => switch (step) {
         1 => "We'll help you stay under it — gently.",
-        2 => 'Any kind of workout counts — run, walk, yoga, anything.',
+        2 => 'Any session counts — lift, run, walk, yoga. You log the minutes.',
         3 =>
-          'Six small things you want to do each day. You can edit these anytime.',
+          'Five small things you want to do each day. You can edit these anytime.',
         _ =>
           'One app for money, workouts, and the little routines that hold your day together.',
       };
@@ -350,7 +350,7 @@ class _BigValue extends StatelessWidget {
       text,
       textAlign: TextAlign.center,
       style: AppFonts.sfr(
-        size: 64,
+        size: 72,
         weight: FontWeight.w700,
         color: color,
         letterSpacing: -2,

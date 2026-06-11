@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../controllers/providers.dart';
 import '../../controllers/start_workout_controller.dart';
 import '../../models/models.dart';
 import '../../router.dart';
@@ -56,6 +57,7 @@ class _Body extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final c = context.colors;
+    final exerciseCount = ref.watch(exercisesProvider).asData?.value.length;
 
     void openSession(String routineId) => context.pushNamed(
           'activeSession',
@@ -67,7 +69,7 @@ class _Body extends ConsumerWidget {
       children: [
         LargeTitleNavBar(
           title: 'Start workout',
-          subtitle: 'Pick a workout or freestyle',
+          subtitle: 'Pick a routine or freestyle',
           leading: GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTap: () => Navigator.of(context).maybePop(),
@@ -124,30 +126,32 @@ class _Body extends ConsumerWidget {
           margin: const EdgeInsets.fromLTRB(16, 0, 16, 0),
           children: [
             ListRow(
+              icon: 'sparkles',
+              iconBg: c.rituals,
+              title: 'Generate with AI',
+              subtitle: 'Describe the workout you want',
+              onTap: () => context.pushNamed(AppRoute.routineGenerator.name),
+            ),
+            ListRow(
               icon: 'plus',
               iconBg: c.accent,
-              title: 'New workout',
+              title: 'New routine',
               subtitle: 'Build from scratch',
               onTap: () => context.pushNamed(AppRoute.routineEditor.name),
             ),
             ListRow(
-              icon: 'sparkles',
-              iconBg: c.rituals,
-              title: 'Generate with Pal',
-              subtitle: 'Describe a goal, Pal builds it',
-              onTap: () => context.pushNamed(AppRoute.routineGenerator.name),
-            ),
-            ListRow(
-              icon: 'dumbbell.fill',
+              icon: 'books.vertical.fill',
               iconBg: c.move,
               title: 'Exercise library',
-              subtitle: 'Browse all exercises',
+              subtitle: exerciseCount == null
+                  ? 'Browse all exercises'
+                  : '$exerciseCount exercises',
               onTap: () => context.pushNamed(AppRoute.exerciseLibrary.name),
             ),
             ListRow(
-              icon: 'play.fill',
+              icon: 'bolt.fill',
               iconBg: c.money,
-              title: 'Freestyle',
+              title: 'Freestyle session',
               subtitle: 'Log as you go',
               chevron: false,
               last: true,
@@ -383,7 +387,7 @@ class _AnotherButton extends StatelessWidget {
           children: [
             const AppIcon('sparkles', size: 11, color: _white),
             const SizedBox(width: 5),
-            Text(loading ? 'Thinking…' : 'Another',
+            Text(loading ? 'Thinking…' : 'Other',
                 style: AppFonts.sf(
                     size: 13, weight: FontWeight.w500, color: _white)),
           ],

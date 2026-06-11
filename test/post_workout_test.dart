@@ -162,10 +162,17 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Workout complete'), findsOneWidget);
-    expect(find.text('Push Day A'), findsWidgets); // hero subtitle (+ maybe chips)
+    expect(find.text('Nice session.'), findsOneWidget);
+    expect(find.text('COMPLETE'), findsOneWidget);
+    // the standalone PERSONAL RECORD card surfaces the PR set.
+    expect(find.text('PERSONAL RECORD'), findsOneWidget);
     expect(find.text('Save to timeline'), findsOneWidget);
-    expect(find.text('80 kg × 5'), findsOneWidget); // the logged set chip
+    expect(find.text('Share'), findsOneWidget);
+
+    // The per-exercise set bar chart sits below the fold — scroll it in.
+    await tester.scrollUntilVisible(find.text('80×5'), 200,
+        scrollable: find.byType(Scrollable).first);
+    expect(find.text('80×5'), findsOneWidget); // the logged set bar label
 
     // unmount, then drain the autoDispose drift stream provider's cleanup timer
     // (and any in-flight Pal-note latency timer) before the teardown invariant.
