@@ -43,7 +43,10 @@ class _RoutinePlayerScreenState extends ConsumerState<RoutinePlayerScreen> {
       backgroundColor: c.bg,
       body: async.when(
         loading: () => const SizedBox.shrink(),
-        error: (e, _) => _NotFound(message: "Couldn't load routine."),
+        error: (e, _) {
+          debugPrint('RoutinePlayerScreen failed to load routine: $e');
+          return const _NotFound(message: "Couldn't load routine.");
+        },
         data: (state) {
           final matches =
               state.routines.where((r) => r.id == widget.routineId);

@@ -73,6 +73,8 @@ class _UpNextHero extends StatelessWidget {
   const _UpNextHero({required this.state});
   final RitualsState state;
 
+  static const _minutesPerStep = 5;
+
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
@@ -210,7 +212,7 @@ class _UpNextHero extends StatelessWidget {
               ),
               const SizedBox(height: 4),
               Text(
-                '${routine.time} · $left ${left == 1 ? 'step' : 'steps'} left · ~${left * 5} min',
+                '${routine.time} · $left ${left == 1 ? 'step' : 'steps'} left · ~${left * _minutesPerStep} min',
                 style: AppFonts.sf(
                   size: 14,
                   color: const Color(0xE6FFFFFF),

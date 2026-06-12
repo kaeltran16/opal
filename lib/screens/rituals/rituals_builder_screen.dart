@@ -244,13 +244,13 @@ Future<void> _openEditor(
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
     ),
-    builder: (_) => _RoutineEditor(
+    builder: (sheetContext) => _RoutineEditor(
       existing: existing,
       onSave: (routine) {
         ref
             .read(ritualsBuilderControllerProvider.notifier)
             .addOrUpdate(routine);
-        Navigator.of(context).pop();
+        Navigator.of(sheetContext).pop();
       },
     ),
   );

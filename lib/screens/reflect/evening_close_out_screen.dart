@@ -72,16 +72,13 @@ class EveningCloseOutScreen extends ConsumerWidget {
     // the "Now" highlight (lands on Reflect last — the step that closes the ring).
     final rows = <_StepRow>[];
     if (evening != null && state != null) {
-      var firstIncompleteSeen = false;
+      final firstIncomplete = state.firstIncompleteStep(evening);
       for (var i = 0; i < evening.steps.length; i++) {
-        final isDone = state.isStepDone(evening.id, i);
-        final isActive = !isDone && !firstIncompleteSeen;
-        if (isActive) firstIncompleteSeen = true;
         rows.add(_StepRow(
           routine: evening,
           index: i,
-          done: isDone,
-          active: isActive,
+          done: state.isStepDone(evening.id, i),
+          active: i == firstIncomplete,
         ));
       }
     }
