@@ -52,7 +52,7 @@ class WeeklyReviewScreen extends ConsumerWidget {
                 label: 'You',
                 onTap: () => Navigator.of(context).maybePop(),
               ),
-              const NavIconButton(name: 'square.and.arrow.up'),
+              const NavIconButton(name: 'square.and.arrow.up', semanticLabel: 'Share'),
             ],
           ),
         ),

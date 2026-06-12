@@ -40,6 +40,14 @@ class _BudgetSheetState extends ConsumerState<BudgetSheet> {
     setState(() => _amount = (_amount + delta).clamp(_step, 1 << 30));
   }
 
+  /// Rescales a weekly amount to its nearest daily-step equivalent (floored at
+  /// the daily step). Single source for the weekly→daily conversion used by both
+  /// the period switch and [_dailyAmount].
+  static int _weeklyToDaily(int weekly) {
+    final daily = (weekly / 7 / 5).round() * 5;
+    return daily < 5 ? 5 : daily;
+  }
+
   void _switchPeriod(_Period p) {
     if (p == _period) return;
     setState(() {
@@ -47,19 +55,15 @@ class _BudgetSheetState extends ConsumerState<BudgetSheet> {
       if (p == _Period.weekly) {
         _amount = ((_amount * 7 / 25).round() * 25).clamp(25, 1 << 30);
       } else {
-        _amount = ((_amount / 7 / 5).round() * 5).clamp(5, 1 << 30);
-        if (_amount < 5) _amount = 5;
+        _amount = _weeklyToDaily(_amount);
       }
       _period = p;
     });
   }
 
   /// The equivalent daily amount, regardless of the active period.
-  int get _dailyAmount => _period == _Period.daily
-      ? _amount
-      : (_amount / 7 / 5).round() * 5 < 5
-          ? 5
-          : (_amount / 7 / 5).round() * 5;
+  int get _dailyAmount =>
+      _period == _Period.daily ? _amount : _weeklyToDaily(_amount);
 
   Future<void> _save() async {
     if (_saving) return;

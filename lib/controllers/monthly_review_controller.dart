@@ -191,7 +191,7 @@ class MonthlyStats {
         label: 'Streak',
         value: '$longestStreak',
         unit: longestStreak == 1 ? 'day' : 'days',
-        sub: 'Workouts, ongoing',
+        sub: 'Routines, ongoing',
         colorToken: 'rituals',
         icon: 'flame.fill',
       ),

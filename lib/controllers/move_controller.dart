@@ -186,7 +186,10 @@ Stream<MoveState> moveState(Ref ref) async* {
     final monday =
         today.subtract(Duration(days: today.weekday - DateTime.monday));
     final weekWorkouts = workouts
-        .where((w) => w.isComplete && !w.startedAt.isBefore(monday))
+        .where((w) =>
+            w.isComplete &&
+            !w.startedAt.isBefore(monday) &&
+            w.startedAt.isBefore(monday.add(const Duration(days: 7))))
         .toList();
 
     yield MoveState(

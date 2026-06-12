@@ -15,6 +15,7 @@ const _minInsightEntries = 3;
 String insightIcon(String colorToken) => switch (colorToken) {
       'money' => 'dollarsign.circle.fill',
       'move' => 'figure.run',
+      'rituals' => 'sparkles',
       _ => 'sparkles',
     };
 

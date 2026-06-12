@@ -541,11 +541,6 @@ class _ScheduleRow extends StatelessWidget {
                     ],
                   ),
                 ),
-                if (!isRest && !day.done)
-                  Padding(
-                    padding: const EdgeInsets.only(left: 6),
-                    child: AppIcon('chevron.right', size: 14, color: c.ink4),
-                  ),
               ],
             ),
           ),
