@@ -11,10 +11,29 @@ export interface ChatMessage {
   content: string
 }
 
+// One function call the model asked for; `arguments` is a raw JSON string.
+export interface ToolCall {
+  name: string
+  arguments: string
+}
+
+// A tool-enabled completion: free-text `content` and/or `toolCalls`.
+export interface CompletionResult {
+  content: string
+  toolCalls: ToolCall[]
+}
+
 // The narrow seam Pal calls — keeps the wrapper testable without a network.
 export interface CompletionClient {
-  complete(messages: ChatMessage[]): Promise<string>
+  // `json: true` asks the provider for a strict JSON object (response_format).
+  complete(messages: ChatMessage[], opts?: { json?: boolean }): Promise<string>
+  // Tool-enabled variant for chat. `tools` is the OpenAI tool spec array.
+  completeWithTools(messages: ChatMessage[], tools: unknown[]): Promise<CompletionResult>
 }
+
+// Text-only slice of the client for consumers that never need tools (receipts,
+// email extraction) — keeps their test doubles minimal.
+export type TextCompleter = Pick<CompletionClient, 'complete'>
 
 // Raised on a non-2xx (or network failure) from the LLM provider; mapped to 502 upstream.
 export class OpenRouterError extends Error {
@@ -31,9 +50,12 @@ export class OpenRouterClient implements CompletionClient {
     private readonly model: string,
     private readonly baseUrl: string,
     private readonly fetchImpl: typeof fetch = fetch,
+    private readonly timeoutMs = 30_000,
   ) {}
 
-  async complete(messages: ChatMessage[]): Promise<string> {
+  // Single POST path: applies model/token defaults, a hard request timeout, and
+  // uniform error mapping. Returns the parsed JSON body.
+  private async post(extra: Record<string, unknown>): Promise<unknown> {
     let res: Response
     try {
       res = await this.fetchImpl(`${this.baseUrl}/chat/completions`, {
@@ -42,7 +64,8 @@ export class OpenRouterClient implements CompletionClient {
           authorization: `Bearer ${this.apiKey}`,
           'content-type': 'application/json',
         },
-        body: JSON.stringify({ model: this.model, max_tokens: MAX_TOKENS, messages }),
+        body: JSON.stringify({ model: this.model, max_tokens: MAX_TOKENS, ...extra }),
+        signal: AbortSignal.timeout(this.timeoutMs),
       })
     } catch (err) {
       throw new OpenRouterError(0, `network error: ${String(err)}`)
@@ -51,10 +74,26 @@ export class OpenRouterClient implements CompletionClient {
       const body = await res.text().catch(() => '')
       throw new OpenRouterError(res.status, `openrouter ${res.status}: ${body.slice(0, 500)}`)
     }
-    const data = (await res.json()) as {
-      choices?: Array<{ message?: { content?: string } }>
-    }
+    return res.json()
+  }
+
+  async complete(messages: ChatMessage[], opts?: { json?: boolean }): Promise<string> {
+    const data = (await this.post({
+      messages,
+      ...(opts?.json ? { response_format: { type: 'json_object' } } : {}),
+    })) as { choices?: Array<{ message?: { content?: string } }> }
     return data.choices?.[0]?.message?.content?.trim() ?? ''
+  }
+
+  async completeWithTools(messages: ChatMessage[], tools: unknown[]): Promise<CompletionResult> {
+    const data = (await this.post({ messages, tools, tool_choice: 'auto' })) as {
+      choices?: Array<{ message?: { content?: string; tool_calls?: Array<{ function?: { name?: string; arguments?: string } }> } }>
+    }
+    const message = data.choices?.[0]?.message
+    const toolCalls: ToolCall[] = (message?.tool_calls ?? [])
+      .map((c) => ({ name: c.function?.name ?? '', arguments: c.function?.arguments ?? '' }))
+      .filter((c) => c.name)
+    return { content: message?.content?.trim() ?? '', toolCalls }
   }
 }
 
@@ -110,16 +149,135 @@ export function extractJson(raw: string): unknown {
   return JSON.parse(s.slice(start, end + 1))
 }
 
+// A mutating action Pal performs from chat, applied client-side (the entry/goals
+// stores live on the device). The client executes by `kind`; unknown kinds are
+// ignored, so the server can add actions without breaking older clients.
+export type PalAction =
+  | { kind: 'log_expense'; amount: number; category: string | null; title: string; note: string | null }
+  | { kind: 'log_income'; amount: number; title: string; note: string | null }
+  | { kind: 'log_movement'; durationMinutes: number; title: string; note: string | null }
+  | { kind: 'log_ritual'; title: string; note: string | null }
+  | { kind: 'set_daily_budget'; dailyBudget: number }
+  | { kind: 'set_move_goal'; dailyMoveMinutes: number }
+  | { kind: 'set_ritual_goal'; dailyRitualTarget: number }
+  // The client fulfills this by calling /v1/routine with its exercise catalog,
+  // then saving the result — the catalog never has to ride along on /chat.
+  | { kind: 'create_routine'; goal: string; name: string | null }
+
+export interface ChatResult {
+  reply: string
+  actions: PalAction[]
+}
+
+// money amounts arrive as a magnitude; coerce sign/zero defensively.
+const posAmount = z.number().refine((n) => Number.isFinite(n) && n !== 0).transform((n) => Math.abs(n))
+const posInt = z.number().int().positive()
+const optStr = z.string().trim().min(1).nullish()
+
+// Each tool's arg schema mapped to a validated PalAction. A parse failure (or an
+// unknown tool name) drops the call — the model never forces a malformed write.
+const TOOL_PARSERS: Record<string, (args: unknown) => PalAction> = {
+  log_expense: (a) => {
+    const p = z.object({ amount: posAmount, category: optStr, title: optStr, note: optStr }).parse(a)
+    return { kind: 'log_expense', amount: p.amount, category: p.category ?? null, title: p.title ?? p.category ?? 'Expense', note: p.note ?? null }
+  },
+  log_income: (a) => {
+    const p = z.object({ amount: posAmount, title: optStr, note: optStr }).parse(a)
+    return { kind: 'log_income', amount: p.amount, title: p.title ?? 'Income', note: p.note ?? null }
+  },
+  log_movement: (a) => {
+    const p = z.object({ durationMinutes: posInt, title: optStr, note: optStr }).parse(a)
+    return { kind: 'log_movement', durationMinutes: p.durationMinutes, title: p.title ?? 'Workout', note: p.note ?? null }
+  },
+  log_ritual: (a) => {
+    const p = z.object({ title: z.string().trim().min(1), note: optStr }).parse(a)
+    return { kind: 'log_ritual', title: p.title, note: p.note ?? null }
+  },
+  set_daily_budget: (a) => ({ kind: 'set_daily_budget', dailyBudget: z.object({ dailyBudget: posAmount }).parse(a).dailyBudget }),
+  set_move_goal: (a) => ({ kind: 'set_move_goal', dailyMoveMinutes: z.object({ dailyMoveMinutes: posInt }).parse(a).dailyMoveMinutes }),
+  set_ritual_goal: (a) => ({ kind: 'set_ritual_goal', dailyRitualTarget: z.object({ dailyRitualTarget: posInt }).parse(a).dailyRitualTarget }),
+  create_routine: (a) => {
+    const p = z.object({ goal: z.string().trim().min(1), name: optStr }).parse(a)
+    return { kind: 'create_routine', goal: p.goal, name: p.name ?? null }
+  },
+}
+
+// OpenAI-format tool specs advertised to the model on /chat.
+const obj = (properties: Record<string, unknown>, required: string[]) => ({ type: 'object', properties, required, additionalProperties: false })
+const numProp = (description: string) => ({ type: 'number', description })
+const strProp = (description: string) => ({ type: 'string', description })
+const tool = (name: string, description: string, parameters: unknown) => ({ type: 'function', function: { name, description, parameters } })
+
+export const CHAT_TOOLS = [
+  tool('log_expense', 'Record money the user spent. Use a positive amount in dollars.',
+    obj({ amount: numProp('dollars spent, positive'), category: strProp('e.g. Coffee, Dining, Transport'), title: strProp('short label, e.g. "coffee"'), note: strProp('optional note') }, ['amount'])),
+  tool('log_income', 'Record money the user received. Positive amount in dollars.',
+    obj({ amount: numProp('dollars received, positive'), title: strProp('short label, e.g. "paycheck"'), note: strProp('optional note') }, ['amount'])),
+  tool('log_movement', 'Record a workout or movement session by its duration in minutes.',
+    obj({ durationMinutes: numProp('minutes of movement'), title: strProp('short label, e.g. "run"'), note: strProp('optional note') }, ['durationMinutes'])),
+  tool('log_ritual', 'Record a completed ritual/routine the user did.',
+    obj({ title: strProp('the ritual name, e.g. "morning pages"'), note: strProp('optional note') }, ['title'])),
+  tool('set_daily_budget', "Change the user's daily spending budget in dollars.",
+    obj({ dailyBudget: numProp('new daily budget in dollars') }, ['dailyBudget'])),
+  tool('set_move_goal', "Change the user's daily movement goal in minutes.",
+    obj({ dailyMoveMinutes: numProp('new daily move goal in minutes') }, ['dailyMoveMinutes'])),
+  tool('set_ritual_goal', "Change the user's daily ritual target (count).",
+    obj({ dailyRitualTarget: numProp('new daily ritual target') }, ['dailyRitualTarget'])),
+  tool('create_routine', 'Build and save a new workout routine from a free-text goal. Use when the user asks to create, make, build, or design a routine or workout plan.',
+    obj({ goal: strProp('what the routine targets, e.g. "push day" or "20-minute cardio"'), name: strProp('optional name for the routine') }, ['goal'])),
+]
+
+/// Validate the model's tool calls into PalActions, dropping any that are unknown
+/// or fail schema validation.
+export function toolCallsToActions(calls: ToolCall[]): PalAction[] {
+  const actions: PalAction[] = []
+  for (const call of calls) {
+    const parser = TOOL_PARSERS[call.name]
+    if (!parser) continue
+    try {
+      actions.push(parser(JSON.parse(call.arguments)))
+    } catch {
+      // malformed args or non-JSON — skip this action
+    }
+  }
+  return actions
+}
+
+const money = (n: number) => (n % 1 === 0 ? `$${n}` : `$${n.toFixed(2)}`)
+
+/// A concise acknowledgement built deterministically from the applied actions —
+/// used only when the model returned tool calls but no prose of its own.
+export function synthReply(actions: PalAction[]): string {
+  if (actions.length === 0) return ''
+  const parts = actions.map((a) => {
+    switch (a.kind) {
+      case 'log_expense': return `logged ${money(a.amount)} for ${a.title}`
+      case 'log_income': return `logged ${money(a.amount)} income`
+      case 'log_movement': return `logged ${a.durationMinutes} min of ${a.title}`
+      case 'log_ritual': return `logged "${a.title}"`
+      case 'set_daily_budget': return `set your daily budget to ${money(a.dailyBudget)}`
+      case 'set_move_goal': return `set your move goal to ${a.dailyMoveMinutes} min`
+      case 'set_ritual_goal': return `set your ritual target to ${a.dailyRitualTarget}`
+      case 'create_routine': return `created a routine for "${a.goal}"`
+    }
+  })
+  const joined = parts.length === 1 ? parts[0] : `${parts.slice(0, -1).join(', ')} and ${parts[parts.length - 1]}`
+  return `Done — ${joined}.`
+}
+
 export class Pal {
   constructor(private readonly client: CompletionClient) {}
 
-  async chat(history: Array<{ role: 'user' | 'assistant'; text: string }>, message: string, ctx: ChatContext): Promise<string> {
+  async chat(history: Array<{ role: 'user' | 'assistant'; text: string }>, message: string, ctx: ChatContext): Promise<ChatResult> {
     const messages: ChatMessage[] = [
       { role: 'system', content: chatSystemPrompt(ctx) },
       ...history.map((m) => ({ role: m.role, content: m.text })),
       { role: 'user', content: message },
     ]
-    return this.client.complete(messages)
+    const res = await this.client.completeWithTools(messages, CHAT_TOOLS)
+    const actions = toolCallsToActions(res.toolCalls)
+    const reply = res.content || synthReply(actions)
+    return { reply, actions }
   }
 
   async review(ctx: ReviewContext): Promise<string> {
@@ -127,7 +285,7 @@ export class Pal {
   }
 
   async insights(ctx: InsightsContext): Promise<Insights> {
-    const raw = await this.client.complete([{ role: 'user', content: insightsPrompt(ctx) }])
+    const raw = await this.client.complete([{ role: 'user', content: insightsPrompt(ctx) }], { json: true })
     return insightsSchema.parse(extractJson(raw))
   }
 
@@ -136,18 +294,18 @@ export class Pal {
   }
 
   async parse(text: string): Promise<ParsedEntry> {
-    const raw = await this.client.complete([{ role: 'user', content: parsePrompt(text) }])
+    const raw = await this.client.complete([{ role: 'user', content: parsePrompt(text) }], { json: true })
     return parseSchema.parse(extractJson(raw))
   }
 
   async suggestWorkout(another: boolean, ctx: SuggestContext): Promise<Suggestion> {
     const nudge = another ? '\n\nPick a DIFFERENT routine than you would normally default to.' : ''
-    const raw = await this.client.complete([{ role: 'user', content: suggestPrompt(ctx) + nudge }])
+    const raw = await this.client.complete([{ role: 'user', content: suggestPrompt(ctx) + nudge }], { json: true })
     return suggestSchema.parse(extractJson(raw))
   }
 
   async generateRoutine(goal: string, exercises: RoutineExercise[]): Promise<GeneratedRoutine> {
-    const raw = await this.client.complete([{ role: 'user', content: routinePrompt(goal, exercises) }])
+    const raw = await this.client.complete([{ role: 'user', content: routinePrompt(goal, exercises) }], { json: true })
     const parsed = routineSchema.parse(extractJson(raw))
     // drop any exercise the model invented — the client can only resolve catalog ids.
     const known = new Set(exercises.map((e) => e.id))

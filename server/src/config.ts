@@ -9,6 +9,7 @@ export const config = {
   openrouterBaseUrl: process.env.OPENROUTER_BASE_URL ?? 'https://openrouter.ai/api/v1',
   provisioningKey: required('PAL_PROVISIONING_KEY'),
   model: process.env.PAL_MODEL ?? 'deepseek/deepseek-v4-flash',
+  requestTimeoutMs: Number(process.env.PAL_REQUEST_TIMEOUT_MS ?? 30_000),
   port: Number(process.env.PORT ?? 8080),
   sqlitePath: process.env.SQLITE_PATH ?? './loop.sqlite',
   corsOrigins: (process.env.CORS_ORIGINS ?? '')

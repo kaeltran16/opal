@@ -52,12 +52,45 @@ void main() {
           headers: {'content-type': 'application/json; charset=utf-8'});
     }));
 
-    final reply = await service.chat([], 'hi');
+    final result = await service.chat([], 'hi');
 
-    expect(reply, 'Nice — logged it.');
+    expect(result.reply, 'Nice — logged it.');
+    expect(result.actions, isEmpty);
     expect(seen.url.path, '/v1/chat');
     expect(seen.headers['authorization'], 'Bearer tok');
     expect(jsonDecode(seen.body)['message'], 'hi');
+  });
+
+  test('chat decodes actions: expense negated, income positive, unknown dropped', () async {
+    final service = build(MockClient((req) async => http.Response(
+          jsonEncode({
+            'reply': 'Done.',
+            'actions': [
+              {'kind': 'log_expense', 'amount': 5, 'category': 'Coffee', 'title': 'coffee'},
+              {'kind': 'log_income', 'amount': 1200, 'title': 'Paycheck'},
+              {'kind': 'set_daily_budget', 'dailyBudget': 60},
+              {'kind': 'create_routine', 'goal': 'a push day'},
+              {'kind': 'teleport', 'amount': 9}, // unknown → dropped
+            ],
+          }),
+          200,
+          headers: {'content-type': 'application/json; charset=utf-8'},
+        )));
+
+    final result = await service.chat([], 'add \$5 for coffee');
+
+    expect(result.reply, 'Done.');
+    expect(result.actions, hasLength(4));
+    final expense = result.actions[0] as LogEntryAction;
+    expect(expense.type, EntryType.money);
+    expect(expense.amount, -5); // magnitude negated to an expense
+    final income = result.actions[1] as LogEntryAction;
+    expect(income.amount, 1200); // income stays positive
+    final budget = result.actions[2] as SetGoalAction;
+    expect(budget.target, GoalTarget.dailyBudget);
+    expect(budget.value, 60);
+    final routine = result.actions[3] as CreateRoutineAction;
+    expect(routine.goal, 'a push day');
   });
 
   test('parse maps the response into a ParsedEntryDraft (expense negated)', () async {
@@ -126,9 +159,9 @@ void main() {
       return http.Response(jsonEncode({'reply': 'ok'}), 200);
     }));
 
-    final reply = await service.chat([], 'hi');
+    final result = await service.chat([], 'hi');
 
-    expect(reply, 'ok');
+    expect(result.reply, 'ok');
     expect(calls, 2);
     expect(clears, 1); // token was cleared before the retry
   });

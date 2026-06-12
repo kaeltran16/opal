@@ -1,9 +1,25 @@
 import { describe, it, expect, vi } from 'vitest'
-import { Pal, extractJson, type CompletionClient } from './pal.js'
+import {
+  Pal, OpenRouterClient, OpenRouterError, extractJson, toolCallsToActions,
+  type CompletionClient, type CompletionResult, type ToolCall,
+} from './pal.js'
 
-function fakeClient(reply: string) {
-  return { complete: vi.fn(async () => reply) } satisfies CompletionClient
+// Most methods only need complete(); chat() uses completeWithTools().
+function fakeClient(reply: string): CompletionClient {
+  return {
+    complete: vi.fn(async () => reply),
+    completeWithTools: vi.fn(async () => ({ content: reply, toolCalls: [] })),
+  }
 }
+
+function fakeToolClient(result: CompletionResult): CompletionClient {
+  return {
+    complete: vi.fn(async () => ''),
+    completeWithTools: vi.fn(async () => result),
+  }
+}
+
+const toolCall = (name: string, args: unknown): ToolCall => ({ name, arguments: JSON.stringify(args) })
 
 describe('extractJson', () => {
   it('parses a bare JSON object', () => {
@@ -17,13 +33,123 @@ describe('extractJson', () => {
   })
 })
 
+describe('OpenRouterClient', () => {
+  const okResponse = () =>
+    new Response(JSON.stringify({ choices: [{ message: { content: '{}' } }] }), { status: 200 })
+
+  it('sends response_format only when JSON output is requested', async () => {
+    let body: Record<string, unknown> = {}
+    const capture = (async (_url, init) => {
+      body = JSON.parse(String((init as RequestInit).body))
+      return okResponse()
+    }) as typeof fetch
+    const client = new OpenRouterClient('k', 'm', 'http://x', capture)
+
+    await client.complete([{ role: 'user', content: 'hi' }])
+    expect(body.response_format).toBeUndefined()
+
+    await client.complete([{ role: 'user', content: 'hi' }], { json: true })
+    expect(body.response_format).toEqual({ type: 'json_object' })
+  })
+
+  it('errors (OpenRouterError) when a request exceeds the timeout', async () => {
+    // a fetch that never resolves on its own — only the abort signal ends it
+    const hanging = ((_url, init) =>
+      new Promise<Response>((_resolve, reject) => {
+        (init as RequestInit).signal?.addEventListener('abort', () => reject(new Error('aborted')))
+      })) as typeof fetch
+    const client = new OpenRouterClient('k', 'm', 'http://x', hanging, 5)
+
+    await expect(client.complete([{ role: 'user', content: 'hi' }])).rejects.toBeInstanceOf(OpenRouterError)
+  })
+})
+
+describe('toolCallsToActions', () => {
+  it('maps a log_expense tool call, defaulting title and coercing a positive amount', () => {
+    const actions = toolCallsToActions([toolCall('log_expense', { amount: -5, category: 'Coffee' })])
+    expect(actions).toEqual([
+      { kind: 'log_expense', amount: 5, category: 'Coffee', title: 'Coffee', note: null },
+    ])
+  })
+
+  it('maps every supported mutation', () => {
+    const actions = toolCallsToActions([
+      toolCall('log_income', { amount: 1200, title: 'Paycheck' }),
+      toolCall('log_movement', { durationMinutes: 30, title: 'Run' }),
+      toolCall('log_ritual', { title: 'Morning pages' }),
+      toolCall('set_daily_budget', { dailyBudget: 60 }),
+      toolCall('set_move_goal', { dailyMoveMinutes: 45 }),
+      toolCall('set_ritual_goal', { dailyRitualTarget: 4 }),
+      toolCall('create_routine', { goal: 'a push day' }),
+    ])
+    expect(actions.map((a) => a.kind)).toEqual([
+      'log_income', 'log_movement', 'log_ritual', 'set_daily_budget', 'set_move_goal', 'set_ritual_goal', 'create_routine',
+    ])
+  })
+
+  it('drops unknown tools and calls with invalid args', () => {
+    const actions = toolCallsToActions([
+      toolCall('delete_everything', {}),
+      toolCall('log_expense', { category: 'Coffee' }), // no amount
+      toolCall('set_daily_budget', { dailyBudget: 'lots' }), // wrong type
+      { name: 'log_ritual', arguments: 'not json' },
+    ])
+    expect(actions).toEqual([])
+  })
+})
+
 describe('Pal', () => {
-  it('chat returns the model text', async () => {
-    const client = fakeClient('Nice — logged it.')
+  it('chat returns the model text with no actions when no tool is called', async () => {
+    const client = fakeToolClient({ content: 'You spent the most on Friday.', toolCalls: [] })
     const pal = new Pal(client)
-    const reply = await pal.chat([], 'hi', baseChatCtx())
-    expect(reply).toBe('Nice — logged it.')
-    expect(client.complete).toHaveBeenCalledOnce()
+    const result = await pal.chat([], 'why was friday expensive?', baseChatCtx())
+    expect(result.reply).toBe('You spent the most on Friday.')
+    expect(result.actions).toEqual([])
+    expect(client.completeWithTools).toHaveBeenCalledOnce()
+  })
+
+  it('chat surfaces a tool call as an action and synthesizes a reply when content is empty', async () => {
+    const client = fakeToolClient({
+      content: '',
+      toolCalls: [toolCall('log_expense', { amount: 5, category: 'Coffee', title: 'coffee' })],
+    })
+    const pal = new Pal(client)
+    const result = await pal.chat([], 'add $5 for coffee', baseChatCtx())
+    expect(result.actions).toEqual([
+      { kind: 'log_expense', amount: 5, category: 'Coffee', title: 'coffee', note: null },
+    ])
+    expect(result.reply.length).toBeGreaterThan(0)
+  })
+
+  it('chat prefers the model reply text over the synthesized one when both are present', async () => {
+    const client = fakeToolClient({
+      content: 'Logged it — that puts you at $25 today.',
+      toolCalls: [toolCall('log_expense', { amount: 5, title: 'coffee' })],
+    })
+    const pal = new Pal(client)
+    const result = await pal.chat([], 'add $5 for coffee', baseChatCtx())
+    expect(result.reply).toBe('Logged it — that puts you at $25 today.')
+    expect(result.actions).toHaveLength(1)
+  })
+
+  it('asks the model for JSON on parse but not on the free-text review', async () => {
+    const opts: Array<unknown> = []
+    const client: CompletionClient = {
+      complete: vi.fn(async (_m, o) => {
+        opts.push(o)
+        return '{"type":"money","amount":5,"duration":null,"category":null,"title":"x","note":null}'
+      }),
+      completeWithTools: vi.fn(async () => ({ content: '', toolCalls: [] })),
+    }
+    const pal = new Pal(client)
+    await pal.parse('coffee 5')
+    expect(opts.at(-1)).toEqual({ json: true })
+    await pal.review({
+      spent: 1, spentDeltaPct: 0, hoursMoved: 0, movedDeltaPct: 0, activeDays: 0,
+      ritualsKept: 0, ritualsTarget: 0, ritualsPct: 0, streakDays: 0,
+      topCategory: 'Food', topCategoryPct: 0, discoveredPattern: 'x',
+    })
+    expect(opts.at(-1)).toBeUndefined()
   })
 
   it('parse returns the structured object', async () => {

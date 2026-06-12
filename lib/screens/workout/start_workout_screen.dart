@@ -80,10 +80,10 @@ class _Body extends ConsumerWidget {
     return LargeTitleScrollView(
       title: 'Start workout',
       subtitle: 'Pick a routine or freestyle',
-      leading: GestureDetector(
-        behavior: HitTestBehavior.opaque,
+      leading: NavAction(
+        icon: 'chevron.left',
         onTap: () => Navigator.of(context).maybePop(),
-        child: AppIcon('chevron.left', size: 20, color: c.accent),
+        semanticLabel: 'Back',
       ),
       padding: const EdgeInsets.only(bottom: 110),
       children: [

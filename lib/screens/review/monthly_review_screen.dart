@@ -42,10 +42,10 @@ class MonthlyReviewScreen extends ConsumerWidget {
     return LargeTitleScrollView(
       title: monthName,
       subtitle: 'Monthly review',
-      leading: GestureDetector(
-        behavior: HitTestBehavior.opaque,
+      leading: NavAction(
+        icon: 'chevron.left',
         onTap: () => Navigator.of(context).maybePop(),
-        child: AppIcon('chevron.left', size: 20, color: c.accent),
+        semanticLabel: 'Back',
       ),
       trailing: const NavIconButton(name: 'ellipsis'),
       padding: const EdgeInsets.only(bottom: 48),

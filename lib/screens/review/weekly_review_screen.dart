@@ -47,24 +47,10 @@ class WeeklyReviewScreen extends ConsumerWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              GestureDetector(
-                behavior: HitTestBehavior.opaque,
+              NavAction(
+                icon: 'chevron.left',
+                label: 'You',
                 onTap: () => Navigator.of(context).maybePop(),
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(0, 4, 4, 4),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      AppIcon('chevron.left', size: 20, color: c.accent),
-                      const SizedBox(width: 2),
-                      Text('You',
-                          style: AppFonts.sf(
-                              size: 17,
-                              color: c.accent,
-                              letterSpacing: -0.43)),
-                    ],
-                  ),
-                ),
               ),
               const NavIconButton(name: 'square.and.arrow.up'),
             ],

@@ -2,6 +2,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../models/models.dart';
 import '../services/services.dart';
+import 'pal_action_executor.dart';
 import 'providers.dart';
 
 part 'pal_composer_controller.g.dart';
@@ -149,8 +150,10 @@ class PalComposerController extends _$PalComposerController {
     StarterEntry? payload,
   }) async {
     try {
-      final reply = await ref.read(palServiceProvider).chat(history, message);
-      _appendAssistant(reply);
+      final result = await ref.read(palServiceProvider).chat(history, message);
+      // apply any logging / goal / routine changes the reply carried, same as Ask-Pal
+      await applyPalActions(ref, result.actions);
+      _appendAssistant(result.reply, actions: result.actions);
     } on PalException {
       await _handleOffline(payload);
     } catch (_) {
@@ -198,7 +201,7 @@ class PalComposerController extends _$PalComposerController {
     return 'Logged ${payload.title}$detail offline.';
   }
 
-  void _appendAssistant(String text) {
+  void _appendAssistant(String text, {List<PalAction> actions = const []}) {
     state = state.copyWith(
       messages: [
         ...state.messages,
@@ -206,6 +209,7 @@ class PalComposerController extends _$PalComposerController {
           role: PalRole.assistant,
           text: text,
           timestamp: DateTime.now(),
+          actions: actions,
         ),
       ],
       isLoading: false,

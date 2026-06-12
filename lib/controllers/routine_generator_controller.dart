@@ -3,6 +3,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../models/models.dart';
 import '../services/pal/pal_service.dart';
+import 'pal_action_executor.dart';
 import 'providers.dart';
 
 part 'routine_generator_controller.g.dart';
@@ -98,35 +99,6 @@ class RoutineGeneratorController extends _$RoutineGeneratorController {
   Future<void> save() async {
     final current = state;
     if (current is! RoutineGeneratorResult) return;
-    final draft = current.draft;
-
-    final exercises = <RoutineExercise>[
-      for (var i = 0; i < draft.exercises.length; i++)
-        _slotFrom(draft.exercises[i], i),
-    ];
-
-    final routine = Routine(
-      id: '',
-      name: draft.name,
-      tag: draft.tag,
-      exercises: exercises,
-    );
-
-    await ref.read(routineRepositoryProvider).insert(routine);
-  }
-
-  /// Folds a generated exercise into a routine slot: set count from the list
-  /// length, target reps/weight from the first set (the editor stores a single
-  /// target per slot, not per-set).
-  RoutineExercise _slotFrom(GeneratedExerciseDraft ex, int order) {
-    final first = ex.sets.isEmpty ? null : ex.sets.first;
-    return RoutineExercise(
-      id: '',
-      exerciseId: ex.exerciseId,
-      order: order,
-      targetSets: ex.sets.isEmpty ? 3 : ex.sets.length,
-      targetReps: first?.reps,
-      targetWeightKg: first?.weightKg,
-    );
+    await ref.read(routineRepositoryProvider).insert(routineFromDraft(current.draft));
   }
 }

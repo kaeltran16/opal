@@ -70,6 +70,7 @@ Without `PAL_BASE_URL` the app stays on `MockPalService`.
 | `OPENROUTER_API_KEY` | yes | OpenRouter API key (`sk-or-...`). Server-side only. |
 | `PAL_PROVISIONING_KEY` | yes | Gates `POST /v1/register`; ships in the app build. |
 | `PAL_MODEL` | no | OpenRouter model slug. Default: a cheap/fast model. |
+| `PAL_REQUEST_TIMEOUT_MS` | no | Per-request timeout to OpenRouter. Default `30000`. |
 | `OPENROUTER_BASE_URL` | no | Defaults to `https://openrouter.ai/api/v1`. |
 | `PORT` | no | Default `8080`. |
 | `SQLITE_PATH` | no | Default `./loop.sqlite`. |
@@ -77,8 +78,20 @@ Without `PAL_BASE_URL` the app stays on `MockPalService`.
 
 ## Endpoints
 
-`POST /v1/{chat,parse,review,suggest-workout,post-workout-note}` (Bearer token),
+`POST /v1/{chat,parse,review,suggest-workout,post-workout-note,routine}` (Bearer token),
 `POST /v1/register` (provisioning key → token), `GET /healthz`.
+
+`POST /v1/chat` returns `{ reply, actions[] }`. Pal can call tools to mutate
+data (`log_expense`/`log_income`/`log_movement`/`log_ritual`,
+`set_daily_budget`/`set_move_goal`/`set_ritual_goal`, `create_routine`); each
+tool call is validated server-side and returned as an `action` the client
+applies (and can undo). `create_routine` carries only the goal — the client
+fulfills it by calling `/v1/routine` with its exercise catalog, so the catalog
+never rides along on `/chat`. Unknown/invalid tool calls are dropped.
+
+The structured endpoints (`parse`, `insights`, `suggest-workout`, `routine`,
+email receipt extraction) request strict JSON output (`response_format`) for
+reliability; `extractJson` remains as a tolerant fallback.
 
 **Email (Bearer token):**
 

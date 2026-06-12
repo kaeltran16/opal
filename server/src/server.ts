@@ -5,7 +5,7 @@ import { EmailWorker } from './email.js'
 import { ImapFlowClient } from './imap.js'
 import { TokenStore } from './store.js'
 
-const client = new OpenRouterClient(config.openrouterApiKey, config.model, config.openrouterBaseUrl)
+const client = new OpenRouterClient(config.openrouterApiKey, config.model, config.openrouterBaseUrl, fetch, config.requestTimeoutMs)
 const pal = new Pal(client)
 const worker = new EmailWorker(new ImapFlowClient(), client)
 const store = new TokenStore(config.sqlitePath)

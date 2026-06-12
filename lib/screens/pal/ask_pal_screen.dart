@@ -95,7 +95,11 @@ class _AskPalScreenState extends ConsumerState<AskPalScreen> {
                         if (state.isLoading && i == itemCount - 1) {
                           return const _TypingIndicator();
                         }
-                        return _Bubble(message: state.messages[i]);
+                        return _Bubble(
+                          message: state.messages[i],
+                          onUndo: () =>
+                              ref.read(askPalControllerProvider.notifier).undo(i),
+                        );
                       },
                     ),
             ),
@@ -126,13 +130,10 @@ class _Header extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              GestureDetector(
-                behavior: HitTestBehavior.opaque,
+              NavAction(
+                icon: 'chevron.left',
                 onTap: () => context.pop(),
-                child: Padding(
-                  padding: const EdgeInsets.all(8),
-                  child: AppIcon('chevron.left', size: 20, color: c.accent),
-                ),
+                semanticLabel: 'Back',
               ),
               const NavIconButton(
                 name: 'ellipsis',
@@ -175,9 +176,13 @@ class _Header extends StatelessWidget {
 /// A single chat bubble. User → right, accent fill, white ink. Assistant →
 /// left, surface fill, primary ink. Radius 18 with a tucked tail corner.
 class _Bubble extends StatelessWidget {
-  const _Bubble({required this.message});
+  const _Bubble({required this.message, this.onUndo});
 
   final PalMessage message;
+
+  /// Reverses this turn's auto-applied actions. Shown only on assistant
+  /// messages that applied something and haven't been undone.
+  final VoidCallback? onUndo;
 
   @override
   Widget build(BuildContext context) {
@@ -193,6 +198,7 @@ class _Bubble extends StatelessWidget {
       bottomLeft: isUser ? radius : const Radius.circular(4),
       bottomRight: isUser ? const Radius.circular(4) : radius,
     );
+    final showUndo = message.actions.isNotEmpty && !message.undone;
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
@@ -202,21 +208,60 @@ class _Bubble extends StatelessWidget {
           constraints: BoxConstraints(
             maxWidth: MediaQuery.sizeOf(context).width * 0.78,
           ),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            decoration: BoxDecoration(
-              color: bg,
-              borderRadius: shape,
-            ),
-            child: Text(
-              message.text,
-              style: AppFonts.sf(
-                size: 15,
-                color: fg,
-                letterSpacing: -0.24,
-                height: 1.4,
+          child: Column(
+            crossAxisAlignment:
+                isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(color: bg, borderRadius: shape),
+                child: Text(
+                  message.text,
+                  style: AppFonts.sf(
+                    size: 15,
+                    color: fg,
+                    letterSpacing: -0.24,
+                    height: 1.4,
+                  ),
+                ),
               ),
-            ),
+              if (showUndo)
+                GestureDetector(
+                  onTap: onUndo,
+                  behavior: HitTestBehavior.opaque,
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 4, left: 6),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        AppIcon('arrow.uturn.backward', size: 12, color: c.accent),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Undo',
+                          style: AppFonts.sf(
+                            size: 13,
+                            weight: FontWeight.w600,
+                            color: c.accent,
+                            letterSpacing: -0.08,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              if (message.undone)
+                Padding(
+                  padding: const EdgeInsets.only(top: 4, left: 6),
+                  child: Text(
+                    'Undone',
+                    style: AppFonts.sf(
+                      size: 13,
+                      color: c.ink3,
+                      letterSpacing: -0.08,
+                    ),
+                  ),
+                ),
+            ],
           ),
         ),
       ),

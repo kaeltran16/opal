@@ -18,9 +18,23 @@ describe('prompts', () => {
     expect(p).toContain('Never say "amazing" or "great job"')
   })
 
+  it('chat system prompt tells Pal it can take logging/goal actions via tools', () => {
+    const p = chatSystemPrompt({
+      userName: 'Kael', todayEntries: [], dailyBudget: 60, moveGoalMin: 30, ritualGoal: 5,
+      spentToday: 0, movedTodayMin: 0, ritualsDoneToday: 0, weekSpent: 0, weekBudget: 420,
+      weekMovedMin: 0, weekRitualsDone: 0, weekRitualGoal: 35, moveStreakDays: 0,
+    })
+    expect(p.toLowerCase()).toContain('tool')
+    expect(p.toLowerCase()).toContain('log')
+  })
+
   it('parse prompt embeds the raw input', () => {
     expect(parsePrompt('coffee 5')).toContain('"coffee 5"')
     expect(parsePrompt('coffee 5')).toContain('money|move|rituals')
+  })
+
+  it('parse prompt includes a worked example to anchor the format', () => {
+    expect(parsePrompt('coffee 5')).toContain('Example')
   })
 
   it('review prompt embeds the numbers', () => {

@@ -64,7 +64,6 @@ class _Body extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final c = context.colors;
     final controller =
         ref.read(routineEditorControllerProvider(routineId).notifier);
     final draft = state.draft;
@@ -83,10 +82,10 @@ class _Body extends ConsumerWidget {
           LargeTitleNavBar(
             title: state.isEditing ? 'Edit routine' : 'New routine',
             subtitle: state.isEditing ? draft.name : 'Build from scratch',
-            leading: GestureDetector(
-              behavior: HitTestBehavior.opaque,
+            leading: NavAction(
+              icon: 'chevron.left',
               onTap: () => context.pop(),
-              child: AppIcon('chevron.left', size: 20, color: c.accent),
+              semanticLabel: 'Back',
             ),
             trailing: _SaveButton(enabled: canSave, onTap: canSave ? onSave : null),
           ),

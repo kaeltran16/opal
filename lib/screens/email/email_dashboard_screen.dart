@@ -69,18 +69,11 @@ class EmailDashboardScreen extends ConsumerWidget {
       child: LargeTitleScrollView(
         title: 'Email sync',
         subtitle: 'Gmail · connected',
-        leading: GestureDetector(
-          behavior: HitTestBehavior.opaque,
+        leading: NavAction(
+          icon: 'chevron.left',
+          label: 'You',
           onTap: () => context.pop(),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              AppIcon('chevron.left', size: 20, color: c.accent),
-              Text('You',
-                  style: AppFonts.sf(
-                      size: 17, color: c.accent, letterSpacing: -0.43)),
-            ],
-          ),
+          semanticLabel: 'Back',
         ),
         trailing: const NavIconButton(name: 'ellipsis', semanticLabel: 'More options'),
         padding: const EdgeInsets.only(bottom: 48),

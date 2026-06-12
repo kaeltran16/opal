@@ -57,10 +57,10 @@ class RitualsBuilderScreen extends ConsumerWidget {
           LargeTitleNavBar(
             title: 'Manage',
             subtitle: 'Drag to reorder · tap to edit',
-            leading: GestureDetector(
-              behavior: HitTestBehavior.opaque,
+            leading: NavAction(
+              icon: 'chevron.left',
               onTap: () => context.go('/rituals'),
-              child: AppIcon('chevron.left', size: 22, color: c.accent),
+              semanticLabel: 'Back',
             ),
             trailing: NavIconButton(
               name: 'plus',
@@ -385,11 +385,11 @@ class _RoutineEditorState extends State<_RoutineEditor> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                _TextAction(label: 'Cancel', onTap: () => Navigator.pop(context)),
+                NavAction(label: 'Cancel', onTap: () => Navigator.pop(context)),
                 Text(isEdit ? 'Edit routine' : 'New routine',
                     style: AppFonts.sf(
                         size: 17, weight: FontWeight.w600, color: c.ink)),
-                _TextAction(
+                NavAction(
                   label: 'Save',
                   bold: true,
                   enabled: _canSave,
@@ -438,7 +438,7 @@ class _RoutineEditorState extends State<_RoutineEditor> {
             Row(
               children: [
                 Expanded(child: _Label('STEPS')),
-                _TextAction(
+                NavAction(
                   label: '+ Add step',
                   bold: true,
                   onTap: () => _editStep(null),
@@ -610,11 +610,11 @@ class _StepEditorState extends State<_StepEditor> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                _TextAction(label: 'Cancel', onTap: () => Navigator.pop(context)),
+                NavAction(label: 'Cancel', onTap: () => Navigator.pop(context)),
                 Text(isEdit ? 'Edit step' : 'New step',
                     style: AppFonts.sf(
                         size: 17, weight: FontWeight.w600, color: c.ink)),
-                _TextAction(
+                NavAction(
                   label: 'Save',
                   bold: true,
                   enabled: _canSave,
@@ -745,34 +745,3 @@ class _Label extends StatelessWidget {
   }
 }
 
-class _TextAction extends StatelessWidget {
-  const _TextAction({
-    required this.label,
-    this.onTap,
-    this.bold = false,
-    this.enabled = true,
-  });
-
-  final String label;
-  final VoidCallback? onTap;
-  final bool bold;
-  final bool enabled;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.colors;
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Text(
-        label,
-        style: AppFonts.sf(
-          size: 17,
-          weight: bold ? FontWeight.w600 : FontWeight.w400,
-          color: enabled ? c.accent : c.ink4,
-          letterSpacing: -0.43,
-        ),
-      ),
-    );
-  }
-}

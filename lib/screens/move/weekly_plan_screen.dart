@@ -63,19 +63,11 @@ class WeeklyPlanScreen extends ConsumerWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              PressScale(
+              NavAction(
+                icon: 'chevron.left',
+                label: 'Workout',
                 onTap: () => context.pop(),
-                semanticLabel: 'Workout',
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    AppIcon('chevron.left', size: 20, color: c.accent),
-                    const SizedBox(width: 2),
-                    Text('Workout',
-                        style: AppFonts.sf(
-                            size: 17, color: c.accent, letterSpacing: -0.43)),
-                  ],
-                ),
+                semanticLabel: 'Back',
               ),
               const NavIconButton(name: 'ellipsis', semanticLabel: 'More options'),
             ],

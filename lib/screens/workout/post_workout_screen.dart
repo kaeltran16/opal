@@ -137,14 +137,20 @@ class _Hero extends StatelessWidget {
                     GestureDetector(
                       behavior: HitTestBehavior.opaque,
                       onTap: onClose,
-                      child: Container(
-                        width: 32,
-                        height: 32,
-                        decoration: BoxDecoration(
-                          color: _white.withValues(alpha: 0.2),
-                          shape: BoxShape.circle,
+                      child: SizedBox(
+                        width: 44,
+                        height: 44,
+                        child: Center(
+                          child: Container(
+                            width: 32,
+                            height: 32,
+                            decoration: BoxDecoration(
+                              color: _white.withValues(alpha: 0.2),
+                              shape: BoxShape.circle,
+                            ),
+                            child: AppIcon('xmark', size: 13, color: _white),
+                          ),
                         ),
-                        child: AppIcon('xmark', size: 13, color: _white),
                       ),
                     ),
                   ],

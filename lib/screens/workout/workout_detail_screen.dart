@@ -82,10 +82,10 @@ class _Body extends StatelessWidget {
     return LargeTitleScrollView(
       title: w.name,
       subtitle: _dateLabel,
-      leading: GestureDetector(
-        behavior: HitTestBehavior.opaque,
+      leading: NavAction(
+        icon: 'chevron.left',
         onTap: () => context.pop(),
-        child: AppIcon('chevron.left', size: 20, color: c.accent),
+        semanticLabel: 'Back',
       ),
       trailing: const NavIconButton(name: 'ellipsis', semanticLabel: 'More options'),
       padding: const EdgeInsets.only(bottom: 48),

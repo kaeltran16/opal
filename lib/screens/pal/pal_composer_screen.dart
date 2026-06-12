@@ -207,12 +207,19 @@ class _Header extends StatelessWidget {
               GestureDetector(
                 onTap: onClose,
                 behavior: HitTestBehavior.opaque,
-                child: Container(
-                  width: 30,
-                  height: 30,
-                  decoration: BoxDecoration(color: c.fill, shape: BoxShape.circle),
-                  alignment: Alignment.center,
-                  child: AppIcon('xmark', size: 13, color: c.ink3),
+                child: SizedBox(
+                  width: 44,
+                  height: 44,
+                  child: Center(
+                    child: Container(
+                      width: 30,
+                      height: 30,
+                      decoration:
+                          BoxDecoration(color: c.fill, shape: BoxShape.circle),
+                      alignment: Alignment.center,
+                      child: AppIcon('xmark', size: 13, color: c.ink3),
+                    ),
+                  ),
                 ),
               ),
             ],

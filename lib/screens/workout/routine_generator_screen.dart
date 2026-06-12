@@ -85,18 +85,10 @@ class _RoutineGeneratorScreenState
       backgroundColor: c.bg,
       body: LargeTitleScrollView(
         title: 'Generate with AI',
-        leading: PressScale(
+        leading: NavAction(
+          icon: 'chevron.left',
+          label: 'Cancel',
           onTap: () => context.pop(),
-          semanticLabel: 'Cancel',
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              AppIcon('chevron.left', size: 20, color: c.accent),
-              Text('Cancel',
-                  style: AppFonts.sf(
-                      size: 17, color: c.accent, letterSpacing: -0.43)),
-            ],
-          ),
         ),
         padding: const EdgeInsets.only(bottom: 110),
         children: [

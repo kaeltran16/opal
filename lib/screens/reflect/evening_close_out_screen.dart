@@ -108,15 +108,22 @@ class EveningCloseOutScreen extends ConsumerWidget {
                       ? Navigator.of(context).pop()
                       : context.go('/today'),
                   semanticLabel: 'Back',
-                  child: Container(
-                    width: 32,
-                    height: 32,
-                    decoration: const BoxDecoration(
-                      color: _white12,
-                      shape: BoxShape.circle,
+                  child: SizedBox(
+                    width: 44,
+                    height: 44,
+                    child: Center(
+                      child: Container(
+                        width: 32,
+                        height: 32,
+                        decoration: const BoxDecoration(
+                          color: _white12,
+                          shape: BoxShape.circle,
+                        ),
+                        alignment: Alignment.center,
+                        child:
+                            const AppIcon('chevron.left', size: 16, color: _white),
+                      ),
                     ),
-                    alignment: Alignment.center,
-                    child: const AppIcon('chevron.left', size: 16, color: _white),
                   ),
                 ),
                 Expanded(

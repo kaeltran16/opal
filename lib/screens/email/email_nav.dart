@@ -3,7 +3,7 @@ import 'package:flutter/widgets.dart';
 
 import '../../theme/app_colors.dart';
 import '../../theme/app_text.dart';
-import '../../widgets/app_icon.dart';
+import '../../widgets/nav_bar.dart';
 
 /// iOS small-title nav header used by the Email Sync flow (Intro/Setup).
 ///
@@ -36,9 +36,9 @@ class EmailNavBar extends StatelessWidget {
     final c = context.colors;
     return Container(
       color: c.bg,
-      padding: const EdgeInsets.fromLTRB(8, 52, 8, 8),
+      padding: const EdgeInsets.fromLTRB(4, 48, 4, 4),
       child: SizedBox(
-        height: 32,
+        height: 44,
         child: Stack(
           alignment: Alignment.center,
           children: [
@@ -54,46 +54,20 @@ class EmailNavBar extends StatelessWidget {
             if (leadingLabel != null)
               Align(
                 alignment: Alignment.centerLeft,
-                child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
+                child: NavAction(
+                  label: leadingLabel,
+                  icon: showLeadingChevron ? 'chevron.left' : null,
                   onTap: onLeading,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (showLeadingChevron) ...[
-                          AppIcon('chevron.left', size: 20, color: c.accent),
-                          const SizedBox(width: 2),
-                        ],
-                        Text(
-                          leadingLabel!,
-                          style: AppFonts.sf(
-                              size: 17, color: c.accent, letterSpacing: -0.43),
-                        ),
-                      ],
-                    ),
-                  ),
                 ),
               ),
             if (trailingLabel != null)
               Align(
                 alignment: Alignment.centerRight,
-                child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: trailingEnabled ? onTrailing : null,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    child: Text(
-                      trailingLabel!,
-                      style: AppFonts.sf(
-                        size: 17,
-                        weight: FontWeight.w600,
-                        color: trailingEnabled ? c.accent : c.ink4,
-                        letterSpacing: -0.43,
-                      ),
-                    ),
-                  ),
+                child: NavAction(
+                  label: trailingLabel,
+                  bold: true,
+                  enabled: trailingEnabled,
+                  onTap: onTrailing,
                 ),
               ),
           ],

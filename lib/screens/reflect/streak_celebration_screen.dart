@@ -95,12 +95,19 @@ class StreakCelebrationScreen extends ConsumerWidget {
                       ? Navigator.of(context).pop()
                       : context.go('/today'),
                   semanticLabel: 'Close',
-                  child: Container(
-                    width: 32,
-                    height: 32,
-                    decoration: BoxDecoration(color: c.fill, shape: BoxShape.circle),
-                    alignment: Alignment.center,
-                    child: AppIcon('xmark', size: 13, color: c.ink3),
+                  child: SizedBox(
+                    width: 44,
+                    height: 44,
+                    child: Center(
+                      child: Container(
+                        width: 32,
+                        height: 32,
+                        decoration:
+                            BoxDecoration(color: c.fill, shape: BoxShape.circle),
+                        alignment: Alignment.center,
+                        child: AppIcon('xmark', size: 13, color: c.ink3),
+                      ),
+                    ),
                   ),
                 ),
               ),

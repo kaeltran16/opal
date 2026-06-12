@@ -1,4 +1,4 @@
-import type { CompletionClient } from './pal.js'
+import type { TextCompleter } from './pal.js'
 import type { ImapCreds, MailboxClient } from './imap.js'
 import { filterBySender, extractReceipt } from './receipts.js'
 
@@ -20,12 +20,12 @@ const MAX_SCAN = 50
  * messages since the client's last sync, keeps allowlisted senders, and
  * model-extracts receipts. Holds no state and stores no credentials — dedup is
  * the client's job (by `sourceRef`). The {@link MailboxClient} and
- * {@link CompletionClient} are injected so this is testable without a network.
+ * {@link TextCompleter} are injected so this is testable without a network.
  */
 export class EmailWorker {
   constructor(
     private readonly mailbox: MailboxClient,
-    private readonly completion: CompletionClient,
+    private readonly completion: TextCompleter,
   ) {}
 
   /** Verify credentials only (Setup screen's Test-connection). */

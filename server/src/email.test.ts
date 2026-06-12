@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { EmailWorker } from './email.js'
 import { ImapAuthError, type ImapCreds, type MailboxClient, type RawEmail } from './imap.js'
-import type { CompletionClient } from './pal.js'
+import type { TextCompleter } from './pal.js'
 
 const creds: ImapCreds = { host: 'imap.gmail.com', port: 993, address: 'a@b.com', appPassword: 'pw' }
 
@@ -14,7 +14,7 @@ function raw(id: string, from: string): RawEmail {
 }
 
 // returns a receipt for amazon senders, "not a receipt" otherwise
-const completion: CompletionClient = {
+const completion: TextCompleter = {
   complete: async (msgs) => {
     const prompt = msgs[0].content
     return prompt.includes('amazon')

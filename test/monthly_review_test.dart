@@ -45,7 +45,8 @@ class _SequencedPalService implements PalService {
       );
 
   @override
-  Future<String> chat(List<PalMessage> history, String message) async => '';
+  Future<PalChatResult> chat(List<PalMessage> history, String message) async =>
+      const PalChatResult(reply: '');
 
   @override
   Future<ParsedEntryDraft> parse(String text) async =>

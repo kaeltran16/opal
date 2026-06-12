@@ -12,22 +12,41 @@ import '../../models/models.dart';
 enum PalRole { user, assistant }
 
 /// A single chat message (mirrors the handoff's chat bubble model).
+///
+/// An assistant turn may have applied [actions] (auto-applied mutations the user
+/// can reverse); [undone] flips true once they have been reversed.
 class PalMessage {
   const PalMessage({
     required this.role,
     required this.text,
     required this.timestamp,
+    this.actions = const [],
+    this.undone = false,
   });
 
   final PalRole role;
   final String text;
   final DateTime timestamp;
 
-  PalMessage copyWith({PalRole? role, String? text, DateTime? timestamp}) =>
+  /// Mutations this turn applied (empty for user messages and plain replies).
+  final List<PalAction> actions;
+
+  /// True once [actions] have been reversed via undo.
+  final bool undone;
+
+  PalMessage copyWith({
+    PalRole? role,
+    String? text,
+    DateTime? timestamp,
+    List<PalAction>? actions,
+    bool? undone,
+  }) =>
       PalMessage(
         role: role ?? this.role,
         text: text ?? this.text,
         timestamp: timestamp ?? this.timestamp,
+        actions: actions ?? this.actions,
+        undone: undone ?? this.undone,
       );
 
   @override
@@ -36,10 +55,107 @@ class PalMessage {
       other is PalMessage &&
           other.role == role &&
           other.text == text &&
-          other.timestamp == timestamp;
+          other.timestamp == timestamp &&
+          other.undone == undone &&
+          _listEquals(other.actions, actions);
 
   @override
-  int get hashCode => Object.hash(role, text, timestamp);
+  int get hashCode =>
+      Object.hash(role, text, timestamp, undone, Object.hashAll(actions));
+}
+
+bool _listEquals<T>(List<T> a, List<T> b) {
+  if (a.length != b.length) return false;
+  for (var i = 0; i < a.length; i++) {
+    if (a[i] != b[i]) return false;
+  }
+  return true;
+}
+
+/// A mutation Pal performed from chat, decoded from the `/chat` `actions` wire.
+/// Auto-applied client-side and reversible via undo. Unknown wire kinds decode
+/// to null and are skipped, so a newer server never breaks an older client.
+sealed class PalAction {
+  const PalAction();
+}
+
+/// Which daily goal a [SetGoalAction] changes.
+enum GoalTarget { dailyBudget, dailyMoveMinutes, dailyRitualTarget }
+
+/// Log a timeline [Entry]. Money carries a signed [amount] (negative = expense),
+/// move carries [durationMinutes]; rituals carry neither.
+class LogEntryAction extends PalAction {
+  const LogEntryAction({
+    required this.type,
+    required this.title,
+    this.amount,
+    this.durationMinutes,
+    this.category,
+    this.note,
+  });
+
+  final EntryType type;
+  final String title;
+  final double? amount;
+  final int? durationMinutes;
+  final String? category;
+  final String? note;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is LogEntryAction &&
+          other.type == type &&
+          other.title == title &&
+          other.amount == amount &&
+          other.durationMinutes == durationMinutes &&
+          other.category == category &&
+          other.note == note;
+
+  @override
+  int get hashCode =>
+      Object.hash(type, title, amount, durationMinutes, category, note);
+}
+
+/// Build and save a workout routine for [goal]. Fulfilled client-side by calling
+/// [PalService.generateRoutine] with the local exercise catalog, then persisting.
+class CreateRoutineAction extends PalAction {
+  const CreateRoutineAction({required this.goal, this.name});
+
+  final String goal;
+  final String? name;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is CreateRoutineAction && other.goal == goal && other.name == name;
+
+  @override
+  int get hashCode => Object.hash(goal, name);
+}
+
+/// Change one daily goal to [value].
+class SetGoalAction extends PalAction {
+  const SetGoalAction({required this.target, required this.value});
+
+  final GoalTarget target;
+  final num value;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is SetGoalAction && other.target == target && other.value == value;
+
+  @override
+  int get hashCode => Object.hash(target, value);
+}
+
+/// A chat turn's result: the assistant [reply] plus any [actions] it applied.
+class PalChatResult {
+  const PalChatResult({required this.reply, this.actions = const []});
+
+  final String reply;
+  final List<PalAction> actions;
 }
 
 /// Structured fields parsed from a natural-language entry (the `/parse` seam).
@@ -280,8 +396,8 @@ class PalInsights {
 /// The Pal AI interface. All methods are async to model network latency.
 abstract interface class PalService {
   /// `/chat`: continue a conversation given prior [history] and the new
-  /// [message]; returns the assistant's reply text.
-  Future<String> chat(List<PalMessage> history, String message);
+  /// [message]; returns the assistant's reply plus any mutations it applied.
+  Future<PalChatResult> chat(List<PalMessage> history, String message);
 
   /// `/parse`: turn a natural-language [text] into structured entry fields.
   Future<ParsedEntryDraft> parse(String text);

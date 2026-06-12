@@ -9,6 +9,7 @@ import '../../theme/app_colors.dart';
 import '../../theme/app_text.dart';
 import '../../widgets/app_icon.dart';
 import '../../widgets/controls.dart';
+import '../../widgets/nav_bar.dart';
 
 /// Screen 06 — the reusable tracker detail template.
 ///
@@ -145,13 +146,10 @@ class _NavBar extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(8, 52, 8, 8),
       child: Row(
         children: [
-          GestureDetector(
-            behavior: HitTestBehavior.opaque,
+          NavAction(
+            icon: 'chevron.left',
             onTap: () => context.pop(),
-            child: Padding(
-              padding: const EdgeInsets.all(8),
-              child: AppIcon('chevron.left', size: 20, color: c.accent),
-            ),
+            semanticLabel: 'Back',
           ),
           Expanded(
             child: Text(title,
@@ -162,13 +160,10 @@ class _NavBar extends StatelessWidget {
                     color: c.ink,
                     letterSpacing: -0.43)),
           ),
-          GestureDetector(
-            behavior: HitTestBehavior.opaque,
+          NavAction(
+            icon: 'plus',
             onTap: () => context.pushNamed(AppRoute.newEntry.name),
-            child: Padding(
-              padding: const EdgeInsets.all(8),
-              child: AppIcon('plus', size: 20, color: c.accent),
-            ),
+            semanticLabel: 'Add entry',
           ),
         ],
       ),

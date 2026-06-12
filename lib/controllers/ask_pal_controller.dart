@@ -1,6 +1,7 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../services/services.dart';
+import 'pal_action_executor.dart';
 import 'providers.dart';
 
 part 'ask_pal_controller.g.dart';
@@ -30,41 +31,83 @@ class AskPalState {
       );
 }
 
-/// Owns the Ask-Pal conversation and the [PalService.chat] round-trip.
+/// Owns the Ask-Pal conversation, the [PalService.chat] round-trip, and the
+/// auto-apply + undo of any mutations the reply carried.
 @riverpod
 class AskPalController extends _$AskPalController {
+  /// Reversal data per assistant message index (only for turns that mutated).
+  final Map<int, AppliedActions> _undo = {};
+
   @override
   AskPalState build() => const AskPalState();
 
-  /// Appends the user's [text], shows the typing indicator, then appends the
-  /// assistant's mock reply. No-ops on empty input or while a reply is pending.
+  /// Appends the user's [text], shows the typing indicator, then sends it to
+  /// Pal. Any actions in the reply are applied immediately (entries logged,
+  /// goals changed) and recorded so the turn can be undone. No-ops on empty
+  /// input or while a reply is pending; a transport failure surfaces a message
+  /// rather than leaving the typing indicator spinning forever.
   Future<void> send(String text) async {
     final trimmed = text.trim();
     if (trimmed.isEmpty || state.isLoading) return;
 
     final history = state.messages;
-    final userMessage = PalMessage(
-      role: PalRole.user,
-      text: trimmed,
-      timestamp: DateTime.now(),
-    );
     state = state.copyWith(
-      messages: [...history, userMessage],
+      messages: [...history, PalMessage(role: PalRole.user, text: trimmed, timestamp: DateTime.now())],
       isLoading: true,
     );
 
-    final reply = await ref.read(palServiceProvider).chat(history, trimmed);
-
-    state = state.copyWith(
-      messages: [
+    try {
+      final result = await ref.read(palServiceProvider).chat(history, trimmed);
+      final applied = await applyPalActions(ref, result.actions);
+      final messages = [
         ...state.messages,
         PalMessage(
           role: PalRole.assistant,
-          text: reply,
+          text: result.reply,
           timestamp: DateTime.now(),
+          actions: result.actions,
         ),
-      ],
-      isLoading: false,
-    );
+      ];
+      if (!applied.isEmpty) _undo[messages.length - 1] = applied;
+      state = state.copyWith(messages: messages, isLoading: false);
+    } catch (_) {
+      state = state.copyWith(
+        messages: [
+          ...state.messages,
+          PalMessage(
+            role: PalRole.assistant,
+            text: "Sorry — I couldn't reach Pal just now. Try again in a moment.",
+            timestamp: DateTime.now(),
+          ),
+        ],
+        isLoading: false,
+      );
+    }
+  }
+
+  /// Reverses the actions applied by the assistant message at [index]: deletes
+  /// the entries it created and restores the prior goals. Marks the message
+  /// [PalMessage.undone] so the UI can reflect it.
+  Future<void> undo(int index) async {
+    final rec = _undo.remove(index);
+    if (rec == null) return;
+
+    final entries = ref.read(entryRepositoryProvider);
+    for (final id in rec.entryIds) {
+      await entries.deleteById(id);
+    }
+    final routines = ref.read(routineRepositoryProvider);
+    for (final id in rec.routineIds) {
+      await routines.deleteById(id);
+    }
+    if (rec.priorGoals != null) {
+      await ref.read(goalsRepositoryProvider).save(rec.priorGoals!);
+    }
+
+    if (index >= 0 && index < state.messages.length) {
+      final messages = [...state.messages];
+      messages[index] = messages[index].copyWith(undone: true);
+      state = state.copyWith(messages: messages);
+    }
   }
 }

@@ -7,6 +7,7 @@ import '../../models/models.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_text.dart';
 import '../../widgets/app_icon.dart';
+import '../../widgets/nav_bar.dart';
 import '../../widgets/press_scale.dart';
 
 /// Screen 25 — Pal Inbox. "A quiet inbox, not an anxious one": a timeline of the
@@ -65,34 +66,16 @@ class _InboxBody extends ConsumerWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                GestureDetector(
-                  behavior: HitTestBehavior.opaque,
+                NavAction(
+                  icon: 'chevron.left',
+                  label: 'Today',
                   onTap: () => Navigator.of(context).maybePop(),
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(0, 4, 4, 4),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        AppIcon('chevron.left', size: 20, color: c.accent),
-                        const SizedBox(width: 2),
-                        Text('Today',
-                            style: AppFonts.sf(
-                                size: 17,
-                                color: c.accent,
-                                letterSpacing: -0.43)),
-                      ],
-                    ),
-                  ),
+                  semanticLabel: 'Back',
                 ),
-                PressScale(
+                NavAction(
+                  label: 'Mark all read',
                   onTap: controller.markAllRead,
                   semanticLabel: 'Mark all read',
-                  child: Padding(
-                    padding: const EdgeInsets.all(6),
-                    child: Text('Mark all read',
-                        style: AppFonts.sf(
-                            size: 15, color: c.accent, letterSpacing: -0.15)),
-                  ),
                 ),
               ],
             ),

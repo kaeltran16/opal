@@ -253,7 +253,8 @@ class _CollapsingNavDelegate extends SliverPersistentHeaderDelegate {
       old.trailing != trailing;
 }
 
-/// 32×32 circular tinted icon button used in nav trailing slots.
+/// 32×32 circular tinted icon button used in nav trailing slots. The visible
+/// circle stays 32; the tap target is padded out to the 44pt iOS minimum.
 class NavIconButton extends StatelessWidget {
   const NavIconButton({super.key, required this.name, this.onTap, this.semanticLabel});
 
@@ -267,12 +268,77 @@ class NavIconButton extends StatelessWidget {
     return PressScale(
       onTap: onTap,
       semanticLabel: semanticLabel,
-      child: Container(
-        width: 32,
-        height: 32,
-        decoration: BoxDecoration(color: c.fill, shape: BoxShape.circle),
-        alignment: Alignment.center,
-        child: AppIcon(name, size: 17, color: c.accent),
+      child: SizedBox(
+        width: 44,
+        height: 44,
+        child: Center(
+          child: Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(color: c.fill, shape: BoxShape.circle),
+            alignment: Alignment.center,
+            child: AppIcon(name, size: 17, color: c.accent),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A single nav-bar action — a text label and/or leading SF-symbol icon shown in
+/// a header corner, with a guaranteed 44pt tap target (iOS HIG). The shared
+/// replacement for the per-screen Cancel / Add / Save / Done / back buttons; use
+/// it in the leading/trailing slots of [LargeTitleNavBar] / [EmailNavBar] and in
+/// modal-sheet headers so every screen gets the same comfortable hit area.
+class NavAction extends StatelessWidget {
+  const NavAction({
+    super.key,
+    this.label,
+    this.icon,
+    this.onTap,
+    this.bold = false,
+    this.enabled = true,
+    this.color,
+    this.semanticLabel,
+  }) : assert(label != null || icon != null, 'NavAction needs a label or icon');
+
+  final String? label;
+  final String? icon;
+  final VoidCallback? onTap;
+  final bool bold;
+  final bool enabled;
+  final Color? color;
+  final String? semanticLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    final tint = enabled ? (color ?? c.accent) : c.ink4;
+    return PressScale(
+      onTap: enabled ? onTap : null,
+      semanticLabel: semanticLabel ?? label,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        child: SizedBox(
+          height: 44,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (icon != null) AppIcon(icon!, size: 20, color: tint),
+              if (icon != null && label != null) const SizedBox(width: 2),
+              if (label != null)
+                Text(
+                  label!,
+                  style: AppFonts.sf(
+                    size: 17,
+                    weight: bold ? FontWeight.w600 : FontWeight.w400,
+                    color: tint,
+                    letterSpacing: -0.43,
+                  ),
+                ),
+            ],
+          ),
+        ),
       ),
     );
   }

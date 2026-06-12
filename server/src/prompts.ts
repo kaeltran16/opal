@@ -74,6 +74,8 @@ Spent $${c.spentToday} so far, moved ${c.movedTodayMin}min, ${c.ritualsDoneToday
 
 Week: $${c.weekSpent} of $${c.weekBudget} spent, ${c.weekMovedMin}min moved, ${c.weekRitualsDone}/${c.weekRitualGoal} rituals. ${c.moveStreakDays}-day move streak.
 
+You can act, not just talk. When the user tells you they did or spent something, asks to change a goal, or asks for a workout routine, call the matching tool — for example "add $5 for coffee" calls log_expense, "ran 30 min" calls log_movement, "set my budget to $60" calls set_daily_budget, "build me a push day" calls create_routine. Only call a tool when the user clearly wants that change; for questions, just answer. After acting, confirm in one short sentence.
+
 Reply in 1-3 short sentences. Friendly, specific, no filler. Never say "amazing" or "great job" — be observational and warm instead.`
 }
 
@@ -113,6 +115,13 @@ Return strictly this JSON shape: ${shape}
 export function parsePrompt(input: string): string {
   return `Parse this free-form log into JSON. User said: "${input}"
 Return strictly: {"type": "money|move|rituals", "amount": number|null, "duration": number|null, "category": string|null, "title": string, "note": string|null}
+- type: "money" for spending/income, "move" for workouts/activity, "rituals" for habits/routines.
+- amount: dollars for money (positive magnitude, no sign or symbol), else null.
+- duration: minutes for move, else null.
+- category: a short money category (e.g. Coffee, Dining, Transport), else null.
+- title: a short human label for the entry.
+Example: "add $5 for coffee" -> {"type":"money","amount":5,"duration":null,"category":"Coffee","title":"Coffee","note":null}
+Example: "ran 30 min" -> {"type":"move","amount":null,"duration":30,"category":null,"title":"Run","note":null}
 No prose. Output only the JSON object. If ambiguous, guess from context.`
 }
 

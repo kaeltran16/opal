@@ -94,7 +94,7 @@ class HttpPalService implements PalService {
   }
 
   @override
-  Future<String> chat(List<PalMessage> history, String message) async {
+  Future<PalChatResult> chat(List<PalMessage> history, String message) async {
     final body = {
       'history': history
           .map((m) => {'role': m.role == PalRole.user ? 'user' : 'assistant', 'text': m.text})
@@ -103,7 +103,59 @@ class HttpPalService implements PalService {
       'context': await context.chat(),
     };
     final json = await _post('/v1/chat', body);
-    return json['reply'] as String;
+    final actions = ((json['actions'] as List?) ?? const [])
+        .cast<Map<String, dynamic>>()
+        .map(_actionFromWire)
+        .whereType<PalAction>()
+        .toList();
+    return PalChatResult(reply: json['reply'] as String? ?? '', actions: actions);
+  }
+
+  /// Decodes one wire action by its `kind`. Returns null for unknown kinds or
+  /// malformed payloads so a newer server can't break an older client.
+  static PalAction? _actionFromWire(Map<String, dynamic> a) {
+    final num? amount = a['amount'] as num?;
+    final int? minutes = (a['durationMinutes'] as num?)?.round();
+    final String? title = a['title'] as String?;
+    final String? category = a['category'] as String?;
+    final String? note = a['note'] as String?;
+    switch (a['kind']) {
+      case 'log_expense':
+        if (amount == null) return null;
+        return LogEntryAction(
+          type: EntryType.money, amount: -amount.toDouble().abs(),
+          title: title ?? category ?? 'Expense', category: category, note: note,
+        );
+      case 'log_income':
+        if (amount == null) return null;
+        return LogEntryAction(
+          type: EntryType.money, amount: amount.toDouble().abs(),
+          title: title ?? 'Income', note: note,
+        );
+      case 'log_movement':
+        if (minutes == null) return null;
+        return LogEntryAction(
+          type: EntryType.move, durationMinutes: minutes,
+          title: title ?? 'Workout', note: note,
+        );
+      case 'log_ritual':
+        if (title == null) return null;
+        return LogEntryAction(type: EntryType.rituals, title: title, note: note);
+      case 'set_daily_budget':
+        final v = a['dailyBudget'] as num?;
+        return v == null ? null : SetGoalAction(target: GoalTarget.dailyBudget, value: v);
+      case 'set_move_goal':
+        final v = a['dailyMoveMinutes'] as num?;
+        return v == null ? null : SetGoalAction(target: GoalTarget.dailyMoveMinutes, value: v);
+      case 'set_ritual_goal':
+        final v = a['dailyRitualTarget'] as num?;
+        return v == null ? null : SetGoalAction(target: GoalTarget.dailyRitualTarget, value: v);
+      case 'create_routine':
+        final goal = a['goal'] as String?;
+        return goal == null ? null : CreateRoutineAction(goal: goal, name: a['name'] as String?);
+      default:
+        return null;
+    }
   }
 
   @override

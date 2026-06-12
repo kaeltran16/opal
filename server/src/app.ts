@@ -69,7 +69,7 @@ export function buildApp(deps: AppDeps): FastifyInstance {
       }
     }
 
-  app.post('/v1/chat', guard(chatBody, async (b) => ({ reply: await deps.pal.chat(b.history, b.message, b.context) })))
+  app.post('/v1/chat', guard(chatBody, async (b) => deps.pal.chat(b.history, b.message, b.context)))
   app.post('/v1/parse', guard(parseBody, async (b) => deps.pal.parse(b.text)))
   app.post('/v1/review', guard(reviewBody, async (b) => ({ text: await deps.pal.review(b.context) })))
   app.post('/v1/insights', guard(insightsBody, async (b) => deps.pal.insights(b.context)))

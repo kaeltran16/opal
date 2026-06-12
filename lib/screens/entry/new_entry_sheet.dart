@@ -10,6 +10,7 @@ import '../../theme/app_text.dart';
 import '../../widgets/app_icon.dart';
 import '../../widgets/controls.dart';
 import '../../widgets/keypad.dart';
+import '../../widgets/nav_bar.dart';
 
 /// Screen 04 — New Entry sheet (manual logging).
 ///
@@ -273,13 +274,22 @@ class _NewEntrySheetState extends ConsumerState<NewEntrySheet> {
     if (text.isEmpty) return;
 
     setState(() => _parsing = true);
-    final draft = await ref.read(palServiceProvider).parse(text);
-    if (!mounted) return;
-    setState(() {
-      _parsing = false;
-      _nlCtrl.clear();
-      _applyParsed(draft);
-    });
+    try {
+      final draft = await ref.read(palServiceProvider).parse(text);
+      if (!mounted) return;
+      setState(() {
+        _parsing = false;
+        _nlCtrl.clear();
+        _applyParsed(draft);
+      });
+    } catch (_) {
+      // surface the failure instead of spinning forever
+      if (!mounted) return;
+      setState(() => _parsing = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Couldn't parse that — try again or enter it by hand.")),
+      );
+    }
   }
 
   /// Maps a [ParsedEntryDraft] onto the sheet's fields. Money amounts are
@@ -392,12 +402,11 @@ class _NewEntrySheetState extends ConsumerState<NewEntrySheet> {
             ),
             // Header: Cancel / New Entry / Add.
             Padding(
-              padding: const EdgeInsets.fromLTRB(12, 6, 12, 4),
+              padding: const EdgeInsets.fromLTRB(4, 2, 4, 2),
               child: Row(
                 children: [
-                  _HeaderButton(
+                  NavAction(
                     label: 'Cancel',
-                    color: c.accent,
                     onTap: () => context.pop(),
                   ),
                   Expanded(
@@ -412,9 +421,8 @@ class _NewEntrySheetState extends ConsumerState<NewEntrySheet> {
                       ),
                     ),
                   ),
-                  _HeaderButton(
+                  NavAction(
                     label: 'Add',
-                    color: c.accent,
                     bold: true,
                     enabled: _canAdd,
                     onTap: _add,
@@ -582,43 +590,6 @@ class _NewEntrySheetState extends ConsumerState<NewEntrySheet> {
             onTap: () => _applyPick(p),
           ),
       ],
-    );
-  }
-}
-
-class _HeaderButton extends StatelessWidget {
-  const _HeaderButton({
-    required this.label,
-    required this.color,
-    required this.onTap,
-    this.bold = false,
-    this.enabled = true,
-  });
-
-  final String label;
-  final Color color;
-  final VoidCallback onTap;
-  final bool bold;
-  final bool enabled;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.colors;
-    return GestureDetector(
-      onTap: enabled ? onTap : null,
-      behavior: HitTestBehavior.opaque,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
-        child: Text(
-          label,
-          style: AppFonts.sf(
-            size: 17,
-            weight: bold ? FontWeight.w600 : FontWeight.w400,
-            color: enabled ? color : c.ink4,
-            letterSpacing: -0.43,
-          ),
-        ),
-      ),
     );
   }
 }

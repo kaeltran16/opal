@@ -119,13 +119,19 @@ class _Player extends StatelessWidget {
                   onTap: () => context.go('/rituals'),
                   semanticLabel: 'Close',
                   pressedScale: 0.9,
-                  child: Container(
-                    width: 34,
-                    height: 34,
-                    decoration:
-                        BoxDecoration(color: c.fill, shape: BoxShape.circle),
-                    alignment: Alignment.center,
-                    child: AppIcon('xmark', size: 16, color: c.ink2),
+                  child: SizedBox(
+                    width: 44,
+                    height: 44,
+                    child: Center(
+                      child: Container(
+                        width: 34,
+                        height: 34,
+                        decoration:
+                            BoxDecoration(color: c.fill, shape: BoxShape.circle),
+                        alignment: Alignment.center,
+                        child: AppIcon('xmark', size: 16, color: c.ink2),
+                      ),
+                    ),
                   ),
                 ),
                 Expanded(

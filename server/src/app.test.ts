@@ -5,7 +5,7 @@ import { TokenStore } from './store.js'
 
 function fakePal() {
   return {
-    chat: async () => 'reply text',
+    chat: async () => ({ reply: 'reply text', actions: [{ kind: 'log_expense', amount: 5, category: 'Coffee', title: 'coffee', note: null }] }),
     parse: async () => ({ type: 'money', amount: 5, duration: null, category: 'Coffee', title: 'Coffee', note: null }),
     review: async () => 'review text',
     insights: async () => ({ headline: 'Spending eased mid-week.', lede: null, suggestion: null, wins: [], patterns: [] }),
@@ -99,6 +99,7 @@ describe('app', () => {
     })
     expect(res.statusCode).toBe(200)
     expect(res.json().reply).toBe('reply text')
+    expect(res.json().actions).toEqual([{ kind: 'log_expense', amount: 5, category: 'Coffee', title: 'coffee', note: null }])
   })
 
   const insightsCtx = {

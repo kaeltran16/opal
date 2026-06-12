@@ -72,6 +72,7 @@ const Map<String, IconData> _sfMap = {
   'arrow.right': CupertinoIcons.arrow_right,
   'timer': CupertinoIcons.timer,
   'list.number': CupertinoIcons.list_number,
+  'arrow.uturn.backward': CupertinoIcons.arrow_counterclockwise,
 };
 
 IconData iconForSf(String name) => _sfMap[name] ?? CupertinoIcons.circle;

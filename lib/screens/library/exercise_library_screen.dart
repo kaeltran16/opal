@@ -8,6 +8,7 @@ import '../../theme/app_colors.dart';
 import '../../theme/app_text.dart';
 import '../../widgets/app_icon.dart';
 import '../../widgets/inset_section.dart';
+import '../../widgets/nav_bar.dart';
 
 /// Screen 11 — Exercise Library.
 ///
@@ -149,21 +150,11 @@ class _Header extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(8, 8, 16, 4),
       child: Row(
         children: [
-          GestureDetector(
-            behavior: HitTestBehavior.opaque,
+          NavAction(
+            icon: 'chevron.left',
+            label: 'Workout',
             onTap: () => context.pop(),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  AppIcon('chevron.left', size: 20, color: c.accent),
-                  Text('Workout',
-                      style: AppFonts.sf(
-                          size: 17, color: c.accent, letterSpacing: -0.4)),
-                ],
-              ),
-            ),
+            semanticLabel: 'Back',
           ),
           const SizedBox(width: 4),
           Expanded(

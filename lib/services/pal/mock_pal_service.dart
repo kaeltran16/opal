@@ -57,9 +57,78 @@ class MockPalService implements PalService {
   ];
 
   @override
-  Future<String> chat(List<PalMessage> history, String message) async {
+  Future<PalChatResult> chat(List<PalMessage> history, String message) async {
     await Future<void>.delayed(latency);
-    return _chatReplies[_rng.nextInt(_chatReplies.length)];
+    if (_looksLikeRoutine(message)) {
+      return PalChatResult(
+        reply: 'Built you a routine — take a look.',
+        actions: [CreateRoutineAction(goal: message)],
+      );
+    }
+    final action = _maybeAction(message);
+    if (action != null) {
+      return PalChatResult(reply: _ack(action), actions: [action]);
+    }
+    return PalChatResult(
+      reply: _chatReplies[_rng.nextInt(_chatReplies.length)],
+      actions: const [],
+    );
+  }
+
+  bool _looksLikeRoutine(String message) {
+    final lower = message.toLowerCase();
+    if (lower.contains('?')) return false;
+    if (lower.contains('routine')) return true;
+    final asksToBuild =
+        RegExp(r'\b(build|create|make|design|generate)\b').hasMatch(lower);
+    final aboutWorkout =
+        RegExp(r'\b(workout|plan|push|pull|leg|legs|cardio|upper|lower)\b')
+            .hasMatch(lower);
+    return asksToBuild && aboutWorkout;
+  }
+
+  /// A light command heuristic so the backend-less preview can demo logging.
+  /// Questions stay conversational; anything that looks like "spent/ran/log …"
+  /// with a number becomes a money or move action.
+  LogEntryAction? _maybeAction(String message) {
+    final lower = message.toLowerCase();
+    final isQuestion = lower.contains('?') ||
+        RegExp(r'^(why|how|what|when|who|which|suggest|should|can|does|is|am)\b')
+            .hasMatch(lower);
+    final amountMatch = RegExp(r'(\d+(?:\.\d{1,2})?)').firstMatch(message);
+    if (isQuestion || amountMatch == null) return null;
+
+    final amount = double.tryParse(amountMatch.group(1)!);
+    if (amount == null) return null;
+
+    final isMove = RegExp(r'\b(ran|run|walk|walked|jog|gym|workout|lift|cardio|min)\b')
+        .hasMatch(lower);
+    if (isMove) {
+      return LogEntryAction(
+        type: EntryType.move,
+        durationMinutes: amount.round(),
+        title: lower.contains('walk') ? 'Walk' : 'Run',
+      );
+    }
+    return LogEntryAction(
+      type: EntryType.money,
+      amount: -amount,
+      title: lower.contains('coffee') ? 'Coffee' : 'Expense',
+      category: lower.contains('coffee') ? 'Coffee' : null,
+    );
+  }
+
+  String _ack(LogEntryAction a) {
+    switch (a.type) {
+      case EntryType.money:
+        final mag = (a.amount ?? 0).abs();
+        final s = mag % 1 == 0 ? mag.toStringAsFixed(0) : mag.toStringAsFixed(2);
+        return 'Logged \$$s for ${a.title}.';
+      case EntryType.move:
+        return 'Logged ${a.durationMinutes} min of ${a.title}.';
+      case EntryType.rituals:
+        return 'Logged "${a.title}".';
+    }
   }
 
   @override

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { filterBySender, extractReceipt } from './receipts.js'
 import type { RawEmail } from './imap.js'
-import type { CompletionClient } from './pal.js'
+import type { TextCompleter } from './pal.js'
 
 function email(overrides: Partial<RawEmail> = {}): RawEmail {
   return {
@@ -15,7 +15,7 @@ function email(overrides: Partial<RawEmail> = {}): RawEmail {
   }
 }
 
-const client = (reply: string): CompletionClient => ({ complete: async () => reply })
+const client = (reply: string): TextCompleter => ({ complete: async () => reply })
 
 describe('filterBySender', () => {
   it('keeps everything when no filters are configured', () => {
@@ -56,7 +56,7 @@ describe('extractReceipt', () => {
 
   it('scrubs PII from the body before it reaches the model, keeping the amount', async () => {
     let seen = ''
-    const capturing: CompletionClient = {
+    const capturing: TextCompleter = {
       complete: async (msgs) => {
         seen = msgs[0].content
         return '{"isReceipt": true, "merchant": "Amazon", "amount": 42.99, "category": "Shopping"}'

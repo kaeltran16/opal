@@ -1025,11 +1025,18 @@ class _CircleButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
-      child: Container(
-        width: 32,
-        height: 32,
-        decoration: BoxDecoration(color: background, shape: BoxShape.circle),
-        child: AppIcon(icon, size: 14, color: _white),
+      behavior: HitTestBehavior.opaque,
+      child: SizedBox(
+        width: 44,
+        height: 44,
+        child: Center(
+          child: Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(color: background, shape: BoxShape.circle),
+            child: AppIcon(icon, size: 14, color: _white),
+          ),
+        ),
       ),
     );
   }

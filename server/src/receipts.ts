@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { extractJson, type CompletionClient } from './pal.js'
+import { extractJson, type TextCompleter } from './pal.js'
 import { receiptPrompt } from './prompts.js'
 import { redactPii } from './redact.js'
 import type { RawEmail } from './imap.js'
@@ -32,7 +32,7 @@ export interface ReceiptFields {
 /** Model-extract receipt fields from one email; null if not a receipt. */
 export async function extractReceipt(
   email: RawEmail,
-  client: CompletionClient,
+  client: TextCompleter,
 ): Promise<ReceiptFields | null> {
   // scrub PII before the body leaves for the LLM; `from` is the merchant's
   // sender address (needed for merchant inference, not the user's data).
@@ -45,7 +45,7 @@ export async function extractReceipt(
         text: redactPii(email.text),
       }),
     },
-  ])
+  ], { json: true })
   const parsed = receiptSchema.parse(extractJson(raw))
   if (!parsed.isReceipt || parsed.amount === null || !parsed.merchant) return null
   return { merchant: parsed.merchant, amount: parsed.amount, category: parsed.category }
