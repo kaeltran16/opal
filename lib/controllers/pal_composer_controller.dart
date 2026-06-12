@@ -193,7 +193,7 @@ class PalComposerController extends _$PalComposerController {
   String _offlineConfirmation(StarterEntry payload) {
     final detail = switch (payload.type) {
       EntryType.money when payload.amount != null =>
-        ' · -\$${payload.amount!.abs().toStringAsFixed(2)}',
+        ' · -\$${formatLoggedAmount(payload.amount!.abs())}',
       EntryType.move when payload.durationMinutes != null =>
         ' · ${payload.durationMinutes} min',
       _ => '',

@@ -8,6 +8,12 @@ import '../../models/models.dart';
 /// `HttpPalService` (U23) swaps in via a Riverpod provider override with zero
 /// screen changes. The return DTOs below are the locked SF-3 contract.
 
+/// Formats a money [magnitude] for a "Logged $X" confirmation: whole amounts
+/// drop the cents (12 → "12"), fractional amounts keep two places (12.5 →
+/// "12.50"). Shared by every Pal surface so confirmations read identically.
+String formatLoggedAmount(double magnitude) =>
+    magnitude % 1 == 0 ? magnitude.toStringAsFixed(0) : magnitude.toStringAsFixed(2);
+
 /// Author of a [PalMessage] in the Ask-Pal chat.
 enum PalRole { user, assistant }
 

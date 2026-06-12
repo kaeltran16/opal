@@ -10,6 +10,7 @@ import '../../theme/app_colors.dart';
 import '../../theme/app_text.dart';
 import '../../widgets/app_icon.dart';
 import '../../widgets/nav_bar.dart';
+import '../../widgets/press_scale.dart';
 
 /// Screen 05 — Ask Pal chat (mock).
 ///
@@ -433,9 +434,9 @@ class _SuggestionChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    return GestureDetector(
+    return PressScale(
       onTap: onTap,
-      behavior: HitTestBehavior.opaque,
+      semanticLabel: label,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
@@ -546,11 +547,11 @@ class _InputBarState extends State<_InputBar> {
                 ),
               ),
               const SizedBox(width: 8),
-              GestureDetector(
+              PressScale(
+                semanticLabel: 'Send',
                 onTap: canSend
                     ? () => widget.onSend(widget.controller.text)
                     : null,
-                behavior: HitTestBehavior.opaque,
                 child: Container(
                   width: 40,
                   height: 40,

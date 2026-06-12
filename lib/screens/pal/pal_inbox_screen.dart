@@ -69,7 +69,7 @@ class _InboxBody extends ConsumerWidget {
                 NavAction(
                   icon: 'chevron.left',
                   label: 'Today',
-                  onTap: () => Navigator.of(context).maybePop(),
+                  onTap: () => context.pop(),
                   semanticLabel: 'Back',
                 ),
                 NavAction(
@@ -216,18 +216,17 @@ class _InboxBody extends ConsumerWidget {
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 18, 20, 8),
             child: Center(
-              child: PressScale(
-                semanticLabel: 'Tune what Pal notices',
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    AppIcon('gearshape.fill', size: 12, color: c.ink3),
-                    const SizedBox(width: 6),
-                    Text('Tune what Pal notices',
-                        style: AppFonts.sf(
-                            size: 13, color: c.ink3, letterSpacing: -0.08)),
-                  ],
-                ),
+              // no onTap yet — render as a plain label so screen readers don't
+              // announce a dead button.
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  AppIcon('gearshape.fill', size: 12, color: c.ink3),
+                  const SizedBox(width: 6),
+                  Text('Tune what Pal notices',
+                      style: AppFonts.sf(
+                          size: 13, color: c.ink3, letterSpacing: -0.08)),
+                ],
               ),
             ),
           ),

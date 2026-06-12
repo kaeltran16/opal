@@ -39,24 +39,38 @@ Future<AppliedActions> applyPalActions(Ref ref, List<PalAction> actions) async {
   Goals? working;
   Goals? priorGoals;
 
-  for (final action in actions) {
-    switch (action) {
-      case LogEntryAction():
-        entryIds.add(await entries.insert(_entryFor(action)));
-      case SetGoalAction():
-        working ??= await goalsRepo.get();
-        priorGoals ??= working;
-        working = _applyGoal(working, action);
-        await goalsRepo.save(working);
-      case CreateRoutineAction():
-        final catalog = ref.read(exercisesProvider).asData?.value ?? const [];
-        final draft =
-            await ref.read(palServiceProvider).generateRoutine(action.goal, catalog);
-        final id = await ref
-            .read(routineRepositoryProvider)
-            .insert(routineFromDraft(draft, name: action.name));
-        routineIds.add(id);
+  try {
+    for (final action in actions) {
+      switch (action) {
+        case LogEntryAction():
+          entryIds.add(await entries.insert(_entryFor(action)));
+        case SetGoalAction():
+          working ??= await goalsRepo.get();
+          priorGoals ??= working;
+          working = _applyGoal(working, action);
+          await goalsRepo.save(working);
+        case CreateRoutineAction():
+          final catalog = ref.read(exercisesProvider).asData?.value ?? const [];
+          final draft =
+              await ref.read(palServiceProvider).generateRoutine(action.goal, catalog);
+          final id = await ref
+              .read(routineRepositoryProvider)
+              .insert(routineFromDraft(draft, name: action.name));
+          routineIds.add(id);
+      }
     }
+  } catch (_) {
+    // partial application leaves orphaned, un-undoable mutations — roll back
+    // what already landed (same reversal the undo path uses), then rethrow.
+    for (final id in entryIds) {
+      await entries.deleteById(id);
+    }
+    final routines = ref.read(routineRepositoryProvider);
+    for (final id in routineIds) {
+      await routines.deleteById(id);
+    }
+    if (priorGoals != null) await goalsRepo.save(priorGoals);
+    rethrow;
   }
   return AppliedActions(
     entryIds: entryIds,

@@ -59,6 +59,8 @@ class AskPalController extends _$AskPalController {
     try {
       final result = await ref.read(palServiceProvider).chat(history, trimmed);
       final applied = await applyPalActions(ref, result.actions);
+      // the chat auto-disposes on leave; don't touch state after an await if so.
+      if (!ref.mounted) return;
       final messages = [
         ...state.messages,
         PalMessage(
@@ -71,6 +73,7 @@ class AskPalController extends _$AskPalController {
       if (!applied.isEmpty) _undo[messages.length - 1] = applied;
       state = state.copyWith(messages: messages, isLoading: false);
     } catch (_) {
+      if (!ref.mounted) return;
       state = state.copyWith(
         messages: [
           ...state.messages,

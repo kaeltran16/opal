@@ -161,7 +161,7 @@ class HttpPalService implements PalService {
   @override
   Future<ParsedEntryDraft> parse(String text) async {
     final json = await _post('/v1/parse', {'text': text});
-    final type = _entryTypeFromWire(json['type'] as String);
+    final type = _entryTypeFromWire(json['type'] as String? ?? 'money');
     final rawAmount = (json['amount'] as num?)?.toDouble();
     // ParsedEntryDraft convention: negative = expense. Server returns a magnitude.
     final amount = (type == EntryType.money && rawAmount != null && rawAmount > 0)
@@ -180,7 +180,11 @@ class HttpPalService implements PalService {
   @override
   Future<String> review(DateTime month) async {
     final json = await _post('/v1/review', {'context': await context.review(month)});
-    return json['text'] as String;
+    try {
+      return json['text'] as String? ?? '';
+    } catch (e) {
+      throw PalException('malformed review response: $e');
+    }
   }
 
   @override
@@ -227,11 +231,18 @@ class HttpPalService implements PalService {
       'another': another,
       'context': await context.suggest(another),
     });
-    final routineId = json['routineId'] as String?;
+    final String? routineId;
+    final String rationale;
+    try {
+      routineId = json['routineId'] as String?;
+      rationale = json['reason'] as String? ?? '';
+    } catch (e) {
+      throw PalException('malformed suggest-workout response: $e');
+    }
     final title = (routineId == null ? null : await context.resolveRoutineTitle(routineId)) ?? 'Workout';
     return WorkoutSuggestion(
       title: title,
-      rationale: json['reason'] as String,
+      rationale: rationale,
       routineId: routineId,
     );
   }
@@ -241,7 +252,11 @@ class HttpPalService implements PalService {
     final json = await _post('/v1/post-workout-note', {
       'context': await context.postWorkout(workout),
     });
-    return json['note'] as String;
+    try {
+      return json['note'] as String? ?? '';
+    } catch (e) {
+      throw PalException('malformed post-workout-note response: $e');
+    }
   }
 
   @override

@@ -6,7 +6,7 @@ String formatEntryLine(Entry e) {
   final hh = e.timestamp.hour.toString().padLeft(2, '0');
   final mm = e.timestamp.minute.toString().padLeft(2, '0');
   final detail = switch (e.type) {
-    EntryType.money => e.amount == null ? '' : '\$${e.amount!.toStringAsFixed(0)}',
+    EntryType.money => e.amount == null ? '' : '\$${e.amount!.toStringAsFixed(2)}',
     EntryType.move => e.duration == null ? '' : '${e.duration}min',
     EntryType.rituals => '',
   };

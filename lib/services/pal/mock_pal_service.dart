@@ -121,8 +121,7 @@ class MockPalService implements PalService {
   String _ack(LogEntryAction a) {
     switch (a.type) {
       case EntryType.money:
-        final mag = (a.amount ?? 0).abs();
-        final s = mag % 1 == 0 ? mag.toStringAsFixed(0) : mag.toStringAsFixed(2);
+        final s = formatLoggedAmount((a.amount ?? 0).abs());
         return 'Logged \$$s for ${a.title}.';
       case EntryType.move:
         return 'Logged ${a.durationMinutes} min of ${a.title}.';

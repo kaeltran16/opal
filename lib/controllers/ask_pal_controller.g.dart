@@ -8,15 +8,18 @@ part of 'ask_pal_controller.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
-/// Owns the Ask-Pal conversation and the [PalService.chat] round-trip.
+/// Owns the Ask-Pal conversation, the [PalService.chat] round-trip, and the
+/// auto-apply + undo of any mutations the reply carried.
 
 @ProviderFor(AskPalController)
 const askPalControllerProvider = AskPalControllerProvider._();
 
-/// Owns the Ask-Pal conversation and the [PalService.chat] round-trip.
+/// Owns the Ask-Pal conversation, the [PalService.chat] round-trip, and the
+/// auto-apply + undo of any mutations the reply carried.
 final class AskPalControllerProvider
     extends $NotifierProvider<AskPalController, AskPalState> {
-  /// Owns the Ask-Pal conversation and the [PalService.chat] round-trip.
+  /// Owns the Ask-Pal conversation, the [PalService.chat] round-trip, and the
+  /// auto-apply + undo of any mutations the reply carried.
   const AskPalControllerProvider._()
     : super(
         from: null,
@@ -44,9 +47,10 @@ final class AskPalControllerProvider
   }
 }
 
-String _$askPalControllerHash() => r'db13504fa933926c1cce6f148eb3fe4daf76f57b';
+String _$askPalControllerHash() => r'c5bf6fbf5671615ad29d2e28c020b2d255a0a0d0';
 
-/// Owns the Ask-Pal conversation and the [PalService.chat] round-trip.
+/// Owns the Ask-Pal conversation, the [PalService.chat] round-trip, and the
+/// auto-apply + undo of any mutations the reply carried.
 
 abstract class _$AskPalController extends $Notifier<AskPalState> {
   AskPalState build();
