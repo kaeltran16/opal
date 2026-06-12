@@ -35,7 +35,7 @@ class PalContextSource {
   final Future<Map<String, Object?>> Function() chat;
   final Future<Map<String, Object?>> Function(DateTime anchor, ReviewRange range) review;
   final Future<Map<String, Object?>> Function(InsightRange range) insights;
-  final Future<Map<String, Object?>> Function(bool another) suggest;
+  final Future<Map<String, Object?>> Function(bool another, String? excludeRoutineId) suggest;
   final Future<Map<String, Object?>> Function(Workout workout) postWorkout;
   final Future<String?> Function(String routineId) resolveRoutineTitle;
 }
@@ -228,10 +228,13 @@ class HttpPalService implements PalService {
       };
 
   @override
-  Future<WorkoutSuggestion> suggestWorkout({bool another = false}) async {
+  Future<WorkoutSuggestion> suggestWorkout({
+    bool another = false,
+    String? excludeRoutineId,
+  }) async {
     final json = await _post('/v1/suggest-workout', {
       'another': another,
-      'context': await context.suggest(another),
+      'context': await context.suggest(another, excludeRoutineId),
     });
     final String? routineId;
     final String rationale;

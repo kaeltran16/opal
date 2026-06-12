@@ -30,7 +30,7 @@ void main() {
           'moveTarget': 210, 'ritualsKept': 5, 'ritualsTarget': 35, 'activeDays': 2, 'streakDays': 3,
           'topCategory': 'Food', 'topCategoryPct': 30, 'spendByWeekday': <double>[0,0,0,0,100,0,0],
           'entries': <String>[]},
-        suggest: (_) async => {'recentWorkouts': <Object>[], 'dayOfWeek': 'Wed',
+        suggest: (_, _) async => {'recentWorkouts': <Object>[], 'dayOfWeek': 'Wed',
           'availableRoutines': [{'id': 'r2', 'name': 'Legs'}]},
         postWorkout: (_) async => {'routineName': 'Push', 'setCount': 1, 'volumeKg': 60,
           'prCount': 0, 'prExercises': <String>[], 'lastSessionVolumeKg': null, 'daysAgoLastSession': null},
@@ -139,6 +139,31 @@ void main() {
     expect(s.routineId, 'r2');
     expect(s.rationale, 'Legs rested.');
     expect(s.title, 'Legs');
+  });
+
+  test('suggestWorkout forwards another + excludeRoutineId to the context seam', () async {
+    ({bool another, String? excludeRoutineId})? seen;
+    final service = HttpPalService(
+      baseUrl: 'https://pal.test',
+      httpClient: MockClient((req) async =>
+          http.Response(jsonEncode({'routineId': 'r2', 'reason': ''}), 200)),
+      tokens: tokenProvider(),
+      context: PalContextSource(
+        chat: () async => const {},
+        review: (_, _) async => const {},
+        insights: (_) async => const {},
+        suggest: (another, excludeRoutineId) async {
+          seen = (another: another, excludeRoutineId: excludeRoutineId);
+          return {'availableRoutines': const <Object>[]};
+        },
+        postWorkout: (_) async => const {},
+        resolveRoutineTitle: (_) async => 'Legs',
+      ),
+    );
+
+    await service.suggestWorkout(another: true, excludeRoutineId: 'r1');
+
+    expect(seen, (another: true, excludeRoutineId: 'r1'));
   });
 
   test('insights posts to /v1/insights and maps wins/patterns', () async {

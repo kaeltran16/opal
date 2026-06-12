@@ -268,14 +268,22 @@ PalService palService(Ref ref) {
         streakDays: moveStreakDays(lookback, now: now),
       );
     },
-    suggest: (another) async {
+    suggest: (another, excludeRoutineId) async {
       final recent = await workouts.watchWorkouts().first;
       final all = await routines.getAll();
+      final catalog = await routines.getAllExercises();
+      // drop the rejected routine client-side (the model can only pick from this
+      // list), unless that would empty it — then keep all so a single-routine
+      // user still gets a pick.
+      final candidates = excludeRoutineId == null
+          ? all
+          : all.where((r) => r.id != excludeRoutineId).toList();
       const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
       return buildSuggestContext(
         recentWorkouts: recent.take(5).toList(),
         dayOfWeek: days[DateTime.now().weekday - 1],
-        availableRoutines: all,
+        availableRoutines: candidates.isEmpty ? all : candidates,
+        exercisesById: {for (final e in catalog) e.id: e},
       );
     },
     postWorkout: (workout) async {
@@ -303,7 +311,7 @@ PalService palService(Ref ref) {
     httpClient: httpClient,
     tokens: tokens,
     context: context,
-    timeout: kIsWeb ? const Duration(seconds: 8) : const Duration(seconds: 30),
+    timeout: const Duration(seconds: 30),
   );
 }
 

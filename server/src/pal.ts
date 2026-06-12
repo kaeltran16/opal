@@ -8,6 +8,10 @@ const MAX_TOKENS = 1024
 // insights and routine JSON run long; a 1024 cut-off truncates the object.
 const INSIGHTS_MAX_TOKENS = 2048
 const ROUTINE_MAX_TOKENS = 4096
+// retry a transient upstream failure once after this backoff.
+const RETRY_DELAY_MS = 500
+// cap chat history sent to the model so long conversations don't grow cost unbounded.
+const MAX_HISTORY_MESSAGES = 20
 
 export interface ChatMessage {
   role: 'system' | 'user' | 'assistant'
@@ -39,6 +43,11 @@ export interface CompletionClient {
 // email extraction) — keeps their test doubles minimal.
 export type TextCompleter = Pick<CompletionClient, 'complete'>
 
+// Minimal logger seam for usage/latency observability; pino's logger is structurally compatible.
+export interface CompletionLogger {
+  info(obj: unknown, msg?: string): void
+}
+
 // Raised on a non-2xx (or network failure) from the LLM provider; mapped to 502 upstream.
 export class OpenRouterError extends Error {
   constructor(readonly status: number, message: string) {
@@ -46,6 +55,10 @@ export class OpenRouterError extends Error {
     this.name = 'OpenRouterError'
   }
 }
+
+// 429 (rate limit), 5xx, and network errors (status 0) may clear on retry.
+const isTransient = (status: number) => status === 0 || status === 429 || status >= 500
+const delay = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms))
 
 /// OpenAI-compatible chat-completions client pointed at OpenRouter.
 export class OpenRouterClient implements CompletionClient {
@@ -55,11 +68,26 @@ export class OpenRouterClient implements CompletionClient {
     private readonly baseUrl: string,
     private readonly fetchImpl: typeof fetch = fetch,
     private readonly timeoutMs = 30_000,
+    private readonly logger?: CompletionLogger,
+    private readonly retryDelayMs = RETRY_DELAY_MS,
   ) {}
 
   // Single POST path: applies model/token defaults, a hard request timeout, and
-  // uniform error mapping. Returns the parsed JSON body.
+  // uniform error mapping. Retries a transient failure (429/5xx/network) once.
+  // Returns the parsed JSON body.
   private async post(extra: Record<string, unknown>): Promise<unknown> {
+    try {
+      return await this.attempt(extra)
+    } catch (err) {
+      if (!(err instanceof OpenRouterError) || !isTransient(err.status)) throw err
+      // a 429/5xx/network blip may clear on a second try; non-429 4xx won't.
+      await delay(this.retryDelayMs)
+      return this.attempt(extra)
+    }
+  }
+
+  // One fetch attempt with its own timeout; maps failures to OpenRouterError.
+  private async attempt(extra: Record<string, unknown>): Promise<unknown> {
     let res: Response
     try {
       res = await this.fetchImpl(`${this.baseUrl}/chat/completions`, {
@@ -84,31 +112,40 @@ export class OpenRouterClient implements CompletionClient {
 
   async complete(messages: ChatMessage[], opts?: { json?: boolean; maxTokens?: number }): Promise<string> {
     const cap = opts?.maxTokens ?? MAX_TOKENS
+    const started = Date.now()
     const data = (await this.post({
       messages,
       max_tokens: cap,
       ...(opts?.json ? { response_format: { type: 'json_object' } } : {}),
-    })) as { choices?: Array<{ message?: { content?: string }; finish_reason?: string }> }
+    })) as { choices?: Array<{ message?: { content?: string }; finish_reason?: string }>; usage?: unknown }
     const choice = data.choices?.[0]
     if (choice?.finish_reason === 'length') {
       throw new OpenRouterError(502, `model output truncated (finish_reason=length) at max_tokens=${cap}`)
     }
+    this.logUsage(started, data.usage, choice?.finish_reason)
     return choice?.message?.content?.trim() ?? ''
   }
 
   async completeWithTools(messages: ChatMessage[], tools: unknown[]): Promise<CompletionResult> {
+    const started = Date.now()
     const data = (await this.post({ messages, tools, tool_choice: 'auto' })) as {
       choices?: Array<{ message?: { content?: string; tool_calls?: Array<{ function?: { name?: string; arguments?: string } }> }; finish_reason?: string }>
+      usage?: unknown
     }
     const choice = data.choices?.[0]
     if (choice?.finish_reason === 'length') {
       throw new OpenRouterError(502, `model output truncated (finish_reason=length) at max_tokens=${MAX_TOKENS}`)
     }
+    this.logUsage(started, data.usage, choice?.finish_reason)
     const message = choice?.message
     const toolCalls: ToolCall[] = (message?.tool_calls ?? [])
       .map((c) => ({ name: c.function?.name ?? '', arguments: c.function?.arguments ?? '' }))
       .filter((c) => c.name)
     return { content: message?.content?.trim() ?? '', toolCalls }
+  }
+
+  private logUsage(started: number, usage: unknown, finish_reason?: string): void {
+    this.logger?.info({ ms: Date.now() - started, model: this.model, usage, finish_reason }, 'openrouter completion')
   }
 }
 
@@ -286,9 +323,11 @@ export class Pal {
   constructor(private readonly client: CompletionClient) {}
 
   async chat(history: Array<{ role: 'user' | 'assistant'; text: string }>, message: string, ctx: ChatContext): Promise<ChatResult> {
+    // keep only the most recent turns; system + new user message are always included and don't count.
+    const recent = history.slice(-MAX_HISTORY_MESSAGES)
     const messages: ChatMessage[] = [
       { role: 'system', content: chatSystemPrompt(ctx) },
-      ...history.map((m) => ({ role: m.role, content: m.text })),
+      ...recent.map((m) => ({ role: m.role, content: m.text })),
       { role: 'user', content: message },
     ]
     const res = await this.client.completeWithTools(messages, CHAT_TOOLS)
@@ -322,10 +361,22 @@ export class Pal {
   }
 
   async generateRoutine(goal: string, exercises: RoutineExercise[]): Promise<GeneratedRoutine> {
-    const raw = await this.client.complete([{ role: 'user', content: routinePrompt(goal, exercises) }], { json: true, maxTokens: ROUTINE_MAX_TOKENS })
-    const parsed = routineSchema.parse(extractJson(raw))
     // drop any exercise the model invented — the client can only resolve catalog ids.
     const known = new Set(exercises.map((e) => e.id))
-    return { ...parsed, exercises: parsed.exercises.filter((e) => known.has(e.exerciseId)) }
+    const draw = async (): Promise<GeneratedRoutine> => {
+      const raw = await this.client.complete([{ role: 'user', content: routinePrompt(goal, exercises) }], { json: true, maxTokens: ROUTINE_MAX_TOKENS })
+      const parsed = routineSchema.parse(extractJson(raw))
+      return { ...parsed, exercises: parsed.exercises.filter((e) => known.has(e.exerciseId)) }
+    }
+    let routine = await draw()
+    // if the model picked only invented ids, one retry usually lands on the catalog.
+    // when the catalog itself is empty an empty result is expected — don't retry.
+    if (routine.exercises.length === 0 && exercises.length > 0) {
+      routine = await draw()
+      if (routine.exercises.length === 0) {
+        throw new Error('generated routine has no exercises from the provided catalog')
+      }
+    }
+    return routine
   }
 }

@@ -24,9 +24,16 @@ const DEFAULT_SYNC_WINDOW_MS = 7 * 24 * 60 * 60 * 1000
 export function buildApp(deps: AppDeps): FastifyInstance {
   const app = Fastify({ logger: deps.logger ?? false })
 
-  app.register(rateLimit, { max: 60, timeWindow: '1 minute' })
+  // key by device token so one client can't burn the budget by rotating IPs, and
+  // devices behind a shared carrier NAT don't collide. falls back to ip for register/healthz.
+  app.register(rateLimit, {
+    max: 60,
+    timeWindow: '1 minute',
+    keyGenerator: (req) => extractBearer(req.headers.authorization) ?? req.ip,
+  })
 
-  // minimal CORS for the chrome preview; no extra dep needed
+  // minimal CORS for the chrome preview; no extra dep needed. stays at the root so it
+  // intercepts unmatched OPTIONS preflights (which never reach the child plugin's routes).
   app.addHook('onRequest', async (req, reply) => {
     const origin = req.headers.origin
     if (origin && deps.corsOrigins.includes(origin)) {
@@ -38,6 +45,10 @@ export function buildApp(deps: AppDeps): FastifyInstance {
     if (req.method === 'OPTIONS') reply.code(204).send()
   })
 
+  // routes live in a child plugin registered after rate-limit so its onRoute hook
+  // catches them; routes added at the root before the (un-awaited) plugin loads stay
+  // unlimited.
+  app.register(async (app) => {
   app.get('/healthz', async () => 'ok')
 
   app.post('/v1/register', async (req, reply) => {
@@ -114,6 +125,7 @@ export function buildApp(deps: AppDeps): FastifyInstance {
     const since = new Date(b.since ?? Date.now() - DEFAULT_SYNC_WINDOW_MS)
     return deps.worker.sync(credsOf(b), b.senderFilters ?? [], since) // { items, truncated }
   }))
+  })
 
   return app
 }

@@ -97,10 +97,14 @@ class PalPickController extends _$PalPickController {
   }
 
   /// Asks Pal for a different pick than the last, showing the loading state
-  /// while the new suggestion is fetched (so the card can spin).
+  /// while the new suggestion is fetched (so the card can spin). Passes the
+  /// routine currently shown so it gets dropped from the candidate list.
   Future<void> another() async {
     final pal = ref.read(palServiceProvider);
+    final excludeRoutineId = state.value?.routineId;
     state = const AsyncValue.loading();
-    state = await AsyncValue.guard(() => pal.suggestWorkout(another: true));
+    state = await AsyncValue.guard(
+      () => pal.suggestWorkout(another: true, excludeRoutineId: excludeRoutineId),
+    );
   }
 }

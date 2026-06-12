@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import {
   Pal, OpenRouterClient, OpenRouterError, extractJson, toolCallsToActions, parseSchema,
-  type CompletionClient, type CompletionResult, type ToolCall,
+  type CompletionClient, type CompletionResult, type ToolCall, type ChatMessage,
 } from './pal.js'
 
 // Most methods only need complete(); chat() uses completeWithTools().
@@ -75,6 +75,66 @@ describe('OpenRouterClient', () => {
       .rejects.toMatchObject({ status: 502 })
   })
 
+  it('retries once on a 429 and succeeds on the second attempt', async () => {
+    let calls = 0
+    const flaky = (async () => {
+      calls += 1
+      return calls === 1
+        ? new Response('rate limited', { status: 429 })
+        : okResponse()
+    }) as typeof fetch
+    // retryDelayMs=0 keeps the test fast
+    const client = new OpenRouterClient('k', 'm', 'http://x', flaky, 30_000, undefined, 0)
+    await client.complete([{ role: 'user', content: 'hi' }])
+    expect(calls).toBe(2)
+  })
+
+  it('retries once on a 5xx and succeeds on the second attempt', async () => {
+    let calls = 0
+    const flaky = (async () => {
+      calls += 1
+      return calls === 1 ? new Response('boom', { status: 503 }) : okResponse()
+    }) as typeof fetch
+    const client = new OpenRouterClient('k', 'm', 'http://x', flaky, 30_000, undefined, 0)
+    await client.complete([{ role: 'user', content: 'hi' }])
+    expect(calls).toBe(2)
+  })
+
+  it('retries once on a network error and succeeds on the second attempt', async () => {
+    let calls = 0
+    const flaky = (async () => {
+      calls += 1
+      if (calls === 1) throw new Error('ECONNRESET')
+      return okResponse()
+    }) as typeof fetch
+    const client = new OpenRouterClient('k', 'm', 'http://x', flaky, 30_000, undefined, 0)
+    await client.complete([{ role: 'user', content: 'hi' }])
+    expect(calls).toBe(2)
+  })
+
+  it('does not retry a 400 (a client error will not improve)', async () => {
+    let calls = 0
+    const bad = (async () => {
+      calls += 1
+      return new Response('bad request', { status: 400 })
+    }) as typeof fetch
+    const client = new OpenRouterClient('k', 'm', 'http://x', bad, 30_000, undefined, 0)
+    await expect(client.complete([{ role: 'user', content: 'hi' }])).rejects.toMatchObject({ status: 400 })
+    expect(calls).toBe(1)
+  })
+
+  it('logs ms, model and usage after a successful completion', async () => {
+    const withUsage = (async () =>
+      new Response(JSON.stringify({ choices: [{ message: { content: '{}' }, finish_reason: 'stop' }], usage: { total_tokens: 42 } }), { status: 200 })) as typeof fetch
+    const logged: Array<{ obj: unknown; msg?: string }> = []
+    const logger = { info: (obj: unknown, msg?: string) => logged.push({ obj, msg }) }
+    const client = new OpenRouterClient('k', 'gpt-x', 'http://x', withUsage, 30_000, logger)
+    await client.complete([{ role: 'user', content: 'hi' }])
+    expect(logged).toHaveLength(1)
+    expect(logged[0].obj).toMatchObject({ model: 'gpt-x', usage: { total_tokens: 42 }, finish_reason: 'stop' })
+    expect((logged[0].obj as { ms: number }).ms).toBeGreaterThanOrEqual(0)
+  })
+
   it('errors (OpenRouterError) when a request exceeds the timeout', async () => {
     // a fetch that never resolves on its own — only the abort signal ends it
     const hanging = ((_url, init) =>
@@ -146,6 +206,24 @@ describe('Pal', () => {
     expect(result.reply).toBe('You spent the most on Friday.')
     expect(result.actions).toEqual([])
     expect(client.completeWithTools).toHaveBeenCalledOnce()
+  })
+
+  it('chat caps history to the most recent 20 turns; system + new user always sent', async () => {
+    let sent: ChatMessage[] = []
+    const client: CompletionClient = {
+      complete: vi.fn(async () => ''),
+      completeWithTools: vi.fn(async (m: ChatMessage[]) => {
+        sent = m
+        return { content: 'ok', toolCalls: [] }
+      }),
+    }
+    const history = Array.from({ length: 50 }, (_, i) => ({ role: 'user' as const, text: `m${i}` }))
+    await new Pal(client).chat(history, 'newest', baseChatCtx())
+    // 1 system + 20 history + 1 new user
+    expect(sent).toHaveLength(22)
+    expect(sent[0].role).toBe('system')
+    expect(sent[1].content).toBe('m30') // oldest kept is the 20th-from-last
+    expect(sent.at(-1)?.content).toBe('newest')
   })
 
   it('chat surfaces a tool call as an action and synthesizes a reply when content is empty', async () => {
@@ -283,6 +361,37 @@ describe('Pal', () => {
     const result = await pal.generateRoutine('full body', [{ id: 'e1', name: 'Squat', group: 'Legs', equipment: null }])
     expect(result.exercises).toHaveLength(1)
     expect(result.exercises[0].exerciseId).toBe('e1')
+  })
+
+  it('generateRoutine retries once when the first draft has no catalog exercises', async () => {
+    const ghost = JSON.stringify({ name: 'X', tag: 'full', exercises: [{ exerciseId: 'ghost', sets: [{ reps: 5 }] }] })
+    const good = JSON.stringify({ name: 'X', tag: 'full', exercises: [{ exerciseId: 'e1', sets: [{ reps: 8 }] }] })
+    let calls = 0
+    const client: CompletionClient = {
+      complete: vi.fn(async () => {
+        calls += 1
+        return calls === 1 ? ghost : good
+      }),
+      completeWithTools: vi.fn(async () => ({ content: '', toolCalls: [] })),
+    }
+    const result = await new Pal(client).generateRoutine('full', [{ id: 'e1', name: 'Squat', group: 'Legs', equipment: null }])
+    expect(calls).toBe(2)
+    expect(result.exercises).toHaveLength(1)
+    expect(result.exercises[0].exerciseId).toBe('e1')
+  })
+
+  it('generateRoutine throws when both drafts have no catalog exercises', async () => {
+    const ghost = JSON.stringify({ name: 'X', tag: 'full', exercises: [{ exerciseId: 'ghost', sets: [{ reps: 5 }] }] })
+    const client = fakeClient(ghost)
+    await expect(new Pal(client).generateRoutine('full', [{ id: 'e1', name: 'Squat', group: 'Legs', equipment: null }]))
+      .rejects.toThrow(/no exercises/)
+  })
+
+  it('generateRoutine does not retry when the catalog itself is empty', async () => {
+    const client = fakeClient(JSON.stringify({ name: 'X', tag: 'full', exercises: [] }))
+    const result = await new Pal(client).generateRoutine('x', [])
+    expect(result.exercises).toEqual([])
+    expect(client.complete).toHaveBeenCalledOnce()
   })
 
   it('generateRoutine coerces an off-list tag to custom (client RoutineTag.fromWire would throw)', async () => {

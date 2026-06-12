@@ -104,6 +104,36 @@ void main() {
     expect(moveStreakDays(const [], now: now), 0);
   });
 
+  test('buildSuggestContext resolves set exerciseIds to muscle, then group, then raw id', () {
+    final catalog = {
+      'bench': const Exercise(
+          id: 'bench', name: 'Bench Press', group: 'Push', muscle: 'Chest', icon: 'fig'),
+      // empty muscle falls back to the group label
+      'sled': const Exercise(
+          id: 'sled', name: 'Sled Push', group: 'Legs', muscle: '', icon: 'fig'),
+    };
+    final workout = Workout(
+      id: 'w1', routineId: 'r1', name: 'Push A',
+      startedAt: DateTime(2026, 6, 10, 17),
+      sets: const [
+        SetLog(id: 's1', exerciseId: 'bench', weightKg: 60, reps: 5),
+        SetLog(id: 's2', exerciseId: 'sled', weightKg: 80, reps: 10),
+        SetLog(id: 's3', exerciseId: 'mystery', weightKg: 20, reps: 10), // unknown → raw id
+      ],
+    );
+
+    final ctx = buildSuggestContext(
+      recentWorkouts: [workout],
+      dayOfWeek: 'Wed',
+      availableRoutines: const [],
+      exercisesById: catalog,
+    );
+
+    final muscles = (ctx['recentWorkouts'] as List).single as Map;
+    final labels = (muscles['muscles'] as String).split(', ').toSet();
+    expect(labels, {'Chest', 'Legs', 'mystery'});
+  });
+
   test('buildPostWorkoutContext reads volume + PRs from the workout', () {
     final workout = Workout(
       id: 'w1', routineId: 'r1', name: 'Push A',

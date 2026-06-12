@@ -222,6 +222,35 @@ describe('app', () => {
   })
 })
 
+describe('rate limit keying', () => {
+  let app: ReturnType<typeof buildApp>
+  let store: TokenStore
+
+  beforeEach(async () => {
+    store = new TokenStore(':memory:')
+    app = buildApp({ pal: fakePal() as never, worker: fakeWorker() as never, store, provisioningKey: 'secret', corsOrigins: [] })
+    await app.ready()
+  })
+
+  const hit = (token: string) =>
+    app.inject({ method: 'POST', url: '/v1/parse', headers: { authorization: `Bearer ${token}` }, payload: { text: 'coffee 5' } })
+
+  it('gives different bearer tokens independent buckets', async () => {
+    const a = store.issue('da')
+    const b = store.issue('db')
+    // exhaust token a's 60/min bucket; token b must be untouched.
+    for (let i = 0; i < 60; i++) expect((await hit(a)).statusCode).toBe(200)
+    expect((await hit(a)).statusCode).toBe(429)
+    expect((await hit(b)).statusCode).toBe(200)
+  })
+
+  it('shares one bucket across requests with the same bearer token', async () => {
+    const a = store.issue('da')
+    for (let i = 0; i < 60; i++) expect((await hit(a)).statusCode).toBe(200)
+    expect((await hit(a)).statusCode).toBe(429)
+  })
+})
+
 describe('cors', () => {
   const allowed = 'https://web.example'
 

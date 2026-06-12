@@ -32,7 +32,10 @@ class _FakePal implements PalService {
   @override
   Future<PalInsights> insights(InsightRange range) async => const PalInsights();
   @override
-  Future<WorkoutSuggestion> suggestWorkout({bool another = false}) async =>
+  Future<WorkoutSuggestion> suggestWorkout({
+    bool another = false,
+    String? excludeRoutineId,
+  }) async =>
       const WorkoutSuggestion(title: '', rationale: '');
   @override
   Future<String> postWorkoutNote(Workout workout) async => '';

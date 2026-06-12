@@ -184,19 +184,32 @@ Map<String, Object?> buildSuggestContext({
   required List<Workout> recentWorkouts,
   required String dayOfWeek,
   required List<Routine> availableRoutines,
+  required Map<String, Exercise> exercisesById,
 }) {
   return {
     'recentWorkouts': recentWorkouts
         .map((w) => {
               'routineName': w.name,
               'date': '${w.startedAt.month}/${w.startedAt.day}',
-              'muscles': w.sets.map((s) => s.exerciseId).toSet().join(', '),
+              'muscles': w.sets
+                  .map((s) => _muscleLabel(exercisesById[s.exerciseId], s.exerciseId))
+                  .toSet()
+                  .join(', '),
             })
         .toList(),
     'dayOfWeek': dayOfWeek,
     'availableRoutines':
         availableRoutines.map((r) => {'id': r.id, 'name': r.name}).toList(),
   };
+}
+
+/// Best label for an exercise: its primary muscle, falling back to its group,
+/// then to the raw id when the exercise is unknown to the catalog.
+String _muscleLabel(Exercise? exercise, String exerciseId) {
+  if (exercise == null) return exerciseId;
+  if (exercise.muscle.isNotEmpty) return exercise.muscle;
+  if (exercise.group.isNotEmpty) return exercise.group;
+  return exerciseId;
 }
 
 Map<String, Object?> buildPostWorkoutContext({

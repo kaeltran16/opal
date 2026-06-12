@@ -5,7 +5,9 @@ import { EmailWorker } from './email.js'
 import { ImapFlowClient } from './imap.js'
 import { TokenStore } from './store.js'
 
-const client = new OpenRouterClient(config.openrouterApiKey, config.model, config.openrouterBaseUrl, fetch, config.requestTimeoutMs)
+// usage/latency of each completion, for cost/observability
+const completionLogger = { info: (obj: unknown, msg?: string) => console.log(msg ?? '', obj) }
+const client = new OpenRouterClient(config.openrouterApiKey, config.model, config.openrouterBaseUrl, fetch, config.requestTimeoutMs, completionLogger)
 const pal = new Pal(client)
 // per-email extraction failures must be visible in production (Bug D)
 const syncLogger = { error: (obj: unknown, msg?: string) => console.error(msg ?? '', obj) }

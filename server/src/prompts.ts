@@ -151,17 +151,25 @@ export interface ReceiptInput {
   text: string
 }
 
-export function receiptPrompt(e: ReceiptInput): string {
-  // body is truncated upstream; keep the prompt itself bounded too.
-  const body = e.text.length > 4000 ? e.text.slice(0, 4000) : e.text
-  return `Extract purchase details from this email. It may or may not be a purchase receipt.
+export function receiptsBatchPrompt(emails: ReceiptInput[]): string {
+  const blocks = emails
+    .map((e, i) => {
+      // body is truncated upstream; keep the prompt itself bounded too.
+      const body = e.text.length > 4000 ? e.text.slice(0, 4000) : e.text
+      return `Email ${i + 1}:
 From: ${e.from}
 Subject: ${e.subject}
 Body:
-${body}
+${body}`
+    })
+    .join('\n\n')
+  return `Extract purchase details from these ${emails.length} emails. Each may or may not be a purchase receipt.
 
-Return strictly: {"isReceipt": boolean, "merchant": string|null, "amount": number|null, "category": string|null}
-- isReceipt: true only if this is a receipt/order confirmation for something the user paid for.
+${blocks}
+
+Return strictly: {"results": [{"index": number, "isReceipt": boolean, "merchant": string|null, "amount": number|null, "category": string|null}]}
+- Return exactly one result per email, in order, with index 0 for Email 1, 1 for Email 2, and so on.
+- isReceipt: true only if that email is a receipt/order confirmation for something the user paid for.
 - merchant: the store/brand name (not the email sender domain).
 - amount: the total charged as a positive number, no currency symbol. null if not found.
 - category: one of Shopping, Food, Transport, Bills, Entertainment, Health, Travel, Other.

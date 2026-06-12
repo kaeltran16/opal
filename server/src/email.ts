@@ -1,6 +1,6 @@
 import type { TextCompleter } from './pal.js'
-import type { ImapCreds, MailboxClient } from './imap.js'
-import { filterBySender, extractReceipt } from './receipts.js'
+import type { ImapCreds, MailboxClient, RawEmail } from './imap.js'
+import { filterBySender, extractReceipts, BATCH_SIZE } from './receipts.js'
 
 /** Wire shape returned to the client; maps 1:1 onto `EmailImportItem`. */
 export interface EmailImportDto {
@@ -66,33 +66,41 @@ export class EmailWorker {
       return true
     })
 
-    // extract with a bounded pool and per-email failure tolerance: one upstream
-    // error skips that email, never the whole batch (Bug A). Results are written
-    // by index to preserve input candidate order.
+    // chunk into batches (one LLM call each), then run those through a bounded
+    // pool with per-batch failure tolerance: one upstream error skips that
+    // batch's emails, never the others (Bug A). Each batch carries its emails'
+    // absolute candidate offset so results stay in input order.
+    const batches: { offset: number; emails: RawEmail[] }[] = []
+    for (let i = 0; i < candidates.length; i += BATCH_SIZE) {
+      batches.push({ offset: i, emails: candidates.slice(i, i + BATCH_SIZE) })
+    }
+
     const results: (EmailImportDto | null)[] = new Array(candidates.length).fill(null)
     let failures = 0
     let next = 0
     const work = async (): Promise<void> => {
-      while (next < candidates.length) {
-        const i = next++
-        const email = candidates[i]
+      while (next < batches.length) {
+        const { offset, emails: batch } = batches[next++]
         try {
-          const fields = await extractReceipt(email, this.completion)
-          if (!fields) continue
-          results[i] = {
-            id: email.messageId,
-            merchant: fields.merchant,
-            amount: -Math.abs(fields.amount), // receipts are expenses
-            receivedAt: email.date.toISOString(),
-            category: fields.category,
-          }
+          const fields = await extractReceipts(batch, this.completion)
+          fields.forEach((f, j) => {
+            if (!f) return
+            const email = batch[j]
+            results[offset + j] = {
+              id: email.messageId,
+              merchant: f.merchant,
+              amount: -Math.abs(f.amount), // receipts are expenses
+              receivedAt: email.date.toISOString(),
+              category: f.category,
+            }
+          })
         } catch (err) {
-          failures++
-          this.logger?.error(err, `email extraction failed for ${email.messageId}`)
+          failures += batch.length
+          this.logger?.error(err, `email extraction failed for batch at offset ${offset}`)
         }
       }
     }
-    await Promise.all(Array.from({ length: Math.min(EXTRACT_CONCURRENCY, candidates.length) }, work))
+    await Promise.all(Array.from({ length: Math.min(EXTRACT_CONCURRENCY, batches.length) }, work))
 
     if (failures > 0 && !this.logger) {
       // no per-email logger available; surface the aggregate at least once.

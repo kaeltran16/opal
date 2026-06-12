@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { chatSystemPrompt, reviewPrompt, insightsPrompt, parsePrompt, suggestPrompt, postWorkoutPrompt, routinePrompt } from './prompts.js'
+import { chatSystemPrompt, reviewPrompt, insightsPrompt, parsePrompt, suggestPrompt, postWorkoutPrompt, routinePrompt, receiptsBatchPrompt } from './prompts.js'
 
 describe('prompts', () => {
   it('chat system prompt substitutes user data', () => {
@@ -133,5 +133,25 @@ describe('prompts', () => {
     expect(p).toContain('e1: Bench Press (Push, Barbell)')
     expect(p).toContain('e2: Push-up (Push)')
     expect(p).toContain('upper|lower|full|cardio|custom')
+  })
+
+  it('receipts batch prompt numbers each email and asks for one indexed result each', () => {
+    const p = receiptsBatchPrompt([
+      { from: 'receipts@amazon.com', subject: 'Your order', text: 'Order total $42.99' },
+      { from: 'rides@uber.com', subject: 'Trip', text: 'Total $18.40' },
+    ])
+    expect(p).toContain('Email 1:')
+    expect(p).toContain('Email 2:')
+    expect(p).toContain('receipts@amazon.com')
+    expect(p).toContain('Order total $42.99')
+    expect(p).toContain('"results": [{"index": number')
+    expect(p).toContain('Shopping, Food, Transport, Bills, Entertainment, Health, Travel, Other')
+  })
+
+  it('receipts batch prompt truncates each body to 4000 chars', () => {
+    const long = 'x'.repeat(5000)
+    const p = receiptsBatchPrompt([{ from: 'a@b.com', subject: 's', text: long }])
+    expect(p).not.toContain('x'.repeat(4001))
+    expect(p).toContain('x'.repeat(4000))
   })
 })

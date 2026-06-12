@@ -13,13 +13,17 @@ function raw(id: string, from: string): RawEmail {
   return { messageId: id, from, fromName: from, subject: 's', date: new Date('2026-06-09T10:00:00Z'), text: 'total $10' }
 }
 
-// returns a receipt for amazon senders, "not a receipt" otherwise
+// returns a batch envelope with one indexed result per "From:" line in the
+// prompt: a receipt for amazon senders, "not a receipt" otherwise.
 const completion: TextCompleter = {
   complete: async (msgs) => {
-    const prompt = msgs[0].content
-    return prompt.includes('amazon')
-      ? '{"isReceipt": true, "merchant": "Amazon", "amount": 10, "category": "Shopping"}'
-      : '{"isReceipt": false, "merchant": null, "amount": null, "category": null}'
+    const froms = [...msgs[0].content.matchAll(/^From: (.+)$/gm)].map((m) => m[1])
+    const results = froms.map((from, index) =>
+      from.includes('amazon')
+        ? { index, isReceipt: true, merchant: 'Amazon', amount: 10, category: 'Shopping' }
+        : { index, isReceipt: false, merchant: null, amount: null, category: null },
+    )
+    return JSON.stringify({ results })
   },
 }
 
@@ -71,23 +75,34 @@ describe('EmailWorker.sync', () => {
     expect(calls).toBe(1)
   })
 
-  it('keeps successes when one extraction fails, counts the failure (Bug A)', async () => {
+  it('keeps other batches when one batch fails, logs once (Bug A)', async () => {
+    // 9 amazon receipts → batch 0 = m0..m7, batch 1 = m8. Fail the second batch
+    // (it contains m8) and the first batch's results must survive.
     const flaky: TextCompleter = {
       complete: async (msgs) => {
-        if (msgs[0].content.includes('boom')) throw new Error('upstream blew up')
+        if (msgs[0].content.includes('m8 boom')) throw new Error('upstream blew up')
         return completion.complete(msgs)
       },
     }
-    const bad: RawEmail = { ...raw('m2', 'receipts@amazon.com'), text: 'boom' }
+    const emails = Array.from({ length: 9 }, (_, i) => raw(`m${i}`, 'receipts@amazon.com'))
+    emails[8] = { ...emails[8], text: 'm8 boom' }
     const logged: unknown[] = []
-    const worker = new EmailWorker(
-      mailbox([raw('m1', 'receipts@amazon.com'), bad, raw('m3', 'receipts@amazon.com')]),
-      flaky,
-      { error: (e) => logged.push(e) },
-    )
+    const worker = new EmailWorker(mailbox(emails), flaky, { error: (e) => logged.push(e) })
     const { items } = await worker.sync(creds, [], new Date(0))
-    expect(items.map((i) => i.id)).toEqual(['m1', 'm3'])
+    expect(items.map((i) => i.id)).toEqual(emails.slice(0, 8).map((e) => e.messageId))
     expect(logged).toHaveLength(1)
+  })
+
+  it('chunks candidates into batches of 8 (one LLM call each)', async () => {
+    let calls = 0
+    const counting: TextCompleter = {
+      complete: async (msgs) => { calls++; return completion.complete(msgs) },
+    }
+    const emails = Array.from({ length: 10 }, (_, i) => raw(`m${i}`, 'receipts@amazon.com'))
+    const worker = new EmailWorker(mailbox(emails), counting)
+    const { items } = await worker.sync(creds, [], new Date(0))
+    expect(calls).toBe(2) // 8 + 2
+    expect(items).toHaveLength(10)
   })
 
   it('preserves input candidate order under concurrency', async () => {

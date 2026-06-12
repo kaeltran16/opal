@@ -225,9 +225,18 @@ class MockPalService implements PalService {
   }
 
   @override
-  Future<WorkoutSuggestion> suggestWorkout({bool another = false}) async {
+  Future<WorkoutSuggestion> suggestWorkout({
+    bool another = false,
+    String? excludeRoutineId,
+  }) async {
     await Future<void>.delayed(latency);
     if (another) _suggestionIndex = (_suggestionIndex + 1) % _suggestions.length;
+    // honor the exclusion when it lands on the rejected routine, advancing
+    // until a different pick (or back to the start if all match).
+    if (excludeRoutineId != null &&
+        _suggestions[_suggestionIndex].routineId == excludeRoutineId) {
+      _suggestionIndex = (_suggestionIndex + 1) % _suggestions.length;
+    }
     return _suggestions[_suggestionIndex];
   }
 

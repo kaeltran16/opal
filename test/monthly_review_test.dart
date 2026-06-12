@@ -53,7 +53,10 @@ class _SequencedPalService implements PalService {
       const ParsedEntryDraft(type: EntryType.money);
 
   @override
-  Future<WorkoutSuggestion> suggestWorkout({bool another = false}) async =>
+  Future<WorkoutSuggestion> suggestWorkout({
+    bool another = false,
+    String? excludeRoutineId,
+  }) async =>
       const WorkoutSuggestion(title: '', rationale: '');
 
   @override

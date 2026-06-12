@@ -422,8 +422,12 @@ abstract interface class PalService {
   Future<PalInsights> insights(InsightRange range);
 
   /// Suggest a workout for the Start-Workout picker (U12). [another] true asks
-  /// for a different pick than the last.
-  Future<WorkoutSuggestion> suggestWorkout({bool another = false});
+  /// for a different pick than the last; [excludeRoutineId] is the routine just
+  /// shown, dropped from the candidate list so "another" doesn't repeat it.
+  Future<WorkoutSuggestion> suggestWorkout({
+    bool another = false,
+    String? excludeRoutineId,
+  });
 
   /// A short post-workout note for the summary/detail screens (U14/U15).
   Future<String> postWorkoutNote(Workout workout);
