@@ -155,16 +155,26 @@ ProfileStats buildProfileStats(
   );
 }
 
+/// The live routines list (display-ordered). Watched by [profileStats] so a
+/// routine edit (e.g. a streak change) re-emits the stats on its own.
+@riverpod
+Stream<List<RitualRoutine>> profileRoutines(Ref ref) =>
+    ref.watch(ritualRepositoryProvider).watchRoutines();
+
 /// Streams the [ProfileStats] for the "You" tab. Reactive: re-emits whenever the
 /// entries or rituals change. Reads all entries (year stats span the whole year,
 /// not just today) and folds them via [buildProfileStats].
+///
+/// Combines the two live sources by `await for`-ing entries while watching the
+/// routines stream: a routine change rebuilds this provider (so the longest-
+/// streak stat refreshes), and entry edits drive the inner loop.
 @riverpod
 Stream<ProfileStats> profileStats(Ref ref) async* {
   final entryRepo = ref.watch(entryRepositoryProvider);
-  final ritualRepo = ref.watch(ritualRepositoryProvider);
+  final routines =
+      ref.watch(profileRoutinesProvider).asData?.value ?? const <RitualRoutine>[];
 
   await for (final entries in entryRepo.watchAll()) {
-    final routines = await ritualRepo.getAll();
     yield buildProfileStats(entries, routines);
   }
 }

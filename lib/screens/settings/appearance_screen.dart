@@ -1,18 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../controllers/providers.dart';
 import '../../theme/app_colors.dart';
-import '../../theme/app_text.dart';
 import '../../widgets/app_icon.dart';
 import '../../widgets/controls.dart';
-import '../../widgets/nav_bar.dart';
+import '../../widgets/inset_section.dart';
+import '../../widgets/press_scale.dart';
+import '../email/email_nav.dart';
 
 /// Settings → Appearance.
 ///
 /// Theme controls (Light/Dark brightness + accent swatch) backed by the
-/// persisted [AppSettingsController]. Selections apply immediately; there is no
-/// dismiss since this is a full screen pushed within the You tab.
+/// persisted [AppSettingsController]. Selections apply immediately; a 'You'
+/// back action pops the screen, matching the sibling settings screens.
 class AppearanceScreen extends ConsumerWidget {
   const AppearanceScreen({super.key});
 
@@ -24,20 +26,21 @@ class AppearanceScreen extends ConsumerWidget {
 
     return ColoredBox(
       color: c.bg,
-      child: LargeTitleScrollView(
-        title: 'Appearance',
+      child: ListView(
         padding: const EdgeInsets.only(bottom: 40),
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('THEME',
-                    style: AppFonts.sf(
-                        size: 13, color: c.ink3, letterSpacing: 0.3)),
-                const SizedBox(height: 10),
-                Segmented<Brightness>(
+          EmailNavBar(
+            title: 'Appearance',
+            leadingLabel: 'You',
+            onLeading: () => context.pop(),
+          ),
+          const SizedBox(height: 8),
+          InsetSection(
+            header: 'Theme',
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Segmented<Brightness>(
                   options: const [
                     (Brightness.light, 'Light'),
                     (Brightness.dark, 'Dark')
@@ -45,18 +48,22 @@ class AppearanceScreen extends ConsumerWidget {
                   value: settings.brightness,
                   onChanged: controller.setBrightness,
                 ),
-                const SizedBox(height: 24),
-                Text('ACCENT',
-                    style: AppFonts.sf(
-                        size: 13, color: c.ink3, letterSpacing: 0.3)),
-                const SizedBox(height: 10),
-                Wrap(
+              ),
+            ],
+          ),
+          InsetSection(
+            header: 'Accent',
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Wrap(
                   spacing: 14,
                   runSpacing: 14,
                   children: [
                     for (final a in AppAccent.values)
-                      GestureDetector(
+                      PressScale(
                         onTap: () => controller.setAccent(a),
+                        semanticLabel: a.label,
                         child: Container(
                           width: 36,
                           height: 36,
@@ -77,8 +84,8 @@ class AppearanceScreen extends ConsumerWidget {
                       ),
                   ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ],
       ),

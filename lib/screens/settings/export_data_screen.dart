@@ -28,6 +28,7 @@ class _ExportDataScreenState extends ConsumerState<ExportDataScreen> {
   int? _count;
   bool _busy = false;
   String? _result;
+  bool _ok = true;
 
   @override
   void initState() {
@@ -44,17 +45,27 @@ class _ExportDataScreenState extends ConsumerState<ExportDataScreen> {
   Future<void> _export() async {
     if (_busy) return;
     setState(() => _busy = true);
-    final all = await ref.read(entryRepositoryProvider).getAll();
-    final json = const JsonEncoder.withIndent('  ')
-        .convert(all.map(_entryToMap).toList());
-    await Clipboard.setData(ClipboardData(text: json));
-    if (!mounted) return;
-    setState(() {
-      _busy = false;
-      _count = all.length;
-      _result = 'Copied ${all.length} '
-          '${all.length == 1 ? 'entry' : 'entries'} to the clipboard.';
-    });
+    try {
+      final all = await ref.read(entryRepositoryProvider).getAll();
+      final json = const JsonEncoder.withIndent('  ')
+          .convert(all.map(_entryToMap).toList());
+      await Clipboard.setData(ClipboardData(text: json));
+      if (!mounted) return;
+      setState(() {
+        _count = all.length;
+        _ok = true;
+        _result = 'Copied ${all.length} '
+            '${all.length == 1 ? 'entry' : 'entries'} to the clipboard.';
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _ok = false;
+        _result = "Couldn't copy — try again.";
+      });
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
   }
 
   static Map<String, dynamic> _entryToMap(Entry e) => {
@@ -156,7 +167,8 @@ class _ExportDataScreenState extends ConsumerState<ExportDataScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  AppIcon('checkmark', size: 15, color: c.move),
+                  AppIcon(_ok ? 'checkmark' : 'xmark',
+                      size: 15, color: _ok ? c.move : c.red),
                   const SizedBox(width: 6),
                   Flexible(
                     child: Text(

@@ -9,8 +9,9 @@ import '../email/email_nav.dart';
 
 /// Settings → About.
 ///
-/// App identity (glyph + name + version) and a few static facts. Version is a
-/// single source here and on the Profile row; bump both together on release.
+/// App identity (glyph + name + version) and a few static facts. The version
+/// constant lives only here (shown in the header and the Version row); bump it
+/// on release.
 class AboutScreen extends StatelessWidget {
   const AboutScreen({super.key});
 

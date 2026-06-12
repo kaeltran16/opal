@@ -13,8 +13,9 @@ import '../../widgets/app_icon.dart';
 /// Screen 01 — Onboarding (first-run setup), U17.
 ///
 /// Four full-screen steps (no nav/tab bar): Welcome → Daily budget → Move goal
-/// → pick-5 Rituals. On finish, writes a single [Goals] record, inserts the
-/// selected [Ritual]s, and flips `onboardingComplete` in `SettingsRepository`,
+/// → Routines (three time-of-day routines — Morning / Midday / Evening — on by
+/// default). On finish, writes a single [Goals] record, seeds the enabled
+/// [RitualRoutine]s, and flips `onboardingComplete` in `SettingsRepository`,
 /// at which point the `router.dart` redirect gate releases the app to Today.
 ///
 /// All persistence goes through the repository providers so tests can override
@@ -75,29 +76,38 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     final rituals = ref.read(ritualRepositoryProvider);
     final settings = ref.read(settingsRepositoryProvider);
 
-    await settings.setDisplayName(_nameController.text);
+    try {
+      await settings.setDisplayName(_nameController.text);
 
-    await goals.save(Goals(
-      dailyBudget: _budget,
-      dailyMoveMinutes: _moveMinutes,
-      dailyRitualTarget: 5,
-    ));
+      await goals.save(Goals(
+        dailyBudget: _budget,
+        dailyMoveMinutes: _moveMinutes,
+        dailyRitualTarget: 5,
+      ));
 
-    // Rituals are now the three time-of-day routines (Morning / Midday /
-    // Evening). Seed the enabled ones idempotently so onboarding is
-    // self-sufficient even when the DB seeder hasn't run.
-    for (final routine in _routines) {
-      if (_selectedRoutineIds.contains(routine.id)) {
-        await rituals.upsertRoutine(routine);
+      // Rituals are now the three time-of-day routines (Morning / Midday /
+      // Evening). Seed the enabled ones idempotently so onboarding is
+      // self-sufficient even when the DB seeder hasn't run.
+      for (final routine in _routines) {
+        if (_selectedRoutineIds.contains(routine.id)) {
+          await rituals.upsertRoutine(routine);
+        }
       }
+
+      await settings.setOnboardingComplete(true);
+
+      if (!mounted) return;
+      // Land on Today; the redirect gate would also do this, but going
+      // explicitly avoids waiting on a router refresh tick.
+      context.goNamed(AppRoute.today.name);
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Couldn't save — try again.")),
+      );
+    } finally {
+      if (mounted) setState(() => _saving = false);
     }
-
-    await settings.setOnboardingComplete(true);
-
-    if (!mounted) return;
-    // Land on Today; the redirect gate would also do this, but going
-    // explicitly avoids waiting on a router refresh tick.
-    context.goNamed(AppRoute.today.name);
   }
 
   @override
@@ -568,7 +578,7 @@ class _RoutineRow extends StatelessWidget {
                 ],
               ),
             ),
-            _Toggle(on: on, color: c.move, track: c.fill),
+            _Toggle(on: on, color: tone, track: c.fill),
           ],
         ),
       ),

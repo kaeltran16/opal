@@ -81,7 +81,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                 icon: 'bell.fill',
                 iconBg: c.red,
                 title: 'Allow notifications',
-                value: _requesting ? '…' : _permStatus,
+                value: _requesting ? '…' : (_permStatus ?? 'Not set'),
                 chevron: false,
                 last: true,
                 onTap: _requestPerms,

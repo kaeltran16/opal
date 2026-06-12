@@ -1,4 +1,5 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart' show ScaffoldMessenger, SnackBar;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -49,13 +50,22 @@ class _BudgetsGoalsScreenState extends ConsumerState<BudgetsGoalsScreen> {
   Future<void> _save() async {
     if (!_loaded || _saving) return;
     setState(() => _saving = true);
-    await ref.read(goalsRepositoryProvider).save(Goals(
-          dailyBudget: _budget,
-          dailyMoveMinutes: _move,
-          dailyRitualTarget: _rituals,
-        ));
-    if (!mounted) return;
-    context.pop();
+    try {
+      await ref.read(goalsRepositoryProvider).save(Goals(
+            dailyBudget: _budget,
+            dailyMoveMinutes: _move,
+            dailyRitualTarget: _rituals,
+          ));
+      if (!mounted) return;
+      context.pop();
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Couldn't save — try again.")),
+      );
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
   }
 
   @override
