@@ -253,7 +253,7 @@ class _NewEntrySheetState extends ConsumerState<NewEntrySheet> {
               (p.amount ?? 0) % 1 == 0 ? 0 : 2);
           _categoryCtrl.text = p.category ?? '';
           _titleCtrl.text = p.title;
-          if (p.detail != null) _noteCtrl.text = '';
+          if (p.detail != null) _noteCtrl.text = p.detail!;
         case _Kind.workout:
           _buffer = (p.minutes ?? 0).toString();
           _titleCtrl.text = p.title;

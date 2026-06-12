@@ -19,9 +19,6 @@ class TimelineModeController extends _$TimelineModeController {
   @override
   TimelineMode build() => TimelineMode.day;
 
-  void toggle() =>
-      state = state == TimelineMode.day ? TimelineMode.week : TimelineMode.day;
-
   void set(TimelineMode mode) => state = mode;
 }
 
@@ -150,15 +147,20 @@ Stream<TodayState> todayState(Ref ref) async* {
   final weekStart = today.subtract(Duration(days: now.weekday - 1));
   final tomorrow = today.add(const Duration(days: 1));
 
-  await for (final entries in entriesRepo.watchToday()) {
-    final timelineEntries = mode == TimelineMode.week
-        ? await entriesRepo.watchEntriesInRange(weekStart, tomorrow).first
-        : entries;
-    yield TodayState(
-      entries: entries,
-      timelineEntries: timelineEntries,
-      goals: goals,
-      mode: mode,
-    );
+  if (mode == TimelineMode.week) {
+    // Drive week mode off the full-week stream so edits to any same-week day
+    // re-emit. Today's slice (rings/tiles) is the bounded list from `today` on.
+    await for (final week in entriesRepo.watchEntriesInRange(weekStart, tomorrow)) {
+      yield TodayState(
+        entries: week.where((e) => !e.timestamp.isBefore(today)).toList(),
+        timelineEntries: week,
+        goals: goals,
+        mode: mode,
+      );
+    }
+  } else {
+    await for (final entries in entriesRepo.watchToday()) {
+      yield TodayState(entries: entries, goals: goals, mode: mode);
+    }
   }
 }

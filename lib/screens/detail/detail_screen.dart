@@ -34,7 +34,10 @@ class DetailScreen extends ConsumerWidget {
       backgroundColor: c.bg,
       body: async.when(
         loading: () => const _Loading(),
-        error: (e, _) => _Error(message: "Couldn't load ${tracker.title}.\n$e"),
+        error: (e, _) {
+          debugPrint('detail load failed (${tracker.title}): $e');
+          return _Error(message: "Couldn't load ${tracker.title}.");
+        },
         data: (data) => _DetailBody(data: data),
       ),
     );

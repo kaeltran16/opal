@@ -216,7 +216,7 @@ class _TodayBody extends ConsumerWidget {
                   big: '\$${moneySpent.toStringAsFixed(0)}',
                   sub: 'of \$${goals.dailyBudget.toStringAsFixed(0)} budget',
                   onTap: () =>
-                      context.goNamed(AppRoute.spendingDetail.name),
+                      context.pushNamed(AppRoute.spendingDetail.name),
                 ),
               ),
               const SizedBox(width: 10),
@@ -228,7 +228,7 @@ class _TodayBody extends ConsumerWidget {
                   big: '${today.moveMinutes}',
                   unit: 'MIN',
                   sub: 'of ${goals.dailyMoveMinutes} min goal',
-                  onTap: () => context.goNamed(AppRoute.moveDetail.name),
+                  onTap: () => context.pushNamed(AppRoute.moveDetail.name),
                 ),
               ),
               const SizedBox(width: 10),
@@ -240,7 +240,7 @@ class _TodayBody extends ConsumerWidget {
                   big: '$ritualsDone',
                   unit: '/ ${goals.dailyRitualTarget}',
                   sub: closePrompt,
-                  onTap: () => context.goNamed(AppRoute.ritualsDetail.name),
+                  onTap: () => context.pushNamed(AppRoute.ritualsDetail.name),
                 ),
               ),
             ],
@@ -512,7 +512,7 @@ class _TimelineRow extends StatelessWidget {
   void _open(BuildContext context) {
     switch (entry.type) {
       case EntryType.money:
-        context.goNamed(AppRoute.spendingDetail.name);
+        context.pushNamed(AppRoute.spendingDetail.name);
       case EntryType.move:
         final id = entry.workoutId;
         if (id != null) {

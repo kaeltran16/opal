@@ -48,7 +48,7 @@ final class TimelineModeControllerProvider
 }
 
 String _$timelineModeControllerHash() =>
-    r'f1b7c92f90e418e7015eccb22016e32b880366cd';
+    r'1e8e82bbdb39c1abf69c4fb1468db8780a0a280f';
 
 /// The selected timeline mode. Tapping the Today timeline toggle flips it; the
 /// [todayState] stream watches it and rebuilds its buckets accordingly.
@@ -163,4 +163,4 @@ final class TodayStateProvider
   }
 }
 
-String _$todayStateHash() => r'2c361d3c1164e8747d262fbd0a34df349a4e4842';
+String _$todayStateHash() => r'cc59287263bc00aa28f18f1f5e5136ca051884ba';
