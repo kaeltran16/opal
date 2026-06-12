@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show debugPrint, kIsWeb;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
@@ -25,8 +25,15 @@ Future<void> main() async {
   // The IANA DB has no web backing, so skip it there (notifications no-op).
   if (!kIsWeb) {
     tzdata.initializeTimeZones();
-    final localZone = await FlutterTimezone.getLocalTimezone();
-    tz.setLocalLocation(tz.getLocation(localZone));
+    try {
+      final localZone = await FlutterTimezone.getLocalTimezone();
+      tz.setLocalLocation(tz.getLocation(localZone));
+    } catch (e) {
+      // a missing/unknown device zone must not crash startup; UTC keeps
+      // notification scheduling functional (offset will just be wrong).
+      debugPrint('Timezone init failed, falling back to UTC: $e');
+      tz.setLocalLocation(tz.getLocation('UTC'));
+    }
   }
 
   final prefs = await SharedPreferences.getInstance();

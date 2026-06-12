@@ -16,7 +16,7 @@ class LoopShell extends StatelessWidget {
   final StatefulNavigationShell navigationShell;
 
   /// Maps a branch index to the [LoopTabBar] string id and back.
-  static const _tabIds = ['today', 'move', 'rituals', 'profile'];
+  static const _tabIds = ['today', 'move', 'rituals', 'you'];
 
   @override
   Widget build(BuildContext context) {

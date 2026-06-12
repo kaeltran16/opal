@@ -137,26 +137,26 @@ class AppColors extends ThemeExtension<AppColors> {
 
   @override
   AppColors copyWith({Brightness? brightness, Color? accent}) {
-    // Tokens are derived from (brightness, accent); rebuild from the factory.
+    // Tokens are derived from (brightness, accent). The AppAccent enum can't be
+    // recovered from a Color, so rebuild the neutral palette for the target
+    // brightness (reusing the existing accent when none is passed) and overlay
+    // the requested accent/tint the same way the brightness factory does.
     final b = brightness ?? this.brightness;
-    // Recover the enum is not possible from a Color, so callers pass an accent
-    // color directly; we only re-tint accent here.
-    if (accent != null) {
-      return AppColors(
-        brightness: this.brightness,
-        bg: bg, surface: surface, surface2: surface2,
-        ink: ink, ink2: ink2, ink3: ink3, ink4: ink4,
-        hair: hair, blur: blur, fill: fill,
-        money: money, moneyTint: moneyTint,
-        move: move, moveTint: moveTint,
-        rituals: rituals, ritualsTint: ritualsTint,
-        accent: accent,
-        accentTint: accent.withValues(
-            alpha: this.brightness == Brightness.dark ? 0.18 : 0.14),
-        red: red,
-      );
-    }
-    return b == this.brightness ? this : this;
+    final dark = b == Brightness.dark;
+    final base = dark ? AppColors.dark(AppAccent.blue) : AppColors.light(AppAccent.blue);
+    final a = accent ?? this.accent;
+    return AppColors(
+      brightness: b,
+      bg: base.bg, surface: base.surface, surface2: base.surface2,
+      ink: base.ink, ink2: base.ink2, ink3: base.ink3, ink4: base.ink4,
+      hair: base.hair, blur: base.blur, fill: base.fill,
+      money: base.money, moneyTint: base.moneyTint,
+      move: base.move, moveTint: base.moveTint,
+      rituals: base.rituals, ritualsTint: base.ritualsTint,
+      accent: a,
+      accentTint: a.withValues(alpha: dark ? 0.18 : 0.14),
+      red: base.red,
+    );
   }
 
   @override

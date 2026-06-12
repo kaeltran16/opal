@@ -17,10 +17,10 @@ const _tabs = [
   LoopTab('move', 'Workout', 'figure.run'),
   LoopTab('add', '', 'plus'),
   LoopTab('rituals', 'Routines', 'sparkles'),
-  LoopTab('profile', 'You', 'person.crop.circle.fill'),
+  LoopTab('you', 'You', 'person.crop.circle.fill'),
 ];
 
-/// Blurred bottom tab bar with a raised center FAB (Quick Actions).
+/// Blurred bottom tab bar with a raised center FAB that opens the Pal composer.
 class LoopTabBar extends StatelessWidget {
   const LoopTabBar({
     super.key,
@@ -109,7 +109,7 @@ class _Fab extends StatelessWidget {
     return PressScale(
       onTap: onTap,
       pressedScale: 0.92,
-      semanticLabel: 'Quick actions',
+      semanticLabel: 'Pal composer',
       child: Container(
         width: 50,
         height: 50,

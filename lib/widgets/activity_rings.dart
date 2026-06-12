@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/widgets.dart';
 import '../theme/app_colors.dart';
 
@@ -178,5 +179,5 @@ class _RingsPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_RingsPainter old) =>
-      old.values != values || old.colors != colors;
+      !listEquals(old.values, values) || !listEquals(old.colors, colors);
 }
