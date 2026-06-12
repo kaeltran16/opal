@@ -68,7 +68,7 @@ final class RoutineGeneratorControllerProvider
 }
 
 String _$routineGeneratorControllerHash() =>
-    r'b218a7ab1ed7d3e0036bd0ecaf3e90fc0da39e15';
+    r'c676a8b6e77f739f3b6a2073a42ef4c22c5d7e88';
 
 /// Drives the Routine Generator (Handoff #2). Holds the exercise catalog (the
 /// `available` list passed to Pal and the source for resolving names/icons in

@@ -68,10 +68,17 @@ class _RoutineGeneratorScreenState
   }
 
   Future<void> _save() async {
-    await ref.read(routineGeneratorControllerProvider.notifier).save();
-    if (!mounted) return;
-    // Back to the Start Workout picker so the new routine shows in the grid.
-    context.go('/move/start');
+    try {
+      await ref.read(routineGeneratorControllerProvider.notifier).save();
+      if (!mounted) return;
+      // Back to the Start Workout picker so the new routine shows in the grid.
+      context.go('/move/start');
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Couldn't save — try again.")),
+      );
+    }
   }
 
   @override

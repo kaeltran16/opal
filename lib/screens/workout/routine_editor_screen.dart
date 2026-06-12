@@ -6,6 +6,7 @@ import '../../controllers/routine_editor_controller.dart';
 import '../../models/models.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_text.dart';
+import '../../util/format.dart';
 import '../../widgets/app_icon.dart';
 import '../../widgets/controls.dart';
 import '../../widgets/inset_section.dart';
@@ -191,6 +192,19 @@ class _NameFieldState extends State<_NameField> {
       TextEditingController(text: widget.value);
 
   @override
+  void didUpdateWidget(_NameField old) {
+    super.didUpdateWidget(old);
+    // sync external changes (e.g. a reset draft) without clobbering in-progress
+    // typing; clamp the cursor to the end of the new text.
+    if (widget.value != _controller.text) {
+      _controller.value = TextEditingValue(
+        text: widget.value,
+        selection: TextSelection.collapsed(offset: widget.value.length),
+      );
+    }
+  }
+
+  @override
   void dispose() {
     _controller.dispose();
     super.dispose();
@@ -281,12 +295,8 @@ class _RestSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Snap an off-preset value (e.g. a seeded 150s) to the nearest preset so the
-    // segmented control always has a selected option.
-    final selected = _restPresets.contains(rest)
-        ? rest
-        : _restPresets.reduce(
-            (a, b) => (a - rest).abs() <= (b - rest).abs() ? a : b);
+    // pass the raw value: an off-preset rest (e.g. a seeded 150s) matches no
+    // preset, so no chip shows selected rather than mislabeling the stored value.
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -294,7 +304,7 @@ class _RestSection extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
           child: Segmented<int>(
-            value: selected,
+            value: rest,
             onChanged: onChanged,
             options: [for (final s in _restPresets) (s, '${s}s')],
           ),
@@ -456,7 +466,7 @@ class _ExerciseList extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
             child: Text(
-              'Drag to reorder · swipe left to remove · tap a set to edit targets',
+              'Drag to reorder · tap ✕ to remove · tap a set to edit targets',
               style: AppFonts.sf(size: 12, color: c.ink3, letterSpacing: -0.08),
             ),
           ),
@@ -485,10 +495,7 @@ class _ExerciseTile extends StatelessWidget {
     ];
     final w = slot.targetWeightKg;
     if (w != null && w > 0) {
-      final label = w == w.roundToDouble()
-          ? w.toStringAsFixed(0)
-          : w.toString();
-      parts.add('$label kg');
+      parts.add('${formatWeight(w)} kg');
     }
     return parts.join(' · ');
   }

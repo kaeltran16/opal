@@ -1,12 +1,17 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../controllers/workout_session_controller.dart';
 import '../../models/models.dart';
+import '../../router.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_text.dart';
+import '../../util/format.dart';
 import '../../widgets/app_icon.dart';
+import '../../widgets/press_scale.dart';
 
 const _white = Color(0xFFFFFFFF);
 
@@ -19,13 +24,37 @@ const _white = Color(0xFFFFFFFF);
 /// controller (which owns the engine + real rest timer); Finish confirms then
 /// pushes the post-workout summary. The widget is dumb — all logic lives in the
 /// controller/engine.
-class ActiveSessionScreen extends ConsumerWidget {
+class ActiveSessionScreen extends ConsumerStatefulWidget {
   const ActiveSessionScreen({super.key, required this.routineId});
 
   final String routineId;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ActiveSessionScreen> createState() =>
+      _ActiveSessionScreenState();
+}
+
+class _ActiveSessionScreenState extends ConsumerState<ActiveSessionScreen> {
+  // ticks the header elapsed clock; the controller's rest timer is separate.
+  Timer? _clock;
+
+  @override
+  void initState() {
+    super.initState();
+    _clock = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _clock?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final routineId = widget.routineId;
     final c = context.colors;
     final async = ref.watch(workoutSessionControllerProvider(routineId));
 
@@ -127,7 +156,7 @@ class _Body extends ConsumerWidget {
 
     final workout =
         ref.read(workoutSessionControllerProvider(routineId).notifier).finish();
-    context.pushReplacementNamed('postWorkout', extra: workout);
+    context.pushReplacementNamed(AppRoute.postWorkout.name, extra: workout);
   }
 }
 
@@ -226,7 +255,7 @@ class _Header extends StatelessWidget {
           _HeaderStats(
             exerciseLabel: '$exNum/$exCount',
             setsLabel: '$completed/$total',
-            volumeLabel: _trimDouble(volume),
+            volumeLabel: formatWeight(volume),
           ),
         ],
       ),
@@ -430,8 +459,9 @@ class _RestBannerState extends State<_RestBanner>
                 ],
               ),
               const Spacer(),
-              GestureDetector(
+              PressScale(
                 onTap: widget.onAddTime,
+                semanticLabel: 'Add 30 seconds rest',
                 child: Container(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
@@ -448,8 +478,9 @@ class _RestBannerState extends State<_RestBanner>
                 ),
               ),
               const SizedBox(width: 6),
-              GestureDetector(
+              PressScale(
                 onTap: widget.onSkip,
+                semanticLabel: 'Skip rest',
                 child: Container(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
@@ -637,7 +668,7 @@ class _PrChip extends StatelessWidget {
                   color: c.ink2,
                   letterSpacing: -0.08)),
           const SizedBox(width: 6),
-          Text('${_trimDouble(pr.weightKg)}kg × ${pr.reps}',
+          Text('${formatWeight(pr.weightKg)}kg × ${pr.reps}',
               style: AppFonts.sfr(
                   size: 13, color: c.ink, letterSpacing: -0.1)),
           const Spacer(),
@@ -700,7 +731,7 @@ class _SetRow extends StatelessWidget {
               const SizedBox(width: 6),
             ],
             Text(
-              '${_trimDouble(set.weightKg)}kg × ${set.reps}',
+              '${formatWeight(set.weightKg)}kg × ${set.reps}',
               style: AppFonts.sfr(
                   size: 17, color: c.ink, letterSpacing: -0.2),
             ),
@@ -741,7 +772,7 @@ class _SetRow extends StatelessWidget {
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    'Target: ${_trimDouble(set.weightKg)}kg × ${set.reps} reps',
+                    'Target: ${formatWeight(set.weightKg)}kg × ${set.reps} reps',
                     style: AppFonts.sf(
                         size: 11, color: c.ink3, letterSpacing: -0.08),
                   ),
@@ -757,14 +788,15 @@ class _SetRow extends StatelessWidget {
             const SizedBox(height: 10),
             Row(
               children: [
-                Expanded(child: _valueBox(c, 'Weight', _trimDouble(set.weightKg), 'kg')),
+                Expanded(child: _valueBox(c, 'Weight', formatWeight(set.weightKg), 'kg')),
                 const SizedBox(width: 10),
                 Expanded(child: _valueBox(c, 'Reps', '${set.reps}', null)),
               ],
             ),
             const SizedBox(height: 10),
-            GestureDetector(
+            PressScale(
               onTap: onLog,
+              semanticLabel: 'Complete set',
               child: Container(
                 padding: const EdgeInsets.symmetric(vertical: 11),
                 decoration: BoxDecoration(
@@ -857,7 +889,7 @@ class _SetRow extends StatelessWidget {
                     color: c.ink3,
                     letterSpacing: 0.3)),
             const Spacer(),
-            Text('${_trimDouble(set.weightKg)}kg × ${set.reps}',
+            Text('${formatWeight(set.weightKg)}kg × ${set.reps}',
                 style: AppFonts.sfr(
                     size: 15,
                     weight: FontWeight.w500,
@@ -875,8 +907,9 @@ class _AddSetButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    return GestureDetector(
+    return PressScale(
       onTap: onTap,
+      semanticLabel: 'Add set',
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
@@ -964,7 +997,7 @@ class _UpNextCard extends StatelessWidget {
                 if (first != null) ...[
                   const SizedBox(height: 1),
                   Text(
-                    '${nextSets.length} sets · ${_trimDouble(first.weightKg)}kg × ${first.reps}',
+                    '${nextSets.length} sets · ${formatWeight(first.weightKg)}kg × ${first.reps}',
                     style: AppFonts.sf(
                         size: 12, color: c.ink3, letterSpacing: -0.08),
                   ),
@@ -1023,9 +1056,8 @@ class _CircleButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return PressScale(
       onTap: onTap,
-      behavior: HitTestBehavior.opaque,
       child: SizedBox(
         width: 44,
         height: 44,
@@ -1041,7 +1073,3 @@ class _CircleButton extends StatelessWidget {
     );
   }
 }
-
-/// Renders a double without a trailing ".0" (e.g. 50.0 -> "50", 92.5 -> "92.5").
-String _trimDouble(double v) =>
-    v == v.roundToDouble() ? v.toStringAsFixed(0) : v.toString();

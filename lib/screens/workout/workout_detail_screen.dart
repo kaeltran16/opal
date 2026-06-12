@@ -8,6 +8,7 @@ import '../../controllers/workout_detail_controller.dart';
 import '../../models/models.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_text.dart';
+import '../../util/format.dart';
 import '../../widgets/app_icon.dart';
 import '../../widgets/nav_bar.dart';
 import '../../widgets/press_scale.dart';
@@ -194,7 +195,7 @@ class _Body extends StatelessWidget {
   }
 }
 
-/// Red destructive "Delete routine" text button. Removes this session via the
+/// Red destructive "Delete workout" text button. Removes this session via the
 /// repository the screen already consumes, then pops back.
 class _DeleteButton extends ConsumerWidget {
   const _DeleteButton({required this.workoutId});
@@ -212,7 +213,7 @@ class _DeleteButton extends ConsumerWidget {
         width: double.infinity,
         alignment: Alignment.center,
         padding: const EdgeInsets.symmetric(vertical: 13),
-        child: Text('Delete routine',
+        child: Text('Delete workout',
             style: AppFonts.sf(
                 size: 15,
                 weight: FontWeight.w500,
@@ -670,8 +671,7 @@ class _SetRow extends StatelessWidget {
     final weight = set.weightKg;
     final reps = set.reps;
     final isPR = set.isPR;
-    final weightLabel =
-        weight == weight.roundToDouble() ? '${weight.round()}' : '$weight';
+    final weightLabel = formatWeight(weight);
     final num = AppFonts.sfr(
         size: 15, weight: FontWeight.w600, color: c.ink, letterSpacing: -0.1);
     return Container(

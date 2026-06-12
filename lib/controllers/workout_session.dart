@@ -116,16 +116,29 @@ class WorkoutSession {
     final exerciseId = exerciseIds[_currentExerciseIndex];
     final exerciseSets =
         _workout.sets.where((s) => s.exerciseId == exerciseId).toList();
-    final template = exerciseSets.last;
 
-    // insert after the last set of this exercise to keep grouping contiguous
-    final insertAt = _workout.sets.lastIndexWhere(
-          (s) => s.exerciseId == exerciseId,
-        ) +
-        1;
+    // derive the next id from the max existing numeric suffix so ids never
+    // collide after a logged set was inserted earlier in the run.
+    var maxSuffix = -1;
+    for (final s in exerciseSets) {
+      final n = int.tryParse(s.id.split('-').last);
+      if (n != null && n > maxSuffix) maxSuffix = n;
+    }
+
+    // seed a sensible default when the exercise has no set to copy from
+    final template = exerciseSets.isEmpty
+        ? SetLog(id: '', exerciseId: exerciseId, weightKg: 0, reps: 0)
+        : exerciseSets.last;
+
+    // insert after the last set of this exercise to keep grouping contiguous;
+    // when none exist yet, append at the end.
+    final lastIndex = _workout.sets.lastIndexWhere(
+      (s) => s.exerciseId == exerciseId,
+    );
+    final insertAt = lastIndex == -1 ? _workout.sets.length : lastIndex + 1;
 
     final newSet = template.copyWith(
-      id: '$exerciseId-set-${exerciseSets.length}',
+      id: '$exerciseId-set-${maxSuffix + 1}',
       done: false,
       isPR: false,
     );

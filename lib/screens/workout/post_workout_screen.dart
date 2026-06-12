@@ -8,6 +8,7 @@ import '../../controllers/workout_detail_controller.dart' show buildExerciseGrou
 import '../../models/models.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_text.dart';
+import '../../util/format.dart';
 import '../../widgets/app_icon.dart';
 
 const _white = Color(0xFFFFFFFF);
@@ -350,9 +351,7 @@ class _PrCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    final weight = pr.weightKg == pr.weightKg.roundToDouble()
-        ? '${pr.weightKg.round()}'
-        : '${pr.weightKg}';
+    final weight = formatWeight(pr.weightKg);
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(

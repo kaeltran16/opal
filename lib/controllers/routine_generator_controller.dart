@@ -82,6 +82,7 @@ class RoutineGeneratorController extends _$RoutineGeneratorController {
       final draft = await pal.generateRoutine(ask, _catalog);
       state = RoutineGeneratorResult(draft: draft, catalog: _catalog);
     } catch (e) {
+      debugPrint('RoutineGeneratorController.generate failed: $e');
       state = const RoutineGeneratorError(
         'Could not generate routine. Try again?',
       );
