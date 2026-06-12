@@ -103,10 +103,15 @@ class Seeder {
             .insert(assignment.toCompanion(), mode: replace);
       }
 
-      // Mark done.
-      await _db
-          .into(_db.seedMarkers)
-          .insert(SeedMarkersCompanion.insert(key: _markerKey));
+      // Mark done. Drop stale older `initial_seed_*` markers so version bumps
+      // don't accumulate dead rows, then write the current marker idempotently.
+      await (_db.delete(_db.seedMarkers)
+            ..where((t) => t.key.like('initial_seed_%') & t.key.equals(_markerKey).not()))
+          .go();
+      await _db.into(_db.seedMarkers).insert(
+            SeedMarkersCompanion.insert(key: _markerKey),
+            mode: InsertMode.insertOrReplace,
+          );
     });
   }
 }
