@@ -85,3 +85,14 @@ export const emailSyncBody = z.object({
   // epoch ms of the client's last sync; null = first sync (default window applied server-side)
   since: z.number().nullable().default(null),
 })
+
+const healthMetric = z.enum([
+  'steps', 'activeEnergy', 'exerciseMinutes', 'avgHeartRate', 'restingHeartRate', 'sleepMinutes',
+])
+export const healthIngestBody = z.object({
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),        // local day from the shortcut
+  capturedAt: z.string().datetime({ offset: true }),    // ISO 8601, may carry a tz offset
+  metrics: z
+    .record(healthMetric, z.object({ value: z.number().finite(), unit: z.string().min(1) }))
+    .refine((m) => Object.keys(m).length > 0, 'at least one metric required'),
+})

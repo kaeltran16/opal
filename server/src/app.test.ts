@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { buildApp } from './app.js'
 import { ImapAuthError } from './imap.js'
 import { TokenStore } from './store.js'
+import { HealthStore } from './health.js'
 
 function fakePal() {
   return {
@@ -38,7 +39,7 @@ describe('app', () => {
 
   function build(worker = fakeWorker()) {
     store = new TokenStore(':memory:')
-    return buildApp({ pal: fakePal() as never, worker: worker as never, store, provisioningKey: 'secret', corsOrigins: [] })
+    return buildApp({ pal: fakePal() as never, worker: worker as never, store, healthStore: new HealthStore(':memory:'), provisioningKey: 'secret', corsOrigins: [] })
   }
 
   beforeEach(async () => {
@@ -153,6 +154,47 @@ describe('app', () => {
     expect(res.statusCode).toBe(400)
   })
 
+  const health = {
+    date: '2026-06-12',
+    capturedAt: '2026-06-12T18:42:00Z',
+    metrics: { steps: { value: 8423, unit: 'count' }, avgHeartRate: { value: 72, unit: 'bpm' } },
+  }
+
+  it('rejects /v1/health/ingest without a valid token', async () => {
+    const res = await app.inject({ method: 'POST', url: '/v1/health/ingest', payload: health })
+    expect(res.statusCode).toBe(401)
+  })
+
+  it('ingests health metrics and reports the count upserted', async () => {
+    const token = store.issue('d1')
+    const res = await app.inject({
+      method: 'POST', url: '/v1/health/ingest',
+      headers: { authorization: `Bearer ${token}` }, payload: health,
+    })
+    expect(res.statusCode).toBe(200)
+    expect(res.json().upserted).toBe(2)
+  })
+
+  it('returns 400 on an unknown metric name', async () => {
+    const token = store.issue('d1')
+    const res = await app.inject({
+      method: 'POST', url: '/v1/health/ingest',
+      headers: { authorization: `Bearer ${token}` },
+      payload: { ...health, metrics: { bogus: { value: 1, unit: 'x' } } },
+    })
+    expect(res.statusCode).toBe(400)
+  })
+
+  it('returns 400 on a malformed date', async () => {
+    const token = store.issue('d1')
+    const res = await app.inject({
+      method: 'POST', url: '/v1/health/ingest',
+      headers: { authorization: `Bearer ${token}` },
+      payload: { ...health, date: '06/12/2026' },
+    })
+    expect(res.statusCode).toBe(400)
+  })
+
   const creds = { host: 'imap.gmail.com', port: 993, address: 'a@b.com', appPassword: 'pw' }
 
   it('rejects email routes without a valid token', async () => {
@@ -228,7 +270,7 @@ describe('rate limit keying', () => {
 
   beforeEach(async () => {
     store = new TokenStore(':memory:')
-    app = buildApp({ pal: fakePal() as never, worker: fakeWorker() as never, store, provisioningKey: 'secret', corsOrigins: [] })
+    app = buildApp({ pal: fakePal() as never, worker: fakeWorker() as never, store, healthStore: new HealthStore(':memory:'), provisioningKey: 'secret', corsOrigins: [] })
     await app.ready()
   })
 
@@ -256,7 +298,7 @@ describe('cors', () => {
 
   function buildCors() {
     const store = new TokenStore(':memory:')
-    return buildApp({ pal: fakePal() as never, worker: fakeWorker() as never, store, provisioningKey: 'secret', corsOrigins: [allowed] })
+    return buildApp({ pal: fakePal() as never, worker: fakeWorker() as never, store, healthStore: new HealthStore(':memory:'), provisioningKey: 'secret', corsOrigins: [allowed] })
   }
 
   let app: ReturnType<typeof buildApp>

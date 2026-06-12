@@ -6,12 +6,14 @@ import { OpenRouterError, type Pal } from './pal.js'
 import { ImapAuthError, type ImapCreds } from './imap.js'
 import type { EmailWorker } from './email.js'
 import type { TokenStore } from './store.js'
-import { registerBody, chatBody, parseBody, reviewBody, insightsBody, suggestBody, postWorkoutBody, routineBody, emailTestBody, emailSyncBody } from './schemas.js'
+import type { HealthStore } from './health.js'
+import { registerBody, chatBody, parseBody, reviewBody, insightsBody, suggestBody, postWorkoutBody, routineBody, emailTestBody, emailSyncBody, healthIngestBody } from './schemas.js'
 
 export interface AppDeps {
   pal: Pal
   worker: EmailWorker
   store: TokenStore
+  healthStore: HealthStore
   provisioningKey: string
   corsOrigins: string[]
   // enable request logging in production so LLM/IMAP failures aren't silent (Bug D).
@@ -89,6 +91,9 @@ export function buildApp(deps: AppDeps): FastifyInstance {
   app.post('/v1/suggest-workout', guard(suggestBody, async (b) => deps.pal.suggestWorkout(b.another, b.context)))
   app.post('/v1/post-workout-note', guard(postWorkoutBody, async (b) => ({ note: await deps.pal.postWorkoutNote(b.context) })))
   app.post('/v1/routine', guard(routineBody, async (b) => deps.pal.generateRoutine(b.goal, b.exercises)))
+
+  app.post('/v1/health/ingest', guard(healthIngestBody, async (b) =>
+    ({ upserted: deps.healthStore.upsert(b.date, b.metrics, b.capturedAt) })))
 
   // Email routes map IMAP auth failures to 401 (bad app-password) vs. 502 (LLM/IMAP transport).
   const emailGuard = <T>(schema: z.ZodType<T>, handler: (body: T) => Promise<unknown>) =>
