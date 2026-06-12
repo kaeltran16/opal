@@ -55,9 +55,16 @@ class EmailSetupController extends _$EmailSetupController {
   Future<void> testConnection(EmailAccount account, String appPassword) async {
     if (state.test == TestState.testing) return;
     state = state.copyWith(test: TestState.testing);
-    final ok =
-        await ref.read(emailSyncServiceProvider).testConnection(account, appPassword);
-    state = state.copyWith(test: ok ? TestState.success : TestState.error);
+    try {
+      final ok = await ref
+          .read(emailSyncServiceProvider)
+          .testConnection(account, appPassword);
+      state = state.copyWith(test: ok ? TestState.success : TestState.error);
+    } catch (_) {
+      // any failure (network, secure storage) lands on the error state so the
+      // button doesn't stick on "testing" forever
+      state = state.copyWith(test: TestState.error);
+    }
   }
 
   /// Persists the account (only meaningful after a successful test). Returns the
@@ -193,16 +200,21 @@ class EmailDashboardController extends _$EmailDashboardController {
   /// materialised as timeline [Entry]s (deduped by `sourceRef` so re-syncs don't
   /// double-import), the imports list updates, and the last-sync time advances.
   Future<void> syncNow() async {
-    final items = await ref.read(emailSyncServiceProvider).syncNow();
-    await _persistImports(items);
-    final service = ref.read(emailSyncServiceProvider);
-    state = state.copyWith(
-      imports: items,
-      account: service.account,
-      lastSyncAt: DateTime.now(),
-    );
-    await _refreshCounts();
-    await ref.read(hapticsServiceProvider).success(); // sync complete
+    try {
+      final items = await ref.read(emailSyncServiceProvider).syncNow();
+      await _persistImports(items);
+      final service = ref.read(emailSyncServiceProvider);
+      state = state.copyWith(
+        imports: items,
+        account: service.account,
+        lastSyncAt: DateTime.now(),
+      );
+      await _refreshCounts();
+      await ref.read(hapticsServiceProvider).success(); // sync complete
+    } catch (_) {
+      // the service already emits SyncStatus.error (surfaced via the status
+      // stream); swallow so the future doesn't reject unhandled in the UI
+    }
   }
 
   /// Writes each import as a money [Entry] (`source: email`), skipping any whose

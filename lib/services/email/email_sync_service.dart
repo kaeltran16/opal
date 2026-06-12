@@ -80,4 +80,7 @@ abstract interface class EmailSyncService {
 
   /// Remove the connected account.
   Future<void> disconnect();
+
+  /// Releases the status stream. Called when the owning provider disposes.
+  void dispose();
 }

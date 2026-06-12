@@ -39,7 +39,11 @@ class MockEmailSyncService implements EmailSyncService {
 
   @override
   Future<void> connect(EmailAccount account, String appPassword) async {
-    _account = account.copyWith(lastSyncedAt: DateTime.now());
+    // the service owns the keychain reference; the screen no longer hardcodes it
+    _account = account.copyWith(
+      appPasswordRef: 'mock-keychain-ref',
+      lastSyncedAt: DateTime.now(),
+    );
   }
 
   @override
@@ -81,6 +85,7 @@ class MockEmailSyncService implements EmailSyncService {
   }
 
   /// Releases the status stream. Call when the owning provider disposes.
+  @override
   void dispose() {
     _controller.close();
   }

@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/cupertino.dart' show CupertinoActivityIndicator;
+import 'package:flutter/material.dart' show ScaffoldMessenger, SnackBar;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -13,6 +14,7 @@ import '../../theme/app_colors.dart';
 import '../../theme/app_text.dart';
 import '../../widgets/app_icon.dart';
 import '../../widgets/controls.dart';
+import '../../widgets/gmail_glyph.dart';
 import '../../widgets/inset_section.dart';
 import '../../widgets/nav_bar.dart';
 
@@ -68,7 +70,7 @@ class EmailDashboardScreen extends ConsumerWidget {
       color: c.bg,
       child: LargeTitleScrollView(
         title: 'Email sync',
-        subtitle: 'Gmail · connected',
+        subtitle: dash.isConnected ? 'Gmail · connected' : 'Gmail · not connected',
         leading: NavAction(
           icon: 'chevron.left',
           label: 'You',
@@ -93,7 +95,7 @@ class EmailDashboardScreen extends ConsumerWidget {
                 children: [
                   Row(
                     children: [
-                      const _GmailGlyph(size: 32),
+                      const GmailGlyph(size: 32),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Column(
@@ -139,9 +141,9 @@ class EmailDashboardScreen extends ConsumerWidget {
                         child: _SyncNowButton(
                           syncing: syncing,
                           done: status == SyncStatus.upToDate,
-                          onTap: () => ref
+                          onTap: () => unawaited(ref
                               .read(emailDashboardControllerProvider.notifier)
-                              .syncNow(),
+                              .syncNow()),
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -257,9 +259,19 @@ class EmailDashboardScreen extends ConsumerWidget {
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
               onTap: () async {
-                await ref
-                    .read(emailDashboardControllerProvider.notifier)
-                    .disconnect();
+                try {
+                  await ref
+                      .read(emailDashboardControllerProvider.notifier)
+                      .disconnect();
+                } catch (_) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                          content: Text('Couldn\'t disconnect — try again')),
+                    );
+                  }
+                  return;
+                }
                 if (context.mounted) context.pop();
               },
               child: Container(
@@ -597,96 +609,3 @@ class _StatTile extends StatelessWidget {
   }
 }
 
-/// The 5-color Gmail brand mark (`GmailGlyph`, email-sync.jsx:546). SF Symbols
-/// can't represent it, so it's painted from the design's SVG paths.
-//
-// duplicated in email_intro_screen.dart / email_setup_screen.dart because the
-// task scopes edits to those screen files; a shared widget would be cleaner.
-class _GmailGlyph extends StatelessWidget {
-  const _GmailGlyph({this.size = 24});
-  final double size;
-
-  @override
-  Widget build(BuildContext context) =>
-      SizedBox(width: size, height: size, child: CustomPaint(painter: _GmailGlyphPainter()));
-}
-
-class _GmailGlyphPainter extends CustomPainter {
-  static const _white = Color(0xFFE8EAED);
-  static const _red = Color(0xFFEA4335);
-  static const _green = Color(0xFF34A853);
-  static const _blue = Color(0xFF4285F4);
-  static const _yellow = Color(0xFFFBBC04);
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final s = size.width / 48; // viewBox is 0 0 48 48
-    canvas.scale(s);
-    final paint = Paint()..style = PaintingStyle.fill;
-    void fill(Color color, void Function(Path) build) {
-      final path = Path();
-      build(path);
-      canvas.drawPath(path, paint..color = color);
-    }
-
-    fill(_white, (p) {
-      p.moveTo(6, 14);
-      p.relativeLineTo(0, 22);
-      p.relativeArcToPoint(const Offset(2, 2), radius: const Radius.circular(2));
-      p.relativeLineTo(6, 0);
-      p.lineTo(14, 22);
-      p.lineTo(24, 29);
-      p.lineTo(34, 22);
-      p.relativeLineTo(0, 16);
-      p.relativeLineTo(6, 0);
-      p.relativeArcToPoint(const Offset(2, -2), radius: const Radius.circular(2));
-      p.lineTo(42, 14);
-      p.lineTo(24, 27);
-      p.lineTo(6, 14);
-      p.close();
-    });
-    fill(_red, (p) {
-      p.moveTo(6, 14);
-      p.lineTo(24, 27);
-      p.lineTo(42, 14);
-      p.relativeLineTo(0, -2);
-      p.relativeArcToPoint(const Offset(-2, -2), radius: const Radius.circular(2));
-      p.relativeLineTo(-2, 0);
-      p.lineTo(24, 22);
-      p.lineTo(10, 10);
-      p.lineTo(8, 10);
-      p.relativeArcToPoint(const Offset(-2, 2), radius: const Radius.circular(2));
-      p.relativeLineTo(0, 2);
-      p.close();
-    });
-    fill(_green, (p) {
-      p.moveTo(8, 38);
-      p.relativeLineTo(6, 0);
-      p.lineTo(14, 22);
-      p.lineTo(6, 16);
-      p.relativeLineTo(0, 20);
-      p.relativeArcToPoint(const Offset(2, 2), radius: const Radius.circular(2));
-      p.close();
-    });
-    fill(_blue, (p) {
-      p.moveTo(34, 38);
-      p.relativeLineTo(6, 0);
-      p.relativeArcToPoint(const Offset(2, -2), radius: const Radius.circular(2));
-      p.lineTo(42, 16);
-      p.lineTo(34, 22);
-      p.close();
-    });
-    fill(_yellow, (p) {
-      p.moveTo(14, 22);
-      p.lineTo(24, 29);
-      p.lineTo(34, 22);
-      p.relativeLineTo(0, -9);
-      p.lineTo(24, 22);
-      p.lineTo(14, 13);
-      p.close();
-    });
-  }
-
-  @override
-  bool shouldRepaint(_GmailGlyphPainter oldDelegate) => false;
-}

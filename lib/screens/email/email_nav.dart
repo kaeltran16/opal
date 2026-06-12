@@ -88,8 +88,7 @@ class AppPasswordFormatter extends TextInputFormatter {
 
   /// Strips spaces, caps at 16 chars, regroups in 4s. Exposed for unit reuse.
   static String format(String raw) {
-    final stripped =
-        raw.replaceAll(RegExp(r'\s+'), '').toLowerCase();
+    final stripped = raw.replaceAll(RegExp(r'\s+'), '');
     final capped = stripped.length > _maxChars
         ? stripped.substring(0, _maxChars)
         : stripped;

@@ -50,6 +50,8 @@ class _StubSyncService implements EmailSyncService {
   Future<List<EmailImportItem>> syncNow() async => _items;
   @override
   Future<void> disconnect() async {}
+  @override
+  void dispose() => _controller.close();
 }
 
 /// Pumps a screen inside a minimal GoRouter + ProviderScope harness with the

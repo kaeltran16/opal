@@ -98,7 +98,7 @@ class RealEmailSyncService implements EmailSyncService {
       _controller.add(SyncStatus.categorizing);
       await Future<void>.delayed(stageDelay);
 
-      final items = (json['items'] as List)
+      final items = ((json['items'] as List?) ?? const [])
           .cast<Map<String, Object?>>()
           .map(_itemFromJson)
           .toList();
@@ -124,6 +124,7 @@ class RealEmailSyncService implements EmailSyncService {
   }
 
   /// Releases the status stream. Call when the owning provider disposes.
+  @override
   void dispose() {
     _controller.close();
   }
