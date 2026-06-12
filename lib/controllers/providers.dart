@@ -185,7 +185,7 @@ PalService palService(Ref ref) {
       final prevEntries = await entries.getEntriesInRange(prevStart, start);
 
       var spent = 0.0;
-      var movedMin = 0;
+      var movedKcal = 0;
       var kept = 0;
       String topCat = '—';
       final byCat = <String, double>{};
@@ -198,7 +198,7 @@ PalService palService(Ref ref) {
               byCat[c] = (byCat[c] ?? 0) + e.amount!.abs();
             }
           case EntryType.move:
-            movedMin += e.duration ?? 0;
+            movedKcal += e.calories ?? 0;
           case EntryType.rituals:
             kept += 1;
         }
@@ -214,12 +214,12 @@ PalService palService(Ref ref) {
 
       // deltas vs the previous period; null when there's nothing to compare to.
       var prevSpent = 0.0;
-      var prevMovedMin = 0;
+      var prevMovedKcal = 0;
       for (final e in prevEntries) {
         if (e.type == EntryType.money && (e.amount ?? 0) < 0) {
           prevSpent += e.amount!.abs();
         } else if (e.type == EntryType.move) {
-          prevMovedMin += e.duration ?? 0;
+          prevMovedKcal += e.calories ?? 0;
         }
       }
       int? pctChange(num current, num prev) =>
@@ -231,8 +231,8 @@ PalService palService(Ref ref) {
         range: range,
         spent: spent,
         spentDeltaPct: hasPrev ? pctChange(spent, prevSpent) : null,
-        hoursMoved: (movedMin / 60).round(),
-        movedDeltaPct: hasPrev ? pctChange(movedMin, prevMovedMin) : null,
+        kcalMoved: movedKcal,
+        movedDeltaPct: hasPrev ? pctChange(movedKcal, prevMovedKcal) : null,
         activeDays: periodEntries.map((e) => e.timestamp.day).toSet().length,
         ritualsKept: kept,
         ritualsTarget: g.dailyRitualTarget * periodDays,
@@ -312,6 +312,25 @@ PalService palService(Ref ref) {
     tokens: tokens,
     context: context,
     timeout: const Duration(seconds: 30),
+  );
+}
+
+/// Real [HttpHealthService] when `PAL_BASE_URL` is set; [MockHealthService]
+/// otherwise (tests, backend-less preview). Shares the proxy's http client +
+/// device-token store with [palService]. Drives [HealthSyncController].
+@Riverpod(keepAlive: true)
+HealthService healthService(Ref ref) {
+  if (_palBaseUrl.isEmpty) return const MockHealthService();
+
+  final httpClient = _HttpClientHolder.instance;
+  final tokens = TokenProvider(
+    token: () => _deviceTokens(httpClient).token(),
+    clear: () => _deviceTokens(httpClient).clear(),
+  );
+  return HttpHealthService(
+    baseUrl: _palBaseUrl,
+    httpClient: httpClient,
+    tokens: tokens,
   );
 }
 

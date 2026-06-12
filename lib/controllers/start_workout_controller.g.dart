@@ -109,7 +109,7 @@ final class PalPickControllerProvider
   PalPickController create() => PalPickController();
 }
 
-String _$palPickControllerHash() => r'a83e1f6c14205963601762aa34ba9785b585f4b4';
+String _$palPickControllerHash() => r'09957af6dc0a774e3a4d3230cd4963b726d0d6c9';
 
 /// Drives the "Pal's pick" card: holds the current [WorkoutSuggestion] with a
 /// loading state and re-requests a different pick on [another]. Mirrors the

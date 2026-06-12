@@ -86,6 +86,7 @@ Entry _entryFor(LogEntryAction a) => Entry(
       title: a.title,
       amount: a.type == EntryType.money ? a.amount : null,
       duration: a.type == EntryType.move ? a.durationMinutes : null,
+      calories: a.type == EntryType.move ? a.calories : null,
       category: a.category,
       note: a.note,
       source: EntrySource.nlParsed,
@@ -93,7 +94,7 @@ Entry _entryFor(LogEntryAction a) => Entry(
 
 Goals _applyGoal(Goals g, SetGoalAction a) => switch (a.target) {
       GoalTarget.dailyBudget => g.copyWith(dailyBudget: a.value.toDouble()),
-      GoalTarget.dailyMoveMinutes => g.copyWith(dailyMoveMinutes: a.value.round()),
+      GoalTarget.dailyMoveKcal => g.copyWith(dailyMoveKcal: a.value.round()),
       GoalTarget.dailyRitualTarget => g.copyWith(dailyRitualTarget: a.value.round()),
     };
 

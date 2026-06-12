@@ -30,15 +30,15 @@ class OnboardingScreen extends ConsumerStatefulWidget {
 /// Budget chip options (handoff: $50/$85/$120/$200, default $85).
 const _budgetOptions = <double>[50, 85, 120, 200];
 
-/// Move-goal chip options in minutes (handoff: 20/45/60/90, default 60).
-const _moveOptions = <int>[20, 45, 60, 90];
+/// Move-goal chip options in active-energy kcal (300/500/700/900, default 500).
+const _moveOptions = <int>[300, 500, 700, 900];
 
 class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   static const _stepCount = 4;
 
   int _step = 0;
   double _budget = 85;
-  int _moveMinutes = 60;
+  int _moveKcal = 500;
   bool _saving = false;
 
   final _nameController = TextEditingController();
@@ -81,7 +81,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
       await goals.save(Goals(
         dailyBudget: _budget,
-        dailyMoveMinutes: _moveMinutes,
+        dailyMoveKcal: _moveKcal,
         dailyRitualTarget: 5,
       ));
 
@@ -232,13 +232,13 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         ];
       case 2:
         return [
-          _BigValue(text: '$_moveMinutes MIN', color: c.ink),
+          _BigValue(text: '$_moveKcal KCAL', color: c.ink),
           const SizedBox(height: 24),
           _ChipRow(
-            labels: [for (final m in _moveOptions) '$m min'],
-            selectedIndex: _moveOptions.indexOf(_moveMinutes),
+            labels: [for (final m in _moveOptions) '$m kcal'],
+            selectedIndex: _moveOptions.indexOf(_moveKcal),
             selectedColor: heroColor,
-            onSelected: (i) => setState(() => _moveMinutes = _moveOptions[i]),
+            onSelected: (i) => setState(() => _moveKcal = _moveOptions[i]),
           ),
         ];
       case 3:
@@ -276,7 +276,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
   String _body(int step) => switch (step) {
         1 => "We'll help you stay under it — gently.",
-        2 => 'Any session counts — lift, run, walk, yoga. You log the minutes.',
+        2 => 'Any session counts — we track the calories you burn.',
         3 =>
           'Three time-of-day routines to anchor your day — Morning, Midday, Evening. Edit the steps anytime.',
         _ =>

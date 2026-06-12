@@ -9,14 +9,14 @@ export const chatContext = z.object({
   userName: z.string(),
   todayEntries: z.array(z.string()),
   dailyBudget: z.number(),
-  moveGoalMin: z.number(),
+  moveGoalKcal: z.number(),
   ritualGoal: z.number(),
   spentToday: z.number(),
-  movedTodayMin: z.number(),
+  movedTodayKcal: z.number(),
   ritualsDoneToday: z.number(),
   weekSpent: z.number(),
   weekBudget: z.number(),
-  weekMovedMin: z.number(),
+  weekMovedKcal: z.number(),
   weekRitualsDone: z.number(),
   weekRitualGoal: z.number(),
   moveStreakDays: z.number(),
@@ -32,7 +32,7 @@ export const parseBody = z.object({ text: z.string() })
 
 export const reviewContext = z.object({
   range: z.enum(['week', 'month']),
-  spent: z.number(), spentDeltaPct: z.number().nullable(), hoursMoved: z.number(), movedDeltaPct: z.number().nullable(),
+  spent: z.number(), spentDeltaPct: z.number().nullable(), kcalMoved: z.number(), movedDeltaPct: z.number().nullable(),
   activeDays: z.number(), ritualsKept: z.number(), ritualsTarget: z.number(), ritualsPct: z.number(),
   streakDays: z.number(), topCategory: z.string(), topCategoryPct: z.number(),
 })
@@ -41,7 +41,7 @@ export const reviewBody = z.object({ context: reviewContext })
 export const insightsContext = z.object({
   range: z.enum(['day', 'month', 'week']),
   spent: z.number(), budget: z.number(),
-  moveMinutes: z.number(), moveTarget: z.number(),
+  moveKcal: z.number(), moveTargetKcal: z.number(),
   ritualsKept: z.number(), ritualsTarget: z.number(),
   activeDays: z.number(), streakDays: z.number(),
   topCategory: z.string(), topCategoryPct: z.number(),
@@ -95,4 +95,8 @@ export const healthIngestBody = z.object({
   metrics: z
     .record(healthMetric, z.object({ value: z.number().finite(), unit: z.string().min(1) }))
     .refine((m) => Object.keys(m).length > 0, 'at least one metric required'),
+})
+
+export const healthDayQuery = z.object({
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
 })

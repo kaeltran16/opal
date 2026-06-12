@@ -209,10 +209,10 @@ export function extractJson(raw: string): unknown {
 export type PalAction =
   | { kind: 'log_expense'; amount: number; category: string | null; title: string; note: string | null }
   | { kind: 'log_income'; amount: number; title: string; note: string | null }
-  | { kind: 'log_movement'; durationMinutes: number; title: string; note: string | null }
+  | { kind: 'log_movement'; durationMinutes: number; calories?: number; title: string; note: string | null }
   | { kind: 'log_ritual'; title: string; note: string | null }
   | { kind: 'set_daily_budget'; dailyBudget: number }
-  | { kind: 'set_move_goal'; dailyMoveMinutes: number }
+  | { kind: 'set_move_goal'; dailyMoveKcal: number }
   | { kind: 'set_ritual_goal'; dailyRitualTarget: number }
   // The client fulfills this by calling /v1/routine with its exercise catalog,
   // then saving the result — the catalog never has to ride along on /chat.
@@ -240,15 +240,15 @@ const TOOL_PARSERS: Record<string, (args: unknown) => PalAction> = {
     return { kind: 'log_income', amount: p.amount, title: p.title ?? 'Income', note: p.note ?? null }
   },
   log_movement: (a) => {
-    const p = z.object({ durationMinutes: posInt, title: optStr, note: optStr }).parse(a)
-    return { kind: 'log_movement', durationMinutes: p.durationMinutes, title: p.title ?? 'Workout', note: p.note ?? null }
+    const p = z.object({ durationMinutes: posInt, calories: posInt.nullish(), title: optStr, note: optStr }).parse(a)
+    return { kind: 'log_movement', durationMinutes: p.durationMinutes, calories: p.calories ?? undefined, title: p.title ?? 'Workout', note: p.note ?? null }
   },
   log_ritual: (a) => {
     const p = z.object({ title: z.string().trim().min(1), note: optStr }).parse(a)
     return { kind: 'log_ritual', title: p.title, note: p.note ?? null }
   },
   set_daily_budget: (a) => ({ kind: 'set_daily_budget', dailyBudget: z.object({ dailyBudget: posAmount }).parse(a).dailyBudget }),
-  set_move_goal: (a) => ({ kind: 'set_move_goal', dailyMoveMinutes: z.object({ dailyMoveMinutes: posInt }).parse(a).dailyMoveMinutes }),
+  set_move_goal: (a) => ({ kind: 'set_move_goal', dailyMoveKcal: z.object({ dailyMoveKcal: posInt }).parse(a).dailyMoveKcal }),
   set_ritual_goal: (a) => ({ kind: 'set_ritual_goal', dailyRitualTarget: z.object({ dailyRitualTarget: posInt }).parse(a).dailyRitualTarget }),
   create_routine: (a) => {
     const p = z.object({ goal: z.string().trim().min(1), name: optStr }).parse(a)
@@ -268,13 +268,13 @@ export const CHAT_TOOLS = [
   tool('log_income', 'Record money the user received. Positive amount in dollars.',
     obj({ amount: numProp('dollars received, positive'), title: strProp('short label, e.g. "paycheck"'), note: strProp('optional note') }, ['amount'])),
   tool('log_movement', 'Record a workout or movement session by its duration in minutes.',
-    obj({ durationMinutes: numProp('minutes of movement'), title: strProp('short label, e.g. "run"'), note: strProp('optional note') }, ['durationMinutes'])),
+    obj({ durationMinutes: numProp('minutes of movement'), calories: numProp('kcal burned during the session, if known'), title: strProp('short label, e.g. "run"'), note: strProp('optional note') }, ['durationMinutes'])),
   tool('log_ritual', 'Record a completed ritual/routine the user did.',
     obj({ title: strProp('the ritual name, e.g. "morning pages"'), note: strProp('optional note') }, ['title'])),
   tool('set_daily_budget', "Change the user's daily spending budget in dollars.",
     obj({ dailyBudget: numProp('new daily budget in dollars') }, ['dailyBudget'])),
-  tool('set_move_goal', "Change the user's daily movement goal in minutes.",
-    obj({ dailyMoveMinutes: numProp('new daily move goal in minutes') }, ['dailyMoveMinutes'])),
+  tool('set_move_goal', "Change the user's daily movement goal in kcal.",
+    obj({ dailyMoveKcal: numProp('new daily move goal in kcal') }, ['dailyMoveKcal'])),
   tool('set_ritual_goal', "Change the user's daily ritual target (count).",
     obj({ dailyRitualTarget: numProp('new daily ritual target') }, ['dailyRitualTarget'])),
   tool('create_routine', 'Build and save a new workout routine from a free-text goal. Use when the user asks to create, make, build, or design a routine or workout plan.',
@@ -307,10 +307,10 @@ export function synthReply(actions: PalAction[]): string {
     switch (a.kind) {
       case 'log_expense': return `logged ${money(a.amount)} for ${a.title}`
       case 'log_income': return `logged ${money(a.amount)} income`
-      case 'log_movement': return `logged ${a.durationMinutes} min of ${a.title}`
+      case 'log_movement': return `logged ${a.durationMinutes} min / ${a.calories ?? 0} kcal of ${a.title}`
       case 'log_ritual': return `logged "${a.title}"`
       case 'set_daily_budget': return `set your daily budget to ${money(a.dailyBudget)}`
-      case 'set_move_goal': return `set your move goal to ${a.dailyMoveMinutes} min`
+      case 'set_move_goal': return `set your move goal to ${a.dailyMoveKcal} kcal`
       case 'set_ritual_goal': return `set your ritual target to ${a.dailyRitualTarget}`
       case 'create_routine': return `created a routine for "${a.goal}"`
     }

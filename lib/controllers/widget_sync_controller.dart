@@ -25,8 +25,8 @@ class WidgetSyncController extends _$WidgetSyncController {
         ritualsRing: s.ritualsRing,
         moneySpent: s.moneySpent,
         dailyBudget: s.goals.dailyBudget,
-        moveMinutes: s.moveMinutes,
-        dailyMoveMinutes: s.goals.dailyMoveMinutes,
+        moveKcal: s.moveKcal,
+        dailyMoveKcal: s.goals.dailyMoveKcal,
         ritualsDone: s.ritualsDone,
         dailyRitualTarget: s.goals.dailyRitualTarget,
       );

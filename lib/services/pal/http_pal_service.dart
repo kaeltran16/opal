@@ -116,6 +116,7 @@ class HttpPalService implements PalService {
   static PalAction? _actionFromWire(Map<String, dynamic> a) {
     final num? amount = a['amount'] as num?;
     final int? minutes = (a['durationMinutes'] as num?)?.round();
+    final int? calories = (a['calories'] as num?)?.round();
     final String? title = a['title'] as String?;
     final String? category = a['category'] as String?;
     final String? note = a['note'] as String?;
@@ -135,7 +136,7 @@ class HttpPalService implements PalService {
       case 'log_movement':
         if (minutes == null) return null;
         return LogEntryAction(
-          type: EntryType.move, durationMinutes: minutes,
+          type: EntryType.move, durationMinutes: minutes, calories: calories,
           title: title ?? 'Workout', note: note,
         );
       case 'log_ritual':
@@ -145,8 +146,8 @@ class HttpPalService implements PalService {
         final v = a['dailyBudget'] as num?;
         return v == null ? null : SetGoalAction(target: GoalTarget.dailyBudget, value: v);
       case 'set_move_goal':
-        final v = a['dailyMoveMinutes'] as num?;
-        return v == null ? null : SetGoalAction(target: GoalTarget.dailyMoveMinutes, value: v);
+        final v = a['dailyMoveKcal'] as num?;
+        return v == null ? null : SetGoalAction(target: GoalTarget.dailyMoveKcal, value: v);
       case 'set_ritual_goal':
         final v = a['dailyRitualTarget'] as num?;
         return v == null ? null : SetGoalAction(target: GoalTarget.dailyRitualTarget, value: v);

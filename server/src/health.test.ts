@@ -24,4 +24,16 @@ describe('HealthStore', () => {
     expect(store.get('2026-06-12', 'steps')?.value).toBe(200)
     expect(store.get('2026-06-12', 'avgHeartRate')?.value).toBe(72)
   })
+
+  it('getDay returns all metrics for a date as a map', () => {
+    store.upsert('2026-06-12', { steps: { value: 8423, unit: 'count' }, activeEnergy: { value: 412, unit: 'kcal' } }, '2026-06-12T20:00:00Z')
+    expect(store.getDay('2026-06-12')).toEqual({
+      steps: { value: 8423, unit: 'count' },
+      activeEnergy: { value: 412, unit: 'kcal' },
+    })
+  })
+
+  it('getDay returns an empty map for a day with no data', () => {
+    expect(store.getDay('2026-01-01')).toEqual({})
+  })
 })

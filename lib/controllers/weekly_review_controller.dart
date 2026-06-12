@@ -43,7 +43,7 @@ class WeeklyStats {
     required this.weekStart,
     required this.spent,
     required this.budget,
-    required this.moveMinutes,
+    required this.moveKcal,
     required this.moveTarget,
     required this.ritualsKept,
     required this.ritualsTarget,
@@ -58,10 +58,10 @@ class WeeklyStats {
   /// Weekly budget = dailyBudget * 7.
   final double budget;
 
-  /// Total movement minutes (move entries' [Entry.duration]) this week.
-  final int moveMinutes;
+  /// Total movement active energy (move entries' [Entry.calories]) this week.
+  final int moveKcal;
 
-  /// Weekly move target = dailyMoveMinutes * 7.
+  /// Weekly move target = dailyMoveKcal * 7.
   final int moveTarget;
 
   /// Count of ritual entries logged this week.
@@ -112,8 +112,8 @@ class WeeklyStats {
         ),
         WeekStat(
           label: 'Workout',
-          value: '$moveMinutes',
-          sub: 'of $moveTarget min',
+          value: '$moveKcal',
+          sub: 'of $moveTarget kcal',
           colorToken: 'move',
         ),
         WeekStat(
@@ -141,14 +141,14 @@ WeeklyStats buildWeeklyStats(
 }) {
   final weekStart = weekStartFor(now ?? DateTime.now());
   var spent = 0.0;
-  var moveMinutes = 0;
+  var moveKcal = 0;
   var ritualsKept = 0;
   for (final e in entries) {
     switch (e.type) {
       case EntryType.money:
         if ((e.amount ?? 0) < 0) spent += e.amount!.abs();
       case EntryType.move:
-        moveMinutes += e.duration ?? 0;
+        moveKcal += e.calories ?? 0;
       case EntryType.rituals:
         ritualsKept += 1;
     }
@@ -157,8 +157,8 @@ WeeklyStats buildWeeklyStats(
     weekStart: weekStart,
     spent: spent,
     budget: goals.dailyBudget * 7,
-    moveMinutes: moveMinutes,
-    moveTarget: goals.dailyMoveMinutes * 7,
+    moveKcal: moveKcal,
+    moveTarget: goals.dailyMoveKcal * 7,
     ritualsKept: ritualsKept,
     ritualsTarget: goals.dailyRitualTarget * 7,
   );

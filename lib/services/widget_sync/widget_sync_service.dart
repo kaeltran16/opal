@@ -19,8 +19,8 @@ abstract interface class WidgetSyncService {
     required double ritualsRing,
     required double moneySpent,
     required double dailyBudget,
-    required int moveMinutes,
-    required int dailyMoveMinutes,
+    required int moveKcal,
+    required int dailyMoveKcal,
     required int ritualsDone,
     required int dailyRitualTarget,
   });
@@ -37,8 +37,8 @@ class NoopWidgetSyncService implements WidgetSyncService {
     required double ritualsRing,
     required double moneySpent,
     required double dailyBudget,
-    required int moveMinutes,
-    required int dailyMoveMinutes,
+    required int moveKcal,
+    required int dailyMoveKcal,
     required int ritualsDone,
     required int dailyRitualTarget,
   }) async {}
@@ -66,8 +66,8 @@ class MethodChannelWidgetSyncService implements WidgetSyncService {
     required double ritualsRing,
     required double moneySpent,
     required double dailyBudget,
-    required int moveMinutes,
-    required int dailyMoveMinutes,
+    required int moveKcal,
+    required int dailyMoveKcal,
     required int ritualsDone,
     required int dailyRitualTarget,
   }) async {
@@ -78,8 +78,8 @@ class MethodChannelWidgetSyncService implements WidgetSyncService {
         'ritualsRing': ritualsRing,
         'moneySpent': moneySpent,
         'dailyBudget': dailyBudget,
-        'moveMinutes': moveMinutes,
-        'dailyMoveMinutes': dailyMoveMinutes,
+        'moveKcal': moveKcal,
+        'dailyMoveKcal': dailyMoveKcal,
         'ritualsDone': ritualsDone,
         'dailyRitualTarget': dailyRitualTarget,
       });

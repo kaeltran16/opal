@@ -299,10 +299,10 @@ void main() {
       expect(defaults, const Goals()); // model defaults
 
       await repo.save(const Goals(
-          dailyBudget: 120, dailyMoveMinutes: 45, dailyRitualTarget: 3));
+          dailyBudget: 120, dailyMoveKcal: 450, dailyRitualTarget: 3));
       final saved = await repo.get();
       expect(saved.dailyBudget, 120);
-      expect(saved.dailyMoveMinutes, 45);
+      expect(saved.dailyMoveKcal, 450);
       expect(saved.dailyRitualTarget, 3);
     });
   });

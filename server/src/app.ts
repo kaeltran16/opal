@@ -7,7 +7,7 @@ import { ImapAuthError, type ImapCreds } from './imap.js'
 import type { EmailWorker } from './email.js'
 import type { TokenStore } from './store.js'
 import type { HealthStore } from './health.js'
-import { registerBody, chatBody, parseBody, reviewBody, insightsBody, suggestBody, postWorkoutBody, routineBody, emailTestBody, emailSyncBody, healthIngestBody } from './schemas.js'
+import { registerBody, chatBody, parseBody, reviewBody, insightsBody, suggestBody, postWorkoutBody, routineBody, emailTestBody, emailSyncBody, healthIngestBody, healthDayQuery } from './schemas.js'
 
 export interface AppDeps {
   pal: Pal
@@ -94,6 +94,12 @@ export function buildApp(deps: AppDeps): FastifyInstance {
 
   app.post('/v1/health/ingest', guard(healthIngestBody, async (b) =>
     ({ upserted: deps.healthStore.upsert(b.date, b.metrics, b.capturedAt) })))
+
+  app.get('/v1/health/day', async (req, reply) => {
+    const parsed = healthDayQuery.safeParse(req.query)
+    if (!parsed.success) return reply.code(400).send({ error: { code: 'bad_request', message: 'invalid query' } })
+    return { date: parsed.data.date, metrics: deps.healthStore.getDay(parsed.data.date) }
+  })
 
   // Email routes map IMAP auth failures to 401 (bad app-password) vs. 502 (LLM/IMAP transport).
   const emailGuard = <T>(schema: z.ZodType<T>, handler: (body: T) => Promise<unknown>) =>

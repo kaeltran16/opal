@@ -47,22 +47,22 @@ class ReviewStat {
 class MonthAggregate {
   const MonthAggregate({
     required this.totalSpent,
-    required this.moveMinutes,
+    required this.moveKcal,
     required this.ritualsKept,
     required this.activeMoveDays,
   });
 
   const MonthAggregate.empty()
       : totalSpent = 0,
-        moveMinutes = 0,
+        moveKcal = 0,
         ritualsKept = 0,
         activeMoveDays = 0;
 
   /// Absolute sum of expense amounts (money entries, amount < 0).
   final double totalSpent;
 
-  /// Total movement minutes (move entries' [Entry.duration]).
-  final int moveMinutes;
+  /// Total movement active energy (move entries' [Entry.calories]).
+  final int moveKcal;
 
   /// Count of ritual entries logged.
   final int ritualsKept;
@@ -74,7 +74,7 @@ class MonthAggregate {
 /// Folds one month's [entries] into a [MonthAggregate].
 MonthAggregate foldMonth(List<Entry> entries) {
   var spent = 0.0;
-  var moveMinutes = 0;
+  var moveKcal = 0;
   var ritualsKept = 0;
   final moveDays = <int>{};
   for (final e in entries) {
@@ -82,7 +82,7 @@ MonthAggregate foldMonth(List<Entry> entries) {
       case EntryType.money:
         if ((e.amount ?? 0) < 0) spent += e.amount!.abs();
       case EntryType.move:
-        moveMinutes += e.duration ?? 0;
+        moveKcal += e.calories ?? 0;
         final t = e.timestamp;
         moveDays.add(t.year * 10000 + t.month * 100 + t.day);
       case EntryType.rituals:
@@ -91,7 +91,7 @@ MonthAggregate foldMonth(List<Entry> entries) {
   }
   return MonthAggregate(
     totalSpent: spent,
-    moveMinutes: moveMinutes,
+    moveKcal: moveKcal,
     ritualsKept: ritualsKept,
     activeMoveDays: moveDays.length,
   );
@@ -121,7 +121,7 @@ class MonthlyStats {
   final int longestStreak;
 
   double get totalSpent => current.totalSpent;
-  int get moveMinutes => current.moveMinutes;
+  int get moveKcal => current.moveKcal;
   int get ritualsKept => current.ritualsKept;
 
   static const _months = [
@@ -154,7 +154,7 @@ class MonthlyStats {
   /// The four big stat rows, in handoff order.
   List<ReviewStat> get rows {
     final spentDelta = _deltaLabel(current.totalSpent, previous.totalSpent);
-    final moveDelta = _pctChange(current.moveMinutes, previous.moveMinutes);
+    final moveDelta = _pctChange(current.moveKcal, previous.moveKcal);
     final activeDays = current.activeMoveDays;
     final moveSubParts = <String>[
       if (moveDelta != null)
@@ -172,9 +172,9 @@ class MonthlyStats {
         icon: 'dollarsign.circle.fill',
       ),
       ReviewStat(
-        label: 'Workout time',
-        value: '$moveMinutes',
-        unit: 'min',
+        label: 'Active energy',
+        value: '$moveKcal',
+        unit: 'kcal',
         sub: moveSubParts.isEmpty ? null : moveSubParts.join(' · '),
         colorToken: 'move',
         icon: 'flame.fill',

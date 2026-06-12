@@ -114,6 +114,48 @@ void main() {
     expect(await repo.getAll(), isEmpty);
   });
 
+  testWidgets('a manual move entry carries the entered calories',
+      (WidgetTester tester) async {
+    final db = LoopDatabase.forTesting(NativeDatabase.memory());
+    addTearDown(db.close);
+
+    final repo = await _pumpSheet(tester, db);
+
+    // Switch to the Workout segment, then type 30 (minutes) on the keypad.
+    await tester.tap(find.text('Workout'));
+    await tester.pumpAndSettle();
+
+    Future<void> tapKey(String key) async {
+      await tester.tap(find.text(key));
+      await tester.pump();
+    }
+
+    await tapKey('3');
+    await tapKey('0');
+
+    // The calories field sits in the scrollable list; scroll it into view, then
+    // enter calories in the move-only optional field (located by its hint).
+    final caloriesField = find.byWidgetPredicate((w) =>
+        w is TextField && w.decoration?.hintText == 'Calories (optional)');
+    await tester.scrollUntilVisible(caloriesField, 80,
+        scrollable: find.byType(Scrollable).first);
+    await tester.pumpAndSettle();
+    expect(caloriesField, findsOneWidget);
+    await tester.enterText(caloriesField, '240');
+    await tester.pump();
+
+    await tester.tap(find.text('Add'));
+    await tester.pumpAndSettle();
+
+    final all = await repo.getAll();
+    expect(all, hasLength(1));
+    final e = all.single;
+    expect(e.type, EntryType.move);
+    expect(e.source, EntrySource.manual);
+    expect(e.duration, 30);
+    expect(e.calories, 240);
+  });
+
   testWidgets('"Type it" parses "coffee 5" and pre-fills an expense',
       (WidgetTester tester) async {
     final db = LoopDatabase.forTesting(NativeDatabase.memory());

@@ -568,7 +568,59 @@ final class PalServiceProvider
   }
 }
 
-String _$palServiceHash() => r'fc873de302efbbd543a740b6b2832fc26861ca69';
+String _$palServiceHash() => r'ec8860a15a191ff535fd0eb0e7ac52828ced2fb6';
+
+/// Real [HttpHealthService] when `PAL_BASE_URL` is set; [MockHealthService]
+/// otherwise (tests, backend-less preview). Shares the proxy's http client +
+/// device-token store with [palService]. Drives [HealthSyncController].
+
+@ProviderFor(healthService)
+const healthServiceProvider = HealthServiceProvider._();
+
+/// Real [HttpHealthService] when `PAL_BASE_URL` is set; [MockHealthService]
+/// otherwise (tests, backend-less preview). Shares the proxy's http client +
+/// device-token store with [palService]. Drives [HealthSyncController].
+
+final class HealthServiceProvider
+    extends $FunctionalProvider<HealthService, HealthService, HealthService>
+    with $Provider<HealthService> {
+  /// Real [HttpHealthService] when `PAL_BASE_URL` is set; [MockHealthService]
+  /// otherwise (tests, backend-less preview). Shares the proxy's http client +
+  /// device-token store with [palService]. Drives [HealthSyncController].
+  const HealthServiceProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'healthServiceProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$healthServiceHash();
+
+  @$internal
+  @override
+  $ProviderElement<HealthService> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  HealthService create(Ref ref) {
+    return healthService(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(HealthService value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<HealthService>(value),
+    );
+  }
+}
+
+String _$healthServiceHash() => r'06754b758929c0ec6678354ee640ade2d04654e7';
 
 /// Real IMAP-backed sync (U24) when `PAL_BASE_URL` is set; [MockEmailSyncService]
 /// otherwise (tests, backend-less preview). Shares the proxy's http client +

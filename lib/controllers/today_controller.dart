@@ -51,10 +51,10 @@ class TodayState {
   final Goals goals;
   final TimelineMode mode;
 
-  /// Move-minutes for the day: sum of the duration of logged move entries.
-  int get moveMinutes => entries
+  /// Move-kcal for the day: sum of the active energy of logged move entries.
+  int get moveKcal => entries
       .where((e) => e.type == EntryType.move)
-      .fold<int>(0, (s, e) => s + (e.duration ?? 0));
+      .fold<int>(0, (s, e) => s + (e.calories ?? 0));
 
   /// Total spent today (absolute value of expense amounts).
   double get moneySpent => entries
@@ -70,7 +70,7 @@ class TodayState {
   double get moneyRing =>
       goals.dailyBudget == 0 ? 0 : moneySpent / goals.dailyBudget;
   double get moveRing =>
-      goals.dailyMoveMinutes == 0 ? 0 : moveMinutes / goals.dailyMoveMinutes;
+      goals.dailyMoveKcal == 0 ? 0 : moveKcal / goals.dailyMoveKcal;
   double get ritualsRing =>
       goals.dailyRitualTarget == 0 ? 0 : ritualsDone / goals.dailyRitualTarget;
 

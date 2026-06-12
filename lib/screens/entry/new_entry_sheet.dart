@@ -80,6 +80,9 @@ class _NewEntrySheetState extends ConsumerState<NewEntrySheet> {
   final TextEditingController _categoryCtrl = TextEditingController();
   final TextEditingController _noteCtrl = TextEditingController();
 
+  /// Calories (kcal) for move entries. Nullable — empty means unset.
+  final TextEditingController _caloriesCtrl = TextEditingController();
+
   /// Natural-language "Log with Pal" input (inline at top of the sheet).
   final TextEditingController _nlCtrl = TextEditingController();
 
@@ -149,6 +152,7 @@ class _NewEntrySheetState extends ConsumerState<NewEntrySheet> {
     _titleCtrl.dispose();
     _categoryCtrl.dispose();
     _noteCtrl.dispose();
+    _caloriesCtrl.dispose();
     _nlCtrl.dispose();
     super.dispose();
   }
@@ -356,6 +360,7 @@ class _NewEntrySheetState extends ConsumerState<NewEntrySheet> {
           type: EntryType.move,
           title: title.isEmpty ? 'Workout' : title,
           duration: v.round(), // minutes
+          calories: int.tryParse(_caloriesCtrl.text.trim()),
           note: note.isEmpty ? null : note,
           source: EntrySource.manual,
         );
@@ -476,12 +481,21 @@ class _NewEntrySheetState extends ConsumerState<NewEntrySheet> {
                   _buildQuickPicks(c),
                   const SizedBox(height: 18),
 
-                  // Optional category / note.
+                  // Optional category / calories / note.
                   if (_kind == _Kind.expense) ...[
                     _OptionalField(
                       controller: _categoryCtrl,
                       hint: 'Category (optional)',
                       icon: 'tray.fill',
+                    ),
+                    const SizedBox(height: 8),
+                  ],
+                  if (_kind == _Kind.workout) ...[
+                    _OptionalField(
+                      controller: _caloriesCtrl,
+                      hint: 'Calories (optional)',
+                      icon: 'flame.fill',
+                      keyboardType: TextInputType.number,
                     ),
                     const SizedBox(height: 8),
                   ],
@@ -667,11 +681,13 @@ class _OptionalField extends StatelessWidget {
     required this.controller,
     required this.hint,
     required this.icon,
+    this.keyboardType,
   });
 
   final TextEditingController controller;
   final String hint;
   final String icon;
+  final TextInputType? keyboardType;
 
   @override
   Widget build(BuildContext context) {
@@ -690,6 +706,7 @@ class _OptionalField extends StatelessWidget {
           Expanded(
             child: TextField(
               controller: controller,
+              keyboardType: keyboardType,
               style: AppFonts.sf(size: 15, color: c.ink, letterSpacing: -0.24),
               cursorColor: c.accent,
               decoration: InputDecoration(

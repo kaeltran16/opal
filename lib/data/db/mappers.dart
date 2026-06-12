@@ -300,7 +300,7 @@ extension WeeklyPlanAssignmentModelMapper on WeeklyPlanAssignment {
 extension GoalsRowMapper on GoalsRow {
   Goals toModel() => Goals(
         dailyBudget: dailyBudget,
-        dailyMoveMinutes: dailyMoveMinutes,
+        dailyMoveKcal: dailyMoveKcal,
         dailyRitualTarget: dailyRitualTarget,
       );
 }
@@ -309,7 +309,7 @@ extension GoalsModelMapper on Goals {
   GoalsTableCompanion toCompanion() => GoalsTableCompanion(
         id: const Value(GoalsTable.singletonId),
         dailyBudget: Value(dailyBudget),
-        dailyMoveMinutes: Value(dailyMoveMinutes),
+        dailyMoveKcal: Value(dailyMoveKcal),
         dailyRitualTarget: Value(dailyRitualTarget),
       );
 }

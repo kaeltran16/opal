@@ -122,7 +122,7 @@ enum DetailTracker {
       case DetailTracker.money:
         return goals.dailyBudget;
       case DetailTracker.move:
-        return goals.dailyMoveMinutes.toDouble();
+        return goals.dailyMoveKcal.toDouble();
       case DetailTracker.rituals:
         return goals.dailyRitualTarget.toDouble();
     }

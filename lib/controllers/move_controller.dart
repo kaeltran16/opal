@@ -47,7 +47,7 @@ const int kWeeklyWorkoutGoal = 4;
 /// testable.
 class MoveState {
   const MoveState({
-    required this.moveMinutes,
+    required this.moveKcal,
     required this.recentSessions,
     required this.otherActivity,
     required this.routineCount,
@@ -59,8 +59,8 @@ class MoveState {
     this.suggestedRoutineName,
   });
 
-  /// Sum of today's logged move-entry durations (minutes).
-  final int moveMinutes;
+  /// Sum of today's logged move-entry active energy (kcal).
+  final int moveKcal;
 
   /// The three newest workouts, decorated for the recent-sessions cards.
   final List<RecentSession> recentSessions;
@@ -175,12 +175,12 @@ Stream<MoveState> moveState(Ref ref) async* {
         .toList();
 
     final today = DateTime(now.year, now.month, now.day);
-    final moveMinutes = entries
+    final moveKcal = entries
         .where((e) =>
             e.type == EntryType.move &&
             DateTime(e.timestamp.year, e.timestamp.month, e.timestamp.day) ==
                 today)
-        .fold<int>(0, (sum, e) => sum + (e.duration ?? 0));
+        .fold<int>(0, (sum, e) => sum + (e.calories ?? 0));
 
     // this-week aggregates (Mon 00:00 → now) drive the hero ring/strip/stats.
     final monday =
@@ -193,7 +193,7 @@ Stream<MoveState> moveState(Ref ref) async* {
         .toList();
 
     yield MoveState(
-      moveMinutes: moveMinutes,
+      moveKcal: moveKcal,
       recentSessions: recent,
       otherActivity: other,
       routineCount: routines.length,

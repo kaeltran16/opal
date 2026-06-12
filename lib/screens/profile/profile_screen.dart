@@ -200,7 +200,7 @@ class _ProfileBody extends StatelessWidget {
               icon: 'flame.fill',
               iconBg: c.move,
               title: 'Workout goal',
-              value: '${goals.dailyMoveMinutes} min',
+              value: '${goals.dailyMoveKcal} kcal',
               chevron: false,
             ),
             ListRow(

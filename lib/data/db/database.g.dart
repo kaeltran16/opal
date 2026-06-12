@@ -4768,17 +4768,17 @@ class $GoalsTableTable extends GoalsTable
     requiredDuringInsert: false,
     defaultValue: const Constant(85.0),
   );
-  static const VerificationMeta _dailyMoveMinutesMeta = const VerificationMeta(
-    'dailyMoveMinutes',
+  static const VerificationMeta _dailyMoveKcalMeta = const VerificationMeta(
+    'dailyMoveKcal',
   );
   @override
-  late final GeneratedColumn<int> dailyMoveMinutes = GeneratedColumn<int>(
-    'daily_move_minutes',
+  late final GeneratedColumn<int> dailyMoveKcal = GeneratedColumn<int>(
+    'daily_move_kcal',
     aliasedName,
     false,
     type: DriftSqlType.int,
     requiredDuringInsert: false,
-    defaultValue: const Constant(60),
+    defaultValue: const Constant(500),
   );
   static const VerificationMeta _dailyRitualTargetMeta = const VerificationMeta(
     'dailyRitualTarget',
@@ -4796,7 +4796,7 @@ class $GoalsTableTable extends GoalsTable
   List<GeneratedColumn> get $columns => [
     id,
     dailyBudget,
-    dailyMoveMinutes,
+    dailyMoveKcal,
     dailyRitualTarget,
   ];
   @override
@@ -4823,12 +4823,12 @@ class $GoalsTableTable extends GoalsTable
         ),
       );
     }
-    if (data.containsKey('daily_move_minutes')) {
+    if (data.containsKey('daily_move_kcal')) {
       context.handle(
-        _dailyMoveMinutesMeta,
-        dailyMoveMinutes.isAcceptableOrUnknown(
-          data['daily_move_minutes']!,
-          _dailyMoveMinutesMeta,
+        _dailyMoveKcalMeta,
+        dailyMoveKcal.isAcceptableOrUnknown(
+          data['daily_move_kcal']!,
+          _dailyMoveKcalMeta,
         ),
       );
     }
@@ -4858,9 +4858,9 @@ class $GoalsTableTable extends GoalsTable
         DriftSqlType.double,
         data['${effectivePrefix}daily_budget'],
       )!,
-      dailyMoveMinutes: attachedDatabase.typeMapping.read(
+      dailyMoveKcal: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
-        data['${effectivePrefix}daily_move_minutes'],
+        data['${effectivePrefix}daily_move_kcal'],
       )!,
       dailyRitualTarget: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
@@ -4879,12 +4879,12 @@ class GoalsRow extends DataClass implements Insertable<GoalsRow> {
   /// Fixed single-row key (literal must match [singletonId]).
   final String id;
   final double dailyBudget;
-  final int dailyMoveMinutes;
+  final int dailyMoveKcal;
   final int dailyRitualTarget;
   const GoalsRow({
     required this.id,
     required this.dailyBudget,
-    required this.dailyMoveMinutes,
+    required this.dailyMoveKcal,
     required this.dailyRitualTarget,
   });
   @override
@@ -4892,7 +4892,7 @@ class GoalsRow extends DataClass implements Insertable<GoalsRow> {
     final map = <String, Expression>{};
     map['id'] = Variable<String>(id);
     map['daily_budget'] = Variable<double>(dailyBudget);
-    map['daily_move_minutes'] = Variable<int>(dailyMoveMinutes);
+    map['daily_move_kcal'] = Variable<int>(dailyMoveKcal);
     map['daily_ritual_target'] = Variable<int>(dailyRitualTarget);
     return map;
   }
@@ -4901,7 +4901,7 @@ class GoalsRow extends DataClass implements Insertable<GoalsRow> {
     return GoalsTableCompanion(
       id: Value(id),
       dailyBudget: Value(dailyBudget),
-      dailyMoveMinutes: Value(dailyMoveMinutes),
+      dailyMoveKcal: Value(dailyMoveKcal),
       dailyRitualTarget: Value(dailyRitualTarget),
     );
   }
@@ -4914,7 +4914,7 @@ class GoalsRow extends DataClass implements Insertable<GoalsRow> {
     return GoalsRow(
       id: serializer.fromJson<String>(json['id']),
       dailyBudget: serializer.fromJson<double>(json['dailyBudget']),
-      dailyMoveMinutes: serializer.fromJson<int>(json['dailyMoveMinutes']),
+      dailyMoveKcal: serializer.fromJson<int>(json['dailyMoveKcal']),
       dailyRitualTarget: serializer.fromJson<int>(json['dailyRitualTarget']),
     );
   }
@@ -4924,7 +4924,7 @@ class GoalsRow extends DataClass implements Insertable<GoalsRow> {
     return <String, dynamic>{
       'id': serializer.toJson<String>(id),
       'dailyBudget': serializer.toJson<double>(dailyBudget),
-      'dailyMoveMinutes': serializer.toJson<int>(dailyMoveMinutes),
+      'dailyMoveKcal': serializer.toJson<int>(dailyMoveKcal),
       'dailyRitualTarget': serializer.toJson<int>(dailyRitualTarget),
     };
   }
@@ -4932,12 +4932,12 @@ class GoalsRow extends DataClass implements Insertable<GoalsRow> {
   GoalsRow copyWith({
     String? id,
     double? dailyBudget,
-    int? dailyMoveMinutes,
+    int? dailyMoveKcal,
     int? dailyRitualTarget,
   }) => GoalsRow(
     id: id ?? this.id,
     dailyBudget: dailyBudget ?? this.dailyBudget,
-    dailyMoveMinutes: dailyMoveMinutes ?? this.dailyMoveMinutes,
+    dailyMoveKcal: dailyMoveKcal ?? this.dailyMoveKcal,
     dailyRitualTarget: dailyRitualTarget ?? this.dailyRitualTarget,
   );
   GoalsRow copyWithCompanion(GoalsTableCompanion data) {
@@ -4946,9 +4946,9 @@ class GoalsRow extends DataClass implements Insertable<GoalsRow> {
       dailyBudget: data.dailyBudget.present
           ? data.dailyBudget.value
           : this.dailyBudget,
-      dailyMoveMinutes: data.dailyMoveMinutes.present
-          ? data.dailyMoveMinutes.value
-          : this.dailyMoveMinutes,
+      dailyMoveKcal: data.dailyMoveKcal.present
+          ? data.dailyMoveKcal.value
+          : this.dailyMoveKcal,
       dailyRitualTarget: data.dailyRitualTarget.present
           ? data.dailyRitualTarget.value
           : this.dailyRitualTarget,
@@ -4960,7 +4960,7 @@ class GoalsRow extends DataClass implements Insertable<GoalsRow> {
     return (StringBuffer('GoalsRow(')
           ..write('id: $id, ')
           ..write('dailyBudget: $dailyBudget, ')
-          ..write('dailyMoveMinutes: $dailyMoveMinutes, ')
+          ..write('dailyMoveKcal: $dailyMoveKcal, ')
           ..write('dailyRitualTarget: $dailyRitualTarget')
           ..write(')'))
         .toString();
@@ -4968,48 +4968,48 @@ class GoalsRow extends DataClass implements Insertable<GoalsRow> {
 
   @override
   int get hashCode =>
-      Object.hash(id, dailyBudget, dailyMoveMinutes, dailyRitualTarget);
+      Object.hash(id, dailyBudget, dailyMoveKcal, dailyRitualTarget);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is GoalsRow &&
           other.id == this.id &&
           other.dailyBudget == this.dailyBudget &&
-          other.dailyMoveMinutes == this.dailyMoveMinutes &&
+          other.dailyMoveKcal == this.dailyMoveKcal &&
           other.dailyRitualTarget == this.dailyRitualTarget);
 }
 
 class GoalsTableCompanion extends UpdateCompanion<GoalsRow> {
   final Value<String> id;
   final Value<double> dailyBudget;
-  final Value<int> dailyMoveMinutes;
+  final Value<int> dailyMoveKcal;
   final Value<int> dailyRitualTarget;
   final Value<int> rowid;
   const GoalsTableCompanion({
     this.id = const Value.absent(),
     this.dailyBudget = const Value.absent(),
-    this.dailyMoveMinutes = const Value.absent(),
+    this.dailyMoveKcal = const Value.absent(),
     this.dailyRitualTarget = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   GoalsTableCompanion.insert({
     this.id = const Value.absent(),
     this.dailyBudget = const Value.absent(),
-    this.dailyMoveMinutes = const Value.absent(),
+    this.dailyMoveKcal = const Value.absent(),
     this.dailyRitualTarget = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   static Insertable<GoalsRow> custom({
     Expression<String>? id,
     Expression<double>? dailyBudget,
-    Expression<int>? dailyMoveMinutes,
+    Expression<int>? dailyMoveKcal,
     Expression<int>? dailyRitualTarget,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (dailyBudget != null) 'daily_budget': dailyBudget,
-      if (dailyMoveMinutes != null) 'daily_move_minutes': dailyMoveMinutes,
+      if (dailyMoveKcal != null) 'daily_move_kcal': dailyMoveKcal,
       if (dailyRitualTarget != null) 'daily_ritual_target': dailyRitualTarget,
       if (rowid != null) 'rowid': rowid,
     });
@@ -5018,14 +5018,14 @@ class GoalsTableCompanion extends UpdateCompanion<GoalsRow> {
   GoalsTableCompanion copyWith({
     Value<String>? id,
     Value<double>? dailyBudget,
-    Value<int>? dailyMoveMinutes,
+    Value<int>? dailyMoveKcal,
     Value<int>? dailyRitualTarget,
     Value<int>? rowid,
   }) {
     return GoalsTableCompanion(
       id: id ?? this.id,
       dailyBudget: dailyBudget ?? this.dailyBudget,
-      dailyMoveMinutes: dailyMoveMinutes ?? this.dailyMoveMinutes,
+      dailyMoveKcal: dailyMoveKcal ?? this.dailyMoveKcal,
       dailyRitualTarget: dailyRitualTarget ?? this.dailyRitualTarget,
       rowid: rowid ?? this.rowid,
     );
@@ -5040,8 +5040,8 @@ class GoalsTableCompanion extends UpdateCompanion<GoalsRow> {
     if (dailyBudget.present) {
       map['daily_budget'] = Variable<double>(dailyBudget.value);
     }
-    if (dailyMoveMinutes.present) {
-      map['daily_move_minutes'] = Variable<int>(dailyMoveMinutes.value);
+    if (dailyMoveKcal.present) {
+      map['daily_move_kcal'] = Variable<int>(dailyMoveKcal.value);
     }
     if (dailyRitualTarget.present) {
       map['daily_ritual_target'] = Variable<int>(dailyRitualTarget.value);
@@ -5057,7 +5057,7 @@ class GoalsTableCompanion extends UpdateCompanion<GoalsRow> {
     return (StringBuffer('GoalsTableCompanion(')
           ..write('id: $id, ')
           ..write('dailyBudget: $dailyBudget, ')
-          ..write('dailyMoveMinutes: $dailyMoveMinutes, ')
+          ..write('dailyMoveKcal: $dailyMoveKcal, ')
           ..write('dailyRitualTarget: $dailyRitualTarget, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -7861,7 +7861,7 @@ typedef $$GoalsTableTableCreateCompanionBuilder =
     GoalsTableCompanion Function({
       Value<String> id,
       Value<double> dailyBudget,
-      Value<int> dailyMoveMinutes,
+      Value<int> dailyMoveKcal,
       Value<int> dailyRitualTarget,
       Value<int> rowid,
     });
@@ -7869,7 +7869,7 @@ typedef $$GoalsTableTableUpdateCompanionBuilder =
     GoalsTableCompanion Function({
       Value<String> id,
       Value<double> dailyBudget,
-      Value<int> dailyMoveMinutes,
+      Value<int> dailyMoveKcal,
       Value<int> dailyRitualTarget,
       Value<int> rowid,
     });
@@ -7893,8 +7893,8 @@ class $$GoalsTableTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<int> get dailyMoveMinutes => $composableBuilder(
-    column: $table.dailyMoveMinutes,
+  ColumnFilters<int> get dailyMoveKcal => $composableBuilder(
+    column: $table.dailyMoveKcal,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -7923,8 +7923,8 @@ class $$GoalsTableTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<int> get dailyMoveMinutes => $composableBuilder(
-    column: $table.dailyMoveMinutes,
+  ColumnOrderings<int> get dailyMoveKcal => $composableBuilder(
+    column: $table.dailyMoveKcal,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -7951,8 +7951,8 @@ class $$GoalsTableTableAnnotationComposer
     builder: (column) => column,
   );
 
-  GeneratedColumn<int> get dailyMoveMinutes => $composableBuilder(
-    column: $table.dailyMoveMinutes,
+  GeneratedColumn<int> get dailyMoveKcal => $composableBuilder(
+    column: $table.dailyMoveKcal,
     builder: (column) => column,
   );
 
@@ -7995,13 +7995,13 @@ class $$GoalsTableTableTableManager
               ({
                 Value<String> id = const Value.absent(),
                 Value<double> dailyBudget = const Value.absent(),
-                Value<int> dailyMoveMinutes = const Value.absent(),
+                Value<int> dailyMoveKcal = const Value.absent(),
                 Value<int> dailyRitualTarget = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => GoalsTableCompanion(
                 id: id,
                 dailyBudget: dailyBudget,
-                dailyMoveMinutes: dailyMoveMinutes,
+                dailyMoveKcal: dailyMoveKcal,
                 dailyRitualTarget: dailyRitualTarget,
                 rowid: rowid,
               ),
@@ -8009,13 +8009,13 @@ class $$GoalsTableTableTableManager
               ({
                 Value<String> id = const Value.absent(),
                 Value<double> dailyBudget = const Value.absent(),
-                Value<int> dailyMoveMinutes = const Value.absent(),
+                Value<int> dailyMoveKcal = const Value.absent(),
                 Value<int> dailyRitualTarget = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => GoalsTableCompanion.insert(
                 id: id,
                 dailyBudget: dailyBudget,
-                dailyMoveMinutes: dailyMoveMinutes,
+                dailyMoveKcal: dailyMoveKcal,
                 dailyRitualTarget: dailyRitualTarget,
                 rowid: rowid,
               ),

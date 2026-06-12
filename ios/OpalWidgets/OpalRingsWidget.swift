@@ -86,7 +86,7 @@ struct RingsWidgetView: View {
         RingsStack(s: s).frame(width: 92, height: 92)
         VStack(alignment: .leading, spacing: 8) {
           StatRow(color: moneyColor, value: "$\(Int(s.moneySpent))", suffix: "/ $\(Int(s.dailyBudget)) spent")
-          StatRow(color: moveColor, value: "\(s.moveMinutes)", suffix: "/ \(s.dailyMoveMinutes) min")
+          StatRow(color: moveColor, value: "\(s.moveKcal)", suffix: "/ \(s.dailyMoveKcal) kcal")
           StatRow(color: ritualsColor, value: "\(s.ritualsDone)", suffix: "/ \(s.dailyRitualTarget) rituals")
         }
         Spacer()
