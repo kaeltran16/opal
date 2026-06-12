@@ -125,6 +125,29 @@ void main() {
     await staged;
   });
 
+  test('syncNow tolerates an extra truncated field in the response', () async {
+    final service = build(MockClient((req) async => http.Response(
+          jsonEncode({
+            'items': [
+              {
+                'id': 'msg-1',
+                'merchant': 'Amazon',
+                'amount': -42.99,
+                'receivedAt': '2026-06-09T10:00:00.000Z',
+                'category': 'Shopping',
+              }
+            ],
+            'truncated': true,
+          }),
+          200,
+        )));
+    await service.connect(_account, 'pw');
+
+    final items = await service.syncNow();
+    expect(items, hasLength(1));
+    expect(items.first.merchant, 'Amazon');
+  });
+
   test('syncNow sends the prior lastSyncedAt as since on a subsequent sync', () async {
     final synced = _account.copyWith(lastSyncedAt: DateTime(2026, 6, 1));
     await prefs.setString('email.account', jsonEncode(synced.toJson()));

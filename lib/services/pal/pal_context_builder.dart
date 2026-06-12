@@ -1,5 +1,5 @@
 import '../../models/models.dart';
-import 'pal_service.dart' show InsightRange;
+import 'pal_service.dart' show InsightRange, ReviewRange;
 
 /// Formats one timeline entry as the handoff's `HH:MM Title (type, detail)`.
 String formatEntryLine(Entry e) {
@@ -53,20 +53,24 @@ Map<String, Object?> buildChatContext({
 }
 
 Map<String, Object?> buildReviewContext({
+  required ReviewRange range,
   required double spent,
-  required int spentDeltaPct,
+  required int? spentDeltaPct,
   required int hoursMoved,
-  required int movedDeltaPct,
+  required int? movedDeltaPct,
   required int activeDays,
   required int ritualsKept,
   required int ritualsTarget,
   required int streakDays,
   required String topCategory,
   required int topCategoryPct,
-  required String discoveredPattern,
 }) {
   final pct = ritualsTarget == 0 ? 0 : ((ritualsKept / ritualsTarget) * 100).round();
   return {
+    'range': switch (range) {
+      ReviewRange.week => 'week',
+      ReviewRange.month => 'month',
+    },
     'spent': spent,
     'spentDeltaPct': spentDeltaPct,
     'hoursMoved': hoursMoved,
@@ -78,7 +82,6 @@ Map<String, Object?> buildReviewContext({
     'streakDays': streakDays,
     'topCategory': topCategory,
     'topCategoryPct': topCategoryPct,
-    'discoveredPattern': discoveredPattern,
   };
 }
 

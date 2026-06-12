@@ -18,14 +18,17 @@ function fakePal() {
   }
 }
 
-function fakeWorker(overrides: Partial<{ test: () => Promise<void>; sync: () => Promise<unknown[]> }> = {}) {
+function fakeWorker(overrides: Partial<{ test: () => Promise<void>; sync: () => Promise<unknown> }> = {}) {
   return {
     test: overrides.test ?? (async () => {}),
     sync:
       overrides.sync ??
-      (async () => [
-        { id: 'msg-1', merchant: 'Amazon', amount: -42.99, receivedAt: '2026-06-09T10:00:00.000Z', category: 'Shopping' },
-      ]),
+      (async () => ({
+        items: [
+          { id: 'msg-1', merchant: 'Amazon', amount: -42.99, receivedAt: '2026-06-09T10:00:00.000Z', category: 'Shopping' },
+        ],
+        truncated: false,
+      })),
   }
 }
 
@@ -187,10 +190,24 @@ describe('app', () => {
       payload: { ...creds, senderFilters: [], since: null },
     })
     expect(res.statusCode).toBe(200)
-    const items = res.json().items as Array<{ merchant: string; amount: number }>
-    expect(items).toHaveLength(1)
-    expect(items[0].merchant).toBe('Amazon')
-    expect(items[0].amount).toBeLessThan(0)
+    const body = res.json() as { items: Array<{ merchant: string; amount: number }>; truncated: boolean }
+    expect(body.items).toHaveLength(1)
+    expect(body.items[0].merchant).toBe('Amazon')
+    expect(body.items[0].amount).toBeLessThan(0)
+    expect(body.truncated).toBe(false)
+  })
+
+  it('email/sync surfaces the truncated flag', async () => {
+    app = build(fakeWorker({ sync: async () => ({ items: [], truncated: true }) }))
+    await app.ready()
+    const token = store.issue('d1')
+    const res = await app.inject({
+      method: 'POST', url: '/v1/email/sync',
+      headers: { authorization: `Bearer ${token}` },
+      payload: { ...creds, senderFilters: [], since: null },
+    })
+    expect(res.statusCode).toBe(200)
+    expect(res.json().truncated).toBe(true)
   })
 
   it('email/sync maps an IMAP auth failure to 422 (distinct from the bearer 401)', async () => {

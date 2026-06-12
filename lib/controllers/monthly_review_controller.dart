@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../models/models.dart';
+import '../services/services.dart' show ReviewRange;
 import 'providers.dart';
 
 part 'monthly_review_controller.g.dart';
@@ -250,7 +251,7 @@ class MonthlyReviewController extends _$MonthlyReviewController {
   Future<String> build() {
     final pal = ref.watch(palServiceProvider);
     final now = DateTime.now();
-    return pal.review(DateTime(now.year, now.month));
+    return pal.review(DateTime(now.year, now.month), ReviewRange.month);
   }
 
   /// Re-requests the narrative from [PalService.review], showing the loading
@@ -260,7 +261,7 @@ class MonthlyReviewController extends _$MonthlyReviewController {
     final now = DateTime.now();
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(
-      () => pal.review(DateTime(now.year, now.month)),
+      () => pal.review(DateTime(now.year, now.month), ReviewRange.month),
     );
   }
 }

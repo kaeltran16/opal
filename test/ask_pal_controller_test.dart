@@ -28,7 +28,7 @@ class _FakePal implements PalService {
   Future<ParsedEntryDraft> parse(String text) async =>
       const ParsedEntryDraft(type: EntryType.money);
   @override
-  Future<String> review(DateTime month) async => '';
+  Future<String> review(DateTime anchor, ReviewRange range) async => '';
   @override
   Future<PalInsights> insights(InsightRange range) async => const PalInsights();
   @override

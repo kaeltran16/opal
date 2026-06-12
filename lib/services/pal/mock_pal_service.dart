@@ -158,7 +158,7 @@ class MockPalService implements PalService {
   }
 
   @override
-  Future<String> review(DateTime month) async {
+  Future<String> review(DateTime anchor, ReviewRange range) async {
     await Future<void>.delayed(latency);
     return _reviews[_rng.nextInt(_reviews.length)];
   }

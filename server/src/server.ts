@@ -7,10 +7,12 @@ import { TokenStore } from './store.js'
 
 const client = new OpenRouterClient(config.openrouterApiKey, config.model, config.openrouterBaseUrl, fetch, config.requestTimeoutMs)
 const pal = new Pal(client)
-const worker = new EmailWorker(new ImapFlowClient(), client)
+// per-email extraction failures must be visible in production (Bug D)
+const syncLogger = { error: (obj: unknown, msg?: string) => console.error(msg ?? '', obj) }
+const worker = new EmailWorker(new ImapFlowClient(), client, syncLogger)
 const store = new TokenStore(config.sqlitePath)
 
-const app = buildApp({ pal, worker, store, provisioningKey: config.provisioningKey, corsOrigins: config.corsOrigins })
+const app = buildApp({ pal, worker, store, provisioningKey: config.provisioningKey, corsOrigins: config.corsOrigins, logger: true })
 
 app.listen({ port: config.port, host: '0.0.0.0' }).then((addr) => {
   console.log(`pal proxy (openrouter) listening on ${addr}`)

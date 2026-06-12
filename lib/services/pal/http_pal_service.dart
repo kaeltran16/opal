@@ -33,7 +33,7 @@ class PalContextSource {
     required this.resolveRoutineTitle,
   });
   final Future<Map<String, Object?>> Function() chat;
-  final Future<Map<String, Object?>> Function(DateTime month) review;
+  final Future<Map<String, Object?>> Function(DateTime anchor, ReviewRange range) review;
   final Future<Map<String, Object?>> Function(InsightRange range) insights;
   final Future<Map<String, Object?>> Function(bool another) suggest;
   final Future<Map<String, Object?>> Function(Workout workout) postWorkout;
@@ -163,8 +163,10 @@ class HttpPalService implements PalService {
     final json = await _post('/v1/parse', {'text': text});
     final type = _entryTypeFromWire(json['type'] as String? ?? 'money');
     final rawAmount = (json['amount'] as num?)?.toDouble();
-    // ParsedEntryDraft convention: negative = expense. Server returns a magnitude.
-    final amount = (type == EntryType.money && rawAmount != null && rawAmount > 0)
+    // ParsedEntryDraft convention: negative = expense. Server returns a magnitude
+    // plus a direction; absent/null direction is treated as expense (older server).
+    final isIncome = json['direction'] == 'income';
+    final amount = (type == EntryType.money && !isIncome && rawAmount != null && rawAmount > 0)
         ? -rawAmount
         : rawAmount;
     return ParsedEntryDraft(
@@ -178,8 +180,8 @@ class HttpPalService implements PalService {
   }
 
   @override
-  Future<String> review(DateTime month) async {
-    final json = await _post('/v1/review', {'context': await context.review(month)});
+  Future<String> review(DateTime anchor, ReviewRange range) async {
+    final json = await _post('/v1/review', {'context': await context.review(anchor, range)});
     try {
       return json['text'] as String? ?? '';
     } catch (e) {

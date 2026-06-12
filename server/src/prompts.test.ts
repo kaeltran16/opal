@@ -37,15 +37,45 @@ describe('prompts', () => {
     expect(parsePrompt('coffee 5')).toContain('Example')
   })
 
-  it('review prompt embeds the numbers', () => {
+  it('parse prompt asks for a direction and includes an income example', () => {
+    const p = parsePrompt('got paid 500')
+    expect(p).toContain('direction')
+    expect(p).toContain('"direction":"income"')
+  })
+
+  it('review prompt embeds the numbers and is month-worded for a month range', () => {
     const p = reviewPrompt({
-      spent: 1840, spentDeltaPct: 12, hoursMoved: 18, movedDeltaPct: 8,
+      range: 'month', spent: 1840, spentDeltaPct: -12, hoursMoved: 18, movedDeltaPct: 8,
       activeDays: 22, ritualsKept: 120, ritualsTarget: 150, ritualsPct: 80,
-      streakDays: 12, topCategory: 'Food', topCategoryPct: 34, discoveredPattern: 'mornings set the tone',
+      streakDays: 12, topCategory: 'Food', topCategoryPct: 34,
     })
     expect(p).toContain('$1840')
     expect(p).toContain('12-day move streak')
     expect(p).toContain('Food 34%')
+    expect(p).toContain("this month's tracking data")
+    expect(p).toContain('down 12% vs last month')
+    expect(p).toContain('up 8% vs last month')
+  })
+
+  it('review prompt is week-worded for a week range', () => {
+    const p = reviewPrompt({
+      range: 'week', spent: 200, spentDeltaPct: 5, hoursMoved: 4, movedDeltaPct: -10,
+      activeDays: 5, ritualsKept: 28, ritualsTarget: 35, ritualsPct: 80,
+      streakDays: 6, topCategory: 'Food', topCategoryPct: 34,
+    })
+    expect(p).toContain("this week's tracking data")
+    expect(p).toContain('up 5% vs last week')
+    expect(p).toContain('down 10% vs last week')
+  })
+
+  it('review prompt omits delta phrases when a delta is null', () => {
+    const p = reviewPrompt({
+      range: 'month', spent: 1840, spentDeltaPct: null, hoursMoved: 18, movedDeltaPct: null,
+      activeDays: 22, ritualsKept: 120, ritualsTarget: 150, ritualsPct: 80,
+      streakDays: 12, topCategory: 'Food', topCategoryPct: 34,
+    })
+    expect(p).not.toContain('vs last month')
+    expect(p).toContain('$1840 spent,')
   })
 
   it('insights prompt embeds data, weekday spend, and tailors to range', () => {

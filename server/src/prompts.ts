@@ -16,10 +16,11 @@ export interface ChatContext {
 }
 
 export interface ReviewContext {
+  range: 'week' | 'month'
   spent: number
-  spentDeltaPct: number
+  spentDeltaPct: number | null
   hoursMoved: number
-  movedDeltaPct: number
+  movedDeltaPct: number | null
   activeDays: number
   ritualsKept: number
   ritualsTarget: number
@@ -27,7 +28,6 @@ export interface ReviewContext {
   streakDays: number
   topCategory: string
   topCategoryPct: number
-  discoveredPattern: string
 }
 
 export interface InsightsContext {
@@ -64,9 +64,10 @@ export interface PostWorkoutContext {
 
 export function chatSystemPrompt(c: ChatContext): string {
   const entries = c.todayEntries.length ? c.todayEntries.join('\n') : '(none yet)'
+  const heading = c.userName ? `Today's entries for ${c.userName}:` : "Today's entries:"
   return `You are Pal, a gentle, concise coach in an iOS app that tracks money, movement and daily rituals.
 
-Today's entries for ${c.userName}:
+${heading}
 ${entries}
 
 Daily budget $${c.dailyBudget}, move goal ${c.moveGoalMin}min, ritual goal ${c.ritualGoal}.
@@ -80,9 +81,13 @@ Reply in 1-3 short sentences. Friendly, specific, no filler. Never say "amazing"
 }
 
 export function reviewPrompt(c: ReviewContext): string {
-  return `Write a 2-3 sentence warm, specific, editorial reflection on this month's tracking data. Avoid hype words like "amazing" or "crushed it". Be specific and observational.
+  const period = c.range === 'week' ? 'week' : 'month'
+  // delta phrases only render when there's a comparable prior period
+  const deltaPhrase = (pct: number | null) =>
+    pct === null ? '' : ` (${pct < 0 ? 'down' : 'up'} ${Math.abs(pct)}% vs last ${period})`
+  return `Write a 2-3 sentence warm, specific, editorial reflection on this ${period}'s tracking data. Avoid hype words like "amazing" or "crushed it". Be specific and observational.
 
-Data: $${c.spent} spent (down ${c.spentDeltaPct}% vs last month), ${c.hoursMoved}h moved (up ${c.movedDeltaPct}%), ${c.activeDays} active days, ${c.ritualsKept}/${c.ritualsTarget} rituals kept (${c.ritualsPct}%). Current ${c.streakDays}-day move streak. Top category: ${c.topCategory} ${c.topCategoryPct}%. Pattern: ${c.discoveredPattern}.`
+Data: $${c.spent} spent${deltaPhrase(c.spentDeltaPct)}, ${c.hoursMoved}h moved${deltaPhrase(c.movedDeltaPct)}, ${c.activeDays} active days, ${c.ritualsKept}/${c.ritualsTarget} rituals kept (${c.ritualsPct}%). Current ${c.streakDays}-day move streak. Top category: ${c.topCategory} ${c.topCategoryPct}%.`
 }
 
 export function insightsPrompt(c: InsightsContext): string {
@@ -114,14 +119,16 @@ Return strictly this JSON shape: ${shape}
 
 export function parsePrompt(input: string): string {
   return `Parse this free-form log into JSON. User said: "${input}"
-Return strictly: {"type": "money|move|rituals", "amount": number|null, "duration": number|null, "category": string|null, "title": string, "note": string|null}
+Return strictly: {"type": "money|move|rituals", "amount": number|null, "duration": number|null, "category": string|null, "title": string, "note": string|null, "direction": "expense|income"|null}
 - type: "money" for spending/income, "move" for workouts/activity, "rituals" for habits/routines.
 - amount: dollars for money (positive magnitude, no sign or symbol), else null.
 - duration: minutes for move, else null.
 - category: a short money category (e.g. Coffee, Dining, Transport), else null.
 - title: a short human label for the entry.
-Example: "add $5 for coffee" -> {"type":"money","amount":5,"duration":null,"category":"Coffee","title":"Coffee","note":null}
-Example: "ran 30 min" -> {"type":"move","amount":null,"duration":30,"category":null,"title":"Run","note":null}
+- direction: for money, "income" if the user received money, else "expense" (default when unclear). null for move and rituals.
+Example: "add $5 for coffee" -> {"type":"money","amount":5,"duration":null,"category":"Coffee","title":"Coffee","note":null,"direction":"expense"}
+Example: "got paid $500" -> {"type":"money","amount":500,"duration":null,"category":null,"title":"Paycheck","note":null,"direction":"income"}
+Example: "ran 30 min" -> {"type":"move","amount":null,"duration":30,"category":null,"title":"Run","note":null,"direction":null}
 No prose. Output only the JSON object. If ambiguous, guess from context.`
 }
 

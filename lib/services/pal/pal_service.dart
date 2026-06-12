@@ -314,6 +314,11 @@ class GeneratedRoutineDraft {
 /// "Pal noticed" card; [week]/[month] feed the Weekly/Monthly Review screens.
 enum InsightRange { day, week, month }
 
+/// The period a `/review` narrative covers: a calendar [week] (anchor + 7 days)
+/// for the Weekly Review, or the calendar [month] of the anchor for the Monthly
+/// Review. Decouples the review window from its anchor date.
+enum ReviewRange { week, month }
+
 /// A qualitative "Win" row in the Weekly Review (handoff screen 17). The icon is
 /// derived on the client from [colorToken] — the model only chooses the metric.
 class InsightWin {
@@ -408,8 +413,9 @@ abstract interface class PalService {
   /// `/parse`: turn a natural-language [text] into structured entry fields.
   Future<ParsedEntryDraft> parse(String text);
 
-  /// `/review`: a monthly narrative summary for [month] (U18).
-  Future<String> review(DateTime month);
+  /// `/review`: a narrative summary for the period [range] (week or month)
+  /// containing [anchor] (U18).
+  Future<String> review(DateTime anchor, ReviewRange range);
 
   /// `/insights`: structured Pal-found insights (wins/patterns/headline) for the
   /// given [range]. Powers the Today "Pal noticed" card and the Review screens.

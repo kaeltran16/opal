@@ -31,9 +31,10 @@ export const chatBody = z.object({
 export const parseBody = z.object({ text: z.string() })
 
 export const reviewContext = z.object({
-  spent: z.number(), spentDeltaPct: z.number(), hoursMoved: z.number(), movedDeltaPct: z.number(),
+  range: z.enum(['week', 'month']),
+  spent: z.number(), spentDeltaPct: z.number().nullable(), hoursMoved: z.number(), movedDeltaPct: z.number().nullable(),
   activeDays: z.number(), ritualsKept: z.number(), ritualsTarget: z.number(), ritualsPct: z.number(),
-  streakDays: z.number(), topCategory: z.string(), topCategoryPct: z.number(), discoveredPattern: z.string(),
+  streakDays: z.number(), topCategory: z.string(), topCategoryPct: z.number(),
 })
 export const reviewBody = z.object({ context: reviewContext })
 

@@ -30,7 +30,7 @@ class _SequencedPalService implements PalService {
   ];
 
   @override
-  Future<String> review(DateTime month) async =>
+  Future<String> review(DateTime anchor, ReviewRange range) async =>
       _reviews[_i++ % _reviews.length];
 
   @override

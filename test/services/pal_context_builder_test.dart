@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opal/models/models.dart';
 import 'package:opal/services/pal/pal_context_builder.dart';
-import 'package:opal/services/pal/pal_service.dart' show InsightRange;
+import 'package:opal/services/pal/pal_service.dart' show InsightRange, ReviewRange;
 
 void main() {
   final goals = const Goals(dailyBudget: 60, dailyMoveMinutes: 30, dailyRitualTarget: 5);
@@ -66,6 +66,28 @@ void main() {
     final byDay = ctx['spendByWeekday'] as List<double>;
     expect(byDay[0], 20); // Monday
     expect(byDay[4], 100); // Friday
+  });
+
+  test('buildReviewContext wires the range, computes ritualsPct, and carries nullable deltas', () {
+    final ctx = buildReviewContext(
+      range: ReviewRange.week,
+      spent: 200,
+      spentDeltaPct: -12,
+      hoursMoved: 4,
+      movedDeltaPct: null,
+      activeDays: 5,
+      ritualsKept: 28,
+      ritualsTarget: 35,
+      streakDays: 6,
+      topCategory: 'Food',
+      topCategoryPct: 34,
+    );
+
+    expect(ctx['range'], 'week');
+    expect(ctx['spentDeltaPct'], -12);
+    expect(ctx['movedDeltaPct'], isNull); // no comparable prior period
+    expect(ctx['ritualsPct'], 80); // 28/35
+    expect(ctx.containsKey('discoveredPattern'), isFalse);
   });
 
   test('moveStreakDays counts consecutive move days, anchoring on yesterday', () {

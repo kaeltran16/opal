@@ -5,6 +5,9 @@ import {
 } from './prompts.js'
 
 const MAX_TOKENS = 1024
+// insights and routine JSON run long; a 1024 cut-off truncates the object.
+const INSIGHTS_MAX_TOKENS = 2048
+const ROUTINE_MAX_TOKENS = 4096
 
 export interface ChatMessage {
   role: 'system' | 'user' | 'assistant'
@@ -26,7 +29,8 @@ export interface CompletionResult {
 // The narrow seam Pal calls — keeps the wrapper testable without a network.
 export interface CompletionClient {
   // `json: true` asks the provider for a strict JSON object (response_format).
-  complete(messages: ChatMessage[], opts?: { json?: boolean }): Promise<string>
+  // `maxTokens` overrides the default output cap for long replies (defaults to MAX_TOKENS).
+  complete(messages: ChatMessage[], opts?: { json?: boolean; maxTokens?: number }): Promise<string>
   // Tool-enabled variant for chat. `tools` is the OpenAI tool spec array.
   completeWithTools(messages: ChatMessage[], tools: unknown[]): Promise<CompletionResult>
 }
@@ -65,6 +69,7 @@ export class OpenRouterClient implements CompletionClient {
           'content-type': 'application/json',
         },
         body: JSON.stringify({ model: this.model, max_tokens: MAX_TOKENS, ...extra }),
+        // extra may override max_tokens; the object spread above lets it.
         signal: AbortSignal.timeout(this.timeoutMs),
       })
     } catch (err) {
@@ -77,19 +82,29 @@ export class OpenRouterClient implements CompletionClient {
     return res.json()
   }
 
-  async complete(messages: ChatMessage[], opts?: { json?: boolean }): Promise<string> {
+  async complete(messages: ChatMessage[], opts?: { json?: boolean; maxTokens?: number }): Promise<string> {
+    const cap = opts?.maxTokens ?? MAX_TOKENS
     const data = (await this.post({
       messages,
+      max_tokens: cap,
       ...(opts?.json ? { response_format: { type: 'json_object' } } : {}),
-    })) as { choices?: Array<{ message?: { content?: string } }> }
-    return data.choices?.[0]?.message?.content?.trim() ?? ''
+    })) as { choices?: Array<{ message?: { content?: string }; finish_reason?: string }> }
+    const choice = data.choices?.[0]
+    if (choice?.finish_reason === 'length') {
+      throw new OpenRouterError(502, `model output truncated (finish_reason=length) at max_tokens=${cap}`)
+    }
+    return choice?.message?.content?.trim() ?? ''
   }
 
   async completeWithTools(messages: ChatMessage[], tools: unknown[]): Promise<CompletionResult> {
     const data = (await this.post({ messages, tools, tool_choice: 'auto' })) as {
-      choices?: Array<{ message?: { content?: string; tool_calls?: Array<{ function?: { name?: string; arguments?: string } }> } }>
+      choices?: Array<{ message?: { content?: string; tool_calls?: Array<{ function?: { name?: string; arguments?: string } }> }; finish_reason?: string }>
     }
-    const message = data.choices?.[0]?.message
+    const choice = data.choices?.[0]
+    if (choice?.finish_reason === 'length') {
+      throw new OpenRouterError(502, `model output truncated (finish_reason=length) at max_tokens=${MAX_TOKENS}`)
+    }
+    const message = choice?.message
     const toolCalls: ToolCall[] = (message?.tool_calls ?? [])
       .map((c) => ({ name: c.function?.name ?? '', arguments: c.function?.arguments ?? '' }))
       .filter((c) => c.name)
@@ -104,6 +119,8 @@ export const parseSchema = z.object({
   category: z.string().nullable(),
   title: z.string(),
   note: z.string().nullable(),
+  // off-list values coerce to 'expense', mirroring routineSchema.tag's catch().
+  direction: z.enum(['expense', 'income']).nullable().catch('expense'),
 })
 export type ParsedEntry = z.infer<typeof parseSchema>
 
@@ -285,7 +302,7 @@ export class Pal {
   }
 
   async insights(ctx: InsightsContext): Promise<Insights> {
-    const raw = await this.client.complete([{ role: 'user', content: insightsPrompt(ctx) }], { json: true })
+    const raw = await this.client.complete([{ role: 'user', content: insightsPrompt(ctx) }], { json: true, maxTokens: INSIGHTS_MAX_TOKENS })
     return insightsSchema.parse(extractJson(raw))
   }
 
@@ -305,7 +322,7 @@ export class Pal {
   }
 
   async generateRoutine(goal: string, exercises: RoutineExercise[]): Promise<GeneratedRoutine> {
-    const raw = await this.client.complete([{ role: 'user', content: routinePrompt(goal, exercises) }], { json: true })
+    const raw = await this.client.complete([{ role: 'user', content: routinePrompt(goal, exercises) }], { json: true, maxTokens: ROUTINE_MAX_TOKENS })
     const parsed = routineSchema.parse(extractJson(raw))
     // drop any exercise the model invented — the client can only resolve catalog ids.
     const known = new Set(exercises.map((e) => e.id))

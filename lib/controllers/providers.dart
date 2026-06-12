@@ -127,11 +127,23 @@ PalService palService(Ref ref) {
   final goals = ref.watch(goalsRepositoryProvider);
   final workouts = ref.watch(workoutRepositoryProvider);
   final routines = ref.watch(routineRepositoryProvider);
+  final settings = ref.watch(settingsRepositoryProvider);
 
   final tokens = TokenProvider(
     token: () => _deviceTokens(httpClient).token(),
     clear: () => _deviceTokens(httpClient).clear(),
   );
+
+  // current move streak from a 60-day lookback (longer than any window) — the
+  // streak helper needs history before the window to count back correctly.
+  Future<int> moveStreak(DateTime now) async {
+    final today = DateTime(now.year, now.month, now.day);
+    final lookback = await entries.getEntriesInRange(
+      today.subtract(const Duration(days: 60)),
+      today.add(const Duration(days: 1)),
+    );
+    return moveStreakDays(lookback, now: now);
+  }
 
   final context = PalContextSource(
     chat: () async {
@@ -145,23 +157,39 @@ PalService palService(Ref ref) {
           )
           .first;
       return buildChatContext(
-        userName: 'there',
+        userName: settings.displayName,
         goals: await goals.get(),
         todayEntries: today,
         weekEntries: week,
-        moveStreakDays: 0, // streak source wired in U18 reuse; 0 until then
+        moveStreakDays: await moveStreak(now),
       );
     },
-    review: (month) async {
-      final start = DateTime(month.year, month.month);
-      final end = DateTime(month.year, month.month + 1);
-      final monthEntries = await entries.watchEntriesInRange(start, end).first;
+    review: (anchor, range) async {
+      final now = DateTime.now();
+      final (DateTime start, DateTime end, DateTime prevStart, int periodDays) =
+          switch (range) {
+        ReviewRange.week => (
+            anchor,
+            anchor.add(const Duration(days: 7)),
+            anchor.subtract(const Duration(days: 7)),
+            7,
+          ),
+        ReviewRange.month => (
+            DateTime(anchor.year, anchor.month),
+            DateTime(anchor.year, anchor.month + 1),
+            DateTime(anchor.year, anchor.month - 1),
+            DateTime(anchor.year, anchor.month + 1, 0).day,
+          ),
+      };
+      final periodEntries = await entries.watchEntriesInRange(start, end).first;
+      final prevEntries = await entries.getEntriesInRange(prevStart, start);
+
       var spent = 0.0;
       var movedMin = 0;
       var kept = 0;
       String topCat = '—';
       final byCat = <String, double>{};
-      for (final e in monthEntries) {
+      for (final e in periodEntries) {
         switch (e.type) {
           case EntryType.money:
             if ((e.amount ?? 0) < 0) {
@@ -183,19 +211,34 @@ PalService palService(Ref ref) {
         }
       });
       final topPct = spent == 0 ? 0 : ((topVal / spent) * 100).round();
+
+      // deltas vs the previous period; null when there's nothing to compare to.
+      var prevSpent = 0.0;
+      var prevMovedMin = 0;
+      for (final e in prevEntries) {
+        if (e.type == EntryType.money && (e.amount ?? 0) < 0) {
+          prevSpent += e.amount!.abs();
+        } else if (e.type == EntryType.move) {
+          prevMovedMin += e.duration ?? 0;
+        }
+      }
+      int? pctChange(num current, num prev) =>
+          prev == 0 ? null : (((current - prev) / prev) * 100).round();
+      final hasPrev = prevEntries.isNotEmpty;
+
       final g = await goals.get();
       return buildReviewContext(
+        range: range,
         spent: spent,
-        spentDeltaPct: 0,
+        spentDeltaPct: hasPrev ? pctChange(spent, prevSpent) : null,
         hoursMoved: (movedMin / 60).round(),
-        movedDeltaPct: 0,
-        activeDays: monthEntries.map((e) => e.timestamp.day).toSet().length,
+        movedDeltaPct: hasPrev ? pctChange(movedMin, prevMovedMin) : null,
+        activeDays: periodEntries.map((e) => e.timestamp.day).toSet().length,
         ritualsKept: kept,
-        ritualsTarget: g.dailyRitualTarget * 30,
-        streakDays: 0,
+        ritualsTarget: g.dailyRitualTarget * periodDays,
+        streakDays: await moveStreak(now),
         topCategory: topCat,
         topCategoryPct: topPct,
-        discoveredPattern: 'steady tracking this month',
       );
     },
     insights: (range) async {

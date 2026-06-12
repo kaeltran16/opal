@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../models/models.dart';
+import '../services/services.dart' show ReviewRange;
 import 'providers.dart';
 import 'today_controller.dart' show goalsStreamProvider;
 
@@ -189,7 +190,7 @@ class WeeklyReviewController extends _$WeeklyReviewController {
   @override
   Future<String> build() {
     final pal = ref.watch(palServiceProvider);
-    return pal.review(_weekStart);
+    return pal.review(_weekStart, ReviewRange.week);
   }
 
   /// Re-requests the narrative from [PalService.review], showing the loading
@@ -197,6 +198,6 @@ class WeeklyReviewController extends _$WeeklyReviewController {
   Future<void> regenerate() async {
     final pal = ref.read(palServiceProvider);
     state = const AsyncValue.loading();
-    state = await AsyncValue.guard(() => pal.review(_weekStart));
+    state = await AsyncValue.guard(() => pal.review(_weekStart, ReviewRange.week));
   }
 }

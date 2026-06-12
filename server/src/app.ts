@@ -14,13 +14,15 @@ export interface AppDeps {
   store: TokenStore
   provisioningKey: string
   corsOrigins: string[]
+  // enable request logging in production so LLM/IMAP failures aren't silent (Bug D).
+  logger?: boolean
 }
 
 // first-sync window when the client has no prior sync time
 const DEFAULT_SYNC_WINDOW_MS = 7 * 24 * 60 * 60 * 1000
 
 export function buildApp(deps: AppDeps): FastifyInstance {
-  const app = Fastify({ logger: false })
+  const app = Fastify({ logger: deps.logger ?? false })
 
   app.register(rateLimit, { max: 60, timeWindow: '1 minute' })
 
@@ -110,7 +112,7 @@ export function buildApp(deps: AppDeps): FastifyInstance {
 
   app.post('/v1/email/sync', emailGuard(emailSyncBody, async (b) => {
     const since = new Date(b.since ?? Date.now() - DEFAULT_SYNC_WINDOW_MS)
-    return { items: await deps.worker.sync(credsOf(b), b.senderFilters ?? [], since) }
+    return deps.worker.sync(credsOf(b), b.senderFilters ?? [], since) // { items, truncated }
   }))
 
   return app

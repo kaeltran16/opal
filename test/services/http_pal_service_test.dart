@@ -23,9 +23,9 @@ void main() {
           'moveGoalMin': 30, 'ritualGoal': 5, 'spentToday': 0, 'movedTodayMin': 0,
           'ritualsDoneToday': 0, 'weekSpent': 0, 'weekBudget': 420, 'weekMovedMin': 0,
           'weekRitualsDone': 0, 'weekRitualGoal': 35, 'moveStreakDays': 0},
-        review: (_) async => {'spent': 100, 'spentDeltaPct': 0, 'hoursMoved': 1, 'movedDeltaPct': 0,
-          'activeDays': 1, 'ritualsKept': 1, 'ritualsTarget': 5, 'ritualsPct': 20, 'streakDays': 1,
-          'topCategory': 'Food', 'topCategoryPct': 30, 'discoveredPattern': 'steady'},
+        review: (_, _) async => {'range': 'week', 'spent': 100, 'spentDeltaPct': null, 'hoursMoved': 1,
+          'movedDeltaPct': null, 'activeDays': 1, 'ritualsKept': 1, 'ritualsTarget': 5, 'ritualsPct': 20,
+          'streakDays': 1, 'topCategory': 'Food', 'topCategoryPct': 30},
         insights: (_) async => {'range': 'week', 'spent': 100, 'budget': 420, 'moveMinutes': 60,
           'moveTarget': 210, 'ritualsKept': 5, 'ritualsTarget': 35, 'activeDays': 2, 'streakDays': 3,
           'topCategory': 'Food', 'topCategoryPct': 30, 'spendByWeekday': <double>[0,0,0,0,100,0,0],
@@ -95,7 +95,7 @@ void main() {
 
   test('parse maps the response into a ParsedEntryDraft (expense negated)', () async {
     final service = build(MockClient((req) async => http.Response(
-          jsonEncode({'type': 'money', 'amount': 5, 'duration': null, 'category': 'Coffee', 'title': 'Coffee', 'note': null}),
+          jsonEncode({'type': 'money', 'amount': 5, 'duration': null, 'category': 'Coffee', 'title': 'Coffee', 'note': null, 'direction': 'expense'}),
           200,
         )));
 
@@ -105,6 +105,29 @@ void main() {
     expect(draft.title, 'Coffee');
     expect(draft.amount, -5); // positive money amount becomes an expense
     expect(draft.category, 'Coffee');
+  });
+
+  test('parse keeps an income amount positive', () async {
+    final service = build(MockClient((req) async => http.Response(
+          jsonEncode({'type': 'money', 'amount': 500, 'duration': null, 'category': null, 'title': 'Paycheck', 'note': null, 'direction': 'income'}),
+          200,
+        )));
+
+    final draft = await service.parse('got paid \$500');
+
+    expect(draft.type, EntryType.money);
+    expect(draft.amount, 500); // income stays positive
+  });
+
+  test('parse treats an absent direction as an expense', () async {
+    final service = build(MockClient((req) async => http.Response(
+          jsonEncode({'type': 'money', 'amount': 5, 'duration': null, 'category': 'Coffee', 'title': 'Coffee', 'note': null}),
+          200,
+        )));
+
+    final draft = await service.parse('coffee 5');
+
+    expect(draft.amount, -5); // missing direction defaults to expense
   });
 
   test('suggestWorkout fills title from resolveRoutineTitle', () async {
@@ -168,6 +191,6 @@ void main() {
 
   test('throws PalException on a non-2xx after retry', () async {
     final service = build(MockClient((req) async => http.Response('boom', 502)));
-    expect(() => service.review(DateTime(2026, 6)), throwsA(isA<PalException>()));
+    expect(() => service.review(DateTime(2026, 6), ReviewRange.month), throwsA(isA<PalException>()));
   });
 }

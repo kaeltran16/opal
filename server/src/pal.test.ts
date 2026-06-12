@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import {
-  Pal, OpenRouterClient, OpenRouterError, extractJson, toolCallsToActions,
+  Pal, OpenRouterClient, OpenRouterError, extractJson, toolCallsToActions, parseSchema,
   type CompletionClient, type CompletionResult, type ToolCall,
 } from './pal.js'
 
@@ -52,6 +52,29 @@ describe('OpenRouterClient', () => {
     expect(body.response_format).toEqual({ type: 'json_object' })
   })
 
+  it('defaults max_tokens and lets opts.maxTokens override it', async () => {
+    let body: Record<string, unknown> = {}
+    const capture = (async (_url, init) => {
+      body = JSON.parse(String((init as RequestInit).body))
+      return okResponse()
+    }) as typeof fetch
+    const client = new OpenRouterClient('k', 'm', 'http://x', capture)
+
+    await client.complete([{ role: 'user', content: 'hi' }])
+    expect(body.max_tokens).toBe(1024)
+
+    await client.complete([{ role: 'user', content: 'hi' }], { maxTokens: 4096 })
+    expect(body.max_tokens).toBe(4096)
+  })
+
+  it('throws OpenRouterError(502) when the model output is truncated (finish_reason length)', async () => {
+    const truncated = (async () =>
+      new Response(JSON.stringify({ choices: [{ message: { content: '{"a":' }, finish_reason: 'length' }] }), { status: 200 })) as typeof fetch
+    const client = new OpenRouterClient('k', 'm', 'http://x', truncated)
+    await expect(client.complete([{ role: 'user', content: 'hi' }], { json: true }))
+      .rejects.toMatchObject({ status: 502 })
+  })
+
   it('errors (OpenRouterError) when a request exceeds the timeout', async () => {
     // a fetch that never resolves on its own — only the abort signal ends it
     const hanging = ((_url, init) =>
@@ -95,6 +118,23 @@ describe('toolCallsToActions', () => {
       { name: 'log_ritual', arguments: 'not json' },
     ])
     expect(actions).toEqual([])
+  })
+})
+
+describe('parseSchema', () => {
+  const base = { type: 'money' as const, amount: 5, duration: null, category: null, title: 'x', note: null }
+
+  it('accepts income and expense directions', () => {
+    expect(parseSchema.parse({ ...base, direction: 'income' }).direction).toBe('income')
+    expect(parseSchema.parse({ ...base, direction: 'expense' }).direction).toBe('expense')
+  })
+
+  it('accepts a null direction', () => {
+    expect(parseSchema.parse({ ...base, direction: null }).direction).toBeNull()
+  })
+
+  it('coerces an off-list direction to expense', () => {
+    expect(parseSchema.parse({ ...base, direction: 'refund' }).direction).toBe('expense')
   })
 })
 
@@ -145,15 +185,41 @@ describe('Pal', () => {
     await pal.parse('coffee 5')
     expect(opts.at(-1)).toEqual({ json: true })
     await pal.review({
-      spent: 1, spentDeltaPct: 0, hoursMoved: 0, movedDeltaPct: 0, activeDays: 0,
+      range: 'month', spent: 1, spentDeltaPct: null, hoursMoved: 0, movedDeltaPct: null, activeDays: 0,
       ritualsKept: 0, ritualsTarget: 0, ritualsPct: 0, streakDays: 0,
-      topCategory: 'Food', topCategoryPct: 0, discoveredPattern: 'x',
+      topCategory: 'Food', topCategoryPct: 0,
     })
     expect(opts.at(-1)).toBeUndefined()
   })
 
+  it('insights requests a 2048 max_tokens cap', async () => {
+    let opts: unknown
+    const client: CompletionClient = {
+      complete: vi.fn(async (_m, o) => {
+        opts = o
+        return JSON.stringify({ headline: 'h', lede: null, suggestion: null })
+      }),
+      completeWithTools: vi.fn(async () => ({ content: '', toolCalls: [] })),
+    }
+    await new Pal(client).insights(baseInsightsCtx())
+    expect(opts).toMatchObject({ maxTokens: 2048 })
+  })
+
+  it('generateRoutine requests a 4096 max_tokens cap', async () => {
+    let opts: unknown
+    const client: CompletionClient = {
+      complete: vi.fn(async (_m, o) => {
+        opts = o
+        return JSON.stringify({ name: 'X', tag: 'full', exercises: [] })
+      }),
+      completeWithTools: vi.fn(async () => ({ content: '', toolCalls: [] })),
+    }
+    await new Pal(client).generateRoutine('push', [])
+    expect(opts).toMatchObject({ maxTokens: 4096 })
+  })
+
   it('parse returns the structured object', async () => {
-    const parsed = { type: 'money', amount: 5, duration: null, category: 'Coffee', title: 'Coffee', note: null }
+    const parsed = { type: 'money', amount: 5, duration: null, category: 'Coffee', title: 'Coffee', note: null, direction: 'expense' }
     const client = fakeClient('```json\n' + JSON.stringify(parsed) + '\n```')
     const pal = new Pal(client)
     const result = await pal.parse('coffee 5')
