@@ -16,19 +16,19 @@ part 'profile_controller.g.dart';
 class ProfileStats {
   const ProfileStats({
     required this.totalSpent,
-    required this.moveMinutes,
+    required this.moveKcal,
     required this.ritualsKept,
     required this.longestStreak,
     required this.memberSince,
     this.bestMoveDay,
-    this.bestMoveDayMinutes = 0,
+    this.bestMoveDayKcal = 0,
   });
 
   /// Sum of this year's expense magnitudes (amount < 0), as a positive number.
   final double totalSpent;
 
-  /// Sum of this year's move-entry durations, in minutes.
-  final int moveMinutes;
+  /// Sum of this year's move-entry active energy, in kcal.
+  final int moveKcal;
 
   /// Count of this year's completed ritual entries.
   final int ritualsKept;
@@ -39,40 +39,37 @@ class ProfileStats {
   /// Earliest entry's full timestamp, or null when there are no entries.
   final DateTime? memberSince;
 
-  /// Day (date-only) with the most move minutes this year, or null when none.
+  /// Day (date-only) with the most move kcal this year, or null when none.
   final DateTime? bestMoveDay;
 
-  /// Minutes moved on [bestMoveDay] (0 when there is no move data).
-  final int bestMoveDayMinutes;
+  /// Active energy (kcal) on [bestMoveDay] (0 when there is no move data).
+  final int bestMoveDayKcal;
 
   /// Year the user joined (earliest entry's year, else the current year).
   /// Kept for callers that only need the year; derived from [memberSince].
   int get memberSinceYear => memberSince?.year ?? DateTime.now().year;
-
-  /// Whole hours moved this year (minutes ÷ 60, floored).
-  int get moveHours => moveMinutes ~/ 60;
 
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is ProfileStats &&
           other.totalSpent == totalSpent &&
-          other.moveMinutes == moveMinutes &&
+          other.moveKcal == moveKcal &&
           other.ritualsKept == ritualsKept &&
           other.longestStreak == longestStreak &&
           other.memberSince == memberSince &&
           other.bestMoveDay == bestMoveDay &&
-          other.bestMoveDayMinutes == bestMoveDayMinutes;
+          other.bestMoveDayKcal == bestMoveDayKcal;
 
   @override
   int get hashCode => Object.hash(
         totalSpent,
-        moveMinutes,
+        moveKcal,
         ritualsKept,
         longestStreak,
         memberSince,
         bestMoveDay,
-        bestMoveDayMinutes,
+        bestMoveDayKcal,
       );
 }
 
@@ -106,10 +103,10 @@ ProfileStats buildProfileStats(
   final year = today.year;
 
   var totalSpent = 0.0;
-  var moveMinutes = 0;
+  var moveKcal = 0;
   var ritualsKept = 0;
   DateTime? memberSince;
-  // this-year move minutes per calendar day, for the "best day" stat
+  // this-year move kcal per calendar day, for the "best day" stat
   final moveByDay = <DateTime, int>{};
 
   for (final e in entries) {
@@ -121,11 +118,11 @@ ProfileStats buildProfileStats(
       case EntryType.money:
         if ((e.amount ?? 0) < 0) totalSpent += e.amount!.abs();
       case EntryType.move:
-        final mins = e.duration ?? 0;
-        moveMinutes += mins;
+        final kcal = e.calories ?? 0;
+        moveKcal += kcal;
         final day = DateTime(
             e.timestamp.year, e.timestamp.month, e.timestamp.day);
-        moveByDay[day] = (moveByDay[day] ?? 0) + mins;
+        moveByDay[day] = (moveByDay[day] ?? 0) + kcal;
       case EntryType.rituals:
         ritualsKept += 1;
     }
@@ -136,22 +133,22 @@ ProfileStats buildProfileStats(
       : routines.map((r) => r.streak).reduce((a, b) => a > b ? a : b);
 
   DateTime? bestMoveDay;
-  var bestMoveDayMinutes = 0;
-  moveByDay.forEach((day, mins) {
-    if (mins > bestMoveDayMinutes) {
-      bestMoveDayMinutes = mins;
+  var bestMoveDayKcal = 0;
+  moveByDay.forEach((day, kcal) {
+    if (kcal > bestMoveDayKcal) {
+      bestMoveDayKcal = kcal;
       bestMoveDay = day;
     }
   });
 
   return ProfileStats(
     totalSpent: totalSpent,
-    moveMinutes: moveMinutes,
+    moveKcal: moveKcal,
     ritualsKept: ritualsKept,
     longestStreak: longestStreak,
     memberSince: memberSince,
     bestMoveDay: bestMoveDay,
-    bestMoveDayMinutes: bestMoveDayMinutes,
+    bestMoveDayKcal: bestMoveDayKcal,
   );
 }
 

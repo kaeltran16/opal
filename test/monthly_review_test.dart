@@ -123,6 +123,7 @@ void main() {
         type: EntryType.move,
         title: 'Run',
         duration: 30,
+        calories: 30,
         source: EntrySource.health,
       ),
       Entry(
@@ -131,6 +132,7 @@ void main() {
         type: EntryType.move,
         title: 'Lift',
         duration: 45,
+        calories: 45,
         source: EntrySource.manual,
       ),
       Entry(
@@ -160,7 +162,7 @@ void main() {
           streak: 12),
     ];
 
-    // Previous month: $60 spent, 50 move min over 1 day, 0 rituals.
+    // Previous month: $60 spent, 50 move kcal over 1 day, 0 rituals.
     final previousEntries = [
       Entry(
         id: 'p1',
@@ -176,13 +178,14 @@ void main() {
         type: EntryType.move,
         title: 'Run',
         duration: 50,
+        calories: 50,
         source: EntrySource.health,
       ),
     ];
 
     final s = buildMonthlyStats(month, entries, previousEntries, routines);
     expect(s.totalSpent, 36); // 6 + 30 (income excluded)
-    expect(s.moveMinutes, 75); // 30 + 45
+    expect(s.moveKcal, 75); // 30 + 45
     expect(s.ritualsKept, 1);
     expect(s.longestStreak, 12);
 
@@ -191,7 +194,7 @@ void main() {
 
     // The 4 big rows render in handoff order.
     expect(s.rows.map((r) => r.label).toList(),
-        ['Total spent', 'Workout time', 'Routines kept', 'Streak']);
+        ['Total spent', 'Active energy', 'Routines kept', 'Streak']);
 
     // Deltas are computed vs the previous month (no fabricated numbers).
     final spentRow = s.rows[0];
@@ -218,7 +221,7 @@ void main() {
 
     final s = buildMonthlyStats(month, entries, const [], const []);
     expect(s.rows[0].sub, isNull); // total spent: no baseline → no delta
-    expect(s.rows[1].sub, isNull); // workout: no move minutes, no active days
+    expect(s.rows[1].sub, isNull); // workout: no move kcal, no active days
   });
 
   // ---------------------------------------------------------------------------
@@ -256,6 +259,7 @@ void main() {
       type: EntryType.move,
       title: 'Run',
       duration: 40,
+      calories: 40,
       source: EntrySource.health,
     ));
     await entries.insert(Entry(
@@ -285,11 +289,11 @@ void main() {
 
     // The four stat rows.
     expect(find.text('Total spent'), findsOneWidget);
-    expect(find.text('Workout time'), findsOneWidget);
+    expect(find.text('Active energy'), findsOneWidget);
     expect(find.text('Routines kept'), findsOneWidget);
     expect(find.text('Streak'), findsOneWidget);
 
-    // Computed stat values: spent $6, moved 40 min, streak 9.
+    // Computed stat values: spent $6, moved 40 kcal, streak 9.
     expect(find.text('\$6'), findsOneWidget);
     expect(find.text('40'), findsOneWidget);
     expect(find.text('9'), findsOneWidget);

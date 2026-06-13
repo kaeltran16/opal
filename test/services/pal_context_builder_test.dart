@@ -4,15 +4,15 @@ import 'package:opal/services/pal/pal_context_builder.dart';
 import 'package:opal/services/pal/pal_service.dart' show InsightRange, ReviewRange;
 
 void main() {
-  final goals = const Goals(dailyBudget: 60, dailyMoveMinutes: 30, dailyRitualTarget: 5);
+  final goals = const Goals(dailyBudget: 60, dailyMoveKcal: 30, dailyRitualTarget: 5);
 
   Entry money(double amount, {String? category, DateTime? at}) => Entry(
         id: '', timestamp: at ?? DateTime(2026, 6, 10, 8), type: EntryType.money,
         title: category ?? 'Spend', amount: amount, category: category, source: EntrySource.manual,
       );
-  Entry move(int min, {DateTime? at}) => Entry(
+  Entry move(int kcal, {DateTime? at}) => Entry(
         id: '', timestamp: at ?? DateTime(2026, 6, 10, 9), type: EntryType.move,
-        title: 'Walk', duration: min, source: EntrySource.manual,
+        title: 'Walk', duration: 30, calories: kcal, source: EntrySource.manual,
       );
   Entry ritual({DateTime? at}) => Entry(
         id: '', timestamp: at ?? DateTime(2026, 6, 10, 7), type: EntryType.rituals,
@@ -31,7 +31,7 @@ void main() {
     expect(ctx['userName'], 'Kael');
     expect(ctx['dailyBudget'], 60);
     expect(ctx['spentToday'], 12); // absolute value of the expense
-    expect(ctx['movedTodayMin'], 20);
+    expect(ctx['movedTodayKcal'], 20);
     expect(ctx['ritualsDoneToday'], 3);
     expect(ctx['weekBudget'], 420); // 60 * 7
     expect(ctx['weekRitualGoal'], 35); // 5 * 7
@@ -57,7 +57,7 @@ void main() {
     expect(ctx['range'], 'week');
     expect(ctx['spent'], 120);
     expect(ctx['budget'], 420); // 60 * 7
-    expect(ctx['moveMinutes'], 40);
+    expect(ctx['moveKcal'], 40);
     expect(ctx['ritualsKept'], 1);
     expect(ctx['activeDays'], 1); // one distinct move day
     expect(ctx['streakDays'], 4);
@@ -73,7 +73,7 @@ void main() {
       range: ReviewRange.week,
       spent: 200,
       spentDeltaPct: -12,
-      hoursMoved: 4,
+      kcalMoved: 4,
       movedDeltaPct: null,
       activeDays: 5,
       ritualsKept: 28,

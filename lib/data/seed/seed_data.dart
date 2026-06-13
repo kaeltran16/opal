@@ -32,7 +32,7 @@ class SeedData {
   /// The default daily targets (matches handoff / `Goals` defaults).
   static const Goals goals = Goals(
     dailyBudget: 85.0,
-    dailyMoveMinutes: 60,
+    dailyMoveKcal: 500,
     dailyRitualTarget: 5,
   );
 

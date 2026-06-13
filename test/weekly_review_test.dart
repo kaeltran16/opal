@@ -12,12 +12,13 @@ Entry _money(DateTime t, double amount) => Entry(
       source: EntrySource.manual,
     );
 
-Entry _move(DateTime t, int minutes) => Entry(
+Entry _move(DateTime t, int kcal) => Entry(
       id: 't',
       timestamp: t,
       type: EntryType.move,
       title: 'x',
-      duration: minutes,
+      duration: 30,
+      calories: kcal,
       source: EntrySource.health,
     );
 
@@ -49,7 +50,7 @@ void main() {
       () {
     const goals = Goals(
       dailyBudget: 85,
-      dailyMoveMinutes: 60,
+      dailyMoveKcal: 60,
       dailyRitualTarget: 5,
     );
     final entries = [
@@ -69,7 +70,7 @@ void main() {
     expect(s.weekStart, DateTime(2026, 4, 20));
     expect(s.spent, 42); // 30 + 12 (income excluded)
     expect(s.budget, 595); // 85 * 7
-    expect(s.moveMinutes, 95); // 40 + 55
+    expect(s.moveKcal, 95); // 40 + 55
     expect(s.moveTarget, 420); // 60 * 7
     expect(s.ritualsKept, 3);
     expect(s.ritualsTarget, 35); // 5 * 7
@@ -80,7 +81,7 @@ void main() {
     expect(s.tiles[0].value, '\$42');
     expect(s.tiles[0].sub, 'of \$595');
     expect(s.tiles[1].value, '95');
-    expect(s.tiles[1].sub, 'of 420 min');
+    expect(s.tiles[1].sub, 'of 420 kcal');
     expect(s.tiles[2].value, '3');
     expect(s.tiles[2].sub, 'of 35');
   });

@@ -21,8 +21,8 @@ double _spent(Iterable<Entry> entries) {
   return total;
 }
 
-int _movedMin(Iterable<Entry> entries) =>
-    entries.where((e) => e.type == EntryType.move).fold(0, (a, e) => a + (e.duration ?? 0));
+int _movedKcal(Iterable<Entry> entries) =>
+    entries.where((e) => e.type == EntryType.move).fold(0, (a, e) => a + (e.calories ?? 0));
 
 int _rituals(Iterable<Entry> entries) =>
     entries.where((e) => e.type == EntryType.rituals).length;
@@ -38,14 +38,14 @@ Map<String, Object?> buildChatContext({
     'userName': userName,
     'todayEntries': todayEntries.map(formatEntryLine).toList(),
     'dailyBudget': goals.dailyBudget,
-    'moveGoalMin': goals.dailyMoveMinutes,
+    'moveGoalKcal': goals.dailyMoveKcal,
     'ritualGoal': goals.dailyRitualTarget,
     'spentToday': _spent(todayEntries),
-    'movedTodayMin': _movedMin(todayEntries),
+    'movedTodayKcal': _movedKcal(todayEntries),
     'ritualsDoneToday': _rituals(todayEntries),
     'weekSpent': _spent(weekEntries),
     'weekBudget': goals.dailyBudget * 7,
-    'weekMovedMin': _movedMin(weekEntries),
+    'weekMovedKcal': _movedKcal(weekEntries),
     'weekRitualsDone': _rituals(weekEntries),
     'weekRitualGoal': goals.dailyRitualTarget * 7,
     'moveStreakDays': moveStreakDays,
@@ -56,7 +56,7 @@ Map<String, Object?> buildReviewContext({
   required ReviewRange range,
   required double spent,
   required int? spentDeltaPct,
-  required int hoursMoved,
+  required int kcalMoved,
   required int? movedDeltaPct,
   required int activeDays,
   required int ritualsKept,
@@ -73,7 +73,7 @@ Map<String, Object?> buildReviewContext({
     },
     'spent': spent,
     'spentDeltaPct': spentDeltaPct,
-    'hoursMoved': hoursMoved,
+    'kcalMoved': kcalMoved,
     'movedDeltaPct': movedDeltaPct,
     'activeDays': activeDays,
     'ritualsKept': ritualsKept,
@@ -167,8 +167,8 @@ Map<String, Object?> buildInsightsContext({
     'range': _insightRangeWire(range),
     'spent': spent,
     'budget': goals.dailyBudget * periodDays,
-    'moveMinutes': _movedMin(entries),
-    'moveTarget': goals.dailyMoveMinutes * periodDays,
+    'moveKcal': _movedKcal(entries),
+    'moveTargetKcal': goals.dailyMoveKcal * periodDays,
     'ritualsKept': _rituals(entries),
     'ritualsTarget': goals.dailyRitualTarget * periodDays,
     'activeDays': activeMoveDays.length,

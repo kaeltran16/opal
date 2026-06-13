@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import {
-  Pal, OpenRouterClient, OpenRouterError, extractJson, toolCallsToActions, parseSchema,
+  Pal, OpenRouterClient, OpenRouterError, extractJson, toolCallsToActions, parseSchema, synthReply,
   type CompletionClient, type CompletionResult, type ToolCall, type ChatMessage,
 } from './pal.js'
 
@@ -158,16 +158,23 @@ describe('toolCallsToActions', () => {
   it('maps every supported mutation', () => {
     const actions = toolCallsToActions([
       toolCall('log_income', { amount: 1200, title: 'Paycheck' }),
-      toolCall('log_movement', { durationMinutes: 30, title: 'Run' }),
+      toolCall('log_movement', { durationMinutes: 30, calories: 240, title: 'Run' }),
       toolCall('log_ritual', { title: 'Morning pages' }),
       toolCall('set_daily_budget', { dailyBudget: 60 }),
-      toolCall('set_move_goal', { dailyMoveMinutes: 45 }),
+      toolCall('set_move_goal', { dailyMoveKcal: 45 }),
       toolCall('set_ritual_goal', { dailyRitualTarget: 4 }),
       toolCall('create_routine', { goal: 'a push day' }),
     ])
     expect(actions.map((a) => a.kind)).toEqual([
       'log_income', 'log_movement', 'log_ritual', 'set_daily_budget', 'set_move_goal', 'set_ritual_goal', 'create_routine',
     ])
+    expect(actions[1]).toMatchObject({ kind: 'log_movement', calories: 240 })
+  })
+
+  it('confirms a set_move_goal in kcal', () => {
+    const actions = toolCallsToActions([toolCall('set_move_goal', { dailyMoveKcal: 45 })])
+    expect(actions).toEqual([{ kind: 'set_move_goal', dailyMoveKcal: 45 }])
+    expect(synthReply(actions)).toContain('set your move goal to 45 kcal')
   })
 
   it('drops unknown tools and calls with invalid args', () => {
@@ -263,7 +270,7 @@ describe('Pal', () => {
     await pal.parse('coffee 5')
     expect(opts.at(-1)).toEqual({ json: true })
     await pal.review({
-      range: 'month', spent: 1, spentDeltaPct: null, hoursMoved: 0, movedDeltaPct: null, activeDays: 0,
+      range: 'month', spent: 1, spentDeltaPct: null, kcalMoved: 0, movedDeltaPct: null, activeDays: 0,
       ritualsKept: 0, ritualsTarget: 0, ritualsPct: 0, streakDays: 0,
       topCategory: 'Food', topCategoryPct: 0,
     })
@@ -404,7 +411,7 @@ describe('Pal', () => {
 
 function baseInsightsCtx() {
   return {
-    range: 'week' as const, spent: 200, budget: 420, moveMinutes: 140, moveTarget: 210,
+    range: 'week' as const, spent: 200, budget: 420, moveKcal: 1400, moveTargetKcal: 2100,
     ritualsKept: 18, ritualsTarget: 35, activeDays: 5, streakDays: 11,
     topCategory: 'Food', topCategoryPct: 34, spendByWeekday: [10, 20, 30, 40, 50, 25, 25], entries: [],
   }
@@ -412,8 +419,8 @@ function baseInsightsCtx() {
 
 function baseChatCtx() {
   return {
-    userName: 'Kael', todayEntries: [], dailyBudget: 60, moveGoalMin: 30, ritualGoal: 5,
-    spentToday: 0, movedTodayMin: 0, ritualsDoneToday: 0,
-    weekSpent: 0, weekBudget: 420, weekMovedMin: 0, weekRitualsDone: 0, weekRitualGoal: 35, moveStreakDays: 0,
+    userName: 'Kael', todayEntries: [], dailyBudget: 60, moveGoalKcal: 400, ritualGoal: 5,
+    spentToday: 0, movedTodayKcal: 0, ritualsDoneToday: 0,
+    weekSpent: 0, weekBudget: 420, weekMovedKcal: 0, weekRitualsDone: 0, weekRitualGoal: 35, moveStreakDays: 0,
   }
 }

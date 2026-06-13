@@ -36,13 +36,13 @@ class StreakCelebrationScreen extends ConsumerWidget {
   static List<(String, String)> _statsFor(ProfileStats? stats, int streak) {
     if (stats == null) return const [];
     final pills = <(String, String)>[];
-    if (stats.moveMinutes > 0) {
-      pills.add(('Total', '${stats.moveMinutes} min'));
+    if (stats.moveKcal > 0) {
+      pills.add(('Total', '${stats.moveKcal} kcal'));
     }
     final bestDay = stats.bestMoveDay;
-    if (bestDay != null && stats.bestMoveDayMinutes > 0) {
+    if (bestDay != null && stats.bestMoveDayKcal > 0) {
       final wd = _weekdayAbbrev[bestDay.weekday - 1];
-      pills.add(('Best day', '$wd · ${stats.bestMoveDayMinutes}m'));
+      pills.add(('Best day', '$wd · ${stats.bestMoveDayKcal} kcal'));
     }
     final next = nextStreakMilestone(streak);
     if (next != null) {

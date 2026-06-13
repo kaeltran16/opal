@@ -145,8 +145,8 @@ class _TodayBody extends ConsumerWidget {
                           RingStat(
                               color: c.move,
                               label: 'Workout',
-                              value: '${today.moveMinutes}',
-                              goal: '/ ${goals.dailyMoveMinutes} MIN'),
+                              value: '${today.moveKcal}',
+                              goal: '/ ${goals.dailyMoveKcal} KCAL'),
                           const SizedBox(height: 10),
                           RingStat(
                               color: c.rituals,
@@ -225,9 +225,9 @@ class _TodayBody extends ConsumerWidget {
                   type: 'move',
                   icon: 'figure.run',
                   label: 'Workout',
-                  big: '${today.moveMinutes}',
-                  unit: 'MIN',
-                  sub: 'of ${goals.dailyMoveMinutes} min goal',
+                  big: '${today.moveKcal}',
+                  unit: 'KCAL',
+                  sub: 'of ${goals.dailyMoveKcal} kcal goal',
                   onTap: () => context.pushNamed(AppRoute.moveDetail.name),
                 ),
               ),

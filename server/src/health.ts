@@ -46,4 +46,13 @@ export class HealthStore {
       .get(date, metric) as Metric | undefined
     return row
   }
+
+  getDay(date: string): Record<string, Metric> {
+    const rows = this.db
+      .prepare('SELECT metric, value, unit FROM health_metrics WHERE date = ?')
+      .all(date) as { metric: string; value: number; unit: string }[]
+    const out: Record<string, Metric> = {}
+    for (const r of rows) out[r.metric] = { value: r.value, unit: r.unit }
+    return out
+  }
 }

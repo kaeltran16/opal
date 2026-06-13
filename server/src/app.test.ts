@@ -95,9 +95,9 @@ describe('app', () => {
       payload: {
         history: [], message: 'hi',
         context: {
-          userName: 'Kael', todayEntries: [], dailyBudget: 60, moveGoalMin: 30, ritualGoal: 5,
-          spentToday: 0, movedTodayMin: 0, ritualsDoneToday: 0,
-          weekSpent: 0, weekBudget: 420, weekMovedMin: 0, weekRitualsDone: 0, weekRitualGoal: 35, moveStreakDays: 0,
+          userName: 'Kael', todayEntries: [], dailyBudget: 60, moveGoalKcal: 400, ritualGoal: 5,
+          spentToday: 0, movedTodayKcal: 0, ritualsDoneToday: 0,
+          weekSpent: 0, weekBudget: 420, weekMovedKcal: 0, weekRitualsDone: 0, weekRitualGoal: 35, moveStreakDays: 0,
         },
       },
     })
@@ -107,7 +107,7 @@ describe('app', () => {
   })
 
   const insightsCtx = {
-    range: 'week', spent: 200, budget: 420, moveMinutes: 140, moveTarget: 210,
+    range: 'week', spent: 200, budget: 420, moveKcal: 1400, moveTargetKcal: 2100,
     ritualsKept: 18, ritualsTarget: 35, activeDays: 5, streakDays: 11,
     topCategory: 'Food', topCategoryPct: 34, spendByWeekday: [10, 20, 30, 40, 50, 25, 25], entries: [],
   }
@@ -192,6 +192,20 @@ describe('app', () => {
       headers: { authorization: `Bearer ${token}` },
       payload: { ...health, date: '06/12/2026' },
     })
+    expect(res.statusCode).toBe(400)
+  })
+
+  it('reads back an ingested day', async () => {
+    const token = store.issue('d1')
+    await app.inject({ method: 'POST', url: '/v1/health/ingest', headers: { authorization: `Bearer ${token}` }, payload: health })
+    const res = await app.inject({ method: 'GET', url: '/v1/health/day?date=2026-06-12', headers: { authorization: `Bearer ${token}` } })
+    expect(res.statusCode).toBe(200)
+    expect(res.json().metrics.steps.value).toBe(8423)
+  })
+
+  it('rejects /v1/health/day with a bad date', async () => {
+    const token = store.issue('d1')
+    const res = await app.inject({ method: 'GET', url: '/v1/health/day?date=bad', headers: { authorization: `Bearer ${token}` } })
     expect(res.statusCode).toBe(400)
   })
 

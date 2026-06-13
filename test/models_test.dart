@@ -175,7 +175,7 @@ void main() {
     test('defaults match handoff', () {
       const g = Goals();
       expect(g.dailyBudget, 85.0);
-      expect(g.dailyMoveMinutes, 60);
+      expect(g.dailyMoveKcal, 500);
       expect(g.dailyRitualTarget, 5);
     });
 

@@ -17,8 +17,8 @@ class _RecordingWidgetSync implements WidgetSyncService {
     required double ritualsRing,
     required double moneySpent,
     required double dailyBudget,
-    required int moveMinutes,
-    required int dailyMoveMinutes,
+    required int moveKcal,
+    required int dailyMoveKcal,
     required int ritualsDone,
     required int dailyRitualTarget,
   }) async {
@@ -27,7 +27,7 @@ class _RecordingWidgetSync implements WidgetSyncService {
       'moveRing': moveRing,
       'ritualsRing': ritualsRing,
       'moneySpent': moneySpent,
-      'moveMinutes': moveMinutes,
+      'moveKcal': moveKcal,
       'ritualsDone': ritualsDone,
     };
   }
@@ -36,12 +36,12 @@ class _RecordingWidgetSync implements WidgetSyncService {
 TodayState _sampleState() => TodayState(
       entries: [
         Entry(id: '1', timestamp: DateTime(2026, 6, 11, 9), type: EntryType.money, title: 'Coffee', amount: -42.0, source: EntrySource.manual),
-        Entry(id: '2', timestamp: DateTime(2026, 6, 11, 10), type: EntryType.move, title: 'Walk', duration: 18, source: EntrySource.manual),
+        Entry(id: '2', timestamp: DateTime(2026, 6, 11, 10), type: EntryType.move, title: 'Walk', duration: 30, calories: 18, source: EntrySource.manual),
         Entry(id: '3', timestamp: DateTime(2026, 6, 11, 8), type: EntryType.rituals, title: 'Meditate', source: EntrySource.manual),
         Entry(id: '4', timestamp: DateTime(2026, 6, 11, 8), type: EntryType.rituals, title: 'Journal', source: EntrySource.manual),
         Entry(id: '5', timestamp: DateTime(2026, 6, 11, 8), type: EntryType.rituals, title: 'Stretch', source: EntrySource.manual),
       ],
-      goals: const Goals(dailyBudget: 60, dailyMoveMinutes: 40, dailyRitualTarget: 5),
+      goals: const Goals(dailyBudget: 60, dailyMoveKcal: 40, dailyRitualTarget: 5),
     );
 
 void main() {
@@ -68,7 +68,7 @@ void main() {
     expect(recorder.last!['moveRing'], closeTo(0.45, 1e-9));
     expect(recorder.last!['ritualsRing'], closeTo(0.6, 1e-9));
     expect(recorder.last!['moneySpent'], 42.0);
-    expect(recorder.last!['moveMinutes'], 18);
+    expect(recorder.last!['moveKcal'], 18);
     expect(recorder.last!['ritualsDone'], 3);
   });
 }

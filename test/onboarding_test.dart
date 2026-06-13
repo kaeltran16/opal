@@ -77,9 +77,9 @@ void main() {
     await tester.tap(find.text('Continue'));
     await tester.pumpAndSettle();
 
-    // Step 3 (Move goal) — pick 45 min, then Continue.
+    // Step 3 (Move goal) — pick 700 kcal, then Continue.
     expect(find.text('Pick a\nworkout goal'), findsOneWidget);
-    await tester.tap(find.text('45 min'));
+    await tester.tap(find.text('700 kcal'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Continue'));
     await tester.pumpAndSettle();
@@ -100,7 +100,7 @@ void main() {
     // Goals persisted with the chosen budget/move goal + ritual target 5.
     final goals = await GoalsRepository(h.db).get();
     expect(goals.dailyBudget, 120);
-    expect(goals.dailyMoveMinutes, 45);
+    expect(goals.dailyMoveKcal, 700);
     expect(goals.dailyRitualTarget, 5);
 
     // The three default time-of-day ritual routines were seeded.

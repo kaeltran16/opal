@@ -86,7 +86,7 @@ sealed class PalAction {
 }
 
 /// Which daily goal a [SetGoalAction] changes.
-enum GoalTarget { dailyBudget, dailyMoveMinutes, dailyRitualTarget }
+enum GoalTarget { dailyBudget, dailyMoveKcal, dailyRitualTarget }
 
 /// Log a timeline [Entry]. Money carries a signed [amount] (negative = expense),
 /// move carries [durationMinutes]; rituals carry neither.
@@ -96,6 +96,7 @@ class LogEntryAction extends PalAction {
     required this.title,
     this.amount,
     this.durationMinutes,
+    this.calories,
     this.category,
     this.note,
   });
@@ -104,6 +105,7 @@ class LogEntryAction extends PalAction {
   final String title;
   final double? amount;
   final int? durationMinutes;
+  final int? calories;
   final String? category;
   final String? note;
 
@@ -115,12 +117,13 @@ class LogEntryAction extends PalAction {
           other.title == title &&
           other.amount == amount &&
           other.durationMinutes == durationMinutes &&
+          other.calories == calories &&
           other.category == category &&
           other.note == note;
 
   @override
   int get hashCode =>
-      Object.hash(type, title, amount, durationMinutes, category, note);
+      Object.hash(type, title, amount, durationMinutes, calories, category, note);
 }
 
 /// Build and save a workout routine for [goal]. Fulfilled client-side by calling

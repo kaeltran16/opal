@@ -220,8 +220,8 @@ class GoalsTable extends Table {
   /// Fixed single-row key (literal must match [singletonId]).
   TextColumn get id => text().withDefault(const Constant('goals'))();
   RealColumn get dailyBudget => real().withDefault(const Constant(85.0))();
-  IntColumn get dailyMoveMinutes =>
-      integer().withDefault(const Constant(60))();
+  IntColumn get dailyMoveKcal =>
+      integer().withDefault(const Constant(500))();
   IntColumn get dailyRitualTarget =>
       integer().withDefault(const Constant(5))();
 

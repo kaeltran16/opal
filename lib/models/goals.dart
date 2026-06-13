@@ -2,26 +2,26 @@
 ///
 /// Mirrors the handoff's `@Model class Goals`. There is a single Goals record;
 /// it has no id in the handoff sketch, so none is modelled here. Defaults match
-/// the handoff ($85 budget, 60min move, 5 rituals).
+/// the handoff ($85 budget, 500 kcal move, 5 rituals).
 class Goals {
   const Goals({
     this.dailyBudget = 85.0,
-    this.dailyMoveMinutes = 60,
+    this.dailyMoveKcal = 500,
     this.dailyRitualTarget = 5,
   });
 
   final double dailyBudget;
-  final int dailyMoveMinutes;
+  final int dailyMoveKcal;
   final int dailyRitualTarget;
 
   Goals copyWith({
     double? dailyBudget,
-    int? dailyMoveMinutes,
+    int? dailyMoveKcal,
     int? dailyRitualTarget,
   }) {
     return Goals(
       dailyBudget: dailyBudget ?? this.dailyBudget,
-      dailyMoveMinutes: dailyMoveMinutes ?? this.dailyMoveMinutes,
+      dailyMoveKcal: dailyMoveKcal ?? this.dailyMoveKcal,
       dailyRitualTarget: dailyRitualTarget ?? this.dailyRitualTarget,
     );
   }
@@ -31,14 +31,14 @@ class Goals {
       identical(this, other) ||
       other is Goals &&
           other.dailyBudget == dailyBudget &&
-          other.dailyMoveMinutes == dailyMoveMinutes &&
+          other.dailyMoveKcal == dailyMoveKcal &&
           other.dailyRitualTarget == dailyRitualTarget;
 
   @override
   int get hashCode =>
-      Object.hash(dailyBudget, dailyMoveMinutes, dailyRitualTarget);
+      Object.hash(dailyBudget, dailyMoveKcal, dailyRitualTarget);
 
   @override
   String toString() =>
-      'Goals(budget: $dailyBudget, move: ${dailyMoveMinutes}min, rituals: $dailyRitualTarget)';
+      'Goals(budget: $dailyBudget, move: ${dailyMoveKcal}kcal, rituals: $dailyRitualTarget)';
 }

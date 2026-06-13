@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'controllers/health_sync_controller.dart';
 import 'controllers/providers.dart';
 import 'controllers/widget_sync_controller.dart';
 import 'router.dart';
@@ -46,6 +47,8 @@ class _LoopAppState extends ConsumerState<LoopApp> {
     // hold a live todayState subscription on other platforms.
     if (!kIsWeb && defaultTargetPlatform == TargetPlatform.iOS) {
       ref.read(widgetSyncControllerProvider);
+      // Pull today's Apple Watch active energy into a health-sourced move entry.
+      ref.read(healthSyncControllerProvider);
     }
     // Donate the app shortcuts and drain any link buffered natively before we
     // were listening (a cold launch from a Siri/Spotlight tap). Best-effort.

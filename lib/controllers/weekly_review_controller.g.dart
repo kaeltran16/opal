@@ -90,7 +90,7 @@ final class WeeklyReviewControllerProvider
 }
 
 String _$weeklyReviewControllerHash() =>
-    r'050101e0897826f94d3717517860264bb0c650c9';
+    r'a58e7cc0c002230c1c52e007612d3228ccb3adf6';
 
 /// Drives the Pal-written weekly narrative: holds the review text with a loading
 /// state, and re-requests it on [regenerate]. Mirrors [MonthlyReviewController]

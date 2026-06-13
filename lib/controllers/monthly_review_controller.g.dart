@@ -93,7 +93,7 @@ final class MonthlyReviewControllerProvider
 }
 
 String _$monthlyReviewControllerHash() =>
-    r'df6003a6642c70f6926d2b15a1f3902187c5937f';
+    r'41799f609cba17275ae28f70ccd3e5073d0ca098';
 
 /// Drives the narrative card: holds the Pal-written review text with a loading
 /// state, and re-requests it on [regenerate]. The narrative is the only async,

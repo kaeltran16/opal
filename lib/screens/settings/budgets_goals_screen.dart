@@ -13,7 +13,7 @@ import '../email/email_nav.dart';
 
 /// Settings → Budgets & goals.
 ///
-/// Edits the single [Goals] record (daily budget / move minutes / ritual
+/// Edits the single [Goals] record (daily budget / move kcal / ritual
 /// target) with steppers and persists it via [GoalsRepository] on Save. The
 /// same targets drive the Today rings and Pal's nudges.
 class BudgetsGoalsScreen extends ConsumerStatefulWidget {
@@ -41,7 +41,7 @@ class _BudgetsGoalsScreenState extends ConsumerState<BudgetsGoalsScreen> {
     if (!mounted) return;
     setState(() {
       _budget = g.dailyBudget;
-      _move = g.dailyMoveMinutes;
+      _move = g.dailyMoveKcal;
       _rituals = g.dailyRitualTarget;
       _loaded = true;
     });
@@ -53,7 +53,7 @@ class _BudgetsGoalsScreenState extends ConsumerState<BudgetsGoalsScreen> {
     try {
       await ref.read(goalsRepositoryProvider).save(Goals(
             dailyBudget: _budget,
-            dailyMoveMinutes: _move,
+            dailyMoveKcal: _move,
             dailyRitualTarget: _rituals,
           ));
       if (!mounted) return;
@@ -111,10 +111,10 @@ class _BudgetsGoalsScreenState extends ConsumerState<BudgetsGoalsScreen> {
                   icon: 'figure.run',
                   color: c.move,
                   label: 'Workout',
-                  value: '$_move min',
+                  value: '$_move kcal',
                   onMinus: () =>
-                      setState(() => _move = (_move - 5).clamp(0, 1440)),
-                  onPlus: () => setState(() => _move = (_move + 5).clamp(0, 1440)),
+                      setState(() => _move = (_move - 50).clamp(0, 5000)),
+                  onPlus: () => setState(() => _move = (_move + 50).clamp(0, 5000)),
                 ),
                 _StepperRow(
                   icon: 'sparkles',

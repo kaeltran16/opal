@@ -2,14 +2,14 @@ export interface ChatContext {
   userName: string
   todayEntries: string[]
   dailyBudget: number
-  moveGoalMin: number
+  moveGoalKcal: number
   ritualGoal: number
   spentToday: number
-  movedTodayMin: number
+  movedTodayKcal: number
   ritualsDoneToday: number
   weekSpent: number
   weekBudget: number
-  weekMovedMin: number
+  weekMovedKcal: number
   weekRitualsDone: number
   weekRitualGoal: number
   moveStreakDays: number
@@ -19,7 +19,7 @@ export interface ReviewContext {
   range: 'week' | 'month'
   spent: number
   spentDeltaPct: number | null
-  hoursMoved: number
+  kcalMoved: number
   movedDeltaPct: number | null
   activeDays: number
   ritualsKept: number
@@ -34,8 +34,8 @@ export interface InsightsContext {
   range: 'day' | 'week' | 'month'
   spent: number
   budget: number
-  moveMinutes: number
-  moveTarget: number
+  moveKcal: number
+  moveTargetKcal: number
   ritualsKept: number
   ritualsTarget: number
   activeDays: number
@@ -70,10 +70,10 @@ export function chatSystemPrompt(c: ChatContext): string {
 ${heading}
 ${entries}
 
-Daily budget $${c.dailyBudget}, move goal ${c.moveGoalMin}min, ritual goal ${c.ritualGoal}.
-Spent $${c.spentToday} so far, moved ${c.movedTodayMin}min, ${c.ritualsDoneToday}/${c.ritualGoal} rituals done.
+Daily budget $${c.dailyBudget}, move goal ${c.moveGoalKcal}kcal, ritual goal ${c.ritualGoal}.
+Spent $${c.spentToday} so far, moved ${c.movedTodayKcal}kcal, ${c.ritualsDoneToday}/${c.ritualGoal} rituals done.
 
-Week: $${c.weekSpent} of $${c.weekBudget} spent, ${c.weekMovedMin}min moved, ${c.weekRitualsDone}/${c.weekRitualGoal} rituals. ${c.moveStreakDays}-day move streak.
+Week: $${c.weekSpent} of $${c.weekBudget} spent, ${c.weekMovedKcal}kcal moved, ${c.weekRitualsDone}/${c.weekRitualGoal} rituals. ${c.moveStreakDays}-day move streak.
 
 You can act, not just talk. When the user tells you they did or spent something, asks to change a goal, or asks for a workout routine, call the matching tool — for example "add $5 for coffee" calls log_expense, "ran 30 min" calls log_movement, "set my budget to $60" calls set_daily_budget, "build me a push day" calls create_routine. Only call a tool when the user clearly wants that change; for questions, just answer. After acting, confirm in one short sentence.
 
@@ -87,7 +87,7 @@ export function reviewPrompt(c: ReviewContext): string {
     pct === null ? '' : ` (${pct < 0 ? 'down' : 'up'} ${Math.abs(pct)}% vs last ${period})`
   return `Write a 2-3 sentence warm, specific, editorial reflection on this ${period}'s tracking data. Avoid hype words like "amazing" or "crushed it". Be specific and observational.
 
-Data: $${c.spent} spent${deltaPhrase(c.spentDeltaPct)}, ${c.hoursMoved}h moved${deltaPhrase(c.movedDeltaPct)}, ${c.activeDays} active days, ${c.ritualsKept}/${c.ritualsTarget} rituals kept (${c.ritualsPct}%). Current ${c.streakDays}-day move streak. Top category: ${c.topCategory} ${c.topCategoryPct}%.`
+Data: $${c.spent} spent${deltaPhrase(c.spentDeltaPct)}, ${c.kcalMoved}kcal moved${deltaPhrase(c.movedDeltaPct)}, ${c.activeDays} active days, ${c.ritualsKept}/${c.ritualsTarget} rituals kept (${c.ritualsPct}%). Current ${c.streakDays}-day move streak. Top category: ${c.topCategory} ${c.topCategoryPct}%.`
 }
 
 export function insightsPrompt(c: InsightsContext): string {
@@ -104,7 +104,7 @@ export function insightsPrompt(c: InsightsContext): string {
 
   return `Reflect on this ${c.range}'s tracking data. Be specific and observational. Avoid hype words like "amazing", "crushed it", or "great job".
 
-Data: $${c.spent} of $${c.budget} budget, ${c.moveMinutes} of ${c.moveTarget} move minutes, ${c.ritualsKept}/${c.ritualsTarget} rituals kept, ${c.activeDays} active days, ${c.streakDays}-day move streak. Top category: ${c.topCategory} ${c.topCategoryPct}%.
+Data: $${c.spent} of $${c.budget} budget, ${c.moveKcal} of ${c.moveTargetKcal} move kcal, ${c.ritualsKept}/${c.ritualsTarget} rituals kept, ${c.activeDays} active days, ${c.streakDays}-day move streak. Top category: ${c.topCategory} ${c.topCategoryPct}%.
 Spend by weekday: ${byDay}.
 Entries:
 ${entries}

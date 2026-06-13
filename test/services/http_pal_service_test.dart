@@ -20,14 +20,14 @@ void main() {
   // Minimal context fetcher stub: the service calls this to assemble context.
   PalContextSource contextStub() => PalContextSource(
         chat: () async => {'userName': 'Kael', 'todayEntries': <String>[], 'dailyBudget': 60,
-          'moveGoalMin': 30, 'ritualGoal': 5, 'spentToday': 0, 'movedTodayMin': 0,
-          'ritualsDoneToday': 0, 'weekSpent': 0, 'weekBudget': 420, 'weekMovedMin': 0,
+          'moveGoalKcal': 500, 'ritualGoal': 5, 'spentToday': 0, 'movedTodayKcal': 0,
+          'ritualsDoneToday': 0, 'weekSpent': 0, 'weekBudget': 420, 'weekMovedKcal': 0,
           'weekRitualsDone': 0, 'weekRitualGoal': 35, 'moveStreakDays': 0},
-        review: (_, _) async => {'range': 'week', 'spent': 100, 'spentDeltaPct': null, 'hoursMoved': 1,
+        review: (_, _) async => {'range': 'week', 'spent': 100, 'spentDeltaPct': null, 'kcalMoved': 1,
           'movedDeltaPct': null, 'activeDays': 1, 'ritualsKept': 1, 'ritualsTarget': 5, 'ritualsPct': 20,
           'streakDays': 1, 'topCategory': 'Food', 'topCategoryPct': 30},
-        insights: (_) async => {'range': 'week', 'spent': 100, 'budget': 420, 'moveMinutes': 60,
-          'moveTarget': 210, 'ritualsKept': 5, 'ritualsTarget': 35, 'activeDays': 2, 'streakDays': 3,
+        insights: (_) async => {'range': 'week', 'spent': 100, 'budget': 420, 'moveKcal': 60,
+          'moveTargetKcal': 210, 'ritualsKept': 5, 'ritualsTarget': 35, 'activeDays': 2, 'streakDays': 3,
           'topCategory': 'Food', 'topCategoryPct': 30, 'spendByWeekday': <double>[0,0,0,0,100,0,0],
           'entries': <String>[]},
         suggest: (_, _) async => {'recentWorkouts': <Object>[], 'dayOfWeek': 'Wed',
@@ -70,6 +70,7 @@ void main() {
               {'kind': 'log_income', 'amount': 1200, 'title': 'Paycheck'},
               {'kind': 'set_daily_budget', 'dailyBudget': 60},
               {'kind': 'create_routine', 'goal': 'a push day'},
+              {'kind': 'log_movement', 'durationMinutes': 45, 'calories': 240, 'title': 'Run'},
               {'kind': 'teleport', 'amount': 9}, // unknown → dropped
             ],
           }),
@@ -80,7 +81,7 @@ void main() {
     final result = await service.chat([], 'add \$5 for coffee');
 
     expect(result.reply, 'Done.');
-    expect(result.actions, hasLength(4));
+    expect(result.actions, hasLength(5));
     final expense = result.actions[0] as LogEntryAction;
     expect(expense.type, EntryType.money);
     expect(expense.amount, -5); // magnitude negated to an expense
@@ -91,6 +92,10 @@ void main() {
     expect(budget.value, 60);
     final routine = result.actions[3] as CreateRoutineAction;
     expect(routine.goal, 'a push day');
+    final move = result.actions[4] as LogEntryAction;
+    expect(move.type, EntryType.move);
+    expect(move.durationMinutes, 45);
+    expect(move.calories, 240);
   });
 
   test('parse maps the response into a ParsedEntryDraft (expense negated)', () async {

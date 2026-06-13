@@ -11,8 +11,8 @@ void main() {
         ritualsRing: 0.6,
         moneySpent: 42,
         dailyBudget: 60,
-        moveMinutes: 18,
-        dailyMoveMinutes: 40,
+        moveKcal: 18,
+        dailyMoveKcal: 40,
         ritualsDone: 3,
         dailyRitualTarget: 5,
       );
@@ -38,8 +38,8 @@ void main() {
     expect(args['ritualsRing'], closeTo(0.6, 1e-9));
     expect(args['moneySpent'], 42);
     expect(args['dailyBudget'], 60);
-    expect(args['moveMinutes'], 18);
-    expect(args['dailyMoveMinutes'], 40);
+    expect(args['moveKcal'], 18);
+    expect(args['dailyMoveKcal'], 40);
     expect(args['ritualsDone'], 3);
     expect(args['dailyRitualTarget'], 5);
   });

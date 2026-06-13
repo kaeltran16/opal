@@ -42,20 +42,22 @@ void main() {
           title: 'Paycheck',
           amount: 100,
           source: EntrySource.manual),
-      // This-year move: 90 + 60 = 150 min → 2 hours.
+      // This-year move: 90 + 60 = 150 kcal.
       Entry(
           id: 'mv1',
           timestamp: DateTime(2026, 3, 1),
           type: EntryType.move,
           title: 'Run',
-          duration: 90,
+          duration: 30,
+          calories: 90,
           source: EntrySource.manual),
       Entry(
           id: 'mv2',
           timestamp: DateTime(2026, 3, 2),
           type: EntryType.move,
           title: 'Walk',
-          duration: 60,
+          duration: 30,
+          calories: 60,
           source: EntrySource.manual),
       // This-year rituals: 3 kept.
       for (var i = 0; i < 3; i++)
@@ -96,15 +98,14 @@ void main() {
     final stats = buildProfileStats(entries, routines, now: now);
 
     expect(stats.totalSpent, 50); // -30 + -20, income excluded
-    expect(stats.moveMinutes, 150);
-    expect(stats.moveHours, 2);
+    expect(stats.moveKcal, 150);
     expect(stats.ritualsKept, 3);
     expect(stats.longestStreak, 12);
     expect(stats.memberSinceYear, 2024); // earliest entry year
     expect(stats.memberSince, DateTime(2024, 12, 1)); // earliest full date
-    // best move day: mv1 (90 min) beats mv2 (60 min)
+    // best move day: mv1 (90 kcal) beats mv2 (60 kcal)
     expect(stats.bestMoveDay, DateTime(2026, 3, 1));
-    expect(stats.bestMoveDayMinutes, 90);
+    expect(stats.bestMoveDayKcal, 90);
   });
 
   // --- Pure milestone + streak-start helpers --------------------------------
@@ -180,7 +181,7 @@ void main() {
     expect(find.widgetWithText(ListRow, 'Daily budget'), findsOneWidget);
     expect(find.text('\$85'), findsOneWidget); // dailyBudget default
     expect(find.widgetWithText(ListRow, 'Workout goal'), findsOneWidget);
-    expect(find.text('60 min'), findsOneWidget); // dailyMoveMinutes default
+    expect(find.text('500 kcal'), findsOneWidget); // dailyMoveKcal default
     expect(find.widgetWithText(ListRow, 'Daily rituals'), findsOneWidget);
 
     // The removed stat grid must NOT render.

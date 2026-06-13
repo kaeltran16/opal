@@ -34,7 +34,7 @@ class LoopDatabase extends _$LoopDatabase {
   LoopDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -60,6 +60,11 @@ class LoopDatabase extends _$LoopDatabase {
         // the Weekly Plan screen. It's a brand-new table, so creating it leaves
         // every existing table and row untouched; the seeder (marker bump)
         // populates a default schedule on next launch.
+        //
+        // v5 -> v6: the daily move goal is re-based from minutes to active-energy
+        // kcal. The column is renamed by adding daily_move_kcal (default 500) and
+        // backfilling it; the old daily_move_minutes column is left in place
+        // (sqlite drop-column is awkward and the row is seed-rebuilt anyway).
         onUpgrade: (m, from, to) async {
           if (from < 2) {
             await customStatement('DROP TABLE IF EXISTS rituals');
@@ -78,6 +83,11 @@ class LoopDatabase extends _$LoopDatabase {
           }
           if (from < 5) {
             await m.createTable(weeklyPlanDays);
+          }
+          if (from < 6) {
+            await customStatement(
+                'ALTER TABLE goals ADD COLUMN daily_move_kcal INTEGER NOT NULL DEFAULT 500');
+            await customStatement('UPDATE goals SET daily_move_kcal = 500');
           }
         },
         beforeOpen: (details) async {

@@ -31,8 +31,8 @@ enum OpalWidgetSyncBridge {
           ritualsRing: a["ritualsRing"] as? Double ?? 0,
           moneySpent: a["moneySpent"] as? Double ?? 0,
           dailyBudget: a["dailyBudget"] as? Double ?? 0,
-          moveMinutes: a["moveMinutes"] as? Int ?? 0,
-          dailyMoveMinutes: a["dailyMoveMinutes"] as? Int ?? 0,
+          moveKcal: a["moveKcal"] as? Int ?? 0,
+          dailyMoveKcal: a["dailyMoveKcal"] as? Int ?? 0,
           ritualsDone: a["ritualsDone"] as? Int ?? 0,
           dailyRitualTarget: a["dailyRitualTarget"] as? Int ?? 0
         ).save()

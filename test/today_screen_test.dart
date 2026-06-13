@@ -33,10 +33,10 @@ void main() {
     final db = LoopDatabase.forTesting(NativeDatabase.memory());
     addTearDown(db.close);
 
-    // Fixed goals: $100 budget, 60 move-min, 4 rituals.
+    // Fixed goals: $100 budget, 60 move-kcal, 4 rituals.
     await GoalsRepository(db).save(const Goals(
       dailyBudget: 100,
-      dailyMoveMinutes: 60,
+      dailyMoveKcal: 60,
       dailyRitualTarget: 4,
     ));
 
@@ -72,8 +72,8 @@ void main() {
       category: 'Dining',
       source: EntrySource.email,
     ));
-    // Move: a 30-minute logged workout today → move ring 30/60 (move-minutes
-    // are now derived from logged move entries, not HealthKit).
+    // Move: a logged workout today burning 30 kcal → move ring 30/60 (move-kcal
+    // is derived from logged move entries' calories, not HealthKit).
     await entries.insert(Entry(
       id: 'e-run',
       timestamp: _todayAt(18, 0),
@@ -81,6 +81,7 @@ void main() {
       title: 'Evening run',
       detail: '30 min',
       duration: 30,
+      calories: 30,
       source: EntrySource.manual,
     ));
 
@@ -146,7 +147,7 @@ void main() {
     // Goals exist so TodayState builds, but no entries are inserted.
     await GoalsRepository(db).save(const Goals(
       dailyBudget: 100,
-      dailyMoveMinutes: 60,
+      dailyMoveKcal: 60,
       dailyRitualTarget: 4,
     ));
 
