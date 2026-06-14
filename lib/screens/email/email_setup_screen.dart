@@ -6,8 +6,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../controllers/email_sync_controller.dart';
 import '../../models/models.dart';
-import '../../theme/app_colors.dart';
-import '../../theme/app_text.dart';
+import '../../theme/theme.dart';
 import '../../widgets/app_icon.dart';
 import '../../widgets/gmail_glyph.dart';
 import '../../widgets/inset_section.dart';
@@ -115,7 +114,7 @@ class _EmailSetupScreenState extends ConsumerState<EmailSetupScreen> {
                   keyboardType: TextInputType.emailAddress,
                   autocorrect: false,
                   decoration: _fieldDecoration(),
-                  style: AppFonts.sf(size: 15, color: c.ink, letterSpacing: -0.24),
+                  style: AppType.subhead.copyWith(color: c.ink, letterSpacing: -0.24),
                 ),
               ),
               _FormRow(
@@ -139,13 +138,15 @@ class _EmailSetupScreenState extends ConsumerState<EmailSetupScreen> {
 
           // --- How-to card ---------------------------------------------------
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            padding: const EdgeInsets.fromLTRB(
+                Spacing.lg, 0, Spacing.lg, Spacing.lg),
             child: _HowToCard(),
           ),
 
           // --- Test connection -----------------------------------------------
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            padding: const EdgeInsets.fromLTRB(
+                Spacing.lg, 0, Spacing.lg, Spacing.lg),
             child: _TestButton(state: setup.test, onTap: _runTest),
           ),
 
@@ -156,7 +157,7 @@ class _EmailSetupScreenState extends ConsumerState<EmailSetupScreen> {
                 behavior: HitTestBehavior.opaque,
                 onTap: () => setState(() => _advancedOpen = !_advancedOpen),
                 child: Padding(
-                  padding: const EdgeInsets.all(14),
+                  padding: const EdgeInsets.all(Spacing.lg),
                   child: Row(
                     children: [
                       Container(
@@ -164,26 +165,24 @@ class _EmailSetupScreenState extends ConsumerState<EmailSetupScreen> {
                         height: 32,
                         decoration: BoxDecoration(
                             color: c.fill,
-                            borderRadius: BorderRadius.circular(9)),
+                            borderRadius: BorderRadius.circular(Radii.sm)),
                         alignment: Alignment.center,
                         child:
                             AppIcon('gearshape.fill', size: 15, color: c.ink2),
                       ),
-                      const SizedBox(width: 10),
+                      const SizedBox(width: Spacing.md),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text('IMAP server',
-                                style: AppFonts.sf(
-                                    size: 15,
-                                    weight: FontWeight.w500,
+                                style: AppType.subhead.copyWith(
+                                    fontWeight: FontWeight.w500,
                                     color: c.ink,
                                     letterSpacing: -0.24)),
-                            const SizedBox(height: 1),
+                            const SizedBox(height: 1), // tight 1px gap — keep
                             Text('imap.gmail.com · port 993 · SSL',
-                                style: AppFonts.sf(
-                                    size: 12,
+                                style: AppType.caption.copyWith(
                                     color: c.ink3,
                                     letterSpacing: -0.08)),
                           ],
@@ -205,7 +204,7 @@ class _EmailSetupScreenState extends ConsumerState<EmailSetupScreen> {
                     autocorrect: false,
                     decoration: _fieldDecoration(),
                     style:
-                        AppFonts.sf(size: 15, color: c.ink, letterSpacing: -0.24),
+                        AppType.subhead.copyWith(color: c.ink, letterSpacing: -0.24),
                   ),
                 ),
                 _FormRow(
@@ -216,7 +215,7 @@ class _EmailSetupScreenState extends ConsumerState<EmailSetupScreen> {
                     keyboardType: TextInputType.number,
                     decoration: _fieldDecoration(),
                     style:
-                        AppFonts.sf(size: 15, color: c.ink, letterSpacing: -0.24),
+                        AppType.subhead.copyWith(color: c.ink, letterSpacing: -0.24),
                   ),
                 ),
                 _FormRow(
@@ -225,8 +224,8 @@ class _EmailSetupScreenState extends ConsumerState<EmailSetupScreen> {
                   child: Align(
                     alignment: Alignment.centerRight,
                     child: Text('SSL / TLS',
-                        style: AppFonts.sf(
-                            size: 15, color: c.ink, letterSpacing: -0.24)),
+                        style: AppType.subhead.copyWith(
+                            color: c.ink, letterSpacing: -0.24)),
                   ),
                 ),
               ],
@@ -246,7 +245,7 @@ class _EmailSetupScreenState extends ConsumerState<EmailSetupScreen> {
       focusedBorder: InputBorder.none,
       contentPadding: EdgeInsets.zero,
       hintText: hint,
-      hintStyle: AppFonts.sf(size: 15, color: c.ink4, letterSpacing: -0.24),
+      hintStyle: AppType.subhead.copyWith(color: c.ink4, letterSpacing: -0.24),
     );
   }
 }
@@ -266,15 +265,15 @@ class _FormRow extends StatelessWidget {
         border:
             last ? null : Border(bottom: BorderSide(color: c.hair, width: 0.5)),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: Spacing.lg, vertical: Spacing.sm),
       constraints: const BoxConstraints(minHeight: 44),
       child: Row(
         children: [
           SizedBox(
-            width: 100,
+            width: 100, // fixed label-column width — keep literal
             child: Text(label,
                 style:
-                    AppFonts.sf(size: 15, color: c.ink2, letterSpacing: -0.24)),
+                    AppType.subhead.copyWith(color: c.ink2, letterSpacing: -0.24)),
           ),
           Expanded(child: child),
         ],
@@ -288,8 +287,8 @@ class _HowToCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    final stepStyle = AppFonts.sf(
-        size: 13, color: c.ink2, letterSpacing: -0.1, height: 1.5);
+    final stepStyle = AppType.footnote
+        .copyWith(color: c.ink2, letterSpacing: -0.1, height: 1.5);
     // step 2 splits out the URL so it can read as an accent underlined link
     final steps = <InlineSpan>[
       TextSpan(text: 'Turn on 2-Step Verification in your Google Account.'),
@@ -307,10 +306,10 @@ class _HowToCard extends StatelessWidget {
               '16 characters above.'),
     ];
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(Spacing.lg),
       decoration: BoxDecoration(
         color: c.surface,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(Radii.card),
         border: Border.all(color: c.hair, width: 0.5),
       ),
       child: Column(
@@ -319,26 +318,25 @@ class _HowToCard extends StatelessWidget {
           Row(
             children: [
               const GmailGlyph(size: 18),
-              const SizedBox(width: 8),
+              const SizedBox(width: Spacing.sm),
               Text('Generate a Gmail app password',
-                  style: AppFonts.sf(
-                      size: 13,
-                      weight: FontWeight.w700,
+                  style: AppType.footnote.copyWith(
+                      fontWeight: FontWeight.w700,
                       color: c.ink,
                       letterSpacing: -0.1)),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: Spacing.md),
           for (var i = 0; i < steps.length; i++)
             Padding(
-              padding: const EdgeInsets.only(bottom: 6),
+              padding: const EdgeInsets.only(bottom: Spacing.sm),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text('${i + 1}.',
-                      style: AppFonts.sf(
-                          size: 13, color: c.ink3, letterSpacing: -0.1)),
-                  const SizedBox(width: 8),
+                      style: AppType.footnote
+                          .copyWith(color: c.ink3, letterSpacing: -0.1)),
+                  const SizedBox(width: Spacing.sm),
                   Expanded(
                     child: Text.rich(
                       TextSpan(style: stepStyle, children: [steps[i]]),
@@ -347,20 +345,20 @@ class _HowToCard extends StatelessWidget {
                 ],
               ),
             ),
-          const SizedBox(height: 6),
+          const SizedBox(height: Spacing.sm),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            padding: const EdgeInsets.symmetric(
+                horizontal: Spacing.md, vertical: Spacing.sm),
             decoration: BoxDecoration(
-                color: c.fill, borderRadius: BorderRadius.circular(100)),
+                color: c.fill, borderRadius: BorderRadius.circular(Radii.pill)),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 AppIcon('square.and.arrow.up', size: 12, color: c.accent),
-                const SizedBox(width: 6),
+                const SizedBox(width: Spacing.sm),
                 Text('Open Google app passwords',
-                    style: AppFonts.sf(
-                        size: 13,
-                        weight: FontWeight.w600,
+                    style: AppType.footnote.copyWith(
+                        fontWeight: FontWeight.w600,
                         color: c.accent,
                         letterSpacing: -0.08)),
               ],
@@ -416,10 +414,10 @@ class _TestButton extends StatelessWidget {
       behavior: HitTestBehavior.opaque,
       onTap: testing ? null : onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 13),
+        padding: const EdgeInsets.symmetric(vertical: Spacing.md), // 13→12
         decoration: BoxDecoration(
           color: bg,
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(Radii.card),
           border: Border.all(
             color: ok
                 ? c.move.withValues(alpha: 0.27)
@@ -434,11 +432,10 @@ class _TestButton extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             icon,
-            const SizedBox(width: 8),
+            const SizedBox(width: Spacing.sm),
             Text(label,
-                style: AppFonts.sf(
-                    size: 15,
-                    weight: FontWeight.w600,
+                style: AppType.subhead.copyWith(
+                    fontWeight: FontWeight.w600,
                     color: fg,
                     letterSpacing: -0.2)),
           ],
