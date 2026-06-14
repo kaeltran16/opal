@@ -67,6 +67,40 @@ describe('OpenRouterClient', () => {
     expect(body.max_tokens).toBe(4096)
   })
 
+  it('sends temperature only when opts.temperature is provided', async () => {
+    let body: Record<string, unknown> = {}
+    const capture = (async (_url, init) => {
+      body = JSON.parse(String((init as RequestInit).body))
+      return okResponse()
+    }) as typeof fetch
+    const client = new OpenRouterClient('k', 'm', 'http://x', capture)
+
+    await client.complete([{ role: 'user', content: 'hi' }])
+    expect(body.temperature).toBeUndefined()
+
+    await client.complete([{ role: 'user', content: 'hi' }], { temperature: 0 })
+    expect(body.temperature).toBe(0)
+  })
+
+  it('opts into usage accounting so the provider reports cost', async () => {
+    let body: Record<string, unknown> = {}
+    const capture = (async (_url, init) => {
+      body = JSON.parse(String((init as RequestInit).body))
+      return okResponse()
+    }) as typeof fetch
+    await new OpenRouterClient('k', 'm', 'http://x', capture).complete([{ role: 'user', content: 'hi' }])
+    expect(body.usage).toEqual({ include: true })
+  })
+
+  it('surfaces the provider-reported cost at the top level of the usage log', async () => {
+    const withCost = (async () =>
+      new Response(JSON.stringify({ choices: [{ message: { content: '{}' }, finish_reason: 'stop' }], usage: { total_tokens: 42, cost: 0.00014 } }), { status: 200 })) as typeof fetch
+    const logged: Array<{ obj: unknown }> = []
+    const logger = { info: (obj: unknown) => logged.push({ obj }) }
+    await new OpenRouterClient('k', 'm', 'http://x', withCost, 30_000, logger).complete([{ role: 'user', content: 'hi' }])
+    expect(logged[0].obj).toMatchObject({ cost: 0.00014 })
+  })
+
   it('throws OpenRouterError(502) when the model output is truncated (finish_reason length)', async () => {
     const truncated = (async () =>
       new Response(JSON.stringify({ choices: [{ message: { content: '{"a":' }, finish_reason: 'length' }] }), { status: 200 })) as typeof fetch
@@ -268,7 +302,7 @@ describe('Pal', () => {
     }
     const pal = new Pal(client)
     await pal.parse('coffee 5')
-    expect(opts.at(-1)).toEqual({ json: true })
+    expect(opts.at(-1)).toEqual({ json: true, temperature: 0 })
     await pal.review({
       range: 'month', spent: 1, spentDeltaPct: null, kcalMoved: 0, movedDeltaPct: null, activeDays: 0,
       ritualsKept: 0, ritualsTarget: 0, ritualsPct: 0, streakDays: 0,

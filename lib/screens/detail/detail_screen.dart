@@ -85,7 +85,7 @@ class _DetailBody extends StatelessWidget {
         final s = '\$${v.abs().toStringAsFixed(v == v.roundToDouble() ? 0 : 2)}';
         return withSign && v > 0 ? '−$s' : s;
       case DetailTracker.move:
-        return '${v.round()} min';
+        return '${v.round()} kcal';
       case DetailTracker.rituals:
         return '${v.round()}';
     }

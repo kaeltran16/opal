@@ -1,5 +1,5 @@
 import 'package:fl_chart/fl_chart.dart';
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -10,6 +10,7 @@ import '../../theme/app_colors.dart';
 import '../../theme/app_text.dart';
 import '../../util/format.dart';
 import '../../widgets/app_icon.dart';
+import '../../widgets/inset_section.dart';
 import '../../widgets/nav_bar.dart';
 import '../../widgets/press_scale.dart';
 
@@ -88,7 +89,7 @@ class _Body extends StatelessWidget {
         onTap: () => context.pop(),
         semanticLabel: 'Back',
       ),
-      trailing: const NavIconButton(name: 'ellipsis', semanticLabel: 'More options'),
+      trailing: _MoreButton(workoutId: workoutId),
       padding: const EdgeInsets.only(bottom: 48),
       children: [
         // --- 2×2 summary grid -------------------------------------------------
@@ -193,6 +194,58 @@ class _Body extends StatelessWidget {
       ],
     );
   }
+}
+
+/// Trailing "…" overflow button for the detail header. Opens an action sheet
+/// whose one functional action — Delete — removes this session via the same
+/// repository the screen consumes, then pops back. (A past session is
+/// read-only, so there's no Edit/Share to wire here.)
+class _MoreButton extends ConsumerWidget {
+  const _MoreButton({required this.workoutId});
+  final String workoutId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return NavIconButton(
+      name: 'ellipsis',
+      semanticLabel: 'More options',
+      onTap: () => _showWorkoutMenu(context, ref, workoutId),
+    );
+  }
+}
+
+/// Bottom-sheet overflow menu for the workout detail screen.
+Future<void> _showWorkoutMenu(
+  BuildContext context,
+  WidgetRef ref,
+  String workoutId,
+) {
+  final c = context.colors;
+  return showModalBottomSheet<void>(
+    context: context,
+    backgroundColor: c.bg,
+    builder: (sheetContext) => SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.only(top: 8, bottom: 8),
+        child: InsetSection(
+          children: [
+            ListRow(
+              icon: 'xmark',
+              iconBg: c.red,
+              title: 'Delete workout',
+              chevron: false,
+              last: true,
+              onTap: () async {
+                Navigator.of(sheetContext).pop();
+                await ref.read(workoutRepositoryProvider).deleteById(workoutId);
+                if (context.mounted) context.pop();
+              },
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
 }
 
 /// Red destructive "Delete workout" text button. Removes this session via the

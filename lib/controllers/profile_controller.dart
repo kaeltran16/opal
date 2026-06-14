@@ -20,6 +20,7 @@ class ProfileStats {
     required this.ritualsKept,
     required this.longestStreak,
     required this.memberSince,
+    this.routineCount = 0,
     this.bestMoveDay,
     this.bestMoveDayKcal = 0,
   });
@@ -32,6 +33,11 @@ class ProfileStats {
 
   /// Count of this year's completed ritual entries.
   final int ritualsKept;
+
+  /// Number of routines the user has — the "Routines" goal denominator
+  /// (matches the Today ring and Budgets & Goals, where the target derives
+  /// from the routine count rather than the stored [Goals.dailyRitualTarget]).
+  final int routineCount;
 
   /// Best current streak across all rituals (days).
   final int longestStreak;
@@ -58,6 +64,7 @@ class ProfileStats {
           other.ritualsKept == ritualsKept &&
           other.longestStreak == longestStreak &&
           other.memberSince == memberSince &&
+          other.routineCount == routineCount &&
           other.bestMoveDay == bestMoveDay &&
           other.bestMoveDayKcal == bestMoveDayKcal;
 
@@ -68,6 +75,7 @@ class ProfileStats {
         ritualsKept,
         longestStreak,
         memberSince,
+        routineCount,
         bestMoveDay,
         bestMoveDayKcal,
       );
@@ -147,6 +155,7 @@ ProfileStats buildProfileStats(
     ritualsKept: ritualsKept,
     longestStreak: longestStreak,
     memberSince: memberSince,
+    routineCount: routines.length,
     bestMoveDay: bestMoveDay,
     bestMoveDayKcal: bestMoveDayKcal,
   );

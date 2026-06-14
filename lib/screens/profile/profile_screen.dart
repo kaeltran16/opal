@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import '../../controllers/profile_controller.dart';
 import '../../controllers/providers.dart';
 import '../../controllers/today_controller.dart';
+import '../../controllers/weekly_review_controller.dart'
+    show WeeklyStats, weekStartFor;
 import '../../models/models.dart';
 import '../../router.dart';
 import '../../theme/app_colors.dart';
@@ -27,9 +29,10 @@ class ProfileScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final c = context.colors;
     final async = ref.watch(goalsStreamProvider);
-    final name = ref.watch(settingsRepositoryProvider).displayName;
-    final memberSince =
-        ref.watch(profileStatsProvider).asData?.value.memberSince;
+    final name = ref.watch(settingsRepositoryProvider).displayNameOrDefault;
+    final stats = ref.watch(profileStatsProvider).asData?.value;
+    final memberSince = stats?.memberSince;
+    final routineCount = stats?.routineCount ?? 0;
 
     return async.when(
       loading: () => Center(
@@ -45,8 +48,12 @@ class ProfileScreen extends ConsumerWidget {
                   AppFonts.sf(size: 15, color: c.ink3, letterSpacing: -0.24)),
         ),
       ),
-      data: (goals) =>
-          _ProfileBody(goals: goals, name: name, tenure: _tenure(memberSince)),
+      data: (goals) => _ProfileBody(
+        goals: goals,
+        name: name,
+        tenure: _tenure(memberSince),
+        routineCount: routineCount,
+      ),
     );
   }
 
@@ -73,6 +80,7 @@ class _ProfileBody extends StatelessWidget {
     required this.goals,
     required this.name,
     required this.tenure,
+    required this.routineCount,
   });
   final Goals goals;
 
@@ -81,6 +89,34 @@ class _ProfileBody extends StatelessWidget {
 
   /// Pre-computed tenure line (e.g. "Tracking since April 2026 · 70 days").
   final String tenure;
+
+  /// Number of routines — the "Daily routines" goal value, matching the Today
+  /// ring and Budgets & Goals (derived from the routine count, not the stored
+  /// [Goals.dailyRitualTarget]).
+  final int routineCount;
+
+  static const _monthNames = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December',
+  ];
+
+  /// Current week's date span (e.g. "Jun 15–21") — reuses the weekly review's
+  /// [WeeklyStats.rangeLabel] so the Profile row matches the Weekly Review.
+  static String _weeklyRangeLabel(DateTime now) {
+    return WeeklyStats(
+      weekStart: weekStartFor(now),
+      spent: 0,
+      budget: 0,
+      moveKcal: 0,
+      moveTarget: 0,
+      ritualsKept: 0,
+      ritualsTarget: 0,
+    ).rangeLabel;
+  }
+
+  /// Current month name (e.g. "June") — matches the Monthly Review title, which
+  /// indexes its month array by `DateTime.now().month`.
+  static String _monthlyLabel(DateTime now) => _monthNames[now.month - 1];
 
   String _grouped(int n) {
     final s = n.toString();
@@ -121,8 +157,9 @@ class _ProfileBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    final displayName = name.isEmpty ? 'You' : name;
+    final displayName = name;
     final initial = displayName.characters.first.toUpperCase();
+    final now = DateTime.now();
 
     return LargeTitleScrollView(
       title: 'You',
@@ -206,8 +243,8 @@ class _ProfileBody extends StatelessWidget {
             ListRow(
               icon: 'sparkles',
               iconBg: c.rituals,
-              title: 'Daily rituals',
-              value: '${goals.dailyRitualTarget}',
+              title: 'Daily routines',
+              value: '$routineCount',
               chevron: false,
               last: true,
             ),
@@ -222,14 +259,14 @@ class _ProfileBody extends StatelessWidget {
               icon: 'calendar',
               iconBg: c.rituals,
               title: 'Weekly review',
-              value: 'Apr 17–23',
+              value: _weeklyRangeLabel(now),
               onTap: () => context.pushNamed(AppRoute.weeklyReview.name),
             ),
             ListRow(
               icon: 'chart.bar.fill',
               iconBg: c.accent,
               title: 'Monthly review',
-              value: 'April',
+              value: _monthlyLabel(now),
               onTap: () => context.pushNamed(AppRoute.monthlyReview.name),
             ),
             ListRow(

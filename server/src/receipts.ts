@@ -7,6 +7,11 @@ import type { RawEmail } from './imap.js'
 // emails per LLM call; bounds prompt size at BATCH_SIZE x ~4k body chars.
 export const BATCH_SIZE = 8
 
+// output budget per email's result object; scaled by batch size so a full batch's
+// JSON never trips the default 1024 cap (which would drop the whole batch on a
+// finish_reason=length error).
+const MAX_TOKENS_PER_RECEIPT = 256
+
 /** Deterministic allowlist: keep emails whose sender matches a filter. */
 export function filterBySender(emails: RawEmail[], filters: string[]): RawEmail[] {
   const needles = filters.map((f) => f.trim().toLowerCase()).filter(Boolean)
@@ -64,7 +69,7 @@ export async function extractReceipts(
         })),
       ),
     },
-  ], { json: true })
+  ], { json: true, temperature: 0, maxTokens: emails.length * MAX_TOKENS_PER_RECEIPT })
   const { results } = receiptsBatchSchema.parse(extractJson(raw))
 
   const out: (ReceiptFields | null)[] = new Array(emails.length).fill(null)

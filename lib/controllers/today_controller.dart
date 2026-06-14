@@ -38,6 +38,7 @@ class TodayState {
     required this.entries,
     required this.goals,
     this.mode = TimelineMode.day,
+    this.routines = const [],
     List<Entry>? timelineEntries,
   }) : timelineEntries = timelineEntries ?? entries;
 
@@ -51,6 +52,13 @@ class TodayState {
   final Goals goals;
   final TimelineMode mode;
 
+  /// Today's ritual routines (Morning/Midday/Evening, …). The "Routines"
+  /// metric counts *completed routines ÷ total routines* — a routine is
+  /// complete only when every one of its steps is done. Empty when routine
+  /// data isn't supplied (tests / pre-load), in which case the metric falls
+  /// back to the legacy per-step count against [Goals.dailyRitualTarget].
+  final List<RitualRoutine> routines;
+
   /// Move-kcal for the day: sum of the active energy of logged move entries.
   int get moveKcal => entries
       .where((e) => e.type == EntryType.move)
@@ -61,9 +69,34 @@ class TodayState {
       .where((e) => e.type == EntryType.money && (e.amount ?? 0) < 0)
       .fold<double>(0, (s, e) => s + e.amount!.abs());
 
-  /// Number of completed rituals today.
-  int get ritualsDone =>
-      entries.where((e) => e.type == EntryType.rituals).length;
+  /// Set of step ids completed today (one ritual entry per completed step).
+  Set<String> get _completedStepIds => entries
+      .where((e) => e.type == EntryType.rituals && e.ritualId != null)
+      .map((e) => e.ritualId!)
+      .toSet();
+
+  /// Whether every step of [r] is done today (empty routines never complete).
+  bool _routineComplete(RitualRoutine r) {
+    if (r.steps.isEmpty) return false;
+    final done = _completedStepIds;
+    return r.steps.every((s) => done.contains(s.id));
+  }
+
+  /// True once routine data is available — drives the routine-based metric.
+  /// Without it (tests / pre-load) the metric falls back to the legacy
+  /// per-step count.
+  bool get _hasRoutines => routines.isNotEmpty;
+
+  /// The "Routines" denominator: the number of routines when known, else the
+  /// legacy [Goals.dailyRitualTarget].
+  int get ritualsTarget =>
+      _hasRoutines ? routines.length : goals.dailyRitualTarget;
+
+  /// The "Routines" numerator: completed *routines* when routine data is
+  /// known, else the legacy count of completed ritual *steps*.
+  int get ritualsDone => _hasRoutines
+      ? routines.where(_routineComplete).length
+      : entries.where((e) => e.type == EntryType.rituals).length;
 
   // --- Ring fractions (0..1+) ------------------------------------------------
 
@@ -72,13 +105,13 @@ class TodayState {
   double get moveRing =>
       goals.dailyMoveKcal == 0 ? 0 : moveKcal / goals.dailyMoveKcal;
   double get ritualsRing =>
-      goals.dailyRitualTarget == 0 ? 0 : ritualsDone / goals.dailyRitualTarget;
+      ritualsTarget == 0 ? 0 : ritualsDone / ritualsTarget;
 
   List<double> get rings => [moneyRing, moveRing, ritualsRing];
 
   /// Rituals remaining to hit target (never negative).
   int get ritualsRemaining =>
-      (goals.dailyRitualTarget - ritualsDone).clamp(0, goals.dailyRitualTarget);
+      (ritualsTarget - ritualsDone).clamp(0, ritualsTarget);
 
   // --- Timeline buckets ------------------------------------------------------
 
@@ -138,6 +171,7 @@ Stream<Goals> goalsStream(Ref ref) =>
 @riverpod
 Stream<TodayState> todayState(Ref ref) async* {
   final entriesRepo = ref.watch(entryRepositoryProvider);
+  final ritualRepo = ref.watch(ritualRepositoryProvider);
   final goals = ref.watch(goalsStreamProvider).asData?.value ?? const Goals();
   final mode = ref.watch(timelineModeControllerProvider);
 
@@ -151,16 +185,24 @@ Stream<TodayState> todayState(Ref ref) async* {
     // Drive week mode off the full-week stream so edits to any same-week day
     // re-emit. Today's slice (rings/tiles) is the bounded list from `today` on.
     await for (final week in entriesRepo.watchEntriesInRange(weekStart, tomorrow)) {
+      final routines = await ritualRepo.getAll();
       yield TodayState(
         entries: week.where((e) => !e.timestamp.isBefore(today)).toList(),
         timelineEntries: week,
         goals: goals,
         mode: mode,
+        routines: routines,
       );
     }
   } else {
     await for (final entries in entriesRepo.watchToday()) {
-      yield TodayState(entries: entries, goals: goals, mode: mode);
+      final routines = await ritualRepo.getAll();
+      yield TodayState(
+        entries: entries,
+        goals: goals,
+        mode: mode,
+        routines: routines,
+      );
     }
   }
 }

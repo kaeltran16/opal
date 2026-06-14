@@ -1,4 +1,5 @@
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../controllers/insights_controller.dart';
@@ -47,7 +48,11 @@ class MonthlyReviewScreen extends ConsumerWidget {
         onTap: () => Navigator.of(context).maybePop(),
         semanticLabel: 'Back',
       ),
-      trailing: const NavIconButton(name: 'ellipsis'),
+      trailing: NavIconButton(
+        name: 'ellipsis',
+        semanticLabel: 'More options',
+        onTap: () => _showReviewMenu(context, ref, narrative.asData?.value),
+      ),
       padding: const EdgeInsets.only(bottom: 48),
       children: [
         // --- Narrative card (gradient accent bg, "Written by Pal") -----------
@@ -122,6 +127,93 @@ class MonthlyReviewScreen extends ConsumerWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// The trailing "..." overflow menu: Regenerate the narrative, or copy it to the
+/// clipboard. Both actions are wired to real functionality — Share is omitted
+/// since the app has no share backing. [narrative] is the current review text
+/// (null while loading/errored), used by Copy.
+Future<void> _showReviewMenu(
+  BuildContext context,
+  WidgetRef ref,
+  String? narrative,
+) {
+  final c = context.colors;
+  return showModalBottomSheet<void>(
+    context: context,
+    backgroundColor: c.bg,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+    ),
+    builder: (sheetContext) => SafeArea(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const SizedBox(height: 8),
+          _MenuRow(
+            icon: 'sparkles',
+            label: 'Regenerate',
+            onTap: () {
+              Navigator.of(sheetContext).pop();
+              ref.read(monthlyReviewControllerProvider.notifier).regenerate();
+            },
+          ),
+          _MenuRow(
+            icon: 'square.and.arrow.up',
+            label: 'Copy text',
+            enabled: narrative != null && narrative.isNotEmpty,
+            onTap: () {
+              Navigator.of(sheetContext).pop();
+              if (narrative != null && narrative.isNotEmpty) {
+                Clipboard.setData(ClipboardData(text: narrative));
+              }
+            },
+          ),
+          const SizedBox(height: 8),
+        ],
+      ),
+    ),
+  );
+}
+
+/// One tappable row in the overflow menu: tinted icon + label. Dimmed and
+/// non-interactive when [enabled] is false.
+class _MenuRow extends StatelessWidget {
+  const _MenuRow({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.enabled = true,
+  });
+  final String icon;
+  final String label;
+  final VoidCallback onTap;
+  final bool enabled;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    final tint = enabled ? c.accent : c.ink4;
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: enabled ? onTap : null,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+        child: Row(
+          children: [
+            AppIcon(icon, size: 20, color: tint),
+            const SizedBox(width: 14),
+            Text(label,
+                style: AppFonts.sf(
+                    size: 17,
+                    color: enabled ? c.ink : c.ink4,
+                    letterSpacing: -0.43)),
+          ],
+        ),
+      ),
     );
   }
 }

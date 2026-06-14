@@ -537,6 +537,7 @@ class _StartButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     final complete = state.isComplete(routine);
     final inProgress = state.doneCount(routine.id) > 0;
     final label = complete
@@ -556,6 +557,8 @@ class _StartButton extends StatelessWidget {
           borderRadius: BorderRadius.circular(10),
         ),
         alignment: Alignment.center,
+        // Label uses ink2 (not the tone) so it clears WCAG contrast on the
+        // ~8% tint; the colored icon carries the routine's identity.
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -565,7 +568,7 @@ class _StartButton extends StatelessWidget {
                 style: AppFonts.sf(
                     size: 14,
                     weight: FontWeight.w700,
-                    color: tone,
+                    color: c.ink2,
                     letterSpacing: -0.2)),
           ],
         ),

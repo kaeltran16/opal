@@ -1,6 +1,6 @@
 import 'dart:math' as math;
 
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -60,8 +60,13 @@ class _MoveBody extends StatelessWidget {
     return LargeTitleScrollView(
       title: 'Workout',
       subtitle: 'Workouts, routines & sessions',
-      trailing:
-          const NavIconButton(name: 'ellipsis', semanticLabel: 'More options'),
+      trailing: Builder(
+        builder: (context) => NavIconButton(
+          name: 'ellipsis',
+          semanticLabel: 'More options',
+          onTap: () => _showMoveMenu(context),
+        ),
+      ),
       padding: const EdgeInsets.only(bottom: 110),
       children: [
         Padding(
@@ -83,6 +88,47 @@ class _MoveBody extends StatelessWidget {
       ],
     );
   }
+}
+
+/// Overflow ("…") menu for the Workout home: quick shortcuts to create a
+/// routine or generate one with Pal. Matches the app's bottom-sheet menu
+/// convention (InsetSection + ListRow over a `c.bg` sheet).
+Future<void> _showMoveMenu(BuildContext context) {
+  final c = context.colors;
+  return showModalBottomSheet<void>(
+    context: context,
+    backgroundColor: c.bg,
+    builder: (sheetContext) => SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.only(top: 8, bottom: 8),
+        child: InsetSection(
+          children: [
+            ListRow(
+              icon: 'plus',
+              iconBg: c.accent,
+              title: 'New routine',
+              subtitle: 'Build from scratch',
+              onTap: () {
+                Navigator.of(sheetContext).pop();
+                context.pushNamed(AppRoute.routineEditor.name);
+              },
+            ),
+            ListRow(
+              icon: 'sparkles',
+              iconBg: c.rituals,
+              title: 'Generate with AI',
+              subtitle: 'Describe the workout you want',
+              last: true,
+              onTap: () {
+                Navigator.of(sheetContext).pop();
+                context.pushNamed(AppRoute.routineGenerator.name);
+              },
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
 }
 
 /// Move-gradient "This week" hero: workouts-vs-goal headline + mini progress
@@ -561,8 +607,9 @@ class _QuickLinks extends StatelessWidget {
           iconBg: c.rituals,
           title: 'History & trends',
           value: 'All time',
-          chevron: false,
           last: true,
+          // Same destination as the profile "All stats" row.
+          onTap: () => context.pushNamed(AppRoute.weeklyReview.name),
         ),
       ],
     );

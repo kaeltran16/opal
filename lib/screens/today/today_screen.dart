@@ -1,4 +1,4 @@
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -95,6 +95,7 @@ class _TodayBody extends ConsumerWidget {
     final hasInsight = headline != null && headline.isNotEmpty;
     final moneySpent = today.moneySpent;
     final ritualsDone = today.ritualsDone;
+    final ritualsTarget = today.ritualsTarget;
     final ritualsRemaining = today.ritualsRemaining;
     final closePrompt = ritualsRemaining == 0
         ? 'All routines done · nice close'
@@ -112,9 +113,10 @@ class _TodayBody extends ConsumerWidget {
           onTap: () => context.pushNamed(AppRoute.palInbox.name),
         ),
         const SizedBox(width: 8),
-        const NavIconButton(
+        NavIconButton(
           name: 'magnifyingglass',
           semanticLabel: 'Search',
+          onTap: () => _openSearch(context, today.timelineEntries),
         ),
       ]),
       padding: const EdgeInsets.only(bottom: 110),
@@ -148,7 +150,7 @@ class _TodayBody extends ConsumerWidget {
                               color: c.move,
                               label: 'Workout',
                               value: '${today.moveKcal}',
-                              goal: '/ ${goals.dailyMoveKcal} KCAL',
+                              goal: '/ ${goals.dailyMoveKcal} kcal',
                               onTap: () =>
                                   context.pushNamed(AppRoute.moveDetail.name)),
                           const SizedBox(height: 10),
@@ -156,7 +158,7 @@ class _TodayBody extends ConsumerWidget {
                               color: c.rituals,
                               label: 'Routines',
                               value: '$ritualsDone',
-                              goal: '/ ${goals.dailyRitualTarget}',
+                              goal: '/ $ritualsTarget',
                               onTap: () => context
                                   .pushNamed(AppRoute.ritualsDetail.name)),
                         ],
@@ -406,6 +408,170 @@ class _TodayBody extends ConsumerWidget {
       'Dec'
     ];
     return m[DateTime.now().month - 1];
+  }
+}
+
+/// Opens the timeline search sheet over [entries] — the entries the Today
+/// screen already has in hand (today's, or the whole week in week mode). A
+/// client-side filter over titles / details / categories; no new backend.
+void _openSearch(BuildContext context, List<Entry> entries) {
+  showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: const Color(0x00000000),
+    builder: (context) => _SearchSheet(entries: entries),
+  );
+}
+
+/// A modal search surface over the supplied [entries]. Lives here (not a route)
+/// so the search is self-contained and matches the screen's existing data —
+/// it filters the same entries the timeline shows, in week mode the full week.
+class _SearchSheet extends StatefulWidget {
+  const _SearchSheet({required this.entries});
+  final List<Entry> entries;
+
+  @override
+  State<_SearchSheet> createState() => _SearchSheetState();
+}
+
+class _SearchSheetState extends State<_SearchSheet> {
+  final _controller = TextEditingController();
+  String _query = '';
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  List<Entry> get _results {
+    final q = _query.trim().toLowerCase();
+    if (q.isEmpty) return widget.entries;
+    return widget.entries.where((e) {
+      return e.title.toLowerCase().contains(q) ||
+          (e.detail?.toLowerCase().contains(q) ?? false) ||
+          (e.category?.toLowerCase().contains(q) ?? false);
+    }).toList();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    final results = _results;
+    final viewInsets = MediaQuery.of(context).viewInsets.bottom;
+    return Padding(
+      padding: EdgeInsets.only(bottom: viewInsets),
+      child: DraggableScrollableSheet(
+        expand: false,
+        initialChildSize: 0.85,
+        minChildSize: 0.5,
+        maxChildSize: 0.95,
+        builder: (context, scrollController) => Container(
+          decoration: BoxDecoration(
+            color: c.bg,
+            borderRadius:
+                const BorderRadius.vertical(top: Radius.circular(18)),
+          ),
+          child: Column(
+            children: [
+              const SizedBox(height: 8),
+              Container(
+                width: 36,
+                height: 5,
+                decoration: BoxDecoration(
+                    color: c.hair, borderRadius: BorderRadius.circular(3)),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Container(
+                        height: 36,
+                        padding: const EdgeInsets.symmetric(horizontal: 10),
+                        decoration: BoxDecoration(
+                          color: c.fill,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Row(
+                          children: [
+                            AppIcon('magnifyingglass', size: 16, color: c.ink3),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: TextField(
+                                controller: _controller,
+                                autofocus: true,
+                                onChanged: (v) => setState(() => _query = v),
+                                cursorColor: c.accent,
+                                style: AppFonts.sf(
+                                    size: 17, color: c.ink, letterSpacing: -0.43),
+                                decoration: InputDecoration(
+                                  isDense: true,
+                                  border: InputBorder.none,
+                                  contentPadding: EdgeInsets.zero,
+                                  hintText: 'Search your timeline',
+                                  hintStyle: AppFonts.sf(
+                                      size: 17,
+                                      color: c.ink3,
+                                      letterSpacing: -0.43),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    NavAction(
+                      label: 'Done',
+                      onTap: () => Navigator.of(context).pop(),
+                      semanticLabel: 'Close search',
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: results.isEmpty
+                    ? Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(24),
+                          child: Text(
+                              _query.trim().isEmpty
+                                  ? 'Nothing logged yet.'
+                                  : 'No matches.',
+                              textAlign: TextAlign.center,
+                              style: AppFonts.sf(
+                                  size: 15,
+                                  color: c.ink3,
+                                  letterSpacing: -0.24)),
+                        ),
+                      )
+                    : ListView(
+                        controller: scrollController,
+                        padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+                        children: [
+                          Container(
+                            decoration: BoxDecoration(
+                                color: c.surface,
+                                borderRadius: BorderRadius.circular(14)),
+                            clipBehavior: Clip.antiAlias,
+                            child: Column(
+                              children: [
+                                for (var i = 0; i < results.length; i++)
+                                  _TimelineRow(
+                                      entry: results[i],
+                                      last: i == results.length - 1),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 

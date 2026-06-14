@@ -67,6 +67,15 @@ class EveningCloseOutScreen extends ConsumerWidget {
     final total = evening?.steps.length ?? 0;
     final done = evening == null ? 0 : state!.doneCount(evening.id);
     final allDone = total > 0 && done == total;
+    final remaining = total - done;
+    final closeTail = switch (remaining) {
+      0 => 'Ring closed — rest easy.',
+      1 => 'One more to close the ring.',
+      _ => '$remaining more to close the ring.',
+    };
+    final closeOutSummary = total == 0
+        ? 'No wind-down steps yet.'
+        : '$done of $total steps done. $closeTail';
 
     // The evening steps as ordered rows, tracking the first incomplete one for
     // the "Now" highlight (lands on Reflect last — the step that closes the ring).
@@ -154,7 +163,7 @@ class EveningCloseOutScreen extends ConsumerWidget {
                         height: 1.15)),
                 const SizedBox(height: 10),
                 Text(
-                  '$done of $total rituals done. One more to close the ring.',
+                  closeOutSummary,
                   style: AppFonts.sf(
                       size: 15,
                       color: _white65,

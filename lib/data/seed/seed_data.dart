@@ -171,9 +171,9 @@ class SeedData {
           kind: NoteKind.spotted,
           category: EntryType.money,
           icon: 'cup.and.saucer.fill',
-          title: 'Fourth Verve this week',
-          body: "You've spent \$23 at Verve since Monday — 1.7× your usual "
-              'pace. Dial back, or re-budget?',
+          title: 'Four Verve runs last week',
+          body: "You spent \$23 at Verve over the past 7 days — 1.7× your usual "
+              'pace. Dial back this week, or re-budget?',
           actionLabel: 'Ask Pal',
           unread: true,
         ),
@@ -183,7 +183,7 @@ class SeedData {
           kind: NoteKind.spotted,
           category: EntryType.move,
           icon: 'fork.knife',
-          title: 'You skipped lunch Tuesday',
+          title: 'You skipped lunch Sunday',
           body: 'No food logged between breakfast and 6pm — and you still ran '
               '4.8km after. Just noticed.',
           actionLabel: 'Log it',
@@ -220,7 +220,7 @@ class SeedData {
           category: EntryType.money,
           icon: 'bell.fill',
           title: 'Rent auto-pays Monday',
-          body: '\$2,400 from Chase ··0427 on Apr 28. Balance looks fine — '
+          body: '\$2,400 from Chase ··0427 on Jun 15. Balance looks fine — '
               '\$4,192 after.',
           actionLabel: 'View bill',
           unread: false,
@@ -756,6 +756,38 @@ class SeedData {
   /// `todayEntries` but as rich [Entry]s. The strength entry is linked to the
   /// seeded push workout via [Entry.workoutId].
   static List<Entry> entries() => [
+        // Earliest entry — anchors "Tracking since" so tenure predates the
+        // 11-day workout / 12-day routine streaks (otherwise it reads "0 days").
+        Entry(
+          id: 'seed-entry-first-run',
+          timestamp: _daysAgoAt(14, 7, 20),
+          type: EntryType.move,
+          title: 'Run · first log',
+          detail: '3.2 km · 17:40',
+          duration: 18,
+          calories: 198,
+          distance: 3.2,
+          source: EntrySource.health,
+        ),
+        // Backfill: a real 11-day move streak (today + the previous 10 days) so
+        // the streak surfaces and the "11-day workout streak" copy is truthful.
+        // Days 11-13 stay empty so the streak stops at 11 (the day-14 first-run
+        // entry above only anchors "Tracking since").
+        ...List<Entry>.generate(10, (i) {
+          final daysAgo = i + 1; // 1..10
+          final isRun = daysAgo.isEven;
+          return Entry(
+            id: 'seed-entry-streak-$daysAgo',
+            timestamp: _daysAgoAt(daysAgo, 7, 30),
+            type: EntryType.move,
+            title: isRun ? 'Run · morning loop' : 'Walk · neighborhood',
+            detail: isRun ? '4.6 km · 23:30' : '32 min',
+            duration: isRun ? 23 : 32,
+            calories: isRun ? 268 : 175,
+            distance: isRun ? 4.6 : null,
+            source: EntrySource.health,
+          );
+        }),
         Entry(
           id: 'seed-entry-step-morning-0',
           timestamp: _todayAt(6, 42),
@@ -820,7 +852,7 @@ class SeedData {
           type: EntryType.move,
           title: 'Strength · push',
           detail: 'Push day · gym',
-          duration: 42,
+          duration: 52,
           calories: 312,
           source: EntrySource.manual,
           workoutId: 'seed-workout-today-push',

@@ -311,6 +311,9 @@ PalService palService(Ref ref) {
     httpClient: httpClient,
     tokens: tokens,
     context: context,
+    // period-stable replies (insights, review) are cached client-side, keyed by
+    // their request context, so a closed week/month doesn't re-bill an LLM call.
+    cache: PrefsPalCache(ref.watch(sharedPreferencesProvider)),
     timeout: const Duration(seconds: 30),
   );
 }

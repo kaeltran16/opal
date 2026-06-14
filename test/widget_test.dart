@@ -38,10 +38,10 @@ void main() {
     // Nav title + the Today tab label both read "Today".
     expect(find.text('Today'), findsWidgets);
     expect(find.text('PAL NOTICED'), findsOneWidget);
-    // The 3-up summary row is present.
-    expect(find.text('Spent'), findsWidgets);
-    expect(find.text('Workout'), findsWidgets);
-    expect(find.text('Routines'), findsWidgets);
+    // The ring stats (RingStat uppercases its label) are present.
+    expect(find.text('SPENT'), findsWidgets);
+    expect(find.text('WORKOUT'), findsWidgets);
+    expect(find.text('ROUTINES'), findsWidgets);
 
     await flushProviderTimers(tester);
   });

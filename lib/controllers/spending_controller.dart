@@ -33,7 +33,7 @@ enum DetailTracker {
     colorToken: 'move',
     askPalPrompt: 'Ask Pal about workouts',
     unbudgetedLabel: 'Other',
-    heroSub: 'Minutes logged',
+    heroSub: 'Active energy',
     heroIcon: 'figure.run',
     recentHeader: "Today's workouts",
   ),
@@ -84,13 +84,14 @@ enum DetailTracker {
   final String recentHeader;
 
   /// Magnitude of one entry for totals/breakdown. For money this is the
-  /// absolute expense amount; Move/Rituals override to minutes/count.
+  /// absolute expense amount; Move is active energy in kcal (same source as
+  /// Today), Rituals counts one per entry.
   double magnitudeOf(Entry e) {
     switch (this) {
       case DetailTracker.money:
         return (e.amount ?? 0) < 0 ? e.amount!.abs() : 0;
       case DetailTracker.move:
-        return (e.duration ?? 0).toDouble();
+        return (e.calories ?? 0).toDouble();
       case DetailTracker.rituals:
         return 1;
     }
@@ -196,16 +197,26 @@ class DetailData {
 
 /// Builds a [DetailData] from a list of [Entry]s for the given [tracker].
 /// Extracted from the provider so it can be tested directly with fixtures.
+///
+/// [routines] supplies the Rituals tracker its hero numerator/denominator:
+/// completed routines (every step done today) ÷ total routine count — the same
+/// semantics as the Today screen. When empty (money/move, or tests/pre-load)
+/// the rituals hero falls back to the legacy per-step count vs
+/// [Goals.dailyRitualTarget].
 DetailData buildDetailData(
   DetailTracker tracker,
   List<Entry> entries,
-  Goals goals,
-) {
+  Goals goals, {
+  List<RitualRoutine> routines = const [],
+}) {
   final included = entries.where(tracker.includes).toList();
 
   // --- Total -----------------------------------------------------------------
-  final total =
-      included.fold<double>(0, (s, e) => s + tracker.magnitudeOf(e));
+  // Rituals counts completed *routines* (every step done) when routine data is
+  // known; otherwise the per-entry magnitude fold below. Money/move always fold.
+  final total = tracker == DetailTracker.rituals && routines.isNotEmpty
+      ? _completedRoutines(entries, routines).toDouble()
+      : included.fold<double>(0, (s, e) => s + tracker.magnitudeOf(e));
 
   // --- Category breakdown ----------------------------------------------------
   final byCategory = <String, double>{};
@@ -237,13 +248,32 @@ DetailData buildDetailData(
       .toList()
     ..sort((a, b) => b.day.compareTo(a.day));
 
+  // Rituals denominator is the routine count when known (matches Today); money
+  // and move use the goal off [Goals], as does the rituals legacy fallback.
+  final target = tracker == DetailTracker.rituals && routines.isNotEmpty
+      ? routines.length.toDouble()
+      : tracker.targetOf(goals);
+
   return DetailData(
     tracker: tracker,
     total: total,
-    target: tracker.targetOf(goals),
+    target: target,
     categories: categories,
     days: days,
   );
+}
+
+/// Number of fully-completed routines today: a routine is complete only when
+/// every one of its steps has a matching ritual [Entry] (`ritualId == step.id`).
+/// Mirrors the Today screen's routine-completion semantics.
+int _completedRoutines(List<Entry> entries, List<RitualRoutine> routines) {
+  final done = entries
+      .where((e) => e.type == EntryType.rituals && e.ritualId != null)
+      .map((e) => e.ritualId!)
+      .toSet();
+  return routines
+      .where((r) => r.steps.isNotEmpty && r.steps.every((s) => done.contains(s.id)))
+      .length;
 }
 
 /// Streams the [DetailData] for a [tracker]. Reactive: re-emits whenever the
@@ -253,10 +283,16 @@ DetailData buildDetailData(
 Stream<DetailData> detailData(Ref ref, DetailTracker tracker) async* {
   final entriesRepo = ref.watch(entryRepositoryProvider);
   final goalsRepo = ref.watch(goalsRepositoryProvider);
+  final ritualRepo = ref.watch(ritualRepositoryProvider);
 
   await for (final entries in entriesRepo.watchAll()) {
     final goals = await goalsRepo.get();
-    yield buildDetailData(tracker, entries, goals);
+    // Rituals hero counts completed routines ÷ routine count (matches Today);
+    // other trackers don't need routine structure.
+    final routines = tracker == DetailTracker.rituals
+        ? await ritualRepo.getAll()
+        : const <RitualRoutine>[];
+    yield buildDetailData(tracker, entries, goals, routines: routines);
   }
 }
 

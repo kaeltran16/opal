@@ -1,13 +1,15 @@
 import 'dart:math' as math;
 
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../controllers/weekly_plan_controller.dart';
+import '../../router.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_text.dart';
 import '../../widgets/app_icon.dart';
+import '../../widgets/inset_section.dart';
 import '../../widgets/nav_bar.dart';
 import '../../widgets/press_scale.dart';
 
@@ -69,7 +71,11 @@ class WeeklyPlanScreen extends ConsumerWidget {
                 onTap: () => context.pop(),
                 semanticLabel: 'Back',
               ),
-              const NavIconButton(name: 'ellipsis', semanticLabel: 'More options'),
+              NavIconButton(
+                name: 'ellipsis',
+                semanticLabel: 'More options',
+                onTap: () => _showPlanMenu(context),
+              ),
             ],
           ),
         ),
@@ -168,6 +174,44 @@ class WeeklyPlanScreen extends ConsumerWidget {
       ),
     );
   }
+}
+
+/// Overflow ("…") menu for the Weekly Plan: shortcuts to start today's session
+/// or add a routine. Matches the app's bottom-sheet menu convention.
+Future<void> _showPlanMenu(BuildContext context) {
+  final c = context.colors;
+  return showModalBottomSheet<void>(
+    context: context,
+    backgroundColor: c.bg,
+    builder: (sheetContext) => SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.only(top: 8, bottom: 8),
+        child: InsetSection(
+          children: [
+            ListRow(
+              icon: 'play.fill',
+              iconBg: c.move,
+              title: 'Start workout',
+              onTap: () {
+                Navigator.of(sheetContext).pop();
+                context.go('/move/start');
+              },
+            ),
+            ListRow(
+              icon: 'plus',
+              iconBg: c.accent,
+              title: 'New routine',
+              last: true,
+              onTap: () {
+                Navigator.of(sheetContext).pop();
+                context.pushNamed(AppRoute.routineEditor.name);
+              },
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
 }
 
 /// One day chip in the week strip: letter + 36px circle + completion dot.
