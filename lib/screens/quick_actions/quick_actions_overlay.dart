@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../theme/app_colors.dart';
-import '../../theme/app_text.dart';
+import '../../theme/theme.dart';
 import '../../widgets/app_icon.dart';
 import '../../widgets/press_scale.dart';
 import '../../router.dart';
@@ -69,7 +68,7 @@ class QuickActionsOverlay extends StatelessWidget {
               onTap: () => _close(context),
               child: FadeTransition(
                 opacity: anim,
-                child: const ColoredBox(color: Color(0x66000000)), // rgba(0,0,0,0.4)
+                child: ColoredBox(color: c.scrim),
               ),
             ),
           ),
@@ -89,12 +88,13 @@ class QuickActionsOverlay extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: c.surface,
                     borderRadius: const BorderRadius.vertical(
-                        top: Radius.circular(18)),
+                        top: Radius.circular(Radii.lg)),
                   ),
                   child: SafeArea(
                     top: false,
                     child: Padding(
-                      padding: const EdgeInsets.fromLTRB(12, 6, 12, 12),
+                      padding: const EdgeInsets.fromLTRB(
+                          Spacing.md, Spacing.sm, Spacing.md, Spacing.md),
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -104,20 +104,20 @@ class QuickActionsOverlay extends StatelessWidget {
                             child: Container(
                               width: 36,
                               height: 5,
-                              margin: const EdgeInsets.only(bottom: 14),
+                              margin: const EdgeInsets.only(bottom: Spacing.lg),
                               decoration: BoxDecoration(
                                 color: c.hair,
-                                borderRadius: BorderRadius.circular(3),
+                                borderRadius: BorderRadius.circular(Radii.xs),
                               ),
                             ),
                           ),
                           Padding(
-                            padding: const EdgeInsets.fromLTRB(6, 0, 6, 8),
+                            padding: const EdgeInsets.fromLTRB(
+                                Spacing.sm, 0, Spacing.sm, Spacing.sm),
                             child: Text(
                               'QUICK ACTIONS',
-                              style: AppFonts.sf(
-                                size: 11,
-                                weight: FontWeight.w700,
+                              style: AppType.caption2.copyWith(
+                                fontWeight: FontWeight.w700,
                                 color: c.ink3,
                                 letterSpacing: 0.5,
                               ),
@@ -179,7 +179,8 @@ class _ActionRow extends StatelessWidget {
               ? Border(bottom: BorderSide(color: c.hair, width: 0.5))
               : null,
         ),
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+        padding: const EdgeInsets.symmetric(
+            horizontal: Spacing.md, vertical: Spacing.md),
         child: Row(
           children: [
             Container(
@@ -187,21 +188,20 @@ class _ActionRow extends StatelessWidget {
               height: 44,
               decoration: BoxDecoration(
                 color: color.withValues(alpha: 0.13),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(Radii.md),
               ),
               alignment: Alignment.center,
               child: AppIcon(spec.icon, size: 20, color: color),
             ),
-            const SizedBox(width: 14),
+            const SizedBox(width: Spacing.lg),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     spec.title,
-                    style: AppFonts.sf(
-                      size: 16,
-                      weight: FontWeight.w600,
+                    style: AppType.callout.copyWith(
+                      fontWeight: FontWeight.w600,
                       color: c.ink,
                       letterSpacing: -0.3,
                     ),
@@ -209,8 +209,7 @@ class _ActionRow extends StatelessWidget {
                   const SizedBox(height: 1),
                   Text(
                     spec.subtitle,
-                    style: AppFonts.sf(
-                      size: 13,
+                    style: AppType.footnote.copyWith(
                       color: c.ink3,
                       letterSpacing: -0.08,
                     ),
@@ -218,7 +217,7 @@ class _ActionRow extends StatelessWidget {
                 ],
               ),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: Spacing.sm),
             AppIcon('chevron.right', size: 14, color: c.ink4),
           ],
         ),
