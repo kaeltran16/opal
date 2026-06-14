@@ -1,7 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/widgets.dart';
-import '../theme/app_colors.dart';
+import '../theme/theme.dart';
 
 /// Apple-Health-style nested rings: money (outer), move (middle), rituals (inner).
 /// Values are 0..1+ progress fractions; each ring fills clockwise from 12 o'clock.

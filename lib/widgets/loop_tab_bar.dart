@@ -1,7 +1,6 @@
 import 'dart:ui' show ImageFilter;
 import 'package:flutter/widgets.dart';
-import '../theme/app_colors.dart';
-import '../theme/app_text.dart';
+import '../theme/theme.dart';
 import 'app_icon.dart';
 import 'press_scale.dart';
 
@@ -40,7 +39,7 @@ class LoopTabBar extends StatelessWidget {
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
         child: Container(
-          padding: const EdgeInsets.only(top: 8, bottom: 24),
+          padding: const EdgeInsets.only(top: Spacing.sm, bottom: Spacing.xxl),
           decoration: BoxDecoration(
             color: c.blur,
             border: Border(top: BorderSide(color: c.hair, width: 0.5)),
@@ -81,16 +80,16 @@ class _TabItem extends StatelessWidget {
       onTap: onTap,
       semanticLabel: '${tab.label} tab',
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4),
+        padding: const EdgeInsets.symmetric(vertical: Spacing.xs),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             AppIcon(tab.icon, size: 24, color: color),
-            const SizedBox(height: 3),
+            const SizedBox(height: Spacing.xs),
             Text(
               tab.label,
-              style: AppFonts.sf(
-                  size: 10, weight: FontWeight.w500, color: color, letterSpacing: 0.1),
+              style: AppType.caption2
+                  .copyWith(fontWeight: FontWeight.w500, color: color, letterSpacing: 0.1),
             ),
           ],
         ),
@@ -113,16 +112,17 @@ class _Fab extends StatelessWidget {
       child: Container(
         width: 50,
         height: 50,
-        margin: const EdgeInsets.only(bottom: 2),
+        margin: const EdgeInsets.only(bottom: Spacing.xxs),
         decoration: BoxDecoration(
           color: c.accent,
           shape: BoxShape.circle,
+          // accent-tinted glow (not a neutral elevation shadow) — kept inline.
           boxShadow: [
             BoxShadow(color: c.accent.withValues(alpha: 0.4), blurRadius: 14, offset: const Offset(0, 4)),
           ],
         ),
         alignment: Alignment.center,
-        child: const AppIcon('plus', size: 22, color: Color(0xFFFFFFFF)),
+        child: AppIcon('plus', size: 22, color: c.onAccent),
       ),
     );
   }

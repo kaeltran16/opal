@@ -1,6 +1,5 @@
 import 'package:flutter/widgets.dart';
-import '../theme/app_colors.dart';
-import '../theme/app_text.dart';
+import '../theme/theme.dart';
 import 'app_icon.dart';
 import 'press_scale.dart';
 
@@ -25,7 +24,7 @@ class LargeTitleNavBar extends StatelessWidget {
     final c = context.colors;
     return Container(
       color: c.bg,
-      padding: const EdgeInsets.fromLTRB(16, 56, 16, 8),
+      padding: const EdgeInsets.fromLTRB(Spacing.lg, 56, Spacing.lg, Spacing.sm),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -36,12 +35,10 @@ class LargeTitleNavBar extends StatelessWidget {
               children: [leading ?? const SizedBox.shrink(), trailing ?? const SizedBox.shrink()],
             ),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: Spacing.sm),
           Text(
             title,
-            style: AppFonts.sf(
-              size: 34,
-              weight: FontWeight.w700,
+            style: AppType.large.copyWith(
               color: c.ink,
               letterSpacing: 0.37,
               height: 41 / 34,
@@ -49,10 +46,10 @@ class LargeTitleNavBar extends StatelessWidget {
           ),
           if (subtitle != null)
             Padding(
-              padding: const EdgeInsets.only(top: 2),
+              padding: const EdgeInsets.only(top: Spacing.xxs),
               child: Text(
                 subtitle!,
-                style: AppFonts.sf(size: 15, color: c.ink3, letterSpacing: -0.24),
+                style: AppType.subhead.copyWith(color: c.ink3, letterSpacing: -0.24),
               ),
             ),
         ],
@@ -159,8 +156,8 @@ class _CollapsingNavDelegate extends SliverPersistentHeaderDelegate {
           // exactly once in the tree (compact OR large, never both at rest).
           if (largeOpacity > 0)
             Positioned(
-              left: 16,
-              right: 16,
+              left: Spacing.lg,
+              right: Spacing.lg,
               top: minExtent - shrinkOffset,
               child: Opacity(
                 opacity: largeOpacity,
@@ -169,9 +166,7 @@ class _CollapsingNavDelegate extends SliverPersistentHeaderDelegate {
                   children: [
                     Text(
                       title,
-                      style: AppFonts.sf(
-                        size: 34,
-                        weight: FontWeight.w700,
+                      style: AppType.large.copyWith(
                         color: c.ink,
                         letterSpacing: 0.37,
                         height: _titleH / 34,
@@ -179,11 +174,11 @@ class _CollapsingNavDelegate extends SliverPersistentHeaderDelegate {
                     ),
                     if (subtitle != null)
                       Padding(
-                        padding: const EdgeInsets.only(top: 2),
+                        padding: const EdgeInsets.only(top: Spacing.xxs),
                         child: Text(
                           subtitle!,
-                          style: AppFonts.sf(
-                              size: 15, color: c.ink3, letterSpacing: -0.24),
+                          style: AppType.subhead
+                              .copyWith(color: c.ink3, letterSpacing: -0.24),
                         ),
                       ),
                   ],
@@ -218,21 +213,16 @@ class _CollapsingNavDelegate extends SliverPersistentHeaderDelegate {
                         opacity: compactOpacity,
                         child: Text(
                           title,
-                          style: AppFonts.sf(
-                            size: 17,
-                            weight: FontWeight.w600,
-                            color: c.ink,
-                            letterSpacing: -0.43,
-                          ),
+                          style: AppType.headline.copyWith(color: c.ink),
                         ),
                       ),
                     if (leading != null)
                       Positioned(
-                          left: 16,
+                          left: Spacing.lg,
                           child: leading!),
                     if (trailing != null)
                       Positioned(
-                          right: 16,
+                          right: Spacing.lg,
                           child: trailing!),
                   ],
                 ),
@@ -318,23 +308,18 @@ class NavAction extends StatelessWidget {
       onTap: enabled ? onTap : null,
       semanticLabel: semanticLabel ?? label,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12),
+        padding: const EdgeInsets.symmetric(horizontal: Spacing.md),
         child: SizedBox(
           height: 44,
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               if (icon != null) AppIcon(icon!, size: 20, color: tint),
-              if (icon != null && label != null) const SizedBox(width: 2),
+              if (icon != null && label != null) const SizedBox(width: Spacing.xxs),
               if (label != null)
                 Text(
                   label!,
-                  style: AppFonts.sf(
-                    size: 17,
-                    weight: bold ? FontWeight.w600 : FontWeight.w400,
-                    color: tint,
-                    letterSpacing: -0.43,
-                  ),
+                  style: (bold ? AppType.headline : AppType.body).copyWith(color: tint),
                 ),
             ],
           ),

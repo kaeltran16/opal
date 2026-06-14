@@ -1,7 +1,6 @@
 import 'package:flutter/widgets.dart';
 
-import '../theme/app_colors.dart';
-import '../theme/app_text.dart';
+import '../theme/theme.dart';
 import 'app_icon.dart';
 
 /// A custom 3×4 numeric keypad (digits 0–9, a decimal key, and a delete key).
@@ -47,13 +46,13 @@ class Keypad extends StatelessWidget {
           ['.', '0', 'del'],
         ])
           Padding(
-            padding: const EdgeInsets.symmetric(vertical: 5),
+            padding: const EdgeInsets.symmetric(vertical: Spacing.xs),
             child: Row(
               children: [
                 for (final key in row)
                   Expanded(
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 5),
+                      padding: const EdgeInsets.symmetric(horizontal: Spacing.xs),
                       child: _Key(
                         token: key,
                         showDecimal: showDecimal,
@@ -117,7 +116,7 @@ class _Key extends StatelessWidget {
           height: 52,
           decoration: BoxDecoration(
             color: c.surface,
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(Radii.card),
           ),
           alignment: Alignment.center,
           child: _isDelete

@@ -1,6 +1,5 @@
 import 'package:flutter/widgets.dart';
-import '../theme/app_colors.dart';
-import '../theme/app_text.dart';
+import '../theme/theme.dart';
 import 'app_icon.dart';
 
 /// iOS inset-grouped section: optional uppercase header, rounded surface card,
@@ -11,7 +10,7 @@ class InsetSection extends StatelessWidget {
     required this.children,
     this.header,
     this.footer,
-    this.margin = const EdgeInsets.fromLTRB(16, 0, 16, 20),
+    this.margin = const EdgeInsets.fromLTRB(Spacing.lg, 0, Spacing.lg, Spacing.xl),
   });
 
   final List<Widget> children;
@@ -29,14 +28,14 @@ class InsetSection extends StatelessWidget {
         children: [
           if (header != null)
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+              padding: const EdgeInsets.fromLTRB(Spacing.lg, 0, Spacing.lg, Spacing.sm),
               child: Text(
                 header!.toUpperCase(),
-                style: AppFonts.sf(size: 13, color: c.ink3, letterSpacing: -0.08),
+                style: AppType.footnote.copyWith(color: c.ink3, letterSpacing: -0.08),
               ),
             ),
           ClipRRect(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(Radii.md),
             child: ColoredBox(
               color: c.surface,
               child: Column(children: children),
@@ -44,10 +43,10 @@ class InsetSection extends StatelessWidget {
           ),
           if (footer != null)
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+              padding: const EdgeInsets.fromLTRB(Spacing.lg, Spacing.sm, Spacing.lg, 0),
               child: Text(
                 footer!,
-                style: AppFonts.sf(size: 13, color: c.ink3, letterSpacing: -0.08),
+                style: AppType.footnote.copyWith(color: c.ink3, letterSpacing: -0.08),
               ),
             ),
         ],
@@ -112,7 +111,7 @@ class _ListRowState extends State<ListRow> {
           child: Stack(
             children: [
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(horizontal: Spacing.lg, vertical: Spacing.sm),
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(minHeight: 44),
                   child: Row(
@@ -123,12 +122,12 @@ class _ListRowState extends State<ListRow> {
                           height: 29,
                           decoration: BoxDecoration(
                             color: widget.iconBg ?? c.accent,
-                            borderRadius: BorderRadius.circular(7),
+                            borderRadius: BorderRadius.circular(Radii.sm),
                           ),
                           alignment: Alignment.center,
-                          child: AppIcon(icon, size: 17, color: const Color(0xFFFFFFFF)),
+                          child: AppIcon(icon, size: 17, color: c.onAccent),
                         ),
-                        const SizedBox(width: 12),
+                        const SizedBox(width: Spacing.md),
                       ],
                       Expanded(
                         child: Column(
@@ -139,15 +138,15 @@ class _ListRowState extends State<ListRow> {
                               widget.title,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: AppFonts.sf(
-                                  size: 17, color: c.ink, letterSpacing: -0.43, height: 22 / 17),
+                              style: AppType.body.copyWith(color: c.ink, height: 22 / 17),
                             ),
                             if (widget.subtitle != null)
                               Padding(
                                 padding: const EdgeInsets.only(top: 1),
                                 child: Text(
                                   widget.subtitle!,
-                                  style: AppFonts.sf(size: 13, color: c.ink3, letterSpacing: -0.08),
+                                  style: AppType.footnote
+                                      .copyWith(color: c.ink3, letterSpacing: -0.08),
                                 ),
                               ),
                           ],
@@ -155,19 +154,17 @@ class _ListRowState extends State<ListRow> {
                       ),
                       if (widget.value != null)
                         Padding(
-                          padding: const EdgeInsets.only(left: 8),
+                          padding: const EdgeInsets.only(left: Spacing.sm),
                           child: Text(
                             widget.value!,
-                            style: AppFonts.sf(
-                                size: 17,
+                            style: AppType.body.copyWith(
                                 color: widget.valueColor ?? c.ink3,
-                                letterSpacing: -0.43,
-                                tabular: true),
+                                fontFeatures: const [FontFeature.tabularFigures()]),
                           ),
                         ),
                       if (widget.chevron)
                         Padding(
-                          padding: const EdgeInsets.only(left: 6),
+                          padding: const EdgeInsets.only(left: Spacing.sm),
                           child: AppIcon('chevron.right', size: 14, color: c.ink4),
                         ),
                     ],
@@ -176,7 +173,7 @@ class _ListRowState extends State<ListRow> {
               ),
               if (!widget.last)
                 Positioned(
-                  left: icon != null ? 57 : 16,
+                  left: icon != null ? 57 : Spacing.lg,
                   right: 0,
                   bottom: 0,
                   child: Container(height: 0.5, color: c.hair),
