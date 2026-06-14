@@ -77,7 +77,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     final settings = ref.read(settingsRepositoryProvider);
 
     try {
-      await settings.setDisplayName(_nameController.text);
+      await settings.setDisplayName(_nameController.text.trim());
 
       await goals.save(Goals(
         dailyBudget: _budget,
@@ -232,7 +232,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         ];
       case 2:
         return [
-          _BigValue(text: '$_moveKcal KCAL', color: c.ink),
+          _BigValue(text: '$_moveKcal kcal', color: c.ink),
           const SizedBox(height: 24),
           _ChipRow(
             labels: [for (final m in _moveOptions) '$m kcal'],

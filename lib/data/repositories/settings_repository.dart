@@ -86,6 +86,12 @@ class SettingsRepository {
   /// The user's display name, captured during onboarding. Empty when unset.
   String get displayName => _prefs.getString(_kDisplayName) ?? '';
 
+  /// The display name, or the app default ('You') when unset.
+  String get displayNameOrDefault {
+    final n = displayName.trim();
+    return n.isEmpty ? 'You' : n;
+  }
+
   Future<void> setDisplayName(String name) =>
       _prefs.setString(_kDisplayName, name.trim());
 

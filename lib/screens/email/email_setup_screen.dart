@@ -31,7 +31,7 @@ class EmailSetupScreen extends ConsumerStatefulWidget {
 }
 
 class _EmailSetupScreenState extends ConsumerState<EmailSetupScreen> {
-  final _email = TextEditingController(text: 'mira@gmail.com');
+  final _email = TextEditingController();
   final _password = TextEditingController();
   final _host = TextEditingController(text: 'imap.gmail.com');
   final _port = TextEditingController(text: '993');
@@ -114,7 +114,7 @@ class _EmailSetupScreenState extends ConsumerState<EmailSetupScreen> {
                   textAlign: TextAlign.right,
                   keyboardType: TextInputType.emailAddress,
                   autocorrect: false,
-                  decoration: _fieldDecoration(),
+                  decoration: _fieldDecoration(hint: 'you@gmail.com'),
                   style: AppFonts.sf(size: 15, color: c.ink, letterSpacing: -0.24),
                 ),
               ),

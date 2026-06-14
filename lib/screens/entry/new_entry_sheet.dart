@@ -597,7 +597,7 @@ class _NewEntrySheetState extends ConsumerState<NewEntrySheet> {
       spacing: 8,
       runSpacing: 8,
       children: [
-        for (final p in _picks)
+        for (final p in _picks.where((p) => p.kind == _kind))
           _QuickPickTile(
             pick: p,
             color: c.forType(p.kind.entryType.wire),

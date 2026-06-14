@@ -15,7 +15,6 @@ import 'screens/pal/ask_pal_screen.dart';
 import 'screens/pal/pal_composer_screen.dart';
 import 'screens/pal/pal_inbox_screen.dart';
 import 'screens/profile/profile_screen.dart';
-import 'screens/quick_actions/quick_actions_overlay.dart';
 import 'screens/reflect/evening_close_out_screen.dart';
 import 'screens/reflect/streak_celebration_screen.dart';
 import 'screens/review/monthly_review_screen.dart';
@@ -75,7 +74,6 @@ enum AppRoute {
   about('about', 'about'), //                       -> /you/about
 
   // Modal sheets / focus routes (stubbed; built in later units).
-  quickActions('quickActions', '/quick-actions'), // U06
   newEntry('newEntry', '/entry/new'), //            U07
   askPal('askPal', '/pal'), //                      U16
   exerciseLibrary('exerciseLibrary', '/library'), // U11
@@ -282,27 +280,6 @@ GoRouter createRouter({
       ),
 
       // --- Modal / focus routes above the shell (full-screen for now) ---
-      // U06 — Quick Actions overlay: a transparent, non-opaque page above the
-      // shell so the dim backdrop shows the tabs behind it, with a scale-up +
-      // backdrop-fade entrance driven by the route animation.
-      GoRoute(
-        path: AppRoute.quickActions.path,
-        name: AppRoute.quickActions.name,
-        parentNavigatorKey: _rootNavigatorKey,
-        pageBuilder: (context, state) => CustomTransitionPage<void>(
-          key: state.pageKey,
-          opaque: false,
-          barrierDismissible: false,
-          fullscreenDialog: true,
-          transitionDuration: const Duration(milliseconds: 280),
-          reverseTransitionDuration: const Duration(milliseconds: 200),
-          // Feed the route's primary animation into the overlay so it drives
-          // its own backdrop fade + grid scale-up entrance.
-          transitionsBuilder: (context, animation, secondary, child) =>
-              QuickActionsOverlay(animation: animation),
-          child: const QuickActionsOverlay(),
-        ),
-      ),
       GoRoute(
         path: AppRoute.newEntry.path,
         name: AppRoute.newEntry.name,

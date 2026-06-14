@@ -318,14 +318,15 @@ class _StatPill extends StatelessWidget {
   }
 }
 
-class _ShareCard extends StatelessWidget {
+class _ShareCard extends ConsumerWidget {
   const _ShareCard({required this.streak, required this.filledDots});
   final int streak;
   final int filledDots;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final c = context.colors;
+    final who = ref.watch(settingsRepositoryProvider).displayNameOrDefault;
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
@@ -362,7 +363,7 @@ class _ShareCard extends StatelessWidget {
                         letterSpacing: -0.8,
                         height: 1.0)),
                 const SizedBox(height: 4),
-                Text('@mira · Opal',
+                Text('$who · Opal',
                     style: AppFonts.sf(
                         size: 12, color: c.ink3, letterSpacing: -0.08)),
               ],

@@ -105,3 +105,25 @@ Fixed via 9 parallel subagents + manual follow-ups. Verified: `flutter analyze` 
 **Seed re-anchored to run-date:** Inbox day-name/date drift, "tracking since" (added 14-day-ago entry → ~14 days), and a real **11-day move streak** backfilled (today + prior 10 days) so the "11-day workout streak" copy is now truthful. #11 (42→52 min) reconciled in seed; "Push Day A" 5-vs-2 exercises judged **structural** (template vs partial logged session) and left as-is.
 
 **Deferred (copy/design, not bugs — not yet done):** terminology sweep (rituals↔routines, movement↔workout, overloaded "×"), low-contrast tinted buttons, onboarding name validation, New-Entry quick-chip type filtering, exercise-icon fallback, redundant Pal surfaces, "You" vs "@mira" identity, close-out copy.
+
+---
+
+## Deferred pass (2026-06-15)
+
+Picked up the deferred copy/design items. `flutter analyze` clean (one pre-existing unrelated lint in `widget_sync_controller_test.dart`), `flutter test` 169/169 pass.
+
+**Done & verified (analyze + test):**
+- **Terminology — rituals→routines:** tab title was already "Routines"; **Close-Out** copy changed from "rituals" → "steps" (these count the Evening routine's *steps*, matching the Routines tab) and made **count-aware** (the always-"One more to close the ring" bug now reads "N more" / "Ring closed").
+- **movement→workouts:** Weekly Review lede now "spending, workouts, and routines".
+- **kcal casing:** standardized to lowercase "kcal" on Today (fixes the "KCAL / kcal within one card") and Onboarding.
+- **Low-contrast buttons:** Routines-tab `_StartButton` label now uses `ink2` (clears WCAG on the ~8% tint); colored icon retained for identity.
+- **New-Entry quick-chips:** now filtered by selected entry type (`_picks.where(kind == _kind)`) — no more Workout/Routine chips under Expense.
+- **Identity "You" vs "@mira":** Streak share card now uses the real display name (falls back to "You"); Gmail Setup email no longer prefilled with "mira@gmail.com" (empty + "you@gmail.com" hint).
+- **Onboarding name:** trimmed before save (whitespace-only → "You" fallback); optional-name design kept intentionally.
+- **Redundant Pal surfaces:** removed the orphaned **`/quick-actions`** overlay (route in `router.dart`, overlay set in `app.dart`, and `quick_actions_overlay.dart` deleted). `test/quick_actions_test.dart` is legacy-named but actually tests the FAB→Pal composer — left as-is.
+
+**Still deferred (judged out of scope / not a fix):**
+- **Overloaded "×":** semantic (same glyph, "3 × 1288kg" sets×volume vs "74×8" weight×reps), not a glyph inconsistency — would need a relabel.
+- **Exercise-icon fallback:** Back Squat/RDL DO map (`figure.strengthtraining.traditional` → barbell); the "generic" look is a Material **preview-substitution** limitation (correct SF Symbols on iOS). App-wide `iconForSf` fallback kept neutral.
+- **Unit drift tonnes↔t, EST:** contextual (spelled-out tile label vs inline compact) — left.
+- **Redundant Pal surfaces (broader):** Composer + Ask Pal + Inbox overlap is a larger design consolidation, not done.

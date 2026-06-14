@@ -94,7 +94,6 @@ class _LoopAppState extends ConsumerState<LoopApp> {
       '/pal-inbox',
       '/pal',
       '/entry/new',
-      '/quick-actions',
       '/post-workout',
       '/monthly-review',
       '/close-out',

@@ -29,7 +29,7 @@ class ProfileScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final c = context.colors;
     final async = ref.watch(goalsStreamProvider);
-    final name = ref.watch(settingsRepositoryProvider).displayName;
+    final name = ref.watch(settingsRepositoryProvider).displayNameOrDefault;
     final stats = ref.watch(profileStatsProvider).asData?.value;
     final memberSince = stats?.memberSince;
     final routineCount = stats?.routineCount ?? 0;
@@ -157,7 +157,7 @@ class _ProfileBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    final displayName = name.isEmpty ? 'You' : name;
+    final displayName = name;
     final initial = displayName.characters.first.toUpperCase();
     final now = DateTime.now();
 

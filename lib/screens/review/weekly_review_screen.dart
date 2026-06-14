@@ -26,7 +26,7 @@ class WeeklyReviewScreen extends ConsumerWidget {
 
   static const _fallbackHeadline = 'Your week in review';
   static const _fallbackLede =
-      'A look at how your spending, movement, and routines came together.';
+      'A look at how your spending, workouts, and routines came together.';
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
