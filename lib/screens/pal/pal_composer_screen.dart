@@ -7,8 +7,7 @@ import 'package:go_router/go_router.dart';
 import '../../controllers/pal_composer_controller.dart';
 import '../../models/models.dart';
 import '../../services/services.dart';
-import '../../theme/app_colors.dart';
-import '../../theme/app_text.dart';
+import '../../theme/theme.dart';
 import '../../widgets/app_icon.dart';
 import '../../widgets/press_scale.dart';
 
@@ -105,7 +104,7 @@ class _PalComposerSheetState extends ConsumerState<PalComposerSheet> {
         constraints: BoxConstraints(maxHeight: media.size.height * 0.92 - keyboard),
         decoration: BoxDecoration(
           color: c.surface,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(Radii.lg)),
         ),
         clipBehavior: Clip.antiAlias,
         child: SafeArea(
@@ -150,31 +149,30 @@ class _Header extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+      padding: const EdgeInsets.fromLTRB(Spacing.lg, Spacing.sm, Spacing.lg, Spacing.sm),
       child: Column(
         children: [
           Container(
             width: 36,
             height: 5,
-            margin: const EdgeInsets.only(bottom: 12),
+            margin: const EdgeInsets.only(bottom: Spacing.md),
             decoration: BoxDecoration(
               color: c.hair,
-              borderRadius: BorderRadius.circular(3),
+              borderRadius: BorderRadius.circular(Radii.xs),
             ),
           ),
           Row(
             children: [
               const _PalAvatar(size: 32, glyphSize: 16),
-              const SizedBox(width: 10),
+              const SizedBox(width: Spacing.md),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       'Pal',
-                      style: AppFonts.sf(
-                        size: 15,
-                        weight: FontWeight.w600,
+                      style: AppType.subhead.copyWith(
+                        fontWeight: FontWeight.w600,
                         color: c.ink,
                         letterSpacing: -0.24,
                       ),
@@ -190,11 +188,10 @@ class _Header extends StatelessWidget {
                             shape: BoxShape.circle,
                           ),
                         ),
-                        const SizedBox(width: 5),
+                        const SizedBox(width: Spacing.xs),
                         Text(
                           'Log, ask, or start anything',
-                          style: AppFonts.sf(
-                            size: 12,
+                          style: AppType.caption.copyWith(
                             color: c.ink3,
                             letterSpacing: -0.08,
                           ),
@@ -266,7 +263,7 @@ class _CompactBody extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 4, 12, 10),
+      padding: const EdgeInsets.fromLTRB(Spacing.md, Spacing.xs, Spacing.md, Spacing.md),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
@@ -278,10 +275,10 @@ class _CompactBody extends StatelessWidget {
               context.go('/move/start');
             },
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: Spacing.lg, vertical: Spacing.md),
               decoration: BoxDecoration(
                 color: c.moveTint,
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(Radii.card),
               ),
               child: Row(
                 children: [
@@ -290,22 +287,21 @@ class _CompactBody extends StatelessWidget {
                     height: 34,
                     decoration: BoxDecoration(
                       color: c.move,
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(Radii.md),
                     ),
                     alignment: Alignment.center,
                     child: AppIcon('play.fill', size: 14,
-                        color: const Color(0xFFFFFFFF)),
+                        color: c.onAccent),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: Spacing.md),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
                           'Start a workout',
-                          style: AppFonts.sf(
-                            size: 15,
-                            weight: FontWeight.w600,
+                          style: AppType.subhead.copyWith(
+                            fontWeight: FontWeight.w600,
                             color: c.ink,
                             letterSpacing: -0.24,
                           ),
@@ -313,8 +309,7 @@ class _CompactBody extends StatelessWidget {
                         const SizedBox(height: 1),
                         Text(
                           "Jump into a routine — I'll track it",
-                          style: AppFonts.sf(
-                            size: 12,
+                          style: AppType.caption.copyWith(
                             color: c.ink3,
                             letterSpacing: -0.08,
                           ),
@@ -322,27 +317,26 @@ class _CompactBody extends StatelessWidget {
                       ],
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: Spacing.sm),
                   AppIcon('chevron.right', size: 13, color: c.ink4),
                 ],
               ),
             ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: Spacing.md),
           Padding(
-            padding: const EdgeInsets.fromLTRB(4, 4, 4, 8),
+            padding: const EdgeInsets.fromLTRB(Spacing.xs, Spacing.xs, Spacing.xs, Spacing.sm),
             child: Text(
               'TRY SAYING',
-              style: AppFonts.sf(
-                size: 11,
-                weight: FontWeight.w700,
+              style: AppType.caption2.copyWith(
+                fontWeight: FontWeight.w700,
                 color: c.ink3,
                 letterSpacing: 0.5,
               ),
             ),
           ),
           for (var i = 0; i < _starters.length; i++) ...[
-            if (i > 0) const SizedBox(height: 6),
+            if (i > 0) const SizedBox(height: Spacing.sm),
             _StarterChip(
               starter: _starters[i],
               onTap: () => onSendStarter(_starters[i]),
@@ -379,21 +373,20 @@ class _StarterChip extends StatelessWidget {
       semanticLabel: starter.label,
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: Spacing.md, vertical: Spacing.md),
         decoration: BoxDecoration(
           color: c.surface,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(Radii.md),
           border: Border.all(color: c.hair, width: 0.5),
         ),
         child: Row(
           children: [
             AppIcon(starter.icon, size: 15, color: c.forType(starter.colorToken)),
-            const SizedBox(width: 10),
+            const SizedBox(width: Spacing.md),
             Expanded(
               child: Text(
                 starter.label,
-                style: AppFonts.sf(
-                  size: 14,
+                style: AppType.subhead.copyWith(
                   color: c.ink,
                   letterSpacing: -0.15,
                 ),
@@ -424,7 +417,7 @@ class _MessageList extends StatelessWidget {
     final itemCount = messages.length + (isLoading ? 1 : 0);
     return ListView.builder(
       controller: controller,
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+      padding: const EdgeInsets.fromLTRB(Spacing.lg, Spacing.md, Spacing.lg, Spacing.xs),
       itemCount: itemCount,
       itemBuilder: (context, i) {
         if (isLoading && i == itemCount - 1) {
@@ -452,8 +445,8 @@ class _Bubble extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     final isUser = !isTyping && message!.role == PalRole.user;
-    const radius = Radius.circular(18);
-    const tail = Radius.circular(5);
+    const radius = Radius.circular(Radii.lg);
+    const tail = Radius.circular(Radii.xs);
     final shape = BorderRadius.only(
       topLeft: radius,
       topRight: radius,
@@ -465,7 +458,7 @@ class _Bubble extends StatelessWidget {
       constraints: BoxConstraints(
         maxWidth: MediaQuery.sizeOf(context).width * 0.76,
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 9),
+      padding: const EdgeInsets.symmetric(horizontal: Spacing.md, vertical: Spacing.sm),
       decoration: BoxDecoration(
         color: isUser ? c.accent : c.fill,
         borderRadius: shape,
@@ -474,9 +467,8 @@ class _Bubble extends StatelessWidget {
           ? const _TypingDots()
           : Text(
               message!.text,
-              style: AppFonts.sf(
-                size: 15,
-                color: isUser ? const Color(0xFFFFFFFF) : c.ink,
+              style: AppType.subhead.copyWith(
+                color: isUser ? c.onAccent : c.ink,
                 letterSpacing: -0.24,
                 height: 1.4,
               ),
@@ -484,7 +476,7 @@ class _Bubble extends StatelessWidget {
     );
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.only(bottom: Spacing.sm),
       child: Row(
         mainAxisAlignment:
             isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
@@ -492,7 +484,7 @@ class _Bubble extends StatelessWidget {
         children: [
           if (!isUser) ...[
             const _PalAvatar(size: 24, glyphSize: 11),
-            const SizedBox(width: 8),
+            const SizedBox(width: Spacing.sm),
           ],
           Flexible(child: bubble),
         ],
@@ -531,7 +523,7 @@ class _TypingDotsState extends State<_TypingDots>
         mainAxisSize: MainAxisSize.min,
         children: [
           for (var i = 0; i < 3; i++) ...[
-            if (i > 0) const SizedBox(width: 5),
+            if (i > 0) const SizedBox(width: Spacing.xs),
             _Dot(t: _ctrl.value, phase: i / 3, color: c.ink3),
           ],
         ],
@@ -584,7 +576,7 @@ class _PalAvatar extends StatelessWidget {
         ),
       ),
       alignment: Alignment.center,
-      child: AppIcon('sparkles', size: glyphSize, color: const Color(0xFFFFFFFF)),
+      child: AppIcon('sparkles', size: glyphSize, color: c.onAccent),
     );
   }
 }
@@ -620,17 +612,17 @@ class _Composer extends StatelessWidget {
             ? Border(top: BorderSide(color: c.hair, width: 0.5))
             : null,
       ),
-      padding: const EdgeInsets.fromLTRB(12, 8, 12, 14),
+      padding: const EdgeInsets.fromLTRB(Spacing.md, Spacing.sm, Spacing.md, Spacing.lg),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           Expanded(
             child: Container(
               constraints: const BoxConstraints(minHeight: 38, maxHeight: 100),
-              padding: const EdgeInsets.symmetric(horizontal: 14),
+              padding: const EdgeInsets.symmetric(horizontal: Spacing.lg),
               decoration: BoxDecoration(
                 color: c.fill,
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(Radii.xl),
               ),
               child: Align(
                 alignment: Alignment.centerLeft,
@@ -643,7 +635,7 @@ class _Composer extends StatelessWidget {
                   textInputAction: TextInputAction.send,
                   cursorColor: c.accent,
                   onSubmitted: enabled ? (_) => onSend() : null,
-                  style: AppFonts.sf(size: 15, color: c.ink, letterSpacing: -0.24),
+                  style: AppType.subhead.copyWith(color: c.ink, letterSpacing: -0.24),
                   decoration: InputDecoration(
                     isDense: true,
                     // Match the handoff textarea's ~10px vertical padding;
@@ -653,14 +645,14 @@ class _Composer extends StatelessWidget {
                     contentPadding: const EdgeInsets.symmetric(vertical: 9),
                     border: InputBorder.none,
                     hintText: hint,
-                    hintStyle: AppFonts.sf(
-                        size: 15, color: c.ink3, letterSpacing: -0.24),
+                    hintStyle: AppType.subhead.copyWith(
+                        color: c.ink3, letterSpacing: -0.24),
                   ),
                 ),
               ),
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: Spacing.sm),
           PressScale(
             semanticLabel: 'Send',
             onTap: canSend ? onSend : null,
@@ -675,7 +667,7 @@ class _Composer extends StatelessWidget {
               child: AppIcon(
                 'arrow.up',
                 size: 17,
-                color: hasText ? const Color(0xFFFFFFFF) : c.ink4,
+                color: hasText ? c.onAccent : c.ink4,
               ),
             ),
           ),

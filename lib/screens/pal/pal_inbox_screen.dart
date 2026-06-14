@@ -4,8 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../controllers/pal_inbox_controller.dart';
 import '../../models/models.dart';
-import '../../theme/app_colors.dart';
-import '../../theme/app_text.dart';
+import '../../theme/theme.dart';
 import '../../widgets/app_icon.dart';
 import '../../widgets/nav_bar.dart';
 import '../../widgets/press_scale.dart';
@@ -27,16 +26,16 @@ class PalInboxScreen extends ConsumerWidget {
         color: c.bg,
         alignment: Alignment.center,
         child: Text('…',
-            style: AppFonts.sf(size: 17, color: c.ink3, letterSpacing: -0.43)),
+            style: AppType.body.copyWith(color: c.ink3)),
       ),
       error: (e, _) => Container(
         color: c.bg,
         alignment: Alignment.center,
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(Spacing.xxl),
           child: Text("Couldn't load your inbox. Try again in a moment.",
               textAlign: TextAlign.center,
-              style: AppFonts.sf(size: 15, color: c.ink3, letterSpacing: -0.24)),
+              style: AppType.subhead.copyWith(color: c.ink3, letterSpacing: -0.24)),
         ),
       ),
       data: (state) => _InboxBody(state: state),
@@ -58,11 +57,12 @@ class _InboxBody extends ConsumerWidget {
     return Container(
       color: c.bg,
       child: ListView(
-        padding: const EdgeInsets.only(bottom: 110),
+        padding: const EdgeInsets.only(bottom: 110), // bottom-nav clearance
         children: [
           // --- Nav: back to Today + Mark all read -----------------------------
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 56, 16, 8),
+            // top 56 = status-bar/safe-area offset, kept literal
+            padding: const EdgeInsets.fromLTRB(Spacing.lg, 56, Spacing.lg, Spacing.sm),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -83,7 +83,7 @@ class _InboxBody extends ConsumerWidget {
 
           // --- Title: gradient sparkle avatar + "Pal noticed" + sub -----------
           Padding(
-            padding: const EdgeInsets.fromLTRB(20, 4, 20, 14),
+            padding: const EdgeInsets.fromLTRB(Spacing.xl, Spacing.xs, Spacing.xl, Spacing.lg),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -100,6 +100,7 @@ class _InboxBody extends ConsumerWidget {
                           colors: [c.accent, c.rituals],
                         ),
                         boxShadow: [
+                          // accent glow (not neutral elevation) — kept inline
                           BoxShadow(
                             color: c.accent.withValues(alpha: 0.33),
                             blurRadius: 14,
@@ -108,26 +109,24 @@ class _InboxBody extends ConsumerWidget {
                         ],
                       ),
                       alignment: Alignment.center,
-                      child: const AppIcon('sparkles',
-                          size: 16, color: Color(0xFFFFFFFF)),
+                      child: AppIcon('sparkles',
+                          size: 16, color: c.onAccent),
                     ),
-                    const SizedBox(width: 10),
+                    const SizedBox(width: Spacing.md),
                     Text('Pal noticed',
-                        style: AppFonts.sf(
-                            size: 28,
-                            weight: FontWeight.w700,
+                        style: AppType.title1.copyWith(
                             color: c.ink,
                             letterSpacing: -0.3,
                             height: 1)),
                   ],
                 ),
                 Padding(
-                  padding: const EdgeInsets.only(top: 8),
+                  padding: const EdgeInsets.only(top: Spacing.sm),
                   child: unread > 0
                       ? Text.rich(
                           TextSpan(
-                            style: AppFonts.sf(
-                                size: 15, color: c.ink3, letterSpacing: -0.24),
+                            style: AppType.subhead.copyWith(
+                                color: c.ink3, letterSpacing: -0.24),
                             children: [
                               TextSpan(
                                   text: '$unread new',
@@ -141,8 +140,8 @@ class _InboxBody extends ConsumerWidget {
                           ),
                         )
                       : Text('All caught up · a quiet inbox, not an anxious one',
-                          style: AppFonts.sf(
-                              size: 15, color: c.ink3, letterSpacing: -0.24)),
+                          style: AppType.subhead.copyWith(
+                              color: c.ink3, letterSpacing: -0.24)),
                 ),
               ],
             ),
@@ -153,7 +152,7 @@ class _InboxBody extends ConsumerWidget {
             height: 36,
             child: ListView(
               scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+              padding: const EdgeInsets.symmetric(horizontal: Spacing.lg),
               children: [
                 _FilterChip(
                   label: 'All',
@@ -161,28 +160,28 @@ class _InboxBody extends ConsumerWidget {
                   active: state.filter == InboxFilter.all,
                   onTap: () => controller.setFilter(InboxFilter.all),
                 ),
-                const SizedBox(width: 6),
+                const SizedBox(width: Spacing.sm),
                 _FilterChip(
                   label: 'Unread',
                   count: unread,
                   active: state.filter == InboxFilter.unread,
                   onTap: () => controller.setFilter(InboxFilter.unread),
                 ),
-                const SizedBox(width: 6),
+                const SizedBox(width: Spacing.sm),
                 _FilterChip(
                   label: 'Money',
                   dotColor: c.money,
                   active: state.filter == InboxFilter.money,
                   onTap: () => controller.setFilter(InboxFilter.money),
                 ),
-                const SizedBox(width: 6),
+                const SizedBox(width: Spacing.sm),
                 _FilterChip(
                   label: 'Workout',
                   dotColor: c.move,
                   active: state.filter == InboxFilter.move,
                   onTap: () => controller.setFilter(InboxFilter.move),
                 ),
-                const SizedBox(width: 6),
+                const SizedBox(width: Spacing.sm),
                 _FilterChip(
                   label: 'Routines',
                   dotColor: c.rituals,
@@ -192,29 +191,30 @@ class _InboxBody extends ConsumerWidget {
               ],
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: Spacing.lg),
 
           // --- Timeline -------------------------------------------------------
           if (visible.isEmpty)
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 40, 20, 40),
+              // 40 vertical = deliberate empty-state breathing room, kept literal
+              padding: const EdgeInsets.fromLTRB(Spacing.xl, 40, Spacing.xl, 40),
               child: Text('Nothing here. A quiet Pal is a happy Pal.',
                   textAlign: TextAlign.center,
                   style:
-                      AppFonts.sf(size: 14, color: c.ink3, letterSpacing: -0.15)),
+                      AppType.footnote.copyWith(color: c.ink3, letterSpacing: -0.15)),
             )
           else
             for (var i = 0; i < visible.length; i++) ...[
-              if (i > 0) const SizedBox(height: 8),
+              if (i > 0) const SizedBox(height: Spacing.sm),
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
+                padding: const EdgeInsets.symmetric(horizontal: Spacing.lg),
                 child: _NoteCard(note: visible[i]),
               ),
             ],
 
           // --- Footer: tune what Pal notices ----------------------------------
           Padding(
-            padding: const EdgeInsets.fromLTRB(20, 18, 20, 8),
+            padding: const EdgeInsets.fromLTRB(Spacing.xl, Spacing.xl, Spacing.xl, Spacing.sm),
             child: Center(
               // no onTap yet — render as a plain label so screen readers don't
               // announce a dead button.
@@ -222,10 +222,10 @@ class _InboxBody extends ConsumerWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   AppIcon('gearshape.fill', size: 12, color: c.ink3),
-                  const SizedBox(width: 6),
+                  const SizedBox(width: Spacing.sm),
                   Text('Tune what Pal notices',
-                      style: AppFonts.sf(
-                          size: 13, color: c.ink3, letterSpacing: -0.08)),
+                      style: AppType.footnote.copyWith(
+                          color: c.ink3, letterSpacing: -0.08)),
                 ],
               ),
             ),
@@ -262,10 +262,10 @@ class _FilterChip extends StatelessWidget {
       onTap: onTap,
       semanticLabel: label,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12),
+        padding: const EdgeInsets.symmetric(horizontal: Spacing.md),
         decoration: BoxDecoration(
           color: active ? c.ink : c.surface,
-          borderRadius: BorderRadius.circular(100),
+          borderRadius: BorderRadius.circular(Radii.pill),
           border: Border.all(
               color: active ? c.ink : c.hair, width: 0.5),
         ),
@@ -280,20 +280,18 @@ class _FilterChip extends StatelessWidget {
                 decoration:
                     BoxDecoration(color: dotColor, shape: BoxShape.circle),
               ),
-              const SizedBox(width: 6),
+              const SizedBox(width: Spacing.sm),
             ],
             Text(label,
-                style: AppFonts.sf(
-                    size: 13,
-                    weight: FontWeight.w500,
+                style: AppType.footnote.copyWith(
+                    fontWeight: FontWeight.w500,
                     color: fg,
                     letterSpacing: -0.08)),
             if (count != null) ...[
-              const SizedBox(width: 4),
+              const SizedBox(width: Spacing.xs),
               Text('$count',
-                  style: AppFonts.sf(
-                      size: 11,
-                      weight: FontWeight.w600,
+                  style: AppType.caption2.copyWith(
+                      fontWeight: FontWeight.w600,
                       color: active
                           ? c.bg.withValues(alpha: 0.6)
                           : c.ink4)),
@@ -320,15 +318,15 @@ class _NoteCard extends ConsumerWidget {
 
     final card = Container(
       decoration: BoxDecoration(
-          color: c.surface, borderRadius: BorderRadius.circular(16)),
-      padding: const EdgeInsets.all(14),
+          color: c.surface, borderRadius: BorderRadius.circular(Radii.lg)),
+      padding: const EdgeInsets.all(Spacing.lg),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // unread indicator
           if (note.unread)
             Padding(
-              padding: const EdgeInsets.only(right: 8, top: 16),
+              padding: const EdgeInsets.only(right: Spacing.sm, top: Spacing.lg),
               child: Container(
                 width: 6,
                 height: 6,
@@ -341,11 +339,11 @@ class _NoteCard extends ConsumerWidget {
             width: 38,
             height: 38,
             decoration: BoxDecoration(
-                color: catColor, borderRadius: BorderRadius.circular(11)),
+                color: catColor, borderRadius: BorderRadius.circular(Radii.md)),
             alignment: Alignment.center,
-            child: AppIcon(note.icon, size: 16, color: const Color(0xFFFFFFFF)),
+            child: AppIcon(note.icon, size: 16, color: c.onAccent),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: Spacing.md),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -354,44 +352,41 @@ class _NoteCard extends ConsumerWidget {
                 Row(
                   children: [
                     Text(note.kind.label.toUpperCase(),
-                        style: AppFonts.sf(
-                            size: 11,
-                            weight: FontWeight.w700,
+                        style: AppType.caption2.copyWith(
+                            fontWeight: FontWeight.w700,
                             color: kindColor,
                             letterSpacing: 0.3)),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: Spacing.sm),
                     Container(
                       width: 3,
                       height: 3,
                       decoration:
                           BoxDecoration(color: c.ink4, shape: BoxShape.circle),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: Spacing.sm),
                     Text(_relativeTime(note.createdAt),
-                        style: AppFonts.sf(
-                            size: 11, color: c.ink3, letterSpacing: -0.08)),
+                        style: AppType.caption2.copyWith(
+                            color: c.ink3, letterSpacing: -0.08)),
                   ],
                 ),
-                const SizedBox(height: 3),
+                const SizedBox(height: Spacing.xs),
                 Text(note.title,
-                    style: AppFonts.sf(
-                        size: 15,
-                        weight: FontWeight.w600,
+                    style: AppType.subhead.copyWith(
+                        fontWeight: FontWeight.w600,
                         color: c.ink,
                         letterSpacing: -0.24,
                         height: 1.3)),
                 Padding(
-                  padding: const EdgeInsets.only(top: 4),
+                  padding: const EdgeInsets.only(top: Spacing.xs),
                   child: Text(note.body,
-                      style: AppFonts.sf(
-                          size: 13,
+                      style: AppType.footnote.copyWith(
                           color: c.ink2,
                           letterSpacing: -0.08,
                           height: 1.45)),
                 ),
                 if (note.actionLabel != null)
                   Padding(
-                    padding: const EdgeInsets.only(top: 10),
+                    padding: const EdgeInsets.only(top: Spacing.md),
                     child: PressScale(
                       onTap: () {
                         ref
@@ -403,14 +398,13 @@ class _NoteCard extends ConsumerWidget {
                       semanticLabel: note.actionLabel,
                       child: Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 6),
+                            horizontal: Spacing.md, vertical: Spacing.sm),
                         decoration: BoxDecoration(
                             color: c.fill,
-                            borderRadius: BorderRadius.circular(100)),
+                            borderRadius: BorderRadius.circular(Radii.pill)),
                         child: Text(note.actionLabel!,
-                            style: AppFonts.sf(
-                                size: 12,
-                                weight: FontWeight.w600,
+                            style: AppType.caption.copyWith(
+                                fontWeight: FontWeight.w600,
                                 color: c.ink,
                                 letterSpacing: -0.08)),
                       ),

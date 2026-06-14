@@ -6,8 +6,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../controllers/ask_pal_controller.dart';
 import '../../services/services.dart';
-import '../../theme/app_colors.dart';
-import '../../theme/app_text.dart';
+import '../../theme/theme.dart';
 import '../../widgets/app_icon.dart';
 import '../../widgets/nav_bar.dart';
 import '../../widgets/press_scale.dart';
@@ -90,7 +89,7 @@ class _AskPalScreenState extends ConsumerState<AskPalScreen> {
                     )
                   : ListView.builder(
                       controller: _scrollCtrl,
-                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                      padding: const EdgeInsets.fromLTRB(Spacing.lg, Spacing.sm, Spacing.lg, Spacing.lg),
                       itemCount: itemCount,
                       itemBuilder: (context, i) {
                         if (state.isLoading && i == itemCount - 1) {
@@ -124,7 +123,7 @@ class _Header extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(8, 8, 16, 8),
+      padding: const EdgeInsets.fromLTRB(Spacing.sm, Spacing.sm, Spacing.lg, Spacing.sm),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -143,24 +142,21 @@ class _Header extends StatelessWidget {
             ],
           ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(8, 0, 8, 0),
+            padding: const EdgeInsets.fromLTRB(Spacing.sm, 0, Spacing.sm, 0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   'Ask Pal',
-                  style: AppFonts.sf(
-                    size: 34,
-                    weight: FontWeight.w700,
+                  style: AppType.large.copyWith(
                     color: c.ink,
                     letterSpacing: 0.37,
                   ),
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: Spacing.xxs),
                 Text(
                   'Your tracking companion',
-                  style: AppFonts.sf(
-                    size: 15,
+                  style: AppType.subhead.copyWith(
                     color: c.ink3,
                     letterSpacing: -0.24,
                   ),
@@ -191,18 +187,19 @@ class _Bubble extends StatelessWidget {
     final isUser = message.role == PalRole.user;
     final align = isUser ? Alignment.centerRight : Alignment.centerLeft;
     final bg = isUser ? c.accent : c.surface;
-    final fg = isUser ? const Color(0xFFFFFFFF) : c.ink;
-    const radius = Radius.circular(18);
+    final fg = isUser ? c.onAccent : c.ink;
+    const radius = Radius.circular(Radii.lg);
+    const tail = Radius.circular(Radii.xs);
     final shape = BorderRadius.only(
       topLeft: radius,
       topRight: radius,
-      bottomLeft: isUser ? radius : const Radius.circular(4),
-      bottomRight: isUser ? const Radius.circular(4) : radius,
+      bottomLeft: isUser ? radius : tail,
+      bottomRight: isUser ? tail : radius,
     );
     final showUndo = message.actions.isNotEmpty && !message.undone;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: Spacing.xs),
       child: Align(
         alignment: align,
         child: ConstrainedBox(
@@ -214,12 +211,11 @@ class _Bubble extends StatelessWidget {
                 isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                padding: const EdgeInsets.symmetric(horizontal: Spacing.lg, vertical: Spacing.md),
                 decoration: BoxDecoration(color: bg, borderRadius: shape),
                 child: Text(
                   message.text,
-                  style: AppFonts.sf(
-                    size: 15,
+                  style: AppType.subhead.copyWith(
                     color: fg,
                     letterSpacing: -0.24,
                     height: 1.4,
@@ -231,17 +227,16 @@ class _Bubble extends StatelessWidget {
                   onTap: onUndo,
                   behavior: HitTestBehavior.opaque,
                   child: Padding(
-                    padding: const EdgeInsets.only(top: 4, left: 6),
+                    padding: const EdgeInsets.only(top: Spacing.xs, left: Spacing.sm),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         AppIcon('arrow.uturn.backward', size: 12, color: c.accent),
-                        const SizedBox(width: 4),
+                        const SizedBox(width: Spacing.xs),
                         Text(
                           'Undo',
-                          style: AppFonts.sf(
-                            size: 13,
-                            weight: FontWeight.w600,
+                          style: AppType.footnote.copyWith(
+                            fontWeight: FontWeight.w600,
                             color: c.accent,
                             letterSpacing: -0.08,
                           ),
@@ -252,11 +247,10 @@ class _Bubble extends StatelessWidget {
                 ),
               if (message.undone)
                 Padding(
-                  padding: const EdgeInsets.only(top: 4, left: 6),
+                  padding: const EdgeInsets.only(top: Spacing.xs, left: Spacing.sm),
                   child: Text(
                     'Undone',
-                    style: AppFonts.sf(
-                      size: 13,
+                    style: AppType.footnote.copyWith(
                       color: c.ink3,
                       letterSpacing: -0.08,
                     ),
@@ -295,18 +289,18 @@ class _TypingIndicatorState extends State<_TypingIndicator>
   Widget build(BuildContext context) {
     final c = context.colors;
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: Spacing.xs),
       child: Align(
         alignment: Alignment.centerLeft,
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: Spacing.lg, vertical: Spacing.md),
           decoration: BoxDecoration(
             color: c.surface,
             borderRadius: const BorderRadius.only(
-              topLeft: Radius.circular(18),
-              topRight: Radius.circular(18),
-              bottomLeft: Radius.circular(4),
-              bottomRight: Radius.circular(18),
+              topLeft: Radius.circular(Radii.lg),
+              topRight: Radius.circular(Radii.lg),
+              bottomLeft: Radius.circular(Radii.xs),
+              bottomRight: Radius.circular(Radii.lg),
             ),
             border: Border.all(color: c.hair, width: 0.5),
           ),
@@ -317,7 +311,7 @@ class _TypingIndicatorState extends State<_TypingIndicator>
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   for (var i = 0; i < 3; i++) ...[
-                    if (i > 0) const SizedBox(width: 5),
+                    if (i > 0) const SizedBox(width: Spacing.xs),
                     _Dot(t: _ctrl.value, phase: i / 3, color: c.ink3),
                   ],
                 ],
@@ -366,7 +360,7 @@ class _EmptyState extends StatelessWidget {
     final c = context.colors;
     return Center(
       child: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+        padding: const EdgeInsets.symmetric(horizontal: Spacing.xxl, vertical: Spacing.xxl),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -375,39 +369,36 @@ class _EmptyState extends StatelessWidget {
               height: 56,
               decoration: BoxDecoration(
                 color: c.accentTint,
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(Radii.lg),
               ),
               alignment: Alignment.center,
               child: AppIcon('sparkles', size: 28, color: c.accent),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: Spacing.lg),
             Text(
               'Hi there',
-              style: AppFonts.sf(
-                size: 20,
-                weight: FontWeight.w600,
+              style: AppType.title3.copyWith(
                 color: c.ink,
                 letterSpacing: -0.45,
               ),
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: Spacing.sm),
             // verbatim handoff empty-state copy ({name} → "there", no name field yet)
             Text(
               "I'm Pal — ask me anything about your money, workouts, or routines. "
               "Or just tell me what you did and I'll log it.",
               textAlign: TextAlign.center,
-              style: AppFonts.sf(size: 15, color: c.ink3, letterSpacing: -0.24),
+              style: AppType.subhead.copyWith(color: c.ink3, letterSpacing: -0.24),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: Spacing.xxl),
             Align(
               alignment: Alignment.centerLeft,
               child: Padding(
-                padding: const EdgeInsets.only(left: 4, bottom: 8),
+                padding: const EdgeInsets.only(left: Spacing.xs, bottom: Spacing.sm),
                 child: Text(
                   'TRY ASKING',
-                  style: AppFonts.sf(
-                    size: 12,
-                    weight: FontWeight.w600,
+                  style: AppType.caption.copyWith(
+                    fontWeight: FontWeight.w600,
                     color: c.ink3,
                     letterSpacing: -0.08,
                   ),
@@ -416,7 +407,7 @@ class _EmptyState extends StatelessWidget {
             ),
             for (final s in suggestions) ...[
               _SuggestionChip(label: s, onTap: () => onTap(s)),
-              const SizedBox(height: 10),
+              const SizedBox(height: Spacing.md),
             ],
           ],
         ),
@@ -438,10 +429,10 @@ class _SuggestionChip extends StatelessWidget {
       onTap: onTap,
       semanticLabel: label,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: Spacing.lg, vertical: Spacing.md),
         decoration: BoxDecoration(
           color: c.surface,
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(Radii.card),
           border: Border.all(color: c.hair, width: 0.5),
         ),
         child: Row(
@@ -449,9 +440,8 @@ class _SuggestionChip extends StatelessWidget {
             Expanded(
               child: Text(
                 label,
-                style: AppFonts.sf(
-                  size: 15,
-                  weight: FontWeight.w500,
+                style: AppType.subhead.copyWith(
+                  fontWeight: FontWeight.w500,
                   color: c.ink,
                   letterSpacing: -0.24,
                 ),
@@ -511,17 +501,17 @@ class _InputBarState extends State<_InputBar> {
       child: SafeArea(
         top: false,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+          padding: const EdgeInsets.fromLTRB(Spacing.lg, Spacing.sm, Spacing.lg, Spacing.sm),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Expanded(
                 child: Container(
                   constraints: const BoxConstraints(minHeight: 40),
-                  padding: const EdgeInsets.symmetric(horizontal: 14),
+                  padding: const EdgeInsets.symmetric(horizontal: Spacing.lg),
                   decoration: BoxDecoration(
                     color: c.fill,
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: BorderRadius.circular(Radii.xl),
                   ),
                   child: Align(
                     alignment: Alignment.centerLeft,
@@ -533,20 +523,20 @@ class _InputBarState extends State<_InputBar> {
                       textInputAction: TextInputAction.send,
                       cursorColor: c.accent,
                       onSubmitted: widget.enabled ? widget.onSend : null,
-                      style: AppFonts.sf(
-                          size: 15, color: c.ink, letterSpacing: -0.24),
+                      style: AppType.subhead.copyWith(
+                          color: c.ink, letterSpacing: -0.24),
                       decoration: InputDecoration(
                         isDense: true,
                         border: InputBorder.none,
                         hintText: 'Ask about your day or log something…',
-                        hintStyle: AppFonts.sf(
-                            size: 15, color: c.ink3, letterSpacing: -0.24),
+                        hintStyle: AppType.subhead.copyWith(
+                            color: c.ink3, letterSpacing: -0.24),
                       ),
                     ),
                   ),
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: Spacing.sm),
               PressScale(
                 semanticLabel: 'Send',
                 onTap: canSend
@@ -563,7 +553,7 @@ class _InputBarState extends State<_InputBar> {
                   child: AppIcon(
                     'arrow.up.right',
                     size: 18,
-                    color: canSend ? const Color(0xFFFFFFFF) : c.ink4,
+                    color: canSend ? c.onAccent : c.ink4,
                   ),
                 ),
               ),
