@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import 'controllers/spending_controller.dart';
+import 'theme/theme.dart';
 import 'screens/detail/detail_screen.dart';
 import 'screens/email/email_dashboard_screen.dart';
 import 'screens/email/email_intro_screen.dart';
@@ -386,7 +387,7 @@ GoRouter createRouter({
             key: state.pageKey,
             opaque: false,
             barrierDismissible: true,
-            barrierColor: const Color(0x66000000),
+            barrierColor: context.colors.scrim,
             fullscreenDialog: true,
             transitionDuration: const Duration(milliseconds: 320),
             reverseTransitionDuration: const Duration(milliseconds: 220),
