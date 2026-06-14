@@ -6,8 +6,7 @@ import '../../controllers/post_workout_controller.dart';
 import '../../controllers/providers.dart';
 import '../../controllers/workout_detail_controller.dart' show buildExerciseGroups, ExerciseSets;
 import '../../models/models.dart';
-import '../../theme/app_colors.dart';
-import '../../theme/app_text.dart';
+import '../../theme/theme.dart';
 import '../../util/format.dart';
 import '../../widgets/app_icon.dart';
 
@@ -49,16 +48,18 @@ class PostWorkoutScreen extends ConsumerWidget {
                 _Hero(workout: w, pr: pr, onClose: () => context.go('/move')),
                 if (pr != null)
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 18, 16, 0),
+                    padding: const EdgeInsets.fromLTRB(
+                        Spacing.lg, Spacing.xl, Spacing.lg, 0),
                     child: _PrCard(pr: pr),
                   ),
                 _MusclesSection(muscles: buildMuscleVolumes(w, catalog)),
                 _ExercisesSection(groups: buildExerciseGroups(w, catalog)),
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                  padding: const EdgeInsets.fromLTRB(
+                      Spacing.lg, Spacing.lg, Spacing.lg, Spacing.sm),
                   child: _PalNote(workout: w),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: Spacing.sm),
               ],
             ),
           ),
@@ -127,7 +128,8 @@ class _Hero extends StatelessWidget {
           // diagonal hairline stripe overlay.
           Positioned.fill(child: CustomPaint(painter: _StripePainter())),
           Padding(
-            padding: const EdgeInsets.fromLTRB(20, 56, 20, 28),
+            padding: const EdgeInsets.fromLTRB(
+                Spacing.xl, 56, Spacing.xl, Spacing.xxxl),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -156,22 +158,18 @@ class _Hero extends StatelessWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: Spacing.md),
                 Text(
                   'Nice session.',
-                  style: AppFonts.sfr(
-                      size: 34,
-                      weight: FontWeight.w700,
-                      color: _white,
-                      letterSpacing: -0.7,
-                      height: 1.05),
+                  style: AppType.amount.copyWith(
+                      color: _white, letterSpacing: -0.7, height: 1.05),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: Spacing.xs),
                 Row(
                   children: [
                     if (pr != null) ...[
                       AppIcon('star.fill', size: 12, color: _white),
-                      const SizedBox(width: 6),
+                      const SizedBox(width: Spacing.sm),
                     ],
                     Flexible(
                       child: Text(
@@ -180,9 +178,8 @@ class _Hero extends StatelessWidget {
                             : workout.name,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: AppFonts.sf(
-                          size: 15,
-                          weight: FontWeight.w500,
+                        style: AppType.subhead.copyWith(
+                          fontWeight: FontWeight.w500,
                           color: _white.withValues(alpha: 0.9),
                           letterSpacing: -0.24,
                         ),
@@ -190,14 +187,14 @@ class _Hero extends StatelessWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: 22),
+                const SizedBox(height: Spacing.xxl),
                 DecoratedBox(
                   decoration: BoxDecoration(
                     color: _white.withValues(alpha: 0.18),
-                    borderRadius: BorderRadius.circular(14),
+                    borderRadius: BorderRadius.circular(Radii.card),
                   ),
                   child: ClipRRect(
-                    borderRadius: BorderRadius.circular(14),
+                    borderRadius: BorderRadius.circular(Radii.card),
                     child: Row(
                       children: [
                         _HeroStat(value: '$minutes', label: 'Time', unit: 'min'),
@@ -275,20 +272,20 @@ class _Pill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      padding: const EdgeInsets.symmetric(
+          horizontal: Spacing.md, vertical: Spacing.xs),
       decoration: BoxDecoration(
         color: _white.withValues(alpha: 0.18),
-        borderRadius: BorderRadius.circular(100),
+        borderRadius: BorderRadius.circular(Radii.pill),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           AppIcon('checkmark', size: 10, color: _white),
-          const SizedBox(width: 5),
+          const SizedBox(width: Spacing.xs),
           Text('COMPLETE',
-              style: AppFonts.sf(
-                  size: 10,
-                  weight: FontWeight.w700,
+              style: AppType.caption2.copyWith(
+                  fontWeight: FontWeight.w700,
                   color: _white,
                   letterSpacing: 1)),
         ],
@@ -309,7 +306,8 @@ class _HeroStat extends StatelessWidget {
     return Expanded(
       child: Container(
         color: const Color(0x24000000),
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+        padding: const EdgeInsets.symmetric(
+            vertical: Spacing.md, horizontal: Spacing.sm),
         child: Column(
           children: [
             Text(
@@ -317,12 +315,11 @@ class _HeroStat extends StatelessWidget {
               style: AppFonts.sfr(
                   size: 24, color: _white, letterSpacing: -0.4, height: 1),
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: Spacing.xs),
             Text(
               label.toUpperCase(),
-              style: AppFonts.sf(
-                size: 9,
-                weight: FontWeight.w700,
+              style: AppType.caption2.copyWith(
+                fontWeight: FontWeight.w700,
                 color: _white.withValues(alpha: 0.85),
                 letterSpacing: 0.5,
               ),
@@ -330,8 +327,7 @@ class _HeroStat extends StatelessWidget {
             const SizedBox(height: 1),
             Text(
               unit,
-              style: AppFonts.sf(
-                size: 10,
+              style: AppType.caption2.copyWith(
                 color: _white.withValues(alpha: 0.7),
                 letterSpacing: -0.08,
               ),
@@ -353,7 +349,7 @@ class _PrCard extends StatelessWidget {
     final c = context.colors;
     final weight = formatWeight(pr.weightKg);
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(Spacing.lg),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
@@ -363,7 +359,7 @@ class _PrCard extends StatelessWidget {
             c.money.withValues(alpha: 0.03),
           ],
         ),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(Radii.lg),
         border: Border.all(color: c.money.withValues(alpha: 0.2), width: 0.5),
       ),
       child: Row(
@@ -377,7 +373,7 @@ class _PrCard extends StatelessWidget {
                 end: Alignment.bottomRight,
                 colors: [c.money, c.money.withValues(alpha: 0.8)],
               ),
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(Radii.md),
               boxShadow: [
                 BoxShadow(
                   color: c.money.withValues(alpha: 0.33),
@@ -388,28 +384,27 @@ class _PrCard extends StatelessWidget {
             ),
             child: AppIcon('star.fill', size: 22, color: _white),
           ),
-          const SizedBox(width: 14),
+          const SizedBox(width: Spacing.lg),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text('PERSONAL RECORD',
-                    style: AppFonts.sf(
-                        size: 10,
-                        weight: FontWeight.w700,
+                    style: AppType.caption2.copyWith(
+                        fontWeight: FontWeight.w700,
                         color: c.money,
                         letterSpacing: 0.8)),
-                const SizedBox(height: 2),
+                const SizedBox(height: Spacing.xxs),
                 Text('${pr.exercise} · ${weight}kg × ${pr.reps}',
                     style: AppFonts.sfr(
                         size: 17,
                         weight: FontWeight.w700,
                         color: c.ink,
                         letterSpacing: -0.3)),
-                const SizedBox(height: 2),
+                const SizedBox(height: Spacing.xxs),
                 Text('New best this session',
-                    style: AppFonts.sf(
-                        size: 12, color: c.ink3, letterSpacing: -0.08)),
+                    style: AppType.caption.copyWith(
+                        color: c.ink3, letterSpacing: -0.08)),
               ],
             ),
           ),
@@ -437,17 +432,18 @@ class _MusclesSection extends StatelessWidget {
       children: [
         const _SectionHeader('Muscles worked'),
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+          padding: const EdgeInsets.fromLTRB(
+              Spacing.lg, 0, Spacing.lg, Spacing.xs),
           child: Container(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+            padding: const EdgeInsets.all(Spacing.lg),
             decoration: BoxDecoration(
-                color: c.surface, borderRadius: BorderRadius.circular(14)),
+                color: c.surface, borderRadius: BorderRadius.circular(Radii.card)),
             child: Column(
               children: [
                 for (var i = 0; i < muscles.length; i++)
                   Padding(
                     padding: EdgeInsets.only(
-                        bottom: i < muscles.length - 1 ? 12 : 0),
+                        bottom: i < muscles.length - 1 ? Spacing.md : 0),
                     child: _MuscleRow(
                       color: palette[i % palette.length],
                       label: muscles[i].muscle,
@@ -490,16 +486,15 @@ class _MuscleRow extends StatelessWidget {
           textBaseline: TextBaseline.alphabetic,
           children: [
             Text(label,
-                style: AppFonts.sf(
-                    size: 13,
-                    weight: FontWeight.w600,
+                style: AppType.footnote.copyWith(
+                    fontWeight: FontWeight.w600,
                     color: c.ink,
                     letterSpacing: -0.1)),
             const Spacer(),
             Text('${volumeKg.round()} kg',
                 style:
                     AppFonts.sfr(size: 12, color: c.ink3, letterSpacing: -0.08)),
-            const SizedBox(width: 8),
+            const SizedBox(width: Spacing.sm),
             Text('$percent%',
                 style: AppFonts.sfr(
                     size: 13,
@@ -508,11 +503,11 @@ class _MuscleRow extends StatelessWidget {
                     letterSpacing: -0.1)),
           ],
         ),
-        const SizedBox(height: 5),
+        const SizedBox(height: Spacing.xs),
         ClipRRect(
-          borderRadius: BorderRadius.circular(100),
+          borderRadius: BorderRadius.circular(Radii.pill),
           child: SizedBox(
-            height: 8,
+            height: Spacing.sm,
             child: Row(
               children: [
                 Expanded(
@@ -557,10 +552,11 @@ class _ExercisesSection extends StatelessWidget {
       children: [
         _SectionHeader('Exercises · ${shown.length}'),
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+          padding: const EdgeInsets.fromLTRB(
+              Spacing.lg, 0, Spacing.lg, Spacing.xs),
           child: Container(
             decoration: BoxDecoration(
-                color: c.surface, borderRadius: BorderRadius.circular(14)),
+                color: c.surface, borderRadius: BorderRadius.circular(Radii.card)),
             clipBehavior: Clip.antiAlias,
             child: Column(
               children: [
@@ -590,7 +586,8 @@ class _ExerciseRow extends StatelessWidget {
         border:
             last ? null : Border(bottom: BorderSide(color: c.hair, width: 0.5)),
       ),
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+      padding: const EdgeInsets.fromLTRB(
+          Spacing.lg, Spacing.lg, Spacing.lg, Spacing.lg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -606,13 +603,12 @@ class _ExerciseRow extends StatelessWidget {
                       BoxDecoration(color: c.money, shape: BoxShape.circle),
                   child: AppIcon('star.fill', size: 8, color: _white),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: Spacing.sm),
               ],
               Expanded(
                 child: Text(group.name,
-                    style: AppFonts.sf(
-                        size: 15,
-                        weight: FontWeight.w600,
+                    style: AppType.subhead.copyWith(
+                        fontWeight: FontWeight.w600,
                         color: c.ink,
                         letterSpacing: -0.24)),
               ),
@@ -627,14 +623,14 @@ class _ExerciseRow extends StatelessWidget {
                   children: [
                     TextSpan(
                       text: ' kg',
-                      style: AppFonts.sf(size: 10, color: c.ink3),
+                      style: AppType.caption2.copyWith(color: c.ink3),
                     ),
                   ],
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: Spacing.md),
           _SetBars(sets: group.sets),
         ],
       ),
@@ -658,7 +654,7 @@ class _SetBars extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           for (var i = 0; i < sets.length; i++) ...[
-            if (i != 0) const SizedBox(width: 4),
+            if (i != 0) const SizedBox(width: Spacing.xs),
             Expanded(child: _SetBar(set: sets[i], maxVol: maxVol)),
           ],
         ],
@@ -696,8 +692,8 @@ class _SetBar extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: pr ? c.money : c.move.withValues(alpha: 0.53),
                       borderRadius: const BorderRadius.vertical(
-                        top: Radius.circular(4),
-                        bottom: Radius.circular(2),
+                        top: Radius.circular(Radii.xs),
+                        bottom: Radius.circular(Radii.xs),
                       ),
                     ),
                   ),
@@ -723,7 +719,7 @@ class _SetBar extends StatelessWidget {
             ),
           ),
         ),
-        const SizedBox(height: 3),
+        const SizedBox(height: Spacing.xs),
         Text('$weight×${set.reps}',
             maxLines: 1,
             overflow: TextOverflow.clip,
@@ -749,10 +745,10 @@ class _PalNote extends ConsumerWidget {
     final note = ref.watch(postWorkoutNoteProvider(workout));
     final loading = note.isLoading;
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(Spacing.lg),
       decoration: BoxDecoration(
         color: c.accentTint,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(Radii.card),
         border: Border.all(color: c.accent.withValues(alpha: 0.13), width: 0.5),
       ),
       child: Column(
@@ -761,24 +757,22 @@ class _PalNote extends ConsumerWidget {
           Row(
             children: [
               AppIcon('sparkles', size: 12, color: c.accent),
-              const SizedBox(width: 6),
+              const SizedBox(width: Spacing.sm),
               Text("PAL'S NOTE",
-                  style: AppFonts.sf(
-                      size: 11,
-                      weight: FontWeight.w700,
+                  style: AppType.caption2.copyWith(
+                      fontWeight: FontWeight.w700,
                       color: c.accent,
                       letterSpacing: 0.5)),
             ],
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: Spacing.sm),
           Text(
             note.when(
               loading: () => 'Pal is reading your session…',
               error: (_, _) => "Pal couldn't write a note just now.",
               data: (text) => text,
             ),
-            style: AppFonts.sf(
-                size: 14,
+            style: AppType.subhead.copyWith(
                 color: loading ? c.ink3 : c.ink,
                 letterSpacing: -0.2,
                 height: 1.45),
@@ -801,7 +795,8 @@ class _ActionBar extends StatelessWidget {
     final c = context.colors;
     final saving = saveState == SaveState.saving;
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
+      padding: const EdgeInsets.fromLTRB(
+          Spacing.lg, Spacing.md, Spacing.lg, Spacing.xxxl),
       decoration: BoxDecoration(
         color: c.surface,
         border: Border(top: BorderSide(color: c.hair, width: 0.5)),
@@ -809,16 +804,16 @@ class _ActionBar extends StatelessWidget {
       child: Row(
         children: [
           Expanded(child: _ShareButton()),
-          const SizedBox(width: 10),
+          const SizedBox(width: Spacing.md),
           Expanded(
             flex: 2,
             child: GestureDetector(
               onTap: saving ? null : onSave,
               child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 14),
+                padding: const EdgeInsets.symmetric(vertical: Spacing.lg),
                 decoration: BoxDecoration(
                   color: saving ? c.move.withValues(alpha: 0.6) : c.move,
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(Radii.md),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -830,12 +825,11 @@ class _ActionBar extends StatelessWidget {
                         child: CircularProgressIndicator(
                             strokeWidth: 2, color: _white),
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: Spacing.sm),
                     ],
                     Text(saving ? 'Saving…' : 'Save to timeline',
-                        style: AppFonts.sf(
-                            size: 15,
-                            weight: FontWeight.w700,
+                        style: AppType.subhead.copyWith(
+                            fontWeight: FontWeight.w700,
                             color: _white,
                             letterSpacing: -0.2)),
                   ],
@@ -859,21 +853,20 @@ class _ShareButton extends StatelessWidget {
         const SnackBar(content: Text('Sharing is available on device.')),
       ),
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 14),
+        padding: const EdgeInsets.symmetric(vertical: Spacing.lg),
         decoration: BoxDecoration(
           color: c.surface,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(Radii.md),
           border: Border.all(color: c.hair, width: 0.5),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             AppIcon('square.and.arrow.up', size: 16, color: c.ink),
-            const SizedBox(width: 6),
+            const SizedBox(width: Spacing.sm),
             Text('Share',
-                style: AppFonts.sf(
-                    size: 15,
-                    weight: FontWeight.w500,
+                style: AppType.subhead.copyWith(
+                    fontWeight: FontWeight.w500,
                     color: c.ink,
                     letterSpacing: -0.24)),
           ],
@@ -893,9 +886,10 @@ class _SectionHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+      padding: const EdgeInsets.fromLTRB(
+          Spacing.xl, Spacing.lg, Spacing.xl, Spacing.sm),
       child: Text(text.toUpperCase(),
-          style: AppFonts.sf(size: 13, color: c.ink3, letterSpacing: -0.08)),
+          style: AppType.footnote.copyWith(color: c.ink3, letterSpacing: -0.08)),
     );
   }
 }
@@ -910,33 +904,33 @@ class _NoSession extends StatelessWidget {
       backgroundColor: c.bg,
       body: Center(
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(Spacing.xxl),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               AppIcon('checkmark', size: 28, color: c.move),
-              const SizedBox(height: 12),
+              const SizedBox(height: Spacing.md),
               Text('No active session',
                   style:
                       AppFonts.sfr(size: 18, color: c.ink, letterSpacing: -0.3)),
-              const SizedBox(height: 4),
+              const SizedBox(height: Spacing.xs),
               Text('Your last summary is no longer available.',
                   textAlign: TextAlign.center,
-                  style:
-                      AppFonts.sf(size: 13, color: c.ink3, letterSpacing: -0.08)),
-              const SizedBox(height: 16),
+                  style: AppType.footnote.copyWith(
+                      color: c.ink3, letterSpacing: -0.08)),
+              const SizedBox(height: Spacing.lg),
               Builder(
                 builder: (context) => GestureDetector(
                   onTap: () => context.go('/move'),
                   child: Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 20, vertical: 11),
+                        horizontal: Spacing.xl,
+                        vertical: 11), // 11: CTA pill height, off-grid — keep literal
                     decoration: BoxDecoration(
-                        color: c.move, borderRadius: BorderRadius.circular(100)),
+                        color: c.move, borderRadius: BorderRadius.circular(Radii.pill)),
                     child: Text('Back to Workout',
-                        style: AppFonts.sf(
-                            size: 14,
-                            weight: FontWeight.w700,
+                        style: AppType.subhead.copyWith(
+                            fontWeight: FontWeight.w700,
                             color: _white,
                             letterSpacing: -0.1)),
                   ),

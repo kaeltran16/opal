@@ -7,8 +7,7 @@ import 'package:go_router/go_router.dart';
 import '../../controllers/workout_session_controller.dart';
 import '../../models/models.dart';
 import '../../router.dart';
-import '../../theme/app_colors.dart';
-import '../../theme/app_text.dart';
+import '../../theme/theme.dart';
 import '../../util/format.dart';
 import '../../widgets/app_icon.dart';
 import '../../widgets/press_scale.dart';
@@ -63,16 +62,15 @@ class _ActiveSessionScreenState extends ConsumerState<ActiveSessionScreen> {
       body: async.when(
         loading: () => Center(
           child: Text('…',
-              style:
-                  AppFonts.sf(size: 17, color: c.ink3, letterSpacing: -0.43)),
+              style: AppType.body.copyWith(color: c.ink3)),
         ),
         error: (e, _) => Center(
           child: Padding(
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.all(Spacing.xxl),
             child: Text(
               "Couldn't start the session.\n$e",
               textAlign: TextAlign.center,
-              style: AppFonts.sf(size: 15, color: c.ink3, letterSpacing: -0.24),
+              style: AppType.subhead.copyWith(color: c.ink3, letterSpacing: -0.24),
             ),
           ),
         ),
@@ -95,7 +93,7 @@ class _Body extends ConsumerWidget {
         workoutSessionControllerProvider(routineId).notifier;
 
     return ListView(
-      padding: const EdgeInsets.only(bottom: 100),
+      padding: const EdgeInsets.only(bottom: 100), // scroll tail past finish CTA
       children: [
         _Header(
           state: state,
@@ -109,7 +107,7 @@ class _Body extends ConsumerWidget {
             onSkip: () => ref.read(controller).skipRest(),
           ),
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 18, 16, 0),
+          padding: const EdgeInsets.fromLTRB(Spacing.lg, Spacing.xl, Spacing.lg, 0),
           child: state.isComplete
               ? _CompleteCard(c: c)
               : _CurrentExerciseCard(
@@ -127,7 +125,7 @@ class _Body extends ConsumerWidget {
         ),
         if (state.nextExercise != null)
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+            padding: const EdgeInsets.fromLTRB(Spacing.lg, Spacing.lg, Spacing.lg, 0),
             child: _UpNextCard(state: state),
           ),
       ],
@@ -186,7 +184,7 @@ class _Header extends StatelessWidget {
     final volume = state.activeWorkout.totalVolumeKg;
 
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 54, 16, 18),
+      padding: const EdgeInsets.fromLTRB(Spacing.lg, 54, Spacing.lg, Spacing.xl), // 54: status-bar inset
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topCenter,
@@ -216,7 +214,7 @@ class _Header extends StatelessWidget {
                         letterSpacing: 1.8,
                       ),
                     ),
-                    const SizedBox(height: 2),
+                    const SizedBox(height: Spacing.xxs),
                     Text(
                       _elapsed(state.activeWorkout.startedAt),
                       style: AppFonts.sfr(
@@ -231,16 +229,15 @@ class _Header extends StatelessWidget {
               GestureDetector(
                 onTap: onFinish,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
+                  padding: const EdgeInsets.symmetric(horizontal: Spacing.lg, vertical: 9), // 9: keep pill height
                   decoration: BoxDecoration(
                     color: _white,
-                    borderRadius: BorderRadius.circular(100),
+                    borderRadius: BorderRadius.circular(Radii.pill),
                   ),
                   child: Text(
                     'Finish',
-                    style: AppFonts.sf(
-                      size: 13,
-                      weight: FontWeight.w700,
+                    style: AppType.footnote.copyWith(
+                      fontWeight: FontWeight.w700,
                       color: move,
                       letterSpacing: -0.1,
                     ),
@@ -249,9 +246,9 @@ class _Header extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: Spacing.lg),
           _ProgressDots(count: exCount, current: state.currentExerciseIndex),
-          const SizedBox(height: 18),
+          const SizedBox(height: Spacing.xl),
           _HeaderStats(
             exerciseLabel: '$exNum/$exCount',
             setsLabel: '$completed/$total',
@@ -291,7 +288,7 @@ class _ProgressDots extends StatelessWidget {
                 color: i <= current
                     ? _white
                     : _white.withValues(alpha: 0.3),
-                borderRadius: BorderRadius.circular(100),
+                borderRadius: BorderRadius.circular(Radii.pill),
               ),
             ),
           ),
@@ -315,7 +312,7 @@ class _HeaderStats extends StatelessWidget {
     Widget cell(String value, String label) => Expanded(
           child: Container(
             color: const Color(0x1F000000),
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: Spacing.md, vertical: Spacing.sm),
             child: Column(
               children: [
                 Text(
@@ -323,12 +320,11 @@ class _HeaderStats extends StatelessWidget {
                   style: AppFonts.sfr(
                       size: 16, color: _white, letterSpacing: -0.2, height: 1),
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: Spacing.xxs),
                 Text(
                   label.toUpperCase(),
-                  style: AppFonts.sf(
-                    size: 9,
-                    weight: FontWeight.w600,
+                  style: AppType.caption2.copyWith(
+                    fontWeight: FontWeight.w600,
                     color: _white.withValues(alpha: 0.75),
                     letterSpacing: 0.6,
                   ),
@@ -341,7 +337,7 @@ class _HeaderStats extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: _white.withValues(alpha: 0.18),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(Radii.md),
       ),
       clipBehavior: Clip.antiAlias,
       child: Row(
@@ -412,7 +408,7 @@ class _RestBannerState extends State<_RestBanner>
 
     return Container(
       color: c.accent,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: Spacing.lg, vertical: Spacing.md),
       child: Stack(
         children: [
           // left-anchored progress fill that grows as rest elapses.
@@ -438,15 +434,14 @@ class _RestBannerState extends State<_RestBanner>
                   ),
                 ),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: Spacing.md),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     'REST',
-                    style: AppFonts.sf(
-                      size: 10,
-                      weight: FontWeight.w700,
+                    style: AppType.caption2.copyWith(
+                      fontWeight: FontWeight.w700,
                       color: _white.withValues(alpha: 0.85),
                       letterSpacing: 1,
                     ),
@@ -464,34 +459,32 @@ class _RestBannerState extends State<_RestBanner>
                 semanticLabel: 'Add 30 seconds rest',
                 child: Container(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                      const EdgeInsets.symmetric(horizontal: Spacing.md, vertical: Spacing.sm),
                   decoration: BoxDecoration(
                     color: _white.withValues(alpha: 0.22),
-                    borderRadius: BorderRadius.circular(100),
+                    borderRadius: BorderRadius.circular(Radii.pill),
                   ),
                   child: Text('+30s',
-                      style: AppFonts.sf(
-                          size: 12,
-                          weight: FontWeight.w600,
+                      style: AppType.caption.copyWith(
+                          fontWeight: FontWeight.w600,
                           color: _white,
                           letterSpacing: -0.08)),
                 ),
               ),
-              const SizedBox(width: 6),
+              const SizedBox(width: Spacing.sm),
               PressScale(
                 onTap: widget.onSkip,
                 semanticLabel: 'Skip rest',
                 child: Container(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                      const EdgeInsets.symmetric(horizontal: Spacing.lg, vertical: Spacing.sm),
                   decoration: BoxDecoration(
                     color: _white,
-                    borderRadius: BorderRadius.circular(100),
+                    borderRadius: BorderRadius.circular(Radii.pill),
                   ),
                   child: Text('Skip',
-                      style: AppFonts.sf(
-                          size: 12,
-                          weight: FontWeight.w700,
+                      style: AppType.caption.copyWith(
+                          fontWeight: FontWeight.w700,
                           color: c.accent,
                           letterSpacing: -0.08)),
                 ),
@@ -548,14 +541,13 @@ class _CurrentExerciseCard extends StatelessWidget {
     final activeId = state.currentSet?.id;
 
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(Spacing.xl),
       decoration: BoxDecoration(
         color: c.surface,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(Radii.lg),
         boxShadow: [
           BoxShadow(color: c.hair, blurRadius: 0, spreadRadius: 0.5),
-          const BoxShadow(
-              color: Color(0x0A000000), blurRadius: 8, offset: Offset(0, 2)),
+          ...Elevation.sm(c.shadow),
         ],
       ),
       child: Column(
@@ -573,44 +565,43 @@ class _CurrentExerciseCard extends StatelessWidget {
                     end: Alignment.bottomRight,
                     colors: [c.move, c.move.withValues(alpha: 0.8)],
                   ),
-                  borderRadius: BorderRadius.circular(13),
+                  borderRadius: BorderRadius.circular(Radii.md),
                 ),
                 child: Center(
                   child: AppIcon(exercise?.icon ?? 'dumbbell.fill',
                       size: 26, color: _white),
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: Spacing.md),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       '● Now · exercise ${state.currentExerciseIndex + 1}',
-                      style: AppFonts.sf(
-                          size: 10,
-                          weight: FontWeight.w700,
+                      style: AppType.caption2.copyWith(
+                          fontWeight: FontWeight.w700,
                           color: c.move,
                           letterSpacing: 1.2),
                     ),
-                    const SizedBox(height: 2),
+                    const SizedBox(height: Spacing.xxs),
                     Text(
                       exercise?.name ?? 'Exercise',
                       style: AppFonts.sfr(
                           size: 22, color: c.ink, letterSpacing: -0.4),
                     ),
-                    const SizedBox(height: 5),
+                    const SizedBox(height: Spacing.xs),
                     Text(
                       [exercise?.muscle, exercise?.equipment]
                           .where((x) => x != null && x.isNotEmpty)
                           .join(' · '),
-                      style: AppFonts.sf(
-                          size: 12, color: c.ink3, letterSpacing: -0.08),
+                      style: AppType.caption.copyWith(
+                          color: c.ink3, letterSpacing: -0.08),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: Spacing.md),
               // decorative menu trigger; no-op like the app's other ellipsis buttons
               Container(
                 width: 32,
@@ -622,10 +613,10 @@ class _CurrentExerciseCard extends StatelessWidget {
             ],
           ),
           if (exercise?.pr != null) ...[
-            const SizedBox(height: 14),
+            const SizedBox(height: Spacing.lg),
             _PrChip(pr: exercise!.pr!),
           ],
-          const SizedBox(height: 14),
+          const SizedBox(height: Spacing.lg),
           for (var i = 0; i < sets.length; i++) ...[
             _SetRow(
               number: i + 1,
@@ -633,9 +624,9 @@ class _CurrentExerciseCard extends StatelessWidget {
               isActive: sets[i].id == activeId,
               onLog: onLog,
             ),
-            if (i != sets.length - 1) const SizedBox(height: 8),
+            if (i != sets.length - 1) const SizedBox(height: Spacing.sm),
           ],
-          const SizedBox(height: 10),
+          const SizedBox(height: Spacing.md),
           _AddSetButton(onTap: onAddSet),
         ],
       ),
@@ -651,30 +642,29 @@ class _PrChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: Spacing.md, vertical: Spacing.sm),
       decoration: BoxDecoration(
         color: c.money.withValues(alpha: 0.07),
         border: Border.all(color: c.money.withValues(alpha: 0.2)),
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(Radii.md),
       ),
       child: Row(
         children: [
           AppIcon('star.fill', size: 12, color: c.money),
-          const SizedBox(width: 8),
+          const SizedBox(width: Spacing.sm),
           Text('Your PR:',
-              style: AppFonts.sf(
-                  size: 12,
-                  weight: FontWeight.w600,
+              style: AppType.caption.copyWith(
+                  fontWeight: FontWeight.w600,
                   color: c.ink2,
                   letterSpacing: -0.08)),
-          const SizedBox(width: 6),
+          const SizedBox(width: Spacing.sm),
           Text('${formatWeight(pr.weightKg)}kg × ${pr.reps}',
               style: AppFonts.sfr(
                   size: 13, color: c.ink, letterSpacing: -0.1)),
           const Spacer(),
           Text('Beat it today?',
-              style: AppFonts.sf(
-                  size: 11, color: c.ink3, letterSpacing: -0.08)),
+              style: AppType.caption2.copyWith(
+                  color: c.ink3, letterSpacing: -0.08)),
         ],
       ),
     );
@@ -704,11 +694,11 @@ class _SetRow extends StatelessWidget {
   }
 
   Widget _doneRow(AppColors c) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: Spacing.lg, vertical: Spacing.md),
         decoration: BoxDecoration(
           color: c.move.withValues(alpha: 0.055),
           border: Border.all(color: c.move.withValues(alpha: 0.13)),
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(Radii.md),
         ),
         child: Row(
           children: [
@@ -718,17 +708,16 @@ class _SetRow extends StatelessWidget {
               decoration: BoxDecoration(color: c.move, shape: BoxShape.circle),
               child: AppIcon('checkmark', size: 12, color: _white),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: Spacing.md),
             Text('SET $number',
-                style: AppFonts.sf(
-                    size: 13,
-                    weight: FontWeight.w700,
+                style: AppType.footnote.copyWith(
+                    fontWeight: FontWeight.w700,
                     color: c.ink3,
                     letterSpacing: 0.3)),
             const Spacer(),
             if (set.isPR) ...[
               AppIcon('star.fill', size: 11, color: c.money),
-              const SizedBox(width: 6),
+              const SizedBox(width: Spacing.sm),
             ],
             Text(
               '${formatWeight(set.weightKg)}kg × ${set.reps}',
@@ -740,7 +729,7 @@ class _SetRow extends StatelessWidget {
       );
 
   Widget _activeRow(AppColors c) => Container(
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.all(Spacing.lg),
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
@@ -748,7 +737,7 @@ class _SetRow extends StatelessWidget {
             colors: [c.accentTint, c.accent.withValues(alpha: 0.08)],
           ),
           border: Border.all(color: c.accent, width: 1.5),
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(Radii.card),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -757,61 +746,58 @@ class _SetRow extends StatelessWidget {
               children: [
                 Container(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                      const EdgeInsets.symmetric(horizontal: Spacing.md, vertical: Spacing.xs),
                   decoration: BoxDecoration(
                     color: c.accent,
-                    borderRadius: BorderRadius.circular(100),
+                    borderRadius: BorderRadius.circular(Radii.pill),
                   ),
                   child: Text('SET $number',
-                      style: AppFonts.sf(
-                          size: 11,
-                          weight: FontWeight.w700,
+                      style: AppType.caption2.copyWith(
+                          fontWeight: FontWeight.w700,
                           color: _white,
                           letterSpacing: 0.5)),
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: Spacing.md),
                 Expanded(
                   child: Text(
                     'Target: ${formatWeight(set.weightKg)}kg × ${set.reps} reps',
-                    style: AppFonts.sf(
-                        size: 11, color: c.ink3, letterSpacing: -0.08),
+                    style: AppType.caption2.copyWith(
+                        color: c.ink3, letterSpacing: -0.08),
                   ),
                 ),
                 Text('ACTIVE',
-                    style: AppFonts.sf(
-                        size: 10,
-                        weight: FontWeight.w700,
+                    style: AppType.caption2.copyWith(
+                        fontWeight: FontWeight.w700,
                         color: c.accent,
                         letterSpacing: 0.8)),
               ],
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: Spacing.md),
             Row(
               children: [
                 Expanded(child: _valueBox(c, 'Weight', formatWeight(set.weightKg), 'kg')),
-                const SizedBox(width: 10),
+                const SizedBox(width: Spacing.md),
                 Expanded(child: _valueBox(c, 'Reps', '${set.reps}', null)),
               ],
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: Spacing.md),
             PressScale(
               onTap: onLog,
               semanticLabel: 'Complete set',
               child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 11),
+                padding: const EdgeInsets.symmetric(vertical: 11), // 11: keep CTA height
                 decoration: BoxDecoration(
                   color: c.accent,
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(Radii.md),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     AppIcon('checkmark', size: 13, color: _white),
-                    const SizedBox(width: 6),
+                    const SizedBox(width: Spacing.sm),
                     Text('Complete set',
-                        style: AppFonts.sf(
-                            size: 14,
-                            weight: FontWeight.w700,
+                        style: AppType.subhead.copyWith(
+                            fontWeight: FontWeight.w700,
                             color: _white,
                             letterSpacing: -0.1)),
                   ],
@@ -824,20 +810,19 @@ class _SetRow extends StatelessWidget {
 
   Widget _valueBox(AppColors c, String label, String value, String? unit) =>
       Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: Spacing.md, vertical: Spacing.md),
         decoration: BoxDecoration(
           color: c.surface,
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(Radii.md),
         ),
         child: Column(
           children: [
             Text(label.toUpperCase(),
-                style: AppFonts.sf(
-                    size: 9,
-                    weight: FontWeight.w700,
+                style: AppType.caption2.copyWith(
+                    fontWeight: FontWeight.w700,
                     color: c.ink3,
                     letterSpacing: 0.8)),
-            const SizedBox(height: 2),
+            const SizedBox(height: Spacing.xxs),
             Text.rich(
               TextSpan(
                 text: value,
@@ -848,9 +833,8 @@ class _SetRow extends StatelessWidget {
                     : [
                         TextSpan(
                           text: unit,
-                          style: AppFonts.sf(
-                              size: 13,
-                              weight: FontWeight.w500,
+                          style: AppType.footnote.copyWith(
+                              fontWeight: FontWeight.w500,
                               color: c.ink3),
                         ),
                       ],
@@ -861,11 +845,11 @@ class _SetRow extends StatelessWidget {
       );
 
   Widget _upcomingRow(AppColors c) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: Spacing.lg, vertical: Spacing.md),
         decoration: BoxDecoration(
           color: c.fill,
           border: Border.all(color: c.hair),
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(Radii.md),
         ),
         child: Row(
           children: [
@@ -878,14 +862,13 @@ class _SetRow extends StatelessWidget {
                 border: Border.all(color: c.ink4, width: 1.5),
               ),
               child: Text('$number',
-                  style: AppFonts.sf(
-                      size: 12, weight: FontWeight.w700, color: c.ink3)),
+                  style: AppType.caption.copyWith(
+                      fontWeight: FontWeight.w700, color: c.ink3)),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: Spacing.md),
             Text('SET $number',
-                style: AppFonts.sf(
-                    size: 13,
-                    weight: FontWeight.w700,
+                style: AppType.footnote.copyWith(
+                    fontWeight: FontWeight.w700,
                     color: c.ink3,
                     letterSpacing: 0.3)),
             const Spacer(),
@@ -911,20 +894,19 @@ class _AddSetButton extends StatelessWidget {
       onTap: onTap,
       semanticLabel: 'Add set',
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12),
+        padding: const EdgeInsets.symmetric(vertical: Spacing.md),
         decoration: BoxDecoration(
           border: Border.all(color: c.hair, width: 1.5),
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(Radii.md),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             AppIcon('plus', size: 12, color: c.ink3),
-            const SizedBox(width: 6),
+            const SizedBox(width: Spacing.sm),
             Text('Add set',
-                style: AppFonts.sf(
-                    size: 14,
-                    weight: FontWeight.w600,
+                style: AppType.subhead.copyWith(
+                    fontWeight: FontWeight.w600,
                     color: c.ink3,
                     letterSpacing: -0.1)),
           ],
@@ -950,10 +932,10 @@ class _UpNextCard extends StatelessWidget {
     final first = nextSets.isEmpty ? null : nextSets.first;
 
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(Spacing.lg),
       decoration: BoxDecoration(
         color: c.surface,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(Radii.card),
         boxShadow: [
           BoxShadow(color: c.hair, blurRadius: 0, spreadRadius: 0.5),
         ],
@@ -961,45 +943,43 @@ class _UpNextCard extends StatelessWidget {
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+            padding: const EdgeInsets.symmetric(horizontal: Spacing.sm, vertical: Spacing.xs),
             decoration: BoxDecoration(
               color: c.fill,
-              borderRadius: BorderRadius.circular(4),
+              borderRadius: BorderRadius.circular(Radii.xs),
             ),
             child: Text('NEXT',
-                style: AppFonts.sf(
-                    size: 9,
-                    weight: FontWeight.w700,
+                style: AppType.caption2.copyWith(
+                    fontWeight: FontWeight.w700,
                     color: c.ink3,
                     letterSpacing: 1)),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: Spacing.md),
           Container(
             width: 36,
             height: 36,
             decoration: BoxDecoration(
               color: c.move.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(Radii.md),
             ),
             child: AppIcon(next.icon, size: 18, color: c.move),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: Spacing.md),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(next.name,
-                    style: AppFonts.sf(
-                        size: 15,
-                        weight: FontWeight.w600,
+                    style: AppType.subhead.copyWith(
+                        fontWeight: FontWeight.w600,
                         color: c.ink,
                         letterSpacing: -0.24)),
                 if (first != null) ...[
                   const SizedBox(height: 1),
                   Text(
                     '${nextSets.length} sets · ${formatWeight(first.weightKg)}kg × ${first.reps}',
-                    style: AppFonts.sf(
-                        size: 12, color: c.ink3, letterSpacing: -0.08),
+                    style: AppType.caption.copyWith(
+                        color: c.ink3, letterSpacing: -0.08),
                   ),
                 ],
               ],
@@ -1019,10 +999,10 @@ class _CompleteCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(Spacing.xxl),
       decoration: BoxDecoration(
         color: c.surface,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(Radii.lg),
         boxShadow: [
           BoxShadow(color: c.hair, blurRadius: 0, spreadRadius: 0.5),
         ],
@@ -1030,12 +1010,12 @@ class _CompleteCard extends StatelessWidget {
       child: Column(
         children: [
           AppIcon('checkmark', size: 28, color: c.move),
-          const SizedBox(height: 12),
+          const SizedBox(height: Spacing.md),
           Text('All sets logged',
               style: AppFonts.sfr(size: 18, color: c.ink, letterSpacing: -0.3)),
-          const SizedBox(height: 4),
+          const SizedBox(height: Spacing.xs),
           Text('Tap Finish to see your summary.',
-              style: AppFonts.sf(size: 13, color: c.ink3, letterSpacing: -0.08)),
+              style: AppType.footnote.copyWith(color: c.ink3, letterSpacing: -0.08)),
         ],
       ),
     );

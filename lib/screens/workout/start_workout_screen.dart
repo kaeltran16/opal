@@ -7,8 +7,7 @@ import '../../controllers/start_workout_controller.dart';
 import '../../models/models.dart';
 import '../../router.dart';
 import '../../services/pal/pal_service.dart';
-import '../../theme/app_colors.dart';
-import '../../theme/app_text.dart';
+import '../../theme/theme.dart';
 import '../../widgets/app_icon.dart';
 import '../../widgets/inset_section.dart';
 import '../../widgets/nav_bar.dart';
@@ -40,15 +39,15 @@ class StartWorkoutScreen extends ConsumerWidget {
         loading: () => Center(
           child: Text('…',
               style:
-                  AppFonts.sf(size: 17, color: c.ink3, letterSpacing: -0.43)),
+                  AppType.body.copyWith(color: c.ink3, letterSpacing: -0.43)),
         ),
         error: (e, _) => Center(
           child: Padding(
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.all(Spacing.xxl),
             child: Text("Couldn't load workouts.\n$e",
                 textAlign: TextAlign.center,
-                style: AppFonts.sf(
-                    size: 15, color: c.ink3, letterSpacing: -0.24)),
+                style: AppType.subhead
+                    .copyWith(color: c.ink3, letterSpacing: -0.24)),
           ),
         ),
         data: (state) => _Body(state: state),
@@ -85,11 +84,12 @@ class _Body extends ConsumerWidget {
         onTap: () => Navigator.of(context).maybePop(),
         semanticLabel: 'Back',
       ),
-      padding: const EdgeInsets.only(bottom: 110),
+      padding: const EdgeInsets.only(bottom: 110), // scroll-tail inset, off-grid
       children: [
         // --- Pal's pick gradient card ---------------------------------------
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 4, 16, 22),
+          padding: const EdgeInsets.fromLTRB(
+              Spacing.lg, Spacing.xs, Spacing.lg, Spacing.xxl),
           child: _PalPickCard(
             state: state,
             exerciseNames: exerciseNames,
@@ -101,13 +101,13 @@ class _Body extends ConsumerWidget {
         if (state.strength.isNotEmpty) ...[
           _SectionHeader('Strength · ${state.strength.length}'),
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+            padding: const EdgeInsets.fromLTRB(Spacing.lg, 0, Spacing.lg, 0),
             child: GridView.count(
               crossAxisCount: 2,
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              mainAxisSpacing: 10,
-              crossAxisSpacing: 10,
+              mainAxisSpacing: Spacing.md,
+              crossAxisSpacing: Spacing.md,
               childAspectRatio: 1.35,
               children: [
                 for (final r in state.strength)
@@ -124,10 +124,10 @@ class _Body extends ConsumerWidget {
 
         // --- Cardio rows -----------------------------------------------------
         if (state.cardio.isNotEmpty) ...[
-          const SizedBox(height: 22),
+          const SizedBox(height: Spacing.xxl),
           _SectionHeader('Cardio · ${state.cardio.length}'),
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+            padding: const EdgeInsets.fromLTRB(Spacing.lg, 0, Spacing.lg, 0),
             child: Column(
               children: [
                 for (final r in state.cardio) ...[
@@ -136,7 +136,7 @@ class _Body extends ConsumerWidget {
                     lastDoneDays: state.daysSinceLastDone(r.id),
                     onTap: () => openSession(r.id),
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: Spacing.md),
                 ],
               ],
             ),
@@ -144,9 +144,9 @@ class _Body extends ConsumerWidget {
         ],
 
         // --- Quick actions ---------------------------------------------------
-        const SizedBox(height: 22),
+        const SizedBox(height: Spacing.xxl),
         InsetSection(
-          margin: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+          margin: const EdgeInsets.fromLTRB(Spacing.lg, 0, Spacing.lg, 0),
           children: [
             ListRow(
               icon: 'sparkles',
@@ -195,11 +195,10 @@ class _SectionHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+      padding: const EdgeInsets.fromLTRB(Spacing.xl, 0, Spacing.xl, Spacing.md),
       child: Text(text.toUpperCase(),
-          style: AppFonts.sf(
-              size: 12,
-              weight: FontWeight.w700,
+          style: AppType.caption.copyWith(
+              fontWeight: FontWeight.w700,
               color: c.ink3,
               letterSpacing: 0.8)),
     );
@@ -244,7 +243,7 @@ class _PalPickCard extends ConsumerWidget {
 
     return DecoratedBox(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(Radii.lg),
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -252,7 +251,7 @@ class _PalPickCard extends ConsumerWidget {
         ),
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(Radii.lg),
         child: Stack(
           children: [
             // two soft decorative light blobs.
@@ -281,7 +280,7 @@ class _PalPickCard extends ConsumerWidget {
               ),
             ),
             Padding(
-              padding: const EdgeInsets.all(18),
+              padding: const EdgeInsets.all(Spacing.xl),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -296,16 +295,15 @@ class _PalPickCard extends ConsumerWidget {
                 alignment: Alignment.center,
                 child: const AppIcon('sparkles', size: 11, color: _white),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: Spacing.sm),
               Text("PAL'S PICK FOR TODAY",
-                  style: AppFonts.sf(
-                      size: 11,
-                      weight: FontWeight.w700,
+                  style: AppType.caption2.copyWith(
+                      fontWeight: FontWeight.w700,
                       color: _white.withValues(alpha: 0.85),
                       letterSpacing: 1.2)),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: Spacing.md),
 
           // Title.
           Text(
@@ -319,7 +317,7 @@ class _PalPickCard extends ConsumerWidget {
                 weight: FontWeight.w700,
                 color: _white,
                 letterSpacing: -0.5,
-                height: 1.1),
+                height: 1.1), // sfr 26: no token
           ),
 
           // Meta sub-line: prefer the resolved routine's own
@@ -331,15 +329,14 @@ class _PalPickCard extends ConsumerWidget {
                 : (suggestion == null ? '' : _meta(suggestion));
             if (meta.isEmpty) return const SizedBox.shrink();
             return Padding(
-              padding: const EdgeInsets.only(top: 4),
+              padding: const EdgeInsets.only(top: Spacing.xs),
               child: Text(meta,
-                  style: AppFonts.sf(
-                      size: 13,
+                  style: AppType.footnote.copyWith(
                       color: _white.withValues(alpha: 0.7),
                       letterSpacing: -0.08)),
             );
           }),
-          const SizedBox(height: 12),
+          const SizedBox(height: Spacing.md),
 
           // Rationale.
           Text(
@@ -348,8 +345,7 @@ class _PalPickCard extends ConsumerWidget {
               error: (_, _) => "Pal couldn't pick one just now — go freestyle.",
               data: (s) => s.rationale,
             ),
-            style: AppFonts.sf(
-                size: 14,
+            style: AppType.subhead.copyWith(
                 color: _white.withValues(alpha: loading ? 0.3 : 0.88),
                 letterSpacing: -0.2,
                 height: 1.45),
@@ -357,13 +353,13 @@ class _PalPickCard extends ConsumerWidget {
 
           // Exercise-preview chip strip (top names + "+N more").
           if (routine != null && routine.exercises.isNotEmpty) ...[
-            const SizedBox(height: 14),
+            const SizedBox(height: Spacing.lg),
             _ExercisePreviewChips(
               routine: routine,
               exerciseNames: exerciseNames,
             ),
           ],
-          const SizedBox(height: 16),
+          const SizedBox(height: Spacing.lg),
 
           // Actions: Start + Another.
           Row(
@@ -377,7 +373,7 @@ class _PalPickCard extends ConsumerWidget {
                   onTap: targetId == null ? null : () => onStart(targetId),
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: Spacing.sm),
               _AnotherButton(
                 loading: loading,
                 onTap: loading
@@ -436,22 +432,21 @@ class _StartButton extends StatelessWidget {
       child: Opacity(
         opacity: enabled ? 1 : 0.5,
         child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 12),
+          padding: const EdgeInsets.symmetric(vertical: Spacing.md),
           decoration: BoxDecoration(
-              color: _white, borderRadius: BorderRadius.circular(100)),
+              color: _white, borderRadius: BorderRadius.circular(Radii.pill)),
           alignment: Alignment.center,
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               AppIcon('play.fill', size: 12, color: c.move),
-              const SizedBox(width: 6),
+              const SizedBox(width: Spacing.sm),
               Flexible(
                 child: Text(label,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: AppFonts.sf(
-                        size: 15,
-                        weight: FontWeight.w700,
+                    style: AppType.subhead.copyWith(
+                        fontWeight: FontWeight.w700,
                         color: c.move,
                         letterSpacing: -0.2)),
               ),
@@ -475,20 +470,21 @@ class _AnotherButton extends StatelessWidget {
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        padding: const EdgeInsets.symmetric(
+            horizontal: Spacing.lg, vertical: Spacing.md),
         decoration: BoxDecoration(
           color: const Color(0x1AFFFFFF),
-          borderRadius: BorderRadius.circular(100),
+          borderRadius: BorderRadius.circular(Radii.pill),
           border: Border.all(color: const Color(0x33FFFFFF), width: 0.5),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             const AppIcon('sparkles', size: 11, color: _white),
-            const SizedBox(width: 5),
+            const SizedBox(width: Spacing.xs),
             Text(loading ? 'Thinking…' : 'Other',
-                style: AppFonts.sf(
-                    size: 13, weight: FontWeight.w500, color: _white)),
+                style: AppType.footnote
+                    .copyWith(fontWeight: FontWeight.w500, color: _white)),
           ],
         ),
       ),
@@ -518,8 +514,8 @@ class _ExercisePreviewChips extends StatelessWidget {
     final remaining = ordered.length - names.length;
 
     return Wrap(
-      spacing: 6,
-      runSpacing: 6,
+      spacing: Spacing.sm,
+      runSpacing: Spacing.sm,
       children: [
         for (final name in names) _chip(name),
         if (remaining > 0) _chip('+$remaining more'),
@@ -528,16 +524,16 @@ class _ExercisePreviewChips extends StatelessWidget {
   }
 
   Widget _chip(String label) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        padding: const EdgeInsets.symmetric(
+            horizontal: Spacing.md, vertical: Spacing.xs),
         decoration: BoxDecoration(
           color: const Color(0x1FFFFFFF),
-          borderRadius: BorderRadius.circular(100),
+          borderRadius: BorderRadius.circular(Radii.pill),
           border: Border.all(color: const Color(0x26FFFFFF), width: 0.5),
         ),
         child: Text(label,
-            style: AppFonts.sf(
-                size: 12,
-                weight: FontWeight.w500,
+            style: AppType.caption.copyWith(
+                fontWeight: FontWeight.w500,
                 color: _white.withValues(alpha: 0.92),
                 letterSpacing: -0.1)),
       );
@@ -571,7 +567,7 @@ class _RoutineCard extends StatelessWidget {
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(Radii.lg),
         child: ColoredBox(
           color: c.surface,
           child: Column(
@@ -592,7 +588,8 @@ class _RoutineCard extends StatelessWidget {
                       child: CustomPaint(painter: _BandStripePainter()),
                     ),
                     Padding(
-                      padding: const EdgeInsets.fromLTRB(12, 12, 12, 14),
+                      padding: const EdgeInsets.fromLTRB(
+                          Spacing.md, Spacing.md, Spacing.md, Spacing.lg),
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -601,18 +598,16 @@ class _RoutineCard extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(routine.tag.wire.toUpperCase(),
-                              style: AppFonts.sf(
-                                  size: 10,
-                                  weight: FontWeight.w700,
+                              style: AppType.caption2.copyWith(
+                                  fontWeight: FontWeight.w700,
                                   color: _white.withValues(alpha: 0.8),
                                   letterSpacing: 0.8)),
-                          const SizedBox(height: 3),
+                          const SizedBox(height: Spacing.xs),
                           Text(routine.name,
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
-                              style: AppFonts.sf(
-                                  size: 15,
-                                  weight: FontWeight.w700,
+                              style: AppType.subhead.copyWith(
+                                  fontWeight: FontWeight.w700,
                                   color: _white,
                                   letterSpacing: -0.3,
                                   height: 1.15)),
@@ -636,7 +631,8 @@ class _RoutineCard extends StatelessWidget {
               // Footer: exercise preview line + stats + last-done.
               Expanded(
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 8, 12, 10),
+                  padding: const EdgeInsets.fromLTRB(
+                      Spacing.md, Spacing.sm, Spacing.md, Spacing.md),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -645,8 +641,7 @@ class _RoutineCard extends StatelessWidget {
                         Text(preview,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: AppFonts.sf(
-                                size: 11,
+                            style: AppType.caption2.copyWith(
                                 color: c.ink3,
                                 letterSpacing: -0.08)),
                       Row(
@@ -655,9 +650,9 @@ class _RoutineCard extends StatelessWidget {
                           _MiniStat(
                               value: '${routine.exerciseCount}',
                               label: 'EXERCISES'),
-                          const SizedBox(width: 14),
+                          const SizedBox(width: Spacing.lg),
                           _MiniStat(value: '$_totalSets', label: 'SETS'),
-                          const SizedBox(width: 14),
+                          const SizedBox(width: Spacing.lg),
                           _MiniStat(
                               value: '${_displayEstMinutes(routine)}',
                               label: 'EST'),
@@ -666,9 +661,8 @@ class _RoutineCard extends StatelessWidget {
                             Padding(
                               padding: const EdgeInsets.only(bottom: 1),
                               child: Text(lastDone,
-                                  style: AppFonts.sf(
-                                      size: 10,
-                                      weight: FontWeight.w600,
+                                  style: AppType.caption2.copyWith(
+                                      fontWeight: FontWeight.w600,
                                       color: c.ink3,
                                       letterSpacing: -0.08)),
                             ),
@@ -705,7 +699,7 @@ class _CardioRow extends StatelessWidget {
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(Radii.lg),
         child: ColoredBox(
           color: c.surface,
           child: IntrinsicHeight(
@@ -726,18 +720,18 @@ class _CardioRow extends StatelessWidget {
                 ),
                 Expanded(
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+                    padding: const EdgeInsets.fromLTRB(
+                        Spacing.lg, Spacing.md, Spacing.lg, Spacing.md),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(routine.name,
-                            style: AppFonts.sf(
-                                size: 16,
-                                weight: FontWeight.w600,
+                            style: AppType.callout.copyWith(
+                                fontWeight: FontWeight.w600,
                                 color: c.ink,
                                 letterSpacing: -0.3)),
-                        const SizedBox(height: 4),
+                        const SizedBox(height: Spacing.xs),
                         Row(
                           crossAxisAlignment: CrossAxisAlignment.baseline,
                           textBaseline: TextBaseline.alphabetic,
@@ -751,31 +745,28 @@ class _CardioRow extends StatelessWidget {
                                     size: 16,
                                     weight: FontWeight.w700,
                                     color: c.ink,
-                                    letterSpacing: -0.2)),
-                            const SizedBox(width: 2),
+                                    letterSpacing: -0.2)), // sfr 16: no token
+                            const SizedBox(width: Spacing.xxs),
                             Text(routine.distanceKm != null ? 'km' : 'min',
-                                style: AppFonts.sf(
-                                    size: 11,
+                                style: AppType.caption2.copyWith(
                                     color: c.ink3,
                                     letterSpacing: -0.08)),
                             if (routine.pace != null) ...[
                               Text('  ·  ',
-                                  style: AppFonts.sf(
-                                      size: 11, color: c.ink3)),
+                                  style: AppType.caption2
+                                      .copyWith(color: c.ink3)),
                               Text(routine.pace!,
-                                  style: AppFonts.sf(
-                                      size: 13,
-                                      weight: FontWeight.w600,
+                                  style: AppType.footnote.copyWith(
+                                      fontWeight: FontWeight.w600,
                                       color: c.ink2,
                                       letterSpacing: -0.1)),
                             ],
                           ],
                         ),
                         if (_lastDoneLabel(lastDoneDays) != null) ...[
-                          const SizedBox(height: 3),
+                          const SizedBox(height: Spacing.xs),
                           Text('last done ${_lastDoneLabel(lastDoneDays)}',
-                              style: AppFonts.sf(
-                                  size: 11,
+                              style: AppType.caption2.copyWith(
                                   color: c.ink3,
                                   letterSpacing: -0.08)),
                         ],
@@ -784,7 +775,7 @@ class _CardioRow extends StatelessWidget {
                   ),
                 ),
                 Padding(
-                  padding: const EdgeInsets.only(right: 14),
+                  padding: const EdgeInsets.only(right: Spacing.lg),
                   child: Container(
                     width: 30,
                     height: 30,
@@ -844,12 +835,11 @@ class _MiniStat extends StatelessWidget {
                 weight: FontWeight.w700,
                 color: c.ink,
                 letterSpacing: -0.2,
-                height: 1)),
-        const SizedBox(height: 1),
+                height: 1)), // sfr 15: no token
+        const SizedBox(height: 1), // hairline gap, off-grid
         Text(label,
-            style: AppFonts.sf(
-                size: 9,
-                weight: FontWeight.w600,
+            style: AppType.caption2.copyWith(
+                fontWeight: FontWeight.w600,
                 color: c.ink3,
                 letterSpacing: 0.3)),
       ],
