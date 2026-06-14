@@ -223,4 +223,64 @@ void main() {
     final service = build(MockClient((req) async => http.Response('boom', 502)));
     expect(() => service.review(DateTime(2026, 6), ReviewRange.month), throwsA(isA<PalException>()));
   });
+
+  test('insights serves a repeated identical context from cache (one network call)', () async {
+    var calls = 0;
+    final service = HttpPalService(
+      baseUrl: 'https://pal.test',
+      httpClient: MockClient((req) async {
+        calls++;
+        return http.Response(jsonEncode({'headline': 'Steady week.'}), 200,
+            headers: {'content-type': 'application/json; charset=utf-8'});
+      }),
+      tokens: tokenProvider(),
+      context: contextStub(), // fixed context map → identical key
+      cache: _MapCache(),
+    );
+
+    final first = await service.insights(InsightRange.week);
+    final second = await service.insights(InsightRange.week);
+
+    expect(calls, 1); // second call hit the cache
+    expect(first.headline, 'Steady week.');
+    expect(second.headline, 'Steady week.');
+  });
+
+  test('insights refetches when the context changes (new key misses)', () async {
+    var calls = 0;
+    var spent = 100;
+    final service = HttpPalService(
+      baseUrl: 'https://pal.test',
+      httpClient: MockClient((req) async {
+        calls++;
+        return http.Response(jsonEncode({'headline': 'h$calls'}), 200,
+            headers: {'content-type': 'application/json; charset=utf-8'});
+      }),
+      tokens: tokenProvider(),
+      context: PalContextSource(
+        chat: () async => const {},
+        review: (_, _) async => const {},
+        insights: (_) async => {'range': 'week', 'spent': spent},
+        suggest: (_, _) async => const {},
+        postWorkout: (_) async => const {},
+        resolveRoutineTitle: (_) async => null,
+      ),
+      cache: _MapCache(),
+    );
+
+    await service.insights(InsightRange.week);
+    spent = 250; // an edited past entry changes the context
+    await service.insights(InsightRange.week);
+
+    expect(calls, 2);
+  });
+}
+
+/// In-memory [PalResponseCache] for exercising the caching path without prefs.
+class _MapCache extends PalResponseCache {
+  final _store = <String, String>{};
+  @override
+  Future<String?> get(String key) async => _store[key];
+  @override
+  Future<void> put(String key, String value) async => _store[key] = value;
 }

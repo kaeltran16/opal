@@ -34,7 +34,8 @@ export interface CompletionResult {
 export interface CompletionClient {
   // `json: true` asks the provider for a strict JSON object (response_format).
   // `maxTokens` overrides the default output cap for long replies (defaults to MAX_TOKENS).
-  complete(messages: ChatMessage[], opts?: { json?: boolean; maxTokens?: number }): Promise<string>
+  // `temperature` overrides the provider default — pass 0 for deterministic extraction.
+  complete(messages: ChatMessage[], opts?: { json?: boolean; maxTokens?: number; temperature?: number }): Promise<string>
   // Tool-enabled variant for chat. `tools` is the OpenAI tool spec array.
   completeWithTools(messages: ChatMessage[], tools: unknown[]): Promise<CompletionResult>
 }
@@ -96,7 +97,8 @@ export class OpenRouterClient implements CompletionClient {
           authorization: `Bearer ${this.apiKey}`,
           'content-type': 'application/json',
         },
-        body: JSON.stringify({ model: this.model, max_tokens: MAX_TOKENS, ...extra }),
+        // usage.include asks OpenRouter to report per-request cost in the usage block.
+        body: JSON.stringify({ model: this.model, max_tokens: MAX_TOKENS, usage: { include: true }, ...extra }),
         // extra may override max_tokens; the object spread above lets it.
         signal: AbortSignal.timeout(this.timeoutMs),
       })
@@ -110,12 +112,13 @@ export class OpenRouterClient implements CompletionClient {
     return res.json()
   }
 
-  async complete(messages: ChatMessage[], opts?: { json?: boolean; maxTokens?: number }): Promise<string> {
+  async complete(messages: ChatMessage[], opts?: { json?: boolean; maxTokens?: number; temperature?: number }): Promise<string> {
     const cap = opts?.maxTokens ?? MAX_TOKENS
     const started = Date.now()
     const data = (await this.post({
       messages,
       max_tokens: cap,
+      ...(opts?.temperature !== undefined ? { temperature: opts.temperature } : {}),
       ...(opts?.json ? { response_format: { type: 'json_object' } } : {}),
     })) as { choices?: Array<{ message?: { content?: string }; finish_reason?: string }>; usage?: unknown }
     const choice = data.choices?.[0]
@@ -145,7 +148,9 @@ export class OpenRouterClient implements CompletionClient {
   }
 
   private logUsage(started: number, usage: unknown, finish_reason?: string): void {
-    this.logger?.info({ ms: Date.now() - started, model: this.model, usage, finish_reason }, 'openrouter completion')
+    // surface cost at the top level so log aggregation can sum spend without parsing usage.
+    const cost = (usage as { cost?: number } | undefined)?.cost
+    this.logger?.info({ ms: Date.now() - started, model: this.model, usage, cost, finish_reason }, 'openrouter completion')
   }
 }
 
@@ -341,7 +346,7 @@ export class Pal {
   }
 
   async insights(ctx: InsightsContext): Promise<Insights> {
-    const raw = await this.client.complete([{ role: 'user', content: insightsPrompt(ctx) }], { json: true, maxTokens: INSIGHTS_MAX_TOKENS })
+    const raw = await this.client.complete([{ role: 'user', content: insightsPrompt(ctx) }], { json: true, maxTokens: INSIGHTS_MAX_TOKENS, temperature: 0 })
     return insightsSchema.parse(extractJson(raw))
   }
 
@@ -350,7 +355,7 @@ export class Pal {
   }
 
   async parse(text: string): Promise<ParsedEntry> {
-    const raw = await this.client.complete([{ role: 'user', content: parsePrompt(text) }], { json: true })
+    const raw = await this.client.complete([{ role: 'user', content: parsePrompt(text) }], { json: true, temperature: 0 })
     return parseSchema.parse(extractJson(raw))
   }
 

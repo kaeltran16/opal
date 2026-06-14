@@ -40,6 +40,16 @@ class PalContextSource {
   final Future<String?> Function(String routineId) resolveRoutineTitle;
 }
 
+/// Cache seam for the period-stable Pal responses (insights, review). Keyed by
+/// the request context, so a still-changing period misses and regenerates while
+/// a closed one serves the stored reply. The base is a no-op (always misses);
+/// the prefs-backed impl persists across launches.
+class PalResponseCache {
+  const PalResponseCache();
+  Future<String?> get(String key) async => null;
+  Future<void> put(String key, String value) async {}
+}
+
 /// Real [PalService]: posts structured context to the droplet proxy and maps
 /// responses into the existing DTOs. Interface-compatible with [MockPalService].
 class HttpPalService implements PalService {
@@ -48,6 +58,7 @@ class HttpPalService implements PalService {
     required http.Client httpClient,
     required this.tokens,
     required this.context,
+    this.cache = const PalResponseCache(),
     this.timeout = const Duration(seconds: 30),
   })  : _base = Uri.parse(baseUrl),
         _http = httpClient;
@@ -56,7 +67,30 @@ class HttpPalService implements PalService {
   final http.Client _http;
   final TokenProvider tokens;
   final PalContextSource context;
+  final PalResponseCache cache;
   final Duration timeout;
+
+  /// POSTs [path] with [ctx], serving from / storing into [cache] keyed by the
+  /// context. A changed (open) period produces a new key and refetches; a stable
+  /// (closed) one hits. [kind] namespaces keys across endpoints.
+  Future<Map<String, dynamic>> _cachedPost(
+    String kind,
+    String path,
+    Map<String, Object?> ctx,
+  ) async {
+    final key = '$kind:${jsonEncode(ctx)}';
+    final hit = await cache.get(key);
+    if (hit != null) {
+      try {
+        return jsonDecode(hit) as Map<String, dynamic>;
+      } catch (_) {
+        // corrupt entry — fall through and refetch.
+      }
+    }
+    final json = await _post(path, {'context': ctx});
+    await cache.put(key, jsonEncode(json));
+    return json;
+  }
 
   Future<Map<String, dynamic>> _post(String path, Map<String, Object?> body) async {
     Future<http.Response> send() async {
@@ -182,7 +216,7 @@ class HttpPalService implements PalService {
 
   @override
   Future<String> review(DateTime anchor, ReviewRange range) async {
-    final json = await _post('/v1/review', {'context': await context.review(anchor, range)});
+    final json = await _cachedPost('review', '/v1/review', await context.review(anchor, range));
     try {
       return json['text'] as String? ?? '';
     } catch (e) {
@@ -192,7 +226,7 @@ class HttpPalService implements PalService {
 
   @override
   Future<PalInsights> insights(InsightRange range) async {
-    final json = await _post('/v1/insights', {'context': await context.insights(range)});
+    final json = await _cachedPost('insights', '/v1/insights', await context.insights(range));
     List<T> mapList<T>(String key, T Function(Map<String, dynamic>) f) =>
         ((json[key] as List?) ?? const [])
             .cast<Map<String, dynamic>>()

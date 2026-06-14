@@ -101,6 +101,20 @@ describe('extractReceipts', () => {
     ])
   })
 
+  it('requests deterministic output and scales the token cap with the batch size', async () => {
+    let opts: { maxTokens?: number; temperature?: number } | undefined
+    const capturing: TextCompleter = {
+      complete: async (_msgs, o) => {
+        opts = o
+        return oneResult({ isReceipt: true, merchant: 'Amazon', amount: 42.99, category: 'Shopping' })
+      },
+    }
+    await extractReceipts([email(), email(), email()], capturing)
+    expect(opts?.temperature).toBe(0)
+    // 3 emails worth of result objects must not be capped at the default 1024.
+    expect(opts?.maxTokens).toBe(3 * 256)
+  })
+
   it('scrubs PII from every body before it reaches the model, keeping the amount', async () => {
     let seen = ''
     const capturing: TextCompleter = {
