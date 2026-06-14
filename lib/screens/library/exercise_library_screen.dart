@@ -4,8 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../controllers/providers.dart';
 import '../../models/models.dart';
-import '../../theme/app_colors.dart';
-import '../../theme/app_text.dart';
+import '../../theme/theme.dart';
 import '../../widgets/app_icon.dart';
 import '../../widgets/inset_section.dart';
 import '../../widgets/nav_bar.dart';
@@ -27,8 +26,6 @@ class ExerciseLibraryScreen extends ConsumerStatefulWidget {
 
 /// The filter groups, in display order. `null` (= All) is rendered first.
 const List<String> _groups = ['Push', 'Pull', 'Legs', 'Core', 'Cardio'];
-
-const _white = Color(0xFFFFFFFF);
 
 class _ExerciseLibraryScreenState extends ConsumerState<ExerciseLibraryScreen> {
   final _searchController = TextEditingController();
@@ -82,26 +79,25 @@ class _ExerciseLibraryScreenState extends ConsumerState<ExerciseLibraryScreen> {
               controller: _searchController,
               onChanged: (v) => setState(() => _query = v),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: Spacing.md),
             _FilterChips(
               active: _group,
               onSelect: (g) => setState(() => _group = g),
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: Spacing.lg),
             Expanded(
               child: async.when(
                 loading: () => Center(
                   child: Text('…',
-                      style: AppFonts.sf(
-                          size: 17, color: c.ink3, letterSpacing: -0.43)),
+                      style: AppType.body.copyWith(color: c.ink3)),
                 ),
                 error: (e, _) => Center(
                   child: Padding(
-                    padding: const EdgeInsets.all(24),
+                    padding: const EdgeInsets.all(Spacing.xxl),
                     child: Text("Couldn't load exercises.\n$e",
                         textAlign: TextAlign.center,
-                        style: AppFonts.sf(
-                            size: 15, color: c.ink3, letterSpacing: -0.24)),
+                        style: AppType.subhead
+                            .copyWith(color: c.ink3, letterSpacing: -0.24)),
                   ),
                 ),
                 data: (all) {
@@ -111,7 +107,8 @@ class _ExerciseLibraryScreenState extends ConsumerState<ExerciseLibraryScreen> {
                   }
                   final sections = _byGroup(filtered);
                   return ListView(
-                    padding: const EdgeInsets.only(top: 4, bottom: 32),
+                    padding: const EdgeInsets.only(
+                        top: Spacing.xs, bottom: Spacing.xxxl),
                     children: [
                       for (final section in sections)
                         InsetSection(
@@ -147,7 +144,8 @@ class _Header extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(8, 8, 16, 4),
+      padding: const EdgeInsets.fromLTRB(
+          Spacing.sm, Spacing.sm, Spacing.lg, Spacing.xs),
       child: Row(
         children: [
           NavAction(
@@ -156,21 +154,18 @@ class _Header extends StatelessWidget {
             onTap: () => context.pop(),
             semanticLabel: 'Back',
           ),
-          const SizedBox(width: 4),
+          const SizedBox(width: Spacing.xs),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text('Exercises',
-                    style: AppFonts.sf(
-                        size: 22,
-                        weight: FontWeight.w700,
-                        color: c.ink,
-                        letterSpacing: 0.35)),
+                    style: AppType.title2.copyWith(
+                        color: c.ink, letterSpacing: 0.35)),
                 if (count != null)
                   Text('$count in library',
-                      style: AppFonts.sf(
-                          size: 12, color: c.ink3, letterSpacing: -0.08)),
+                      style: AppType.caption
+                          .copyWith(color: c.ink3, letterSpacing: -0.08)),
               ],
             ),
           ),
@@ -191,32 +186,30 @@ class _SearchPill extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
+      padding: const EdgeInsets.fromLTRB(Spacing.lg, Spacing.xs, Spacing.lg, 0),
       child: Container(
-        height: 36,
-        padding: const EdgeInsets.symmetric(horizontal: 10),
+        height: 36, // fixed search-field height
+        padding: const EdgeInsets.symmetric(horizontal: Spacing.md),
         decoration: BoxDecoration(
           color: c.fill,
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(Radii.md),
         ),
         child: Row(
           children: [
             AppIcon('magnifyingglass', size: 16, color: c.ink3),
-            const SizedBox(width: 6),
+            const SizedBox(width: Spacing.sm),
             Expanded(
               child: TextField(
                 controller: controller,
                 onChanged: onChanged,
                 cursorColor: c.accent,
-                style: AppFonts.sf(
-                    size: 17, color: c.ink, letterSpacing: -0.43),
+                style: AppType.body.copyWith(color: c.ink),
                 decoration: InputDecoration(
                   isDense: true,
                   border: InputBorder.none,
                   contentPadding: EdgeInsets.zero,
                   hintText: 'Search exercises',
-                  hintStyle: AppFonts.sf(
-                      size: 17, color: c.ink3, letterSpacing: -0.43),
+                  hintStyle: AppType.body.copyWith(color: c.ink3),
                 ),
               ),
             ),
@@ -243,12 +236,12 @@ class _FilterChips extends StatelessWidget {
       for (final g in _groups) (g, g),
     ];
     return SizedBox(
-      height: 32,
+      height: 32, // fixed chip-row height
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
+        padding: const EdgeInsets.symmetric(horizontal: Spacing.lg),
         itemCount: options.length,
-        separatorBuilder: (context, index) => const SizedBox(width: 8),
+        separatorBuilder: (context, index) => const SizedBox(width: Spacing.sm),
         itemBuilder: (context, i) {
           final (label, value) = options[i];
           return _Chip(
@@ -280,17 +273,16 @@ class _Chip extends StatelessWidget {
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14),
+        padding: const EdgeInsets.symmetric(horizontal: Spacing.lg),
         alignment: Alignment.center,
         decoration: BoxDecoration(
           color: selected ? c.ink : c.fill,
-          borderRadius: BorderRadius.circular(100),
+          borderRadius: BorderRadius.circular(Radii.pill),
         ),
         child: Text(
           label,
-          style: AppFonts.sf(
-            size: 14,
-            weight: FontWeight.w600,
+          style: AppType.subhead.copyWith(
+            fontWeight: FontWeight.w600,
             color: selected ? c.bg : c.ink2,
             letterSpacing: -0.15,
           ),
@@ -332,7 +324,7 @@ class _ExerciseRow extends StatelessWidget {
   /// Group-coded tile background + glyph color. Cardio fills solid (white glyph);
   /// every other group uses the low-alpha tint with a full-color glyph.
   ({Color bg, Color icon}) _tile(AppColors c) => switch (exercise.group) {
-        'Cardio' => (bg: c.move, icon: _white),
+        'Cardio' => (bg: c.move, icon: c.onAccent),
         'Push' => (bg: c.moveTint, icon: c.move),
         'Pull' => (bg: c.ritualsTint, icon: c.rituals),
         'Legs' => (bg: c.moneyTint, icon: c.money),
@@ -347,22 +339,23 @@ class _ExerciseRow extends StatelessWidget {
     return Stack(
       children: [
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          padding: const EdgeInsets.symmetric(
+              horizontal: Spacing.lg, vertical: Spacing.sm),
           child: ConstrainedBox(
-            constraints: const BoxConstraints(minHeight: 40),
+            constraints: const BoxConstraints(minHeight: 40), // row min height
             child: Row(
               children: [
                 Container(
-                  width: 36,
+                  width: 36, // fixed icon tile
                   height: 36,
                   decoration: BoxDecoration(
                     color: tile.bg,
-                    borderRadius: BorderRadius.circular(9),
+                    borderRadius: BorderRadius.circular(Radii.sm),
                   ),
                   alignment: Alignment.center,
                   child: AppIcon(exercise.icon, size: 17, color: tile.icon),
                 ),
-                const SizedBox(width: 11),
+                const SizedBox(width: Spacing.md),
                 Expanded(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -372,20 +365,19 @@ class _ExerciseRow extends StatelessWidget {
                         exercise.name,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: AppFonts.sf(
-                            size: 15,
-                            weight: FontWeight.w500,
+                        style: AppType.subhead.copyWith(
+                            fontWeight: FontWeight.w500,
                             color: c.ink,
                             letterSpacing: -0.24),
                       ),
                       Padding(
-                        padding: const EdgeInsets.only(top: 1),
+                        padding: const EdgeInsets.only(top: 1), // hairline gap
                         child: Text(
                           _meta,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: AppFonts.sf(
-                              size: 12, color: c.ink3, letterSpacing: -0.08),
+                          style: AppType.caption
+                              .copyWith(color: c.ink3, letterSpacing: -0.08),
                         ),
                       ),
                     ],
@@ -393,15 +385,14 @@ class _ExerciseRow extends StatelessWidget {
                 ),
                 if (pr != null)
                   Padding(
-                    padding: const EdgeInsets.only(left: 8),
+                    padding: const EdgeInsets.only(left: Spacing.sm),
                     child: Text(
                       pr,
-                      style: AppFonts.sf(
-                          size: 15,
-                          weight: FontWeight.w600,
+                      style: AppType.subhead.copyWith(
+                          fontWeight: FontWeight.w600,
                           color: c.ink2,
                           letterSpacing: -0.1,
-                          tabular: true),
+                          fontFeatures: const [FontFeature.tabularFigures()]),
                     ),
                   ),
               ],
@@ -429,13 +420,13 @@ class _EmptyState extends StatelessWidget {
     final c = context.colors;
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(32),
+        padding: const EdgeInsets.all(Spacing.xxxl),
         child: Text(
           query.trim().isEmpty
               ? 'No exercises in this group.'
               : 'No exercises match "$query".',
           textAlign: TextAlign.center,
-          style: AppFonts.sf(size: 15, color: c.ink3, letterSpacing: -0.24),
+          style: AppType.subhead.copyWith(color: c.ink3, letterSpacing: -0.24),
         ),
       ),
     );
