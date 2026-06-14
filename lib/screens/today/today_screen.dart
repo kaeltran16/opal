@@ -7,8 +7,7 @@ import '../../controllers/today_controller.dart';
 import '../../models/models.dart';
 import '../../services/pal/pal_service.dart' show InsightRange;
 import '../../router.dart';
-import '../../theme/app_colors.dart';
-import '../../theme/app_text.dart';
+import '../../theme/theme.dart';
 import '../../widgets/activity_rings.dart';
 import '../../widgets/app_icon.dart';
 import '../../widgets/controls.dart';
@@ -33,15 +32,15 @@ class TodayScreen extends ConsumerWidget {
 
     return async.when(
       loading: () => Center(
-        child: Text('…',
-            style: AppFonts.sf(size: 17, color: c.ink3, letterSpacing: -0.43)),
+        child: Text('…', style: AppType.body.copyWith(color: c.ink3)),
       ),
       error: (e, _) => Center(
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(Spacing.xxl),
           child: Text("Couldn't load today. Try again in a moment.",
               textAlign: TextAlign.center,
-              style: AppFonts.sf(size: 15, color: c.ink3, letterSpacing: -0.24)),
+              style: AppType.subhead
+                  .copyWith(color: c.ink3, letterSpacing: -0.24)),
         ),
       ),
       data: (today) => _TodayBody(today: today),
@@ -104,34 +103,37 @@ class _TodayBody extends ConsumerWidget {
       title: 'Today',
       subtitle: _dateSubtitle,
       leading: Text(_monthAbbrev(),
-          style: AppFonts.sf(size: 17, color: c.accent)),
+          style: AppType.body.copyWith(color: c.accent, letterSpacing: 0)),
       trailing: Row(children: [
         NavIconButton(
           name: 'bell.fill',
           semanticLabel: 'Notifications',
           onTap: () => context.pushNamed(AppRoute.palInbox.name),
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: Spacing.sm),
         const NavIconButton(
           name: 'magnifyingglass',
           semanticLabel: 'Search',
         ),
       ]),
+      // kept literal: fixed bottom inset clearing the floating tab bar / FAB.
       padding: const EdgeInsets.only(bottom: 110),
       children: [
         // Activity rings hero.
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 4, 16, 14),
+          padding: const EdgeInsets.fromLTRB(
+              Spacing.lg, Spacing.xs, Spacing.lg, Spacing.lg),
           child: Container(
-            padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
+            padding: const EdgeInsets.fromLTRB(
+                Spacing.xl, Spacing.xl, Spacing.xl, Spacing.lg),
             decoration: BoxDecoration(
-                color: c.surface, borderRadius: BorderRadius.circular(18)),
+                color: c.surface, borderRadius: BorderRadius.circular(Radii.lg)),
             child: Column(
               children: [
                 Row(
                   children: [
                     ActivityRings(values: today.rings),
-                    const SizedBox(width: 18),
+                    const SizedBox(width: Spacing.xl),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -141,6 +143,7 @@ class _TodayBody extends ConsumerWidget {
                               label: 'Spent',
                               value: '\$${moneySpent.toStringAsFixed(0)}',
                               goal: '/ \$${goals.dailyBudget.toStringAsFixed(0)}'),
+                          // height-sensitive hero rhythm (first 600px viewport) — keep literal.
                           const SizedBox(height: 10),
                           RingStat(
                               color: c.move,
@@ -159,6 +162,7 @@ class _TodayBody extends ConsumerWidget {
                   ],
                 ),
                 Container(
+                  // height-sensitive hero rhythm (first 600px viewport) — keep literals.
                   margin: const EdgeInsets.only(top: 14),
                   padding: const EdgeInsets.only(top: 14),
                   decoration: BoxDecoration(
@@ -171,23 +175,21 @@ class _TodayBody extends ConsumerWidget {
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
                           Text('DAY · 21:30',
-                              style: AppFonts.sf(
-                                  size: 12,
-                                  weight: FontWeight.w600,
+                              style: AppType.caption.copyWith(
+                                  fontWeight: FontWeight.w600,
                                   color: c.ink3,
                                   letterSpacing: 0.3)),
                           Text(
                               ritualsRemaining == 0
                                   ? 'On pace · day closed'
                                   : 'On pace · $closePrompt',
-                              style: AppFonts.sf(
-                                  size: 12,
-                                  weight: FontWeight.w500,
+                              style: AppType.caption.copyWith(
+                                  fontWeight: FontWeight.w500,
                                   color: c.ink2,
                                   letterSpacing: -0.08)),
                         ],
                       ),
-                      const SizedBox(height: 6),
+                      const SizedBox(height: Spacing.sm),
                       ProgressBar(
                         value: _dayProgress,
                         gradient:
@@ -203,8 +205,9 @@ class _TodayBody extends ConsumerWidget {
 
         // 3-up summary tile row (money / move / rituals).
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 18),
+          padding: const EdgeInsets.fromLTRB(Spacing.lg, 0, Spacing.lg, Spacing.xl),
           child: SizedBox(
+            // kept literal: fixed cap on the 3-up grid row height (see SummaryTile).
             height: 132,
             child: Row(
             children: [
@@ -219,7 +222,7 @@ class _TodayBody extends ConsumerWidget {
                       context.pushNamed(AppRoute.spendingDetail.name),
                 ),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: Spacing.md),
               Expanded(
                 child: SummaryTile(
                   type: 'move',
@@ -231,7 +234,7 @@ class _TodayBody extends ConsumerWidget {
                   onTap: () => context.pushNamed(AppRoute.moveDetail.name),
                 ),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: Spacing.md),
               Expanded(
                 child: SummaryTile(
                   type: 'rituals',
@@ -250,14 +253,14 @@ class _TodayBody extends ConsumerWidget {
 
         // Pal insight hero (static copy until U16 wires the real Pal note).
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 18),
+          padding: const EdgeInsets.fromLTRB(Spacing.lg, 0, Spacing.lg, Spacing.xl),
           child: PressScale(
             semanticLabel: 'Pal noticed',
             onTap: () => context.pushNamed(AppRoute.palComposer.name),
             child: Container(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(Spacing.lg),
               decoration: BoxDecoration(
-                  color: c.surface, borderRadius: BorderRadius.circular(18)),
+                  color: c.surface, borderRadius: BorderRadius.circular(Radii.lg)),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -275,39 +278,36 @@ class _TodayBody extends ConsumerWidget {
                           ),
                         ),
                         alignment: Alignment.center,
-                        child: const AppIcon('sparkles',
-                            size: 11, color: Color(0xFFFFFFFF)),
+                        child: AppIcon('sparkles',
+                            size: 11, color: c.onAccent),
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: Spacing.sm),
                       Expanded(
                         child: Text('PAL NOTICED',
-                            style: AppFonts.sf(
-                                size: 12,
-                                weight: FontWeight.w700,
+                            style: AppType.caption.copyWith(
+                                fontWeight: FontWeight.w700,
                                 color: c.ink3,
                                 letterSpacing: 0.3)),
                       ),
                       AppIcon('chevron.right', size: 13, color: c.ink4),
                     ],
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: Spacing.md),
                   Text(
                     insightAsync.isLoading
                         ? 'Pal is reading your week…'
                         : (hasInsight ? headline : _palEmptyCopy),
-                    style: AppFonts.sf(
-                        size: 17,
+                    style: AppType.body.copyWith(
                         color: hasInsight ? c.ink : c.ink3,
-                        letterSpacing: -0.43,
                         height: 1.38),
                   ),
                   // Reply chips only make sense when there's a real observation
                   // to ask Pal about; hidden in the loading/empty states.
                   if (hasInsight) ...[
-                    const SizedBox(height: 12),
+                    const SizedBox(height: Spacing.md),
                     Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
+                      spacing: Spacing.sm,
+                      runSpacing: Spacing.sm,
                       children: [
                         for (final label in const [
                           'Why?',
@@ -326,17 +326,14 @@ class _TodayBody extends ConsumerWidget {
 
         // Timeline header.
         Padding(
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+          padding: const EdgeInsets.fromLTRB(Spacing.xl, 0, Spacing.xl, Spacing.sm),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text('Timeline',
-                  style: AppFonts.sf(
-                      size: 22,
-                      weight: FontWeight.w700,
-                      color: c.ink,
-                      letterSpacing: 0.35)),
+                  style: AppType.title2
+                      .copyWith(color: c.ink, letterSpacing: 0.35)),
               SizedBox(
                 width: 124,
                 child: Segmented<TimelineMode>(
@@ -355,12 +352,13 @@ class _TodayBody extends ConsumerWidget {
 
         if (!today.buckets.any((b) => b.entries.isNotEmpty))
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+            padding: const EdgeInsets.fromLTRB(
+                Spacing.lg, Spacing.sm, Spacing.lg, Spacing.sm),
             child: Center(
               child: Text('Nothing logged yet. Tap + to start your day.',
                   textAlign: TextAlign.center,
-                  style:
-                      AppFonts.sf(size: 15, color: c.ink3, letterSpacing: -0.24)),
+                  style: AppType.subhead
+                      .copyWith(color: c.ink3, letterSpacing: -0.24)),
             ),
           ),
 
@@ -370,19 +368,19 @@ class _TodayBody extends ConsumerWidget {
 
         // Close-out prompt.
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 6, 16, 0),
+          padding: const EdgeInsets.fromLTRB(Spacing.lg, Spacing.sm, Spacing.lg, 0),
           child: PressScale(
             semanticLabel: 'Close out your day',
             onTap: () => context.pushNamed(AppRoute.eveningCloseOut.name),
             child: _DashedBorderBox(
               color: c.rituals.withValues(alpha: 0.33),
-              radius: 14,
+              radius: Radii.card,
               child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: Spacing.lg, vertical: Spacing.lg),
                 decoration: BoxDecoration(
                   color: c.ritualsTint,
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(Radii.card),
                 ),
                 child: Row(
                   children: [
@@ -391,29 +389,25 @@ class _TodayBody extends ConsumerWidget {
                       height: 30,
                       decoration: BoxDecoration(
                           color: c.rituals,
-                          borderRadius: BorderRadius.circular(9)),
+                          borderRadius: BorderRadius.circular(Radii.sm)),
                       alignment: Alignment.center,
-                      child: const AppIcon('sparkles',
-                          size: 15, color: Color(0xFFFFFFFF)),
+                      child: AppIcon('sparkles', size: 15, color: c.onAccent),
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: Spacing.md),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text('Close out your day',
-                              style: AppFonts.sf(
-                                  size: 15,
-                                  weight: FontWeight.w600,
+                              style: AppType.subhead.copyWith(
+                                  fontWeight: FontWeight.w600,
                                   color: c.ink,
                                   letterSpacing: -0.24)),
                           Padding(
                             padding: const EdgeInsets.only(top: 1),
                             child: Text('$closePrompt · 30 min before sleep',
-                                style: AppFonts.sf(
-                                    size: 12,
-                                    color: c.ink3,
-                                    letterSpacing: -0.08)),
+                                style: AppType.caption.copyWith(
+                                    color: c.ink3, letterSpacing: -0.08)),
                           ),
                         ],
                       ),
@@ -459,34 +453,33 @@ class _TimelineBucket extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     return Padding(
-      padding: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.only(bottom: Spacing.lg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(20, 6, 20, 6),
+            padding: const EdgeInsets.fromLTRB(
+                Spacing.xl, Spacing.sm, Spacing.xl, Spacing.sm),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(label.toUpperCase(),
-                    style: AppFonts.sf(
-                        size: 12,
-                        weight: FontWeight.w600,
+                    style: AppType.caption.copyWith(
+                        fontWeight: FontWeight.w600,
                         color: c.ink3,
                         letterSpacing: 0.3)),
                 Text('${rows.length} ${rows.length == 1 ? 'entry' : 'entries'}',
-                    style: AppFonts.sf(
-                        size: 12,
-                        weight: FontWeight.w500,
+                    style: AppType.caption.copyWith(
+                        fontWeight: FontWeight.w500,
                         color: c.ink4,
                         letterSpacing: 0.3)),
               ],
             ),
           ),
           Container(
-            margin: const EdgeInsets.symmetric(horizontal: 16),
+            margin: const EdgeInsets.symmetric(horizontal: Spacing.lg),
             decoration: BoxDecoration(
-                color: c.surface, borderRadius: BorderRadius.circular(14)),
+                color: c.surface, borderRadius: BorderRadius.circular(Radii.card)),
             clipBehavior: Clip.antiAlias,
             child: Column(
               children: [
@@ -578,29 +571,29 @@ class _TimelineRow extends StatelessWidget {
         border:
             last ? null : Border(bottom: BorderSide(color: c.hair, width: 0.5)),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+      padding: const EdgeInsets.symmetric(
+          horizontal: Spacing.lg, vertical: Spacing.md),
       child: Row(
         children: [
           SizedBox(
             width: 38,
             child: Text(_time,
-                style: AppFonts.sf(
-                    size: 12,
-                    weight: FontWeight.w500,
+                style: AppType.caption.copyWith(
+                    fontWeight: FontWeight.w500,
                     color: c.ink3,
                     letterSpacing: -0.08,
-                    tabular: true)),
+                    fontFeatures: const [FontFeature.tabularFigures()])),
           ),
           Container(
             width: 30,
             height: 30,
             decoration: BoxDecoration(
                 color: c.forType(entry.type.wire),
-                borderRadius: BorderRadius.circular(9)),
+                borderRadius: BorderRadius.circular(Radii.sm)),
             alignment: Alignment.center,
-            child: AppIcon(_icon, size: 15, color: const Color(0xFFFFFFFF)),
+            child: AppIcon(_icon, size: 15, color: c.onAccent),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: Spacing.md),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -608,9 +601,8 @@ class _TimelineRow extends StatelessWidget {
                 Text(entry.title,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: AppFonts.sf(
-                        size: 15,
-                        weight: FontWeight.w500,
+                    style: AppType.subhead.copyWith(
+                        fontWeight: FontWeight.w500,
                         color: c.ink,
                         letterSpacing: -0.24)),
                 if (entry.detail != null)
@@ -619,22 +611,21 @@ class _TimelineRow extends StatelessWidget {
                     child: Text(entry.detail!,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: AppFonts.sf(
-                            size: 12, color: c.ink3, letterSpacing: -0.08)),
+                        style: AppType.caption
+                            .copyWith(color: c.ink3, letterSpacing: -0.08)),
                   ),
               ],
             ),
           ),
           if (value != null)
             Padding(
-              padding: const EdgeInsets.only(left: 8),
+              padding: const EdgeInsets.only(left: Spacing.sm),
               child: Text(value,
-                  style: AppFonts.sf(
-                      size: 14,
-                      weight: FontWeight.w600,
+                  style: AppType.footnote.copyWith(
+                      fontWeight: FontWeight.w600,
                       color: entry.type == EntryType.money ? c.ink : c.ink3,
                       letterSpacing: -0.15,
-                      tabular: true)),
+                      fontFeatures: const [FontFeature.tabularFigures()])),
             ),
         ],
       ),
@@ -661,16 +652,16 @@ class _PalReplyChip extends StatelessWidget {
       onTap: () => context.pushNamed(AppRoute.palComposer.name,
           queryParameters: {'seed': label}),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+        padding: const EdgeInsets.symmetric(
+            horizontal: Spacing.md, vertical: Spacing.sm),
         decoration: BoxDecoration(
           color: c.surface2,
-          borderRadius: BorderRadius.circular(999),
+          borderRadius: BorderRadius.circular(Radii.pill),
           border: Border.all(color: c.hair, width: 0.5),
         ),
         child: Text(label,
-            style: AppFonts.sf(
-                size: 13,
-                weight: FontWeight.w500,
+            style: AppType.footnote.copyWith(
+                fontWeight: FontWeight.w500,
                 color: c.ink2,
                 letterSpacing: -0.08)),
       ),

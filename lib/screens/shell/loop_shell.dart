@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../theme/app_colors.dart';
-import '../../theme/app_text.dart';
+import '../../theme/theme.dart';
 import '../../widgets/loop_tab_bar.dart';
 import '../../router.dart';
 
@@ -66,7 +65,7 @@ class PlaceholderScreen extends StatelessWidget {
       color: c.bg,
       child: Center(
         child: Text('$label — coming soon',
-            style: AppFonts.sf(size: 17, color: c.ink3, letterSpacing: -0.43)),
+            style: AppType.body.copyWith(color: c.ink3)),
       ),
     );
   }
