@@ -20,6 +20,10 @@
 	<string>$(MARKETING_VERSION)</string>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>PAL_BASE_URL</key>
+	<string>$(PAL_BASE_URL)</string>
+	<key>PAL_PROVISIONING_KEY</key>
+	<string>$(PAL_PROVISIONING_KEY)</string>
 	<key>NSExtension</key>
 	<dict>
 		<key>NSExtensionPointIdentifier</key>
