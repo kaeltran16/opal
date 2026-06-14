@@ -1,10 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
+<!-- No App Group: a free Apple team can't provision one. The widget fetches its
+     snapshot from the proxy over HTTP instead (see OpalRingsSnapshot.swift). -->
 <dict>
-	<key>com.apple.security.application-groups</key>
-	<array>
-		<string>group.com.opal.opal</string>
-	</array>
 </dict>
 </plist>

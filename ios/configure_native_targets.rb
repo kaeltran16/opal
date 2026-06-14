@@ -25,7 +25,8 @@ project = Xcodeproj::Project.open(PROJECT_PATH)
 runner = project.targets.find { |t| t.name == 'Runner' }
 raise 'Runner target not found' unless runner
 
-# App Group entitlement for the rings-widget data share (Runner side).
+# Runner entitlements (no App Group — a free team can't provision one; the
+# rings widget syncs over HTTP via the proxy instead).
 runner.build_configurations.each do |config|
   config.build_settings['CODE_SIGN_ENTITLEMENTS'] = 'Runner/Runner.entitlements'
 end
@@ -82,11 +83,9 @@ widget_group = group_at(project.main_group, WIDGET_NAME)
 add_source(project, widget_group, 'OpalWorkoutLiveActivity.swift', widget)
 add_source(project, widget_group, 'OpalWidgetsBundle.swift', widget)
 add_source(project, widget_group, 'OpalRingsWidget.swift', widget)
-# Shared rings snapshot: member of BOTH targets (Runner writes, widget reads).
-snapshot_ref = add_source(project, widget_group, 'OpalRingsSnapshot.swift', widget)
-unless runner.source_build_phase.files_references.include?(snapshot_ref)
-  runner.source_build_phase.add_file_reference(snapshot_ref)
-end
+# Rings snapshot + its proxy fetch: widget-only (the Runner bridge just nudges a
+# reload, so it no longer references RingsSnapshot).
+add_source(project, widget_group, 'OpalRingsSnapshot.swift', widget)
 # Shared attributes: member of BOTH targets.
 widget.source_build_phase.add_file_reference(attributes_ref) unless
   widget.source_build_phase.files_references.include?(attributes_ref)

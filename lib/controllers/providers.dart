@@ -387,16 +387,25 @@ LiveActivityService liveActivityService(Ref ref) {
   return const NoopLiveActivityService();
 }
 
-/// Pushes today's progress to the iOS home-screen rings widget over the native
-/// `opal/widget_sync` MethodChannel; no-op off iOS. Driven by
-/// [WidgetSyncController]. Until the OpalWidgets extension + AppDelegate bridge
-/// are wired in Xcode the channel is absent and every call no-ops gracefully.
+/// Pushes today's progress to the iOS home-screen rings widget. The app POSTs
+/// the snapshot to the proxy (`/v1/widget/snapshot`) and the widget fetches it
+/// over HTTP — App-Group sharing isn't available on a free Apple team. No-op off
+/// iOS or when `PAL_BASE_URL` is unset. Driven by [WidgetSyncController].
 @Riverpod(keepAlive: true)
 WidgetSyncService widgetSyncService(Ref ref) {
-  if (!kIsWeb && defaultTargetPlatform == TargetPlatform.iOS) {
-    return const MethodChannelWidgetSyncService();
+  if (kIsWeb || defaultTargetPlatform != TargetPlatform.iOS || _palBaseUrl.isEmpty) {
+    return const NoopWidgetSyncService();
   }
-  return const NoopWidgetSyncService();
+  final httpClient = _HttpClientHolder.instance;
+  final tokens = TokenProvider(
+    token: () => _deviceTokens(httpClient).token(),
+    clear: () => _deviceTokens(httpClient).clear(),
+  );
+  return HttpWidgetSyncService(
+    baseUrl: _palBaseUrl,
+    httpClient: httpClient,
+    tokens: tokens,
+  );
 }
 
 /// Siri Shortcuts / AppIntents donation + deep-link stream (U26). The real impl

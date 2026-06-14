@@ -7,13 +7,15 @@ import { ImapAuthError, type ImapCreds } from './imap.js'
 import type { EmailWorker } from './email.js'
 import type { TokenStore } from './store.js'
 import type { HealthStore } from './health.js'
-import { registerBody, chatBody, parseBody, reviewBody, insightsBody, suggestBody, postWorkoutBody, routineBody, emailTestBody, emailSyncBody, healthIngestBody, healthDayQuery } from './schemas.js'
+import type { WidgetSnapshotStore } from './widget.js'
+import { registerBody, chatBody, parseBody, reviewBody, insightsBody, suggestBody, postWorkoutBody, routineBody, emailTestBody, emailSyncBody, healthIngestBody, healthDayQuery, widgetSnapshotBody } from './schemas.js'
 
 export interface AppDeps {
   pal: Pal
   worker: EmailWorker
   store: TokenStore
   healthStore: HealthStore
+  widgetStore: WidgetSnapshotStore
   provisioningKey: string
   corsOrigins: string[]
   // enable request logging in production so LLM/IMAP failures aren't silent (Bug D).
@@ -99,6 +101,19 @@ export function buildApp(deps: AppDeps): FastifyInstance {
     const parsed = healthDayQuery.safeParse(req.query)
     if (!parsed.success) return reply.code(400).send({ error: { code: 'bad_request', message: 'invalid query' } })
     return { date: parsed.data.date, metrics: deps.healthStore.getDay(parsed.data.date) }
+  })
+
+  // The app pushes today's rings here; the iOS widget reads it back (App-Group
+  // sharing isn't available on a free Apple team, so the widget goes over HTTP).
+  app.post('/v1/widget/snapshot', guard(widgetSnapshotBody, async (b) => {
+    deps.widgetStore.set(b, Date.now())
+    return { ok: true }
+  }))
+
+  app.get('/v1/widget/snapshot', async (_req, reply) => {
+    const snapshot = deps.widgetStore.get()
+    if (!snapshot) return reply.code(404).send({ error: { code: 'not_found', message: 'no snapshot yet' } })
+    return snapshot
   })
 
   // Email routes map IMAP auth failures to 401 (bad app-password) vs. 502 (LLM/IMAP transport).

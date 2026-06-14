@@ -3,6 +3,7 @@ import { buildApp } from './app.js'
 import { ImapAuthError } from './imap.js'
 import { TokenStore } from './store.js'
 import { HealthStore } from './health.js'
+import { WidgetSnapshotStore } from './widget.js'
 
 function fakePal() {
   return {
@@ -39,7 +40,7 @@ describe('app', () => {
 
   function build(worker = fakeWorker()) {
     store = new TokenStore(':memory:')
-    return buildApp({ pal: fakePal() as never, worker: worker as never, store, healthStore: new HealthStore(':memory:'), provisioningKey: 'secret', corsOrigins: [] })
+    return buildApp({ pal: fakePal() as never, worker: worker as never, store, healthStore: new HealthStore(':memory:'), widgetStore: new WidgetSnapshotStore(':memory:'), provisioningKey: 'secret', corsOrigins: [] })
   }
 
   beforeEach(async () => {
@@ -209,6 +210,61 @@ describe('app', () => {
     expect(res.statusCode).toBe(400)
   })
 
+  const snapshot = {
+    moneyRing: 0.7, moveRing: 0.45, ritualsRing: 0.6,
+    moneySpent: 42, dailyBudget: 60,
+    moveKcal: 180, dailyMoveKcal: 400,
+    ritualsDone: 3, dailyRitualTarget: 5,
+  }
+
+  it('rejects /v1/widget/snapshot without a valid token', async () => {
+    const post = await app.inject({ method: 'POST', url: '/v1/widget/snapshot', payload: snapshot })
+    expect(post.statusCode).toBe(401)
+    const get = await app.inject({ method: 'GET', url: '/v1/widget/snapshot' })
+    expect(get.statusCode).toBe(401)
+  })
+
+  it('returns 404 before any snapshot is posted', async () => {
+    const token = store.issue('d1')
+    const res = await app.inject({ method: 'GET', url: '/v1/widget/snapshot', headers: { authorization: `Bearer ${token}` } })
+    expect(res.statusCode).toBe(404)
+  })
+
+  it('stores and reads back the rings snapshot', async () => {
+    const token = store.issue('d1')
+    const post = await app.inject({
+      method: 'POST', url: '/v1/widget/snapshot',
+      headers: { authorization: `Bearer ${token}` }, payload: snapshot,
+    })
+    expect(post.statusCode).toBe(200)
+    expect(post.json().ok).toBe(true)
+
+    const get = await app.inject({ method: 'GET', url: '/v1/widget/snapshot', headers: { authorization: `Bearer ${token}` } })
+    expect(get.statusCode).toBe(200)
+    expect(get.json()).toEqual(snapshot)
+  })
+
+  it('overwrites the snapshot on a second post (latest wins)', async () => {
+    const token = store.issue('d1')
+    await app.inject({ method: 'POST', url: '/v1/widget/snapshot', headers: { authorization: `Bearer ${token}` }, payload: snapshot })
+    await app.inject({
+      method: 'POST', url: '/v1/widget/snapshot',
+      headers: { authorization: `Bearer ${token}` }, payload: { ...snapshot, moneySpent: 99 },
+    })
+    const get = await app.inject({ method: 'GET', url: '/v1/widget/snapshot', headers: { authorization: `Bearer ${token}` } })
+    expect(get.json().moneySpent).toBe(99)
+  })
+
+  it('returns 400 when ring fractions are non-finite', async () => {
+    const token = store.issue('d1')
+    const res = await app.inject({
+      method: 'POST', url: '/v1/widget/snapshot',
+      headers: { authorization: `Bearer ${token}` },
+      payload: { ...snapshot, moveKcal: 1.5 }, // must be an int
+    })
+    expect(res.statusCode).toBe(400)
+  })
+
   const creds = { host: 'imap.gmail.com', port: 993, address: 'a@b.com', appPassword: 'pw' }
 
   it('rejects email routes without a valid token', async () => {
@@ -284,7 +340,7 @@ describe('rate limit keying', () => {
 
   beforeEach(async () => {
     store = new TokenStore(':memory:')
-    app = buildApp({ pal: fakePal() as never, worker: fakeWorker() as never, store, healthStore: new HealthStore(':memory:'), provisioningKey: 'secret', corsOrigins: [] })
+    app = buildApp({ pal: fakePal() as never, worker: fakeWorker() as never, store, healthStore: new HealthStore(':memory:'), widgetStore: new WidgetSnapshotStore(':memory:'), provisioningKey: 'secret', corsOrigins: [] })
     await app.ready()
   })
 
@@ -312,7 +368,7 @@ describe('cors', () => {
 
   function buildCors() {
     const store = new TokenStore(':memory:')
-    return buildApp({ pal: fakePal() as never, worker: fakeWorker() as never, store, healthStore: new HealthStore(':memory:'), provisioningKey: 'secret', corsOrigins: [allowed] })
+    return buildApp({ pal: fakePal() as never, worker: fakeWorker() as never, store, healthStore: new HealthStore(':memory:'), widgetStore: new WidgetSnapshotStore(':memory:'), provisioningKey: 'secret', corsOrigins: [allowed] })
   }
 
   let app: ReturnType<typeof buildApp>
