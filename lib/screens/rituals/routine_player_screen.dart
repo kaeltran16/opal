@@ -4,8 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../controllers/rituals_controller.dart';
 import '../../models/models.dart';
-import '../../theme/app_colors.dart';
-import '../../theme/app_text.dart';
+import '../../theme/theme.dart';
 import '../../widgets/app_icon.dart';
 import '../../widgets/press_scale.dart';
 
@@ -115,7 +114,7 @@ class _Player extends StatelessWidget {
         children: [
           // top bar.
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 54, 16, 6),
+            padding: const EdgeInsets.fromLTRB(Spacing.lg, 54, Spacing.lg, Spacing.sm),
             child: Row(
               children: [
                 PressScale(
@@ -141,9 +140,8 @@ class _Player extends StatelessWidget {
                   child: Text(
                     routine.name.toUpperCase(),
                     textAlign: TextAlign.center,
-                    style: AppFonts.sf(
-                      size: 11,
-                      weight: FontWeight.w700,
+                    style: AppType.caption2.copyWith(
+                      fontWeight: FontWeight.w700,
                       color: c.ink3,
                       letterSpacing: 1.2,
                     ),
@@ -163,17 +161,17 @@ class _Player extends StatelessWidget {
           ),
           // segmented progress bar.
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+            padding: const EdgeInsets.fromLTRB(Spacing.lg, Spacing.md, Spacing.lg, 0),
             child: Row(
               children: [
                 for (var i = 0; i < total; i++) ...[
-                  if (i > 0) const SizedBox(width: 5),
+                  if (i > 0) const SizedBox(width: Spacing.xs),
                   Expanded(
                     child: Container(
                       height: 5,
                       decoration: BoxDecoration(
                         color: (i < idx || done.contains(i)) ? tone : c.fill,
-                        borderRadius: BorderRadius.circular(3),
+                        borderRadius: BorderRadius.circular(Radii.xs),
                       ),
                     ),
                   ),
@@ -214,7 +212,7 @@ class _Player extends StatelessWidget {
           ),
           // controls.
           Padding(
-            padding: const EdgeInsets.fromLTRB(20, 0, 20, 40),
+            padding: const EdgeInsets.fromLTRB(Spacing.xl, 0, Spacing.xl, 40),
             child: onDeck
                 ? Column(
                     children: [
@@ -224,7 +222,7 @@ class _Player extends StatelessWidget {
                         tone: tone,
                         onTap: onMarkDone,
                       ),
-                      const SizedBox(height: 14),
+                      const SizedBox(height: Spacing.lg),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
@@ -234,7 +232,7 @@ class _Player extends StatelessWidget {
                             enabled: idx > 0,
                             onTap: idx > 0 ? onBack : null,
                           ),
-                          const SizedBox(width: 24),
+                          const SizedBox(width: Spacing.xxl),
                           _SecondaryAction(
                             label: 'Skip',
                             onTap: onSkip,
@@ -273,6 +271,7 @@ class _StepView extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     return Padding(
+      // 30 has no spacing token; kept literal as a deliberate content inset.
       padding: const EdgeInsets.symmetric(horizontal: 30),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -285,6 +284,7 @@ class _StepView extends StatelessWidget {
               shape: BoxShape.circle,
               border: Border.all(color: tone.withValues(alpha: 0.2)),
               boxShadow: [
+                // accent glow, not neutral elevation — kept inline.
                 BoxShadow(
                   color: tone.withValues(alpha: 0.2),
                   blurRadius: 30,
@@ -296,17 +296,16 @@ class _StepView extends StatelessWidget {
             child: AppIcon(step.icon.isEmpty ? 'sparkles' : step.icon,
                 size: 42, color: tone),
           ),
-          const SizedBox(height: 26),
+          const SizedBox(height: Spacing.xxl),
           Text(
             'STEP ${idx + 1} OF $total',
-            style: AppFonts.sf(
-              size: 12,
-              weight: FontWeight.w700,
+            style: AppType.caption.copyWith(
+              fontWeight: FontWeight.w700,
               color: tone,
               letterSpacing: 1.4,
             ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: Spacing.md),
           Text(
             step.title,
             textAlign: TextAlign.center,
@@ -317,14 +316,13 @@ class _StepView extends StatelessWidget {
               height: 1.1,
             ),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: Spacing.lg),
           ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 280),
             child: Text(
               step.note,
               textAlign: TextAlign.center,
-              style: AppFonts.sf(
-                size: 17,
+              style: AppType.body.copyWith(
                 color: c.ink2,
                 letterSpacing: -0.2,
                 height: 1.5,
@@ -348,6 +346,7 @@ class _CompletionView extends StatelessWidget {
     final c = context.colors;
     final total = routine.steps.length;
     return Padding(
+      // 30 has no spacing token; kept literal as a deliberate content inset.
       padding: const EdgeInsets.symmetric(horizontal: 30),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -363,6 +362,7 @@ class _CompletionView extends StatelessWidget {
               ),
               shape: BoxShape.circle,
               boxShadow: [
+                // accent glow, not neutral elevation — kept inline.
                 BoxShadow(
                   color: tone.withValues(alpha: 0.33),
                   blurRadius: 36,
@@ -371,37 +371,38 @@ class _CompletionView extends StatelessWidget {
               ],
             ),
             alignment: Alignment.center,
-            child: const AppIcon('checkmark', size: 54, color: Color(0xFFFFFFFF)),
+            child: AppIcon('checkmark', size: 54, color: c.onAccent),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: Spacing.xxl),
           Text(
             '${routine.name} complete',
             textAlign: TextAlign.center,
             style: AppFonts.sfr(size: 30, color: c.ink, letterSpacing: -0.6),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: Spacing.md),
           Text(
             'All $total steps done.',
             textAlign: TextAlign.center,
-            style: AppFonts.sf(
-                size: 16, color: c.ink2, letterSpacing: -0.2, height: 1.5),
+            style: AppType.callout
+                .copyWith(color: c.ink2, letterSpacing: -0.2, height: 1.5),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: Spacing.lg),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            padding: const EdgeInsets.symmetric(
+                horizontal: Spacing.lg, vertical: Spacing.sm),
             decoration: BoxDecoration(
               color: tone.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(100),
+              borderRadius: BorderRadius.circular(Radii.pill),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 AppIcon('flame.fill', size: 14, color: tone),
-                const SizedBox(width: 7),
+                const SizedBox(width: Spacing.sm),
                 Text(
                   '${routine.streak + 1}-day streak',
-                  style: AppFonts.sf(
-                      size: 14, weight: FontWeight.w700, color: tone),
+                  style: AppType.subhead
+                      .copyWith(fontWeight: FontWeight.w700, color: tone),
                 ),
               ],
             ),
@@ -427,6 +428,7 @@ class _PrimaryButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     return PressScale(
       onTap: onTap,
       child: Container(
@@ -434,8 +436,9 @@ class _PrimaryButton extends StatelessWidget {
         height: 54,
         decoration: BoxDecoration(
           color: tone,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(Radii.lg),
           boxShadow: [
+            // accent glow, not neutral elevation — kept inline.
             BoxShadow(
               color: tone.withValues(alpha: 0.3),
               blurRadius: 22,
@@ -448,14 +451,13 @@ class _PrimaryButton extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             if (icon != null) ...[
-              AppIcon(icon!, size: 18, color: const Color(0xFFFFFFFF)),
-              const SizedBox(width: 9),
+              AppIcon(icon!, size: 18, color: c.onAccent),
+              const SizedBox(width: Spacing.sm),
             ],
             Text(label,
-                style: AppFonts.sf(
-                    size: 17,
-                    weight: FontWeight.w700,
-                    color: const Color(0xFFFFFFFF),
+                style: AppType.body.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: c.onAccent,
                     letterSpacing: -0.2)),
           ],
         ),
@@ -491,12 +493,11 @@ class _SecondaryAction extends StatelessWidget {
           children: [
             if (icon != null) ...[
               AppIcon(icon!, size: 13, color: color),
-              const SizedBox(width: 4),
+              const SizedBox(width: Spacing.xs),
             ],
             Text(label,
-                style: AppFonts.sf(
-                    size: 15,
-                    weight: FontWeight.w600,
+                style: AppType.subhead.copyWith(
+                    fontWeight: FontWeight.w600,
                     color: color,
                     letterSpacing: -0.2)),
           ],
@@ -515,23 +516,18 @@ class _NotFound extends StatelessWidget {
     final c = context.colors;
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(Spacing.xxl),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(message,
                 textAlign: TextAlign.center,
-                style:
-                    AppFonts.sf(size: 17, color: c.ink2, letterSpacing: -0.43)),
-            const SizedBox(height: 16),
+                style: AppType.body.copyWith(color: c.ink2)),
+            const SizedBox(height: Spacing.lg),
             PressScale(
               onTap: () => context.go('/rituals'),
               child: Text('Back to routines',
-                  style: AppFonts.sf(
-                      size: 17,
-                      weight: FontWeight.w600,
-                      color: c.accent,
-                      letterSpacing: -0.43)),
+                  style: AppType.headline.copyWith(color: c.accent)),
             ),
           ],
         ),

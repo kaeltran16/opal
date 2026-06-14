@@ -4,8 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../controllers/rituals_builder_controller.dart';
 import '../../models/models.dart';
-import '../../theme/app_colors.dart';
-import '../../theme/app_text.dart';
+import '../../theme/theme.dart';
 import '../../widgets/app_icon.dart';
 import '../../widgets/controls.dart';
 import '../../widgets/nav_bar.dart';
@@ -72,16 +71,15 @@ class RitualsBuilderScreen extends ConsumerWidget {
             child: async.when(
               loading: () => Center(
                 child: Text('…',
-                    style: AppFonts.sf(
-                        size: 17, color: c.ink3, letterSpacing: -0.43)),
+                    style: AppType.body.copyWith(color: c.ink3)),
               ),
               error: (e, _) => Center(
                 child: Padding(
-                  padding: const EdgeInsets.all(24),
+                  padding: const EdgeInsets.all(Spacing.xxl),
                   child: Text("Couldn't load routines.\n$e",
                       textAlign: TextAlign.center,
-                      style: AppFonts.sf(
-                          size: 15, color: c.ink3, letterSpacing: -0.24)),
+                      style: AppType.subhead
+                          .copyWith(color: c.ink3, letterSpacing: -0.24)),
                 ),
               ),
               data: (routines) => _List(routines: routines),
@@ -103,17 +101,17 @@ class _List extends ConsumerWidget {
     if (routines.isEmpty) {
       return Center(
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(Spacing.xxl),
           child: Text('No routines yet. Tap + to add one.',
               textAlign: TextAlign.center,
-              style:
-                  AppFonts.sf(size: 15, color: c.ink3, letterSpacing: -0.24)),
+              style: AppType.subhead
+                  .copyWith(color: c.ink3, letterSpacing: -0.24)),
         ),
       );
     }
 
     return ReorderableListView.builder(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 110),
+      padding: const EdgeInsets.fromLTRB(Spacing.lg, Spacing.sm, Spacing.lg, 110),
       itemCount: routines.length,
       onReorderItem: (oldIndex, newIndex) => ref
           .read(ritualsBuilderControllerProvider.notifier)
@@ -152,16 +150,17 @@ class _RoutineRow extends StatelessWidget {
     final tone = c.forType(routine.colorKey);
     final n = routine.steps.length;
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.only(bottom: Spacing.sm),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(Radii.md),
         child: ColoredBox(
           color: c.surface,
           child: GestureDetector(
             onTap: onTap,
             behavior: HitTestBehavior.opaque,
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              padding: const EdgeInsets.symmetric(
+                  horizontal: Spacing.md, vertical: Spacing.sm),
               child: ConstrainedBox(
                 constraints: const BoxConstraints(minHeight: 44),
                 child: Row(
@@ -171,13 +170,13 @@ class _RoutineRow extends StatelessWidget {
                       height: 29,
                       decoration: BoxDecoration(
                         color: tone,
-                        borderRadius: BorderRadius.circular(7),
+                        borderRadius: BorderRadius.circular(Radii.sm),
                       ),
                       alignment: Alignment.center,
                       child: AppIcon(routine.icon,
-                          size: 17, color: const Color(0xFFFFFFFF)),
+                          size: 17, color: c.onAccent),
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: Spacing.md),
                     Expanded(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -187,20 +186,15 @@ class _RoutineRow extends StatelessWidget {
                             routine.name,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: AppFonts.sf(
-                                size: 17,
-                                color: c.ink,
-                                letterSpacing: -0.43,
-                                height: 22 / 17),
+                            style: AppType.body.copyWith(
+                                color: c.ink, height: 22 / 17),
                           ),
                           Padding(
                             padding: const EdgeInsets.only(top: 1),
                             child: Text(
                               '${routine.time} · $n ${n == 1 ? 'step' : 'steps'}',
-                              style: AppFonts.sf(
-                                  size: 13,
-                                  color: c.ink3,
-                                  letterSpacing: -0.08),
+                              style: AppType.footnote.copyWith(
+                                  color: c.ink3, letterSpacing: -0.08),
                             ),
                           ),
                         ],
@@ -210,12 +204,12 @@ class _RoutineRow extends StatelessWidget {
                       onTap: onDelete,
                       behavior: HitTestBehavior.opaque,
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 6),
+                        padding: const EdgeInsets.symmetric(horizontal: Spacing.sm),
                         child: AppIcon('xmark', size: 16, color: c.red),
                       ),
                     ),
                     Padding(
-                      padding: const EdgeInsets.only(left: 4),
+                      padding: const EdgeInsets.only(left: Spacing.xs),
                       child: AppIcon('slider.horizontal.3',
                           size: 16, color: c.ink4),
                     ),
@@ -242,7 +236,7 @@ Future<void> _openEditor(
     isScrollControlled: true,
     backgroundColor: c.bg,
     shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      borderRadius: BorderRadius.vertical(top: Radius.circular(Radii.lg)),
     ),
     builder: (sheetContext) => _RoutineEditor(
       existing: existing,
@@ -354,7 +348,7 @@ class _RoutineEditorState extends State<_RoutineEditor> {
       isScrollControlled: true,
       backgroundColor: context.colors.bg,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(Radii.lg)),
       ),
       builder: (_) => _StepEditor(existing: index == null ? null : _steps[index]),
     );
@@ -376,7 +370,8 @@ class _RoutineEditorState extends State<_RoutineEditor> {
     final tone = c.forType(_tone.colorKey);
 
     return Padding(
-      padding: EdgeInsets.fromLTRB(16, 12, 16, 16 + bottom + 100),
+      padding: EdgeInsets.fromLTRB(
+          Spacing.lg, Spacing.md, Spacing.lg, Spacing.lg + bottom + 100),
       child: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -387,8 +382,7 @@ class _RoutineEditorState extends State<_RoutineEditor> {
               children: [
                 NavAction(label: 'Cancel', onTap: () => Navigator.pop(context)),
                 Text(isEdit ? 'Edit routine' : 'New routine',
-                    style: AppFonts.sf(
-                        size: 17, weight: FontWeight.w600, color: c.ink)),
+                    style: AppType.headline.copyWith(color: c.ink)),
                 NavAction(
                   label: 'Save',
                   bold: true,
@@ -397,7 +391,7 @@ class _RoutineEditorState extends State<_RoutineEditor> {
                 ),
               ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: Spacing.lg),
 
             _Field(
               controller: _name,
@@ -405,35 +399,35 @@ class _RoutineEditorState extends State<_RoutineEditor> {
               autofocus: !isEdit,
               onChanged: () => setState(() {}),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: Spacing.md),
             _Field(
               controller: _time,
               hint: 'Time (e.g. 7:00 AM)',
               readOnly: true,
               onTap: _pickTime,
             ),
-            const SizedBox(height: 18),
+            const SizedBox(height: Spacing.xl),
 
             _Label('TONE'),
-            const SizedBox(height: 8),
+            const SizedBox(height: Spacing.sm),
             Segmented<RitualTone>(
               options: _toneOptions,
               value: _tone,
               onChanged: (v) => setState(() => _tone = v),
             ),
-            const SizedBox(height: 18),
+            const SizedBox(height: Spacing.xl),
 
             _Label('ICON'),
-            const SizedBox(height: 8),
+            const SizedBox(height: Spacing.sm),
             _IconGrid(
               selected: _icon,
               tone: tone,
               onSelect: (name) => setState(() => _icon = name),
             ),
-            const SizedBox(height: 18),
+            const SizedBox(height: Spacing.xl),
 
             _Field(controller: _blurb, hint: 'Subtitle (e.g. Ease into the day)'),
-            const SizedBox(height: 18),
+            const SizedBox(height: Spacing.xl),
 
             Row(
               children: [
@@ -445,13 +439,13 @@ class _RoutineEditorState extends State<_RoutineEditor> {
                 ),
               ],
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: Spacing.sm),
             if (_steps.isEmpty)
               Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8),
+                padding: const EdgeInsets.symmetric(vertical: Spacing.sm),
                 child: Text('Add at least one step.',
-                    style: AppFonts.sf(
-                        size: 13, color: c.ink3, letterSpacing: -0.08)),
+                    style: AppType.footnote
+                        .copyWith(color: c.ink3, letterSpacing: -0.08)),
               )
             else
               ReorderableListView.builder(
@@ -499,16 +493,17 @@ class _StepRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.only(bottom: Spacing.sm),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(Radii.md),
         child: ColoredBox(
           color: c.surface,
           child: GestureDetector(
             onTap: onTap,
             behavior: HitTestBehavior.opaque,
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              padding: const EdgeInsets.symmetric(
+                  horizontal: Spacing.md, vertical: Spacing.sm),
               child: Row(
                 children: [
                   Container(
@@ -516,26 +511,26 @@ class _StepRow extends StatelessWidget {
                     height: 26,
                     decoration: BoxDecoration(
                       color: tone.withValues(alpha: 0.14),
-                      borderRadius: BorderRadius.circular(7),
+                      borderRadius: BorderRadius.circular(Radii.sm),
                     ),
                     alignment: Alignment.center,
                     child: AppIcon(step.icon, size: 15, color: tone),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: Spacing.md),
                   Expanded(
                     child: Text(
                       step.title,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: AppFonts.sf(
-                          size: 15, color: c.ink, letterSpacing: -0.24),
+                      style: AppType.subhead
+                          .copyWith(color: c.ink, letterSpacing: -0.24),
                     ),
                   ),
                   GestureDetector(
                     onTap: onDelete,
                     behavior: HitTestBehavior.opaque,
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 6),
+                      padding: const EdgeInsets.symmetric(horizontal: Spacing.sm),
                       child: AppIcon('xmark', size: 15, color: c.red),
                     ),
                   ),
@@ -601,7 +596,8 @@ class _StepEditorState extends State<_StepEditor> {
     final isEdit = widget.existing != null;
 
     return Padding(
-      padding: EdgeInsets.fromLTRB(16, 12, 16, 16 + bottom),
+      padding: EdgeInsets.fromLTRB(
+          Spacing.lg, Spacing.md, Spacing.lg, Spacing.lg + bottom),
       child: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -612,8 +608,7 @@ class _StepEditorState extends State<_StepEditor> {
               children: [
                 NavAction(label: 'Cancel', onTap: () => Navigator.pop(context)),
                 Text(isEdit ? 'Edit step' : 'New step',
-                    style: AppFonts.sf(
-                        size: 17, weight: FontWeight.w600, color: c.ink)),
+                    style: AppType.headline.copyWith(color: c.ink)),
                 NavAction(
                   label: 'Save',
                   bold: true,
@@ -622,18 +617,18 @@ class _StepEditorState extends State<_StepEditor> {
                 ),
               ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: Spacing.lg),
             _Field(
               controller: _title,
               hint: 'Step title',
               autofocus: !isEdit,
               onChanged: () => setState(() {}),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: Spacing.md),
             _Field(controller: _note, hint: 'Note (optional)'),
-            const SizedBox(height: 18),
+            const SizedBox(height: Spacing.xl),
             _Label('ICON'),
-            const SizedBox(height: 8),
+            const SizedBox(height: Spacing.sm),
             _IconGrid(
               selected: _icon,
               tone: c.accent,
@@ -667,23 +662,22 @@ class _Field extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12),
+      padding: const EdgeInsets.symmetric(horizontal: Spacing.md),
       decoration: BoxDecoration(
-          color: c.surface, borderRadius: BorderRadius.circular(12)),
+          color: c.surface, borderRadius: BorderRadius.circular(Radii.md)),
       child: TextField(
         controller: controller,
         autofocus: autofocus,
         readOnly: readOnly,
         onTap: onTap,
         onChanged: onChanged == null ? null : (_) => onChanged!(),
-        style: AppFonts.sf(size: 17, color: c.ink, letterSpacing: -0.43),
+        style: AppType.body.copyWith(color: c.ink),
         cursorColor: c.accent,
         decoration: InputDecoration(
           border: InputBorder.none,
           hintText: hint,
-          hintStyle:
-              AppFonts.sf(size: 17, color: c.ink4, letterSpacing: -0.43),
-          contentPadding: const EdgeInsets.symmetric(vertical: 14),
+          hintStyle: AppType.body.copyWith(color: c.ink4),
+          contentPadding: const EdgeInsets.symmetric(vertical: Spacing.lg),
         ),
       ),
     );
@@ -705,8 +699,8 @@ class _IconGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     return Wrap(
-      spacing: 10,
-      runSpacing: 10,
+      spacing: Spacing.md,
+      runSpacing: Spacing.md,
       children: [
         for (final name in _iconChoices)
           GestureDetector(
@@ -717,12 +711,12 @@ class _IconGrid extends StatelessWidget {
               height: 44,
               decoration: BoxDecoration(
                 color: name == selected ? tone : c.fill,
-                borderRadius: BorderRadius.circular(11),
+                borderRadius: BorderRadius.circular(Radii.md),
               ),
               alignment: Alignment.center,
               child: AppIcon(name,
                   size: 20,
-                  color: name == selected ? const Color(0xFFFFFFFF) : c.ink2),
+                  color: name == selected ? c.onAccent : c.ink2),
             ),
           ),
       ],
@@ -738,9 +732,9 @@ class _Label extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     return Padding(
-      padding: const EdgeInsets.only(left: 4),
+      padding: const EdgeInsets.only(left: Spacing.xs),
       child: Text(text,
-          style: AppFonts.sf(size: 13, color: c.ink3, letterSpacing: -0.08)),
+          style: AppType.footnote.copyWith(color: c.ink3, letterSpacing: -0.08)),
     );
   }
 }
