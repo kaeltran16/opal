@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../controllers/rituals_controller.dart';
 import '../../models/models.dart';
-import '../../theme/app_text.dart';
+import '../../theme/theme.dart';
 import '../../widgets/app_icon.dart';
 import '../../widgets/press_scale.dart';
 
@@ -97,7 +97,8 @@ class EveningCloseOutScreen extends ConsumerWidget {
         children: [
           // --- Nav: glass back + centered time -----------------------------
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 56, 16, 8),
+            padding: const EdgeInsets.fromLTRB(
+                Spacing.lg, 56, Spacing.lg, Spacing.sm),
             child: Row(
               children: [
                 PressScale(
@@ -127,8 +128,8 @@ class EveningCloseOutScreen extends ConsumerWidget {
                   child: Text(
                     dayLabel,
                     textAlign: TextAlign.center,
-                    style: AppFonts.sf(
-                        size: 14, color: _white65, letterSpacing: -0.15),
+                    style: AppType.footnote
+                        .copyWith(color: _white65, letterSpacing: -0.15),
                   ),
                 ),
                 const SizedBox(width: 32),
@@ -138,13 +139,14 @@ class EveningCloseOutScreen extends ConsumerWidget {
 
           // --- Hero --------------------------------------------------------
           Padding(
-            padding: const EdgeInsets.fromLTRB(24, 28, 24, 18),
+            // top 28 has no spacing token (mid-grid) — kept literal for hero rhythm
+            padding: const EdgeInsets.fromLTRB(Spacing.xxl, 28, Spacing.xxl, Spacing.xl),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text('✦',
                     style: TextStyle(fontSize: 40, color: _white)),
-                const SizedBox(height: 8),
+                const SizedBox(height: Spacing.sm),
                 Text('Close out\nyour day.',
                     style: AppFonts.sfr(
                         size: 32,
@@ -152,14 +154,11 @@ class EveningCloseOutScreen extends ConsumerWidget {
                         color: _white,
                         letterSpacing: -0.5,
                         height: 1.15)),
-                const SizedBox(height: 10),
+                const SizedBox(height: Spacing.md),
                 Text(
                   '$done of $total rituals done. One more to close the ring.',
-                  style: AppFonts.sf(
-                      size: 15,
-                      color: _white65,
-                      letterSpacing: -0.24,
-                      height: 1.5),
+                  style: AppType.subhead
+                      .copyWith(color: _white65, height: 1.5),
                 ),
               ],
             ),
@@ -167,9 +166,10 @@ class EveningCloseOutScreen extends ConsumerWidget {
 
           // --- Progress bar ------------------------------------------------
           Padding(
-            padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+            padding: const EdgeInsets.fromLTRB(
+                Spacing.xxl, 0, Spacing.xxl, Spacing.xxl),
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(3),
+              borderRadius: BorderRadius.circular(Radii.xs),
               child: Stack(
                 children: [
                   Container(height: 6, color: _white14),
@@ -189,12 +189,12 @@ class EveningCloseOutScreen extends ConsumerWidget {
 
           // --- Checklist ---------------------------------------------------
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.symmetric(horizontal: Spacing.lg),
             child: Column(
               children: [
                 for (final row in rows)
                   Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
+                    padding: const EdgeInsets.only(bottom: Spacing.sm),
                     child: _ChecklistRow(
                       row: row,
                       onTap: () => ref
@@ -208,7 +208,8 @@ class EveningCloseOutScreen extends ConsumerWidget {
 
           // --- Pal nudge ---------------------------------------------------
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 6, 16, 8),
+            padding: const EdgeInsets.fromLTRB(
+                Spacing.lg, Spacing.sm, Spacing.lg, Spacing.sm),
             child: PressScale(
               onTap: () => context.go(
                   '/pal-composer?seed=${Uri.encodeComponent("Give me a reflection prompt for tonight")}'),
@@ -216,10 +217,10 @@ class EveningCloseOutScreen extends ConsumerWidget {
                 child: Row(
                   children: [
                     const AppIcon('sparkles', size: 14, color: _accent),
-                    const SizedBox(width: 10),
+                    const SizedBox(width: Spacing.md),
                     Text('Ask Pal for a reflection prompt',
-                        style: AppFonts.sf(
-                            size: 14, color: _white85, letterSpacing: -0.15)),
+                        style: AppType.footnote
+                            .copyWith(color: _white85, letterSpacing: -0.15)),
                     const Spacer(),
                     const AppIcon('chevron.right', size: 12, color: _white40),
                   ],
@@ -230,7 +231,8 @@ class EveningCloseOutScreen extends ConsumerWidget {
 
           // --- CTA ---------------------------------------------------------
           Padding(
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+            padding: const EdgeInsets.fromLTRB(
+                Spacing.xl, Spacing.lg, Spacing.xl, 0),
             child: PressScale(
               onTap: allDone
                   ? () => Navigator.of(context).canPop()
@@ -239,17 +241,17 @@ class EveningCloseOutScreen extends ConsumerWidget {
                   : null,
               child: Container(
                 width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 16),
+                padding: const EdgeInsets.symmetric(
+                    vertical: Spacing.lg, horizontal: Spacing.lg),
                 decoration: BoxDecoration(
                   color: allDone ? _accent : _white12,
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(Radii.card),
                 ),
                 alignment: Alignment.center,
                 child: Text(
                   allDone ? 'Good night' : '${total - done} to go',
-                  style: AppFonts.sf(
-                      size: 16,
-                      weight: FontWeight.w600,
+                  style: AppType.callout.copyWith(
+                      fontWeight: FontWeight.w600,
                       color: allDone ? _white : _white40,
                       letterSpacing: -0.24),
                 ),
@@ -297,12 +299,13 @@ class _ChecklistRow extends StatelessWidget {
       onTap: onTap,
       pressedScale: 0.99,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        padding: const EdgeInsets.symmetric(
+            horizontal: Spacing.lg, vertical: Spacing.lg),
         decoration: BoxDecoration(
           color: active
               ? EveningCloseOutScreen._accent22
               : EveningCloseOutScreen._white08,
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(Radii.card),
           border: Border.all(
             color: active
                 ? EveningCloseOutScreen._accent50
@@ -332,34 +335,31 @@ class _ChecklistRow extends StatelessWidget {
                       size: 12, color: EveningCloseOutScreen._white)
                   : null,
             ),
-            const SizedBox(width: 14),
+            const SizedBox(width: Spacing.lg),
             // Icon tile.
             Container(
               width: 32,
               height: 32,
               decoration: BoxDecoration(
                 color: EveningCloseOutScreen._white10,
-                borderRadius: BorderRadius.circular(9),
+                borderRadius: BorderRadius.circular(Radii.sm),
               ),
               alignment: Alignment.center,
               child: AppIcon(row.step.icon,
                   size: 15, color: EveningCloseOutScreen._white85),
             ),
-            const SizedBox(width: 14),
+            const SizedBox(width: Spacing.lg),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     row.step.title,
-                    style: AppFonts.sf(
-                      size: 15,
-                      weight: FontWeight.w600,
+                    style: AppType.subhead.copyWith(
+                      fontWeight: FontWeight.w600,
                       color: checked
                           ? EveningCloseOutScreen._white55
                           : EveningCloseOutScreen._white,
-                      letterSpacing: -0.24,
-                    ).copyWith(
                       decoration:
                           checked ? TextDecoration.lineThrough : null,
                       decorationColor: EveningCloseOutScreen._white55,
@@ -368,8 +368,7 @@ class _ChecklistRow extends StatelessWidget {
                   const SizedBox(height: 1),
                   Text(
                     row.subtitle,
-                    style: AppFonts.sf(
-                        size: 12,
+                    style: AppType.caption.copyWith(
                         color: EveningCloseOutScreen._white50,
                         letterSpacing: -0.08),
                   ),
@@ -377,18 +376,17 @@ class _ChecklistRow extends StatelessWidget {
               ),
             ),
             if (active) ...[
-              const SizedBox(width: 10),
+              const SizedBox(width: Spacing.md),
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: Spacing.sm, vertical: Spacing.xs),
                 decoration: BoxDecoration(
                   color: EveningCloseOutScreen._accent,
-                  borderRadius: BorderRadius.circular(100),
+                  borderRadius: BorderRadius.circular(Radii.pill),
                 ),
                 child: Text('Now',
-                    style: AppFonts.sf(
-                        size: 11,
-                        weight: FontWeight.w600,
+                    style: AppType.caption2.copyWith(
+                        fontWeight: FontWeight.w600,
                         color: EveningCloseOutScreen._white,
                         letterSpacing: 0.1)),
               ),
@@ -411,10 +409,11 @@ class _DashedButton extends StatelessWidget {
       painter: _DashedBorderPainter(
         color: EveningCloseOutScreen._white06,
         borderColor: const Color(0x40FFFFFF),
-        radius: 14,
+        radius: Radii.card,
       ),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+        padding: const EdgeInsets.symmetric(
+            horizontal: Spacing.lg, vertical: Spacing.md),
         child: child,
       ),
     );

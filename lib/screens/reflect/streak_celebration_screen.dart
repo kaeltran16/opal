@@ -5,8 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../controllers/profile_controller.dart';
-import '../../theme/app_colors.dart';
-import '../../theme/app_text.dart';
+import '../../theme/theme.dart';
 import '../../widgets/app_icon.dart';
 import '../../widgets/press_scale.dart';
 
@@ -22,8 +21,6 @@ class StreakCelebrationScreen extends ConsumerWidget {
 
   static const _fallbackStreak = 11;
   static const _milestoneDots = 16;
-
-  static const _white = Color(0xFFFFFFFF);
 
   static const _weekdayAbbrev = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
   static const _monthAbbrev = [
@@ -89,7 +86,7 @@ class StreakCelebrationScreen extends ConsumerWidget {
             children: [
               // --- Close ----------------------------------------------------
               Padding(
-                padding: const EdgeInsets.fromLTRB(16, 56, 16, 0),
+                padding: const EdgeInsets.fromLTRB(Spacing.lg, 56, Spacing.lg, 0),
                 child: PressScale(
                   onTap: () => Navigator.of(context).canPop()
                       ? Navigator.of(context).pop()
@@ -114,18 +111,17 @@ class StreakCelebrationScreen extends ConsumerWidget {
 
               // --- Hero -----------------------------------------------------
               Padding(
-                padding: const EdgeInsets.fromLTRB(24, 44, 24, 8),
+                padding: const EdgeInsets.fromLTRB(Spacing.xxl, 44, Spacing.xxl, Spacing.sm),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     Text('STREAK UNLOCKED',
                         textAlign: TextAlign.center,
-                        style: AppFonts.sf(
-                            size: 12,
-                            weight: FontWeight.w700,
+                        style: AppType.caption.copyWith(
+                            fontWeight: FontWeight.w700,
                             color: c.move,
                             letterSpacing: 0.5)),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: Spacing.lg),
                     Text('$streak',
                         textAlign: TextAlign.center,
                         style: AppFonts.sfr(
@@ -143,7 +139,7 @@ class StreakCelebrationScreen extends ConsumerWidget {
                             ),
                           ],
                         )),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: Spacing.xs),
                     Text('days moving',
                         textAlign: TextAlign.center,
                         style: AppFonts.sfr(
@@ -151,24 +147,21 @@ class StreakCelebrationScreen extends ConsumerWidget {
                             weight: FontWeight.w700,
                             color: c.ink,
                             letterSpacing: -0.5)),
-                    const SizedBox(height: 14),
+                    const SizedBox(height: Spacing.lg),
                     Text(
                       sinceLine,
                       textAlign: TextAlign.center,
-                      style: AppFonts.sf(
-                          size: 15,
-                          color: c.ink2,
-                          letterSpacing: -0.24,
-                          height: 1.5),
+                      style: AppType.subhead
+                          .copyWith(color: c.ink2, height: 1.5),
                     ),
-                    if (pills.isNotEmpty) const SizedBox(height: 22),
+                    if (pills.isNotEmpty) const SizedBox(height: Spacing.xxl),
 
                     // --- Stat pills ------------------------------------------
                     if (pills.isNotEmpty)
                       Wrap(
                         alignment: WrapAlignment.center,
-                        spacing: 8,
-                        runSpacing: 8,
+                        spacing: Spacing.sm,
+                        runSpacing: Spacing.sm,
                         children: [
                           for (final (label, value) in pills)
                             _StatPill(label: label, value: value),
@@ -180,7 +173,7 @@ class StreakCelebrationScreen extends ConsumerWidget {
 
               // --- Shareable card preview -----------------------------------
               Padding(
-                padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
+                padding: const EdgeInsets.fromLTRB(Spacing.xxl, Spacing.xl, Spacing.xxl, 0),
                 child: Transform.rotate(
                   angle: -1.5 * math.pi / 180,
                   child: _ShareCard(streak: streak, filledDots: filledDots),
@@ -189,7 +182,7 @@ class StreakCelebrationScreen extends ConsumerWidget {
 
               // --- CTAs -----------------------------------------------------
               Padding(
-                padding: const EdgeInsets.fromLTRB(20, 28, 20, 0),
+                padding: const EdgeInsets.fromLTRB(Spacing.xl, 28, Spacing.xl, 0),
                 child: Row(
                   children: [
                     Expanded(
@@ -197,30 +190,29 @@ class StreakCelebrationScreen extends ConsumerWidget {
                         onTap: () {},
                         child: Container(
                           padding: const EdgeInsets.symmetric(
-                              vertical: 14, horizontal: 16),
+                              vertical: Spacing.lg, horizontal: Spacing.lg),
                           decoration: BoxDecoration(
                             color: c.move,
-                            borderRadius: BorderRadius.circular(14),
+                            borderRadius: BorderRadius.circular(Radii.card),
                           ),
                           alignment: Alignment.center,
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const AppIcon('square.and.arrow.up',
-                                  size: 16, color: _white),
-                              const SizedBox(width: 8),
+                              AppIcon('square.and.arrow.up',
+                                  size: 16, color: c.onAccent),
+                              const SizedBox(width: Spacing.sm),
                               Text('Share',
-                                  style: AppFonts.sf(
-                                      size: 16,
-                                      weight: FontWeight.w600,
-                                      color: _white,
+                                  style: AppType.callout.copyWith(
+                                      fontWeight: FontWeight.w600,
+                                      color: c.onAccent,
                                       letterSpacing: -0.24)),
                             ],
                           ),
                         ),
                       ),
                     ),
-                    const SizedBox(width: 10),
+                    const SizedBox(width: Spacing.md),
                     Expanded(
                       child: PressScale(
                         onTap: () => Navigator.of(context).canPop()
@@ -228,17 +220,16 @@ class StreakCelebrationScreen extends ConsumerWidget {
                             : context.go('/today'),
                         child: Container(
                           padding: const EdgeInsets.symmetric(
-                              vertical: 14, horizontal: 16),
+                              vertical: Spacing.lg, horizontal: Spacing.lg),
                           decoration: BoxDecoration(
                             color: c.surface,
-                            borderRadius: BorderRadius.circular(14),
+                            borderRadius: BorderRadius.circular(Radii.card),
                             border: Border.all(color: c.hair, width: 0.5),
                           ),
                           alignment: Alignment.center,
                           child: Text('Keep going',
-                              style: AppFonts.sf(
-                                  size: 16,
-                                  weight: FontWeight.w600,
+                              style: AppType.callout.copyWith(
+                                  fontWeight: FontWeight.w600,
                                   color: c.ink,
                                   letterSpacing: -0.24)),
                         ),
@@ -264,10 +255,11 @@ class _StatPill extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: const EdgeInsets.symmetric(
+          horizontal: Spacing.md, vertical: Spacing.sm),
       decoration: BoxDecoration(
         color: c.surface,
-        borderRadius: BorderRadius.circular(100),
+        borderRadius: BorderRadius.circular(Radii.pill),
         border: Border.all(color: c.hair, width: 0.5),
       ),
       child: Text.rich(
@@ -275,17 +267,15 @@ class _StatPill extends StatelessWidget {
           children: [
             TextSpan(
               text: '$label · ',
-              style: AppFonts.sf(
-                  size: 12,
-                  weight: FontWeight.w500,
+              style: AppType.caption.copyWith(
+                  fontWeight: FontWeight.w500,
                   color: c.ink4,
                   letterSpacing: -0.08),
             ),
             TextSpan(
               text: value,
-              style: AppFonts.sf(
-                  size: 12,
-                  weight: FontWeight.w700,
+              style: AppType.caption.copyWith(
+                  fontWeight: FontWeight.w700,
                   color: c.ink,
                   letterSpacing: -0.08),
             ),
@@ -305,18 +295,12 @@ class _ShareCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(Spacing.xl),
       decoration: BoxDecoration(
         color: c.surface,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(Radii.lg),
         border: Border.all(color: c.hair, width: 0.5),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x14000000),
-            blurRadius: 40,
-            offset: Offset(0, 12),
-          ),
-        ],
+        boxShadow: Elevation.fab(c.shadow),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -326,12 +310,11 @@ class _ShareCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text('WORKOUT STREAK',
-                    style: AppFonts.sf(
-                        size: 11,
-                        weight: FontWeight.w700,
+                    style: AppType.caption2.copyWith(
+                        fontWeight: FontWeight.w700,
                         color: c.move,
                         letterSpacing: 0.3)),
-                const SizedBox(height: 2),
+                const SizedBox(height: Spacing.xxs),
                 Text('$streak days',
                     style: AppFonts.sfr(
                         size: 44,
@@ -339,14 +322,14 @@ class _ShareCard extends StatelessWidget {
                         color: c.ink,
                         letterSpacing: -0.8,
                         height: 1.0)),
-                const SizedBox(height: 4),
+                const SizedBox(height: Spacing.xs),
                 Text('@mira · Opal',
-                    style: AppFonts.sf(
-                        size: 12, color: c.ink3, letterSpacing: -0.08)),
+                    style: AppType.caption
+                        .copyWith(color: c.ink3, letterSpacing: -0.08)),
               ],
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: Spacing.md),
           _DotGrid(filled: filledDots, moveColor: c.move, emptyColor: c.fill),
         ],
       ),
@@ -369,8 +352,8 @@ class _DotGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Wrap(
-      spacing: 4,
-      runSpacing: 4,
+      spacing: Spacing.xs,
+      runSpacing: Spacing.xs,
       children: [
         for (var i = 0; i < StreakCelebrationScreen._milestoneDots; i++)
           Container(
@@ -378,7 +361,7 @@ class _DotGrid extends StatelessWidget {
             height: 8,
             decoration: BoxDecoration(
               color: i < filled ? moveColor : emptyColor,
-              borderRadius: BorderRadius.circular(2),
+              borderRadius: BorderRadius.circular(Radii.xs),
             ),
           ),
       ],

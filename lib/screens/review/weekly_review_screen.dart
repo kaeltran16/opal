@@ -5,8 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../controllers/insights_controller.dart';
 import '../../controllers/weekly_review_controller.dart';
 import '../../services/pal/pal_service.dart';
-import '../../theme/app_colors.dart';
-import '../../theme/app_text.dart';
+import '../../theme/theme.dart';
 import '../../widgets/app_icon.dart';
 import '../../widgets/nav_bar.dart';
 
@@ -43,7 +42,7 @@ class WeeklyReviewScreen extends ConsumerWidget {
       children: [
         // --- Nav: back to You + share ---------------------------------------
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 56, 16, 8),
+          padding: const EdgeInsets.fromLTRB(Spacing.lg, 56, Spacing.lg, Spacing.sm),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -59,7 +58,8 @@ class WeeklyReviewScreen extends ConsumerWidget {
 
         // --- Hero -----------------------------------------------------------
         Padding(
-          padding: const EdgeInsets.fromLTRB(20, 4, 20, 16),
+          padding: const EdgeInsets.fromLTRB(
+              Spacing.xl, Spacing.xs, Spacing.xl, Spacing.lg),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -67,27 +67,18 @@ class WeeklyReviewScreen extends ConsumerWidget {
                   stats == null
                       ? 'WEEKLY REVIEW'
                       : 'WEEKLY REVIEW · ${stats.rangeLabel.toUpperCase()}',
-                  style: AppFonts.sf(
-                      size: 12,
-                      weight: FontWeight.w700,
+                  style: AppType.caption.copyWith(
+                      fontWeight: FontWeight.w700,
                       color: c.accent,
                       letterSpacing: 0.5)),
-              const SizedBox(height: 4),
+              const SizedBox(height: Spacing.xs),
               Text(headline,
-                  style: AppFonts.sf(
-                      size: 30,
-                      weight: FontWeight.w700,
-                      color: c.ink,
-                      letterSpacing: -0.5,
-                      height: 1.15)),
-              const SizedBox(height: 8),
+                  style: AppType.large.copyWith(
+                      color: c.ink, letterSpacing: -0.5, height: 1.15)),
+              const SizedBox(height: Spacing.sm),
               Text(
                 lede,
-                style: AppFonts.sf(
-                    size: 15,
-                    color: c.ink3,
-                    letterSpacing: -0.24,
-                    height: 1.4),
+                style: AppType.subhead.copyWith(color: c.ink3, height: 1.4),
               ),
             ],
           ),
@@ -95,20 +86,20 @@ class WeeklyReviewScreen extends ConsumerWidget {
 
         // --- Three-ring week summary ----------------------------------------
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 18),
+          padding: const EdgeInsets.fromLTRB(
+              Spacing.lg, 0, Spacing.lg, Spacing.xl),
           child: Container(
-            padding: const EdgeInsets.all(18),
+            padding: const EdgeInsets.all(Spacing.xl),
             decoration: BoxDecoration(
-                color: c.surface, borderRadius: BorderRadius.circular(18)),
+                color: c.surface, borderRadius: BorderRadius.circular(Radii.lg)),
             child: statsAsync.when(
               loading: () => const _TilesPlaceholder(),
               error: (e, _) => Text("Couldn't load this week.",
-                  style: AppFonts.sf(
-                      size: 15, color: c.ink3, letterSpacing: -0.24)),
+                  style: AppType.subhead.copyWith(color: c.ink3)),
               data: (s) => Row(
                 children: [
                   for (var i = 0; i < s.tiles.length; i++) ...[
-                    if (i > 0) const SizedBox(width: 10),
+                    if (i > 0) const SizedBox(width: Spacing.md),
                     Expanded(child: _StatTile(stat: s.tiles[i])),
                   ],
                 ],
@@ -122,14 +113,15 @@ class WeeklyReviewScreen extends ConsumerWidget {
 
         // --- Footer ---------------------------------------------------------
         Padding(
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+          padding: const EdgeInsets.fromLTRB(
+              Spacing.xl, 0, Spacing.xl, Spacing.md),
           child: Text(
               stats == null
                   ? 'Next review · Sunday'
                   : 'Next review · ${stats.nextReviewLabel}',
               textAlign: TextAlign.center,
-              style: AppFonts.sf(
-                  size: 13, color: c.ink3, letterSpacing: -0.08)),
+              style: AppType.footnote.copyWith(
+                  color: c.ink3, letterSpacing: -0.08)),
         ),
       ],
     );
@@ -144,7 +136,8 @@ class WeeklyReviewScreen extends ConsumerWidget {
     if (insights == null) {
       return [
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 18),
+          padding: const EdgeInsets.fromLTRB(
+              Spacing.lg, 0, Spacing.lg, Spacing.xl),
           child: _NoticeCard(
             text: loading
                 ? 'Pal is reviewing your week…'
@@ -158,10 +151,11 @@ class WeeklyReviewScreen extends ConsumerWidget {
       if (insights.wins.isNotEmpty) ...[
         _SectionHeader('Wins'),
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 18),
+          padding: const EdgeInsets.fromLTRB(
+              Spacing.lg, 0, Spacing.lg, Spacing.xl),
           child: Container(
             decoration: BoxDecoration(
-                color: c.surface, borderRadius: BorderRadius.circular(14)),
+                color: c.surface, borderRadius: BorderRadius.circular(Radii.card)),
             clipBehavior: Clip.antiAlias,
             child: Column(
               children: [
@@ -181,11 +175,12 @@ class WeeklyReviewScreen extends ConsumerWidget {
       if (insights.patterns.isNotEmpty) ...[
         _SectionHeader('Patterns'),
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 18),
+          padding: const EdgeInsets.fromLTRB(
+              Spacing.lg, 0, Spacing.lg, Spacing.xl),
           child: Column(
             children: [
               for (var i = 0; i < insights.patterns.length; i++) ...[
-                if (i > 0) const SizedBox(height: 8),
+                if (i > 0) const SizedBox(height: Spacing.sm),
                 _PatternCard(
                   colorToken: insights.patterns[i].colorToken,
                   text: insights.patterns[i].detail.isEmpty
@@ -200,7 +195,8 @@ class WeeklyReviewScreen extends ConsumerWidget {
       ],
       if (insights.suggestion != null && insights.suggestion!.isNotEmpty)
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 18),
+          padding: const EdgeInsets.fromLTRB(
+              Spacing.lg, 0, Spacing.lg, Spacing.xl),
           child: _OneThingCard(text: insights.suggestion!),
         ),
     ];
@@ -216,12 +212,11 @@ class _NoticeCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(Spacing.lg),
       decoration: BoxDecoration(
-          color: c.surface, borderRadius: BorderRadius.circular(14)),
+          color: c.surface, borderRadius: BorderRadius.circular(Radii.card)),
       child: Text(text,
-          style: AppFonts.sf(
-              size: 15, color: c.ink3, letterSpacing: -0.24, height: 1.4)),
+          style: AppType.subhead.copyWith(color: c.ink3, height: 1.4)),
     );
   }
 }
@@ -234,13 +229,9 @@ class _SectionHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
+      padding: const EdgeInsets.fromLTRB(Spacing.xl, 0, Spacing.xl, Spacing.md),
       child: Text(text,
-          style: AppFonts.sf(
-              size: 22,
-              weight: FontWeight.w700,
-              color: c.ink,
-              letterSpacing: 0.35)),
+          style: AppType.title2.copyWith(color: c.ink, letterSpacing: 0.35)),
     );
   }
 }
@@ -253,7 +244,8 @@ class _TilesPlaceholder extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     return Text('…',
-        style: AppFonts.sf(size: 22, color: c.ink3, letterSpacing: -0.3));
+        style: AppType.title2.copyWith(
+            fontWeight: FontWeight.w400, color: c.ink3, letterSpacing: -0.3));
   }
 }
 
@@ -267,31 +259,30 @@ class _StatTile extends StatelessWidget {
     final c = context.colors;
     final color = c.forType(stat.colorToken);
     return Container(
-      padding: const EdgeInsets.all(10),
+      padding: const EdgeInsets.all(Spacing.md),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(Radii.md),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(stat.label.toUpperCase(),
-              style: AppFonts.sf(
-                  size: 11,
-                  weight: FontWeight.w700,
+              style: AppType.caption2.copyWith(
+                  fontWeight: FontWeight.w700,
                   color: color,
                   letterSpacing: 0.3)),
-          const SizedBox(height: 2),
+          const SizedBox(height: Spacing.xxs),
           Text(stat.value,
               style: AppFonts.sfr(
                   size: 22,
                   weight: FontWeight.w700,
                   color: c.ink,
                   letterSpacing: -0.3)),
-          const SizedBox(height: 2),
+          const SizedBox(height: Spacing.xxs),
           Text(stat.sub,
-              style: AppFonts.sf(
-                  size: 11, color: c.ink3, letterSpacing: -0.08)),
+              style: AppType.caption2
+                  .copyWith(color: c.ink3, letterSpacing: -0.08)),
         ],
       ),
     );
@@ -322,36 +313,34 @@ class _WinRow extends StatelessWidget {
         border:
             last ? null : Border(bottom: BorderSide(color: c.hair, width: 0.5)),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      padding: const EdgeInsets.symmetric(
+          horizontal: Spacing.lg, vertical: Spacing.md),
       child: Row(
         children: [
           Container(
             width: 34,
             height: 34,
             decoration: BoxDecoration(
-                color: color, borderRadius: BorderRadius.circular(10)),
+                color: color, borderRadius: BorderRadius.circular(Radii.md)),
             alignment: Alignment.center,
-            child: AppIcon(icon, size: 16, color: const Color(0xFFFFFFFF)),
+            child: AppIcon(icon, size: 16, color: c.onAccent),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: Spacing.md),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(title,
-                    style: AppFonts.sf(
-                        size: 15,
-                        weight: FontWeight.w600,
-                        color: c.ink,
-                        letterSpacing: -0.24)),
+                    style: AppType.subhead
+                        .copyWith(fontWeight: FontWeight.w600, color: c.ink)),
                 const SizedBox(height: 1),
                 Text(sub,
-                    style: AppFonts.sf(
-                        size: 12, color: c.ink3, letterSpacing: -0.08)),
+                    style: AppType.caption
+                        .copyWith(color: c.ink3, letterSpacing: -0.08)),
               ],
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: Spacing.sm),
           AppIcon('checkmark', size: 14, color: color),
         ],
       ),
@@ -371,7 +360,7 @@ class _PatternCard extends StatelessWidget {
     final color = c.forType(colorToken);
     return Container(
       decoration: BoxDecoration(
-          color: c.surface, borderRadius: BorderRadius.circular(14)),
+          color: c.surface, borderRadius: BorderRadius.circular(Radii.card)),
       clipBehavior: Clip.antiAlias,
       child: IntrinsicHeight(
         child: Row(
@@ -380,13 +369,11 @@ class _PatternCard extends StatelessWidget {
             Container(width: 3, color: color),
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(12, 13, 14, 13),
+                padding: const EdgeInsets.fromLTRB(
+                    Spacing.md, Spacing.md, Spacing.lg, Spacing.md),
                 child: Text(text,
-                    style: AppFonts.sf(
-                        size: 15,
-                        color: c.ink,
-                        letterSpacing: -0.24,
-                        height: 1.4)),
+                    style: AppType.subhead
+                        .copyWith(color: c.ink, height: 1.4)),
               ),
             ),
           ],
@@ -408,9 +395,9 @@ class _OneThingCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(Spacing.xl),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(Radii.lg),
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -439,41 +426,37 @@ class _OneThingCard extends StatelessWidget {
                   ),
                 ),
                 alignment: Alignment.center,
-                child: const AppIcon('sparkles',
-                    size: 11, color: Color(0xFFFFFFFF)),
+                child: AppIcon('sparkles', size: 11, color: c.onAccent),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: Spacing.sm),
               Text('ONE THING TO TRY',
-                  style: AppFonts.sf(
-                      size: 12,
-                      weight: FontWeight.w700,
+                  style: AppType.caption.copyWith(
+                      fontWeight: FontWeight.w700,
                       color: c.ink3,
                       letterSpacing: 0.3)),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: Spacing.sm),
           Text(
             text,
-            style: AppFonts.sf(
-                size: 17, color: c.ink, letterSpacing: -0.43, height: 1.4),
+            style: AppType.body.copyWith(color: c.ink, height: 1.4),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: Spacing.md),
           GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTap: () => context.go(
                 '/pal-composer?seed=${Uri.encodeComponent(_seed)}'),
             child: Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+              padding: const EdgeInsets.symmetric(
+                  horizontal: Spacing.lg, vertical: Spacing.sm),
               decoration: BoxDecoration(
                 color: c.accent,
-                borderRadius: BorderRadius.circular(100),
+                borderRadius: BorderRadius.circular(Radii.pill),
               ),
               child: Text('Ask Pal more',
-                  style: AppFonts.sf(
-                      size: 14,
-                      weight: FontWeight.w600,
-                      color: const Color(0xFFFFFFFF),
+                  style: AppType.footnote.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: c.onAccent,
                       letterSpacing: -0.15)),
             ),
           ),

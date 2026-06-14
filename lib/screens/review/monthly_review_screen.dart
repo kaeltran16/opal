@@ -4,8 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../controllers/insights_controller.dart';
 import '../../controllers/monthly_review_controller.dart';
 import '../../services/pal/pal_service.dart';
-import '../../theme/app_colors.dart';
-import '../../theme/app_text.dart';
+import '../../theme/theme.dart';
 import '../../widgets/app_icon.dart';
 import '../../widgets/nav_bar.dart';
 
@@ -52,25 +51,26 @@ class MonthlyReviewScreen extends ConsumerWidget {
       children: [
         // --- Narrative card (gradient accent bg, "Written by Pal") -----------
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 4, 16, 22),
+          padding: const EdgeInsets.fromLTRB(
+              Spacing.lg, Spacing.xs, Spacing.lg, Spacing.xxl),
           child: _NarrativeCard(narrative: narrative),
         ),
 
         // --- By the numbers --------------------------------------------------
         _SectionHeader('By the numbers'),
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 22),
+          padding: const EdgeInsets.fromLTRB(
+              Spacing.lg, 0, Spacing.lg, Spacing.xxl),
           child: Container(
             decoration: BoxDecoration(
-                color: c.surface, borderRadius: BorderRadius.circular(16)),
+                color: c.surface, borderRadius: BorderRadius.circular(Radii.lg)),
             clipBehavior: Clip.antiAlias,
             child: statsAsync.when(
               loading: () => const _StatsPlaceholder(),
               error: (e, _) => Padding(
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.all(Spacing.xl),
                 child: Text("Couldn't load this month.",
-                    style: AppFonts.sf(
-                        size: 15, color: c.ink3, letterSpacing: -0.24)),
+                    style: AppType.subhead.copyWith(color: c.ink3)),
               ),
               data: (stats) {
                 final rows = stats.rows;
@@ -88,25 +88,22 @@ class MonthlyReviewScreen extends ConsumerWidget {
         // --- Patterns Pal found ----------------------------------------------
         _SectionHeader('Patterns Pal found'),
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+          padding: const EdgeInsets.fromLTRB(Spacing.lg, 0, Spacing.lg, 0),
           child: Container(
             decoration: BoxDecoration(
-                color: c.surface, borderRadius: BorderRadius.circular(16)),
+                color: c.surface, borderRadius: BorderRadius.circular(Radii.lg)),
             clipBehavior: Clip.antiAlias,
             child: patterns.isEmpty
                 ? Padding(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 16),
+                        horizontal: Spacing.lg, vertical: Spacing.lg),
                     child: Text(
                       insightsAsync.isLoading
                           ? 'Pal is reading your month…'
                           : 'Keep logging and Pal will surface the patterns '
                               'it finds here.',
-                      style: AppFonts.sf(
-                          size: 15,
-                          color: c.ink3,
-                          letterSpacing: -0.24,
-                          height: 1.4),
+                      style: AppType.subhead
+                          .copyWith(color: c.ink3, height: 1.4),
                     ),
                   )
                 : Column(
@@ -134,10 +131,9 @@ class _SectionHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
+      padding: const EdgeInsets.fromLTRB(Spacing.xl, 0, Spacing.xl, Spacing.md),
       child: Text(text,
-          style: AppFonts.sf(
-              size: 22, weight: FontWeight.w700, color: c.ink, letterSpacing: 0.35)),
+          style: AppType.title2.copyWith(color: c.ink, letterSpacing: 0.35)),
     );
   }
 }
@@ -153,9 +149,9 @@ class _NarrativeCard extends ConsumerWidget {
     final c = context.colors;
     final loading = narrative.isLoading;
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(Spacing.xl),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(Radii.lg),
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -185,32 +181,26 @@ class _NarrativeCard extends ConsumerWidget {
                   ),
                 ),
                 alignment: Alignment.center,
-                child: const AppIcon('sparkles',
-                    size: 11, color: Color(0xFFFFFFFF)),
+                child: AppIcon('sparkles',
+                    size: 11, color: c.onAccent),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: Spacing.sm),
               Text('WRITTEN BY PAL',
-                  style: AppFonts.sf(
-                      size: 12,
-                      weight: FontWeight.w700,
-                      color: c.ink3,
-                      letterSpacing: 0.3)),
+                  style: AppType.caption
+                      .copyWith(fontWeight: FontWeight.w700, color: c.ink3, letterSpacing: 0.3)),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: Spacing.md),
           Text(
             narrative.when(
               loading: () => 'Pal is reading your month…',
               error: (_, _) => "Pal couldn't write your review just now.",
               data: (text) => text,
             ),
-            style: AppFonts.sf(
-                size: 17,
-                color: loading ? c.ink3 : c.ink,
-                letterSpacing: -0.43,
-                height: 1.4),
+            style: AppType.body
+                .copyWith(color: loading ? c.ink3 : c.ink, height: 1.4),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: Spacing.lg),
           _RegeneratePill(loading: loading),
         ],
       ),
@@ -232,21 +222,21 @@ class _RegeneratePill extends ConsumerWidget {
           : () =>
               ref.read(monthlyReviewControllerProvider.notifier).regenerate(),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        padding: const EdgeInsets.symmetric(
+            horizontal: Spacing.lg, vertical: Spacing.sm),
         decoration: BoxDecoration(
           color: c.surface,
-          borderRadius: BorderRadius.circular(100),
+          borderRadius: BorderRadius.circular(Radii.pill),
           border: Border.all(color: c.hair, width: 0.5),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             AppIcon('sparkles', size: 13, color: c.accent),
-            const SizedBox(width: 6),
+            const SizedBox(width: Spacing.sm),
             Text(loading ? 'Writing…' : 'Regenerate',
-                style: AppFonts.sf(
-                    size: 13,
-                    weight: FontWeight.w600,
+                style: AppType.footnote.copyWith(
+                    fontWeight: FontWeight.w600,
                     color: c.accent,
                     letterSpacing: -0.08)),
           ],
@@ -271,33 +261,33 @@ class _StatRow extends StatelessWidget {
         border:
             last ? null : Border(bottom: BorderSide(color: c.hair, width: 0.5)),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(
+          horizontal: Spacing.lg, vertical: Spacing.md),
       child: Row(
         children: [
           Container(
             width: 36,
             height: 36,
             decoration: BoxDecoration(
-                color: color, borderRadius: BorderRadius.circular(10)),
+                color: color, borderRadius: BorderRadius.circular(Radii.md)),
             alignment: Alignment.center,
-            child: AppIcon(stat.icon, size: 18, color: const Color(0xFFFFFFFF)),
+            child: AppIcon(stat.icon, size: 18, color: c.onAccent),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: Spacing.md),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(stat.label,
-                    style: AppFonts.sf(
-                        size: 13,
-                        weight: FontWeight.w500,
+                    style: AppType.footnote.copyWith(
+                        fontWeight: FontWeight.w500,
                         color: c.ink3,
                         letterSpacing: -0.08)),
                 if (stat.sub != null) ...[
                   const SizedBox(height: 1),
                   Text(stat.sub!,
-                      style: AppFonts.sf(
-                          size: 12, color: c.ink3, letterSpacing: -0.08)),
+                      style: AppType.caption
+                          .copyWith(color: c.ink3, letterSpacing: -0.08)),
                 ],
               ],
             ),
@@ -310,11 +300,10 @@ class _StatRow extends StatelessWidget {
                   style: AppFonts.sfr(
                       size: 22, weight: FontWeight.w700, color: c.ink, letterSpacing: -0.3)),
               if (stat.unit != null) ...[
-                const SizedBox(width: 4),
+                const SizedBox(width: Spacing.xs),
                 Text(stat.unit!,
-                    style: AppFonts.sf(
-                        size: 13,
-                        weight: FontWeight.w600,
+                    style: AppType.footnote.copyWith(
+                        fontWeight: FontWeight.w600,
                         color: c.ink3,
                         letterSpacing: 0.3)),
               ],
@@ -333,9 +322,8 @@ class _StatsPlaceholder extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     return Padding(
-      padding: const EdgeInsets.all(20),
-      child: Text('…',
-          style: AppFonts.sf(size: 17, color: c.ink3, letterSpacing: -0.43)),
+      padding: const EdgeInsets.all(Spacing.xl),
+      child: Text('…', style: AppType.body.copyWith(color: c.ink3)),
     );
   }
 }
@@ -359,29 +347,24 @@ class _PatternRow extends StatelessWidget {
         border:
             last ? null : Border(bottom: BorderSide(color: c.hair, width: 0.5)),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+      padding: const EdgeInsets.symmetric(
+          horizontal: Spacing.lg, vertical: Spacing.md),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           AppIcon('sparkles', size: 16, color: c.accent),
-          const SizedBox(width: 12),
+          const SizedBox(width: Spacing.md),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(title,
-                    style: AppFonts.sf(
-                        size: 15,
-                        weight: FontWeight.w500,
-                        color: c.ink,
-                        letterSpacing: -0.24)),
-                const SizedBox(height: 2),
+                    style: AppType.subhead
+                        .copyWith(fontWeight: FontWeight.w500, color: c.ink)),
+                const SizedBox(height: Spacing.xxs),
                 Text(detail,
-                    style: AppFonts.sf(
-                        size: 13,
-                        color: c.ink3,
-                        letterSpacing: -0.08,
-                        height: 1.3)),
+                    style: AppType.footnote.copyWith(
+                        color: c.ink3, letterSpacing: -0.08, height: 1.3)),
               ],
             ),
           ),
