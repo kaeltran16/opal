@@ -2,9 +2,10 @@
 //  OpalWidgetSyncBridge.swift
 //  Runner
 //
-//  Receives today's progress from Flutter over the `opal/widget_sync`
-//  MethodChannel, writes it to the shared App Group (via RingsSnapshot), and
-//  asks WidgetKit to reload the rings widget. Mirrors OpalLiveActivityBridge:
+//  Thin bridge for the `opal/widget_sync` MethodChannel. The Dart side POSTs the
+//  rings snapshot to the proxy itself (it owns the device token); all this needs
+//  to do is nudge WidgetKit to re-fetch immediately on `reload`. `reloadAllTimelines`
+//  needs no entitlement, so it works on a free Apple team (no App Group required).
 //  AppDelegate registers it once the Flutter engine is up.
 //
 
@@ -13,29 +14,14 @@ import Foundation
 import WidgetKit
 
 enum OpalWidgetSyncBridge {
-  /// Name of the MethodChannel; must match `MethodChannelWidgetSyncService` in Dart.
+  /// Name of the MethodChannel; must match `HttpWidgetSyncService` in Dart.
   static let channelName = "opal/widget_sync"
 
   static func register(with messenger: FlutterBinaryMessenger) {
     let channel = FlutterMethodChannel(name: channelName, binaryMessenger: messenger)
     channel.setMethodCallHandler { call, result in
       switch call.method {
-      case "sync":
-        guard let a = call.arguments as? [String: Any] else {
-          result(FlutterError(code: "bad_args", message: "expected a map", details: nil))
-          return
-        }
-        RingsSnapshot(
-          moneyRing: a["moneyRing"] as? Double ?? 0,
-          moveRing: a["moveRing"] as? Double ?? 0,
-          ritualsRing: a["ritualsRing"] as? Double ?? 0,
-          moneySpent: a["moneySpent"] as? Double ?? 0,
-          dailyBudget: a["dailyBudget"] as? Double ?? 0,
-          moveKcal: a["moveKcal"] as? Int ?? 0,
-          dailyMoveKcal: a["dailyMoveKcal"] as? Int ?? 0,
-          ritualsDone: a["ritualsDone"] as? Int ?? 0,
-          dailyRitualTarget: a["dailyRitualTarget"] as? Int ?? 0
-        ).save()
+      case "reload":
         WidgetCenter.shared.reloadAllTimelines()
         result(nil)
       default:

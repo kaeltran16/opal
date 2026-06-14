@@ -102,3 +102,8 @@ workout-session minutes (`Workout.duration`/`weekMinutes`/`durationMinutes`).
   ±50, range 0–5000. Adjust if undesirable.
 - The legacy `daily_move_minutes` DB column is intentionally left in place (SQLite
   drop-column is fragile); harmless, future cleanup candidate.
+
+## Follow-up
+- The rings widget showed zeros on-device (App Group can't be provisioned on a free team).
+  Fixed by routing widget data through the proxy — see
+  `docs/2026-06-14-mac-handoff-widget-proxy.md`.

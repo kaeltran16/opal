@@ -841,18 +841,18 @@ final class LiveActivityServiceProvider
 String _$liveActivityServiceHash() =>
     r'da56177b00efd0d4c58d9386832c921d706e55b0';
 
-/// Pushes today's progress to the iOS home-screen rings widget over the native
-/// `opal/widget_sync` MethodChannel; no-op off iOS. Driven by
-/// [WidgetSyncController]. Until the OpalWidgets extension + AppDelegate bridge
-/// are wired in Xcode the channel is absent and every call no-ops gracefully.
+/// Pushes today's progress to the iOS home-screen rings widget. The app POSTs
+/// the snapshot to the proxy (`/v1/widget/snapshot`) and the widget fetches it
+/// over HTTP — App-Group sharing isn't available on a free Apple team. No-op off
+/// iOS or when `PAL_BASE_URL` is unset. Driven by [WidgetSyncController].
 
 @ProviderFor(widgetSyncService)
 const widgetSyncServiceProvider = WidgetSyncServiceProvider._();
 
-/// Pushes today's progress to the iOS home-screen rings widget over the native
-/// `opal/widget_sync` MethodChannel; no-op off iOS. Driven by
-/// [WidgetSyncController]. Until the OpalWidgets extension + AppDelegate bridge
-/// are wired in Xcode the channel is absent and every call no-ops gracefully.
+/// Pushes today's progress to the iOS home-screen rings widget. The app POSTs
+/// the snapshot to the proxy (`/v1/widget/snapshot`) and the widget fetches it
+/// over HTTP — App-Group sharing isn't available on a free Apple team. No-op off
+/// iOS or when `PAL_BASE_URL` is unset. Driven by [WidgetSyncController].
 
 final class WidgetSyncServiceProvider
     extends
@@ -862,10 +862,10 @@ final class WidgetSyncServiceProvider
           WidgetSyncService
         >
     with $Provider<WidgetSyncService> {
-  /// Pushes today's progress to the iOS home-screen rings widget over the native
-  /// `opal/widget_sync` MethodChannel; no-op off iOS. Driven by
-  /// [WidgetSyncController]. Until the OpalWidgets extension + AppDelegate bridge
-  /// are wired in Xcode the channel is absent and every call no-ops gracefully.
+  /// Pushes today's progress to the iOS home-screen rings widget. The app POSTs
+  /// the snapshot to the proxy (`/v1/widget/snapshot`) and the widget fetches it
+  /// over HTTP — App-Group sharing isn't available on a free Apple team. No-op off
+  /// iOS or when `PAL_BASE_URL` is unset. Driven by [WidgetSyncController].
   const WidgetSyncServiceProvider._()
     : super(
         from: null,
@@ -900,7 +900,7 @@ final class WidgetSyncServiceProvider
   }
 }
 
-String _$widgetSyncServiceHash() => r'7d8119f788aa1d611d515adc0f014bf5e45bf409';
+String _$widgetSyncServiceHash() => r'7d166e9bef81801efe8948ec280372fa019d2e5b';
 
 /// Siri Shortcuts / AppIntents donation + deep-link stream (U26). The real impl
 /// talks to the native `opal/intents` MethodChannel, registered once the Intents

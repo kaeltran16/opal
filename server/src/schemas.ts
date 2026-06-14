@@ -100,3 +100,16 @@ export const healthIngestBody = z.object({
 export const healthDayQuery = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
 })
+
+// Pre-computed rings progress the app pushes for the iOS widget to read back.
+export const widgetSnapshotBody = z.object({
+  moneyRing: z.number().finite(),
+  moveRing: z.number().finite(),
+  ritualsRing: z.number().finite(),
+  moneySpent: z.number().finite(),
+  dailyBudget: z.number().finite(),
+  moveKcal: z.number().int(),
+  dailyMoveKcal: z.number().int(),
+  ritualsDone: z.number().int(),
+  dailyRitualTarget: z.number().int(),
+})

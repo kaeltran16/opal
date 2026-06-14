@@ -2,11 +2,12 @@
 //  OpalRingsWidget.swift
 //  OpalWidgets — Medium home-screen widget: three activity rings + a "+" FAB.
 //
-//  Static snapshot (no live animation): the app pushes data via
-//  OpalWidgetSyncBridge and reloads timelines, so the provider just reads the
-//  shared RingsSnapshot. The "+" deep-links to the autofocused Pal composer;
-//  tapping anywhere else opens Today. Both routes already resolve through the
-//  existing `opal://<host>` -> `/<host>` mapping (OpalIntentsBridge).
+//  The provider fetches the snapshot from the proxy (RingsSnapshotLoader); the
+//  app POSTs it on every change and calls reloadAllTimelines() to refresh us
+//  immediately, with a ~20-min timeline fallback for when the app isn't running.
+//  The "+" deep-links to the autofocused Pal composer; tapping anywhere else
+//  opens Today. Both routes resolve through the existing `opal://<host>` ->
+//  `/<host>` mapping (OpalIntentsBridge).
 //
 
 import SwiftUI
@@ -29,13 +30,26 @@ struct RingsProvider: TimelineProvider {
   }
 
   func getSnapshot(in context: Context, completion: @escaping (RingsEntry) -> Void) {
-    completion(RingsEntry(date: Date(), snapshot: RingsSnapshot.load()))
+    if context.isPreview {
+      completion(RingsEntry(date: Date(), snapshot: .empty))
+      return
+    }
+    Task {
+      let snapshot = await RingsSnapshotLoader.load()
+      completion(RingsEntry(date: Date(), snapshot: snapshot))
+    }
   }
 
   func getTimeline(in context: Context, completion: @escaping (Timeline<RingsEntry>) -> Void) {
-    // Single entry; the app pushes reloads when data changes, so never auto-refresh.
-    let entry = RingsEntry(date: Date(), snapshot: RingsSnapshot.load())
-    completion(Timeline(entries: [entry], policy: .never))
+    Task {
+      let snapshot = await RingsSnapshotLoader.load()
+      let entry = RingsEntry(date: Date(), snapshot: snapshot)
+      // The app nudges an immediate reload on change; this is just a fallback for
+      // when the app isn't foregrounded to push (WidgetKit throttles either way).
+      let next = Calendar.current.date(byAdding: .minute, value: 20, to: Date())
+        ?? Date().addingTimeInterval(20 * 60)
+      completion(Timeline(entries: [entry], policy: .after(next)))
+    }
   }
 }
 
