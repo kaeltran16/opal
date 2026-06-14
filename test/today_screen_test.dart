@@ -103,8 +103,8 @@ void main() {
     expect(rings.values[1], closeTo(0.5, 1e-9)); // move
     expect(rings.values[2], closeTo(0.25, 1e-9)); // rituals
 
-    // 3-up summary tile row present (one per tracker type).
-    expect(find.byType(SummaryTile), findsNWidgets(3));
+    // Rings hero shows one stat per tracker type (money / move / rituals).
+    expect(find.byType(RingStat), findsNWidgets(3));
     // Spent total reflects the two expenses ($50).
     expect(find.text('\$50'), findsWidgets);
 

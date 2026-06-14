@@ -632,30 +632,30 @@ class _Composer extends StatelessWidget {
                 color: c.fill,
                 borderRadius: BorderRadius.circular(20),
               ),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: TextField(
-                  controller: controller,
-                  enabled: enabled,
-                  autofocus: true,
-                  minLines: 1,
-                  maxLines: 4,
-                  textInputAction: TextInputAction.send,
-                  cursorColor: c.accent,
-                  onSubmitted: enabled ? (_) => onSend() : null,
-                  style: AppFonts.sf(size: 15, color: c.ink, letterSpacing: -0.24),
-                  decoration: InputDecoration(
-                    isDense: true,
-                    // Match the handoff textarea's ~10px vertical padding;
-                    // without this, InputBorder.none's large default padding
-                    // inflates the pill past the 38px send button. Horizontal
-                    // padding comes from the wrapping container.
-                    contentPadding: const EdgeInsets.symmetric(vertical: 9),
-                    border: InputBorder.none,
-                    hintText: hint,
-                    hintStyle: AppFonts.sf(
-                        size: 15, color: c.ink3, letterSpacing: -0.24),
-                  ),
+              // The field sizes to its content (clamped to the 38px minHeight
+              // above); no Align wrapper — an Align with no heightFactor would
+              // expand to the 100px maxHeight and inflate the pill.
+              child: TextField(
+                controller: controller,
+                enabled: enabled,
+                autofocus: true,
+                minLines: 1,
+                maxLines: 4,
+                textInputAction: TextInputAction.send,
+                cursorColor: c.accent,
+                onSubmitted: enabled ? (_) => onSend() : null,
+                style: AppFonts.sf(size: 15, color: c.ink, letterSpacing: -0.24),
+                decoration: InputDecoration(
+                  isDense: true,
+                  // Match the handoff textarea's ~10px vertical padding;
+                  // without this, InputBorder.none's large default padding
+                  // inflates the pill past the 38px send button. Horizontal
+                  // padding comes from the wrapping container.
+                  contentPadding: const EdgeInsets.symmetric(vertical: 9),
+                  border: InputBorder.none,
+                  hintText: hint,
+                  hintStyle: AppFonts.sf(
+                      size: 15, color: c.ink3, letterSpacing: -0.24),
                 ),
               ),
             ),

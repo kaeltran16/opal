@@ -140,19 +140,25 @@ class _TodayBody extends ConsumerWidget {
                               color: c.money,
                               label: 'Spent',
                               value: '\$${moneySpent.toStringAsFixed(0)}',
-                              goal: '/ \$${goals.dailyBudget.toStringAsFixed(0)}'),
+                              goal: '/ \$${goals.dailyBudget.toStringAsFixed(0)}',
+                              onTap: () => context
+                                  .pushNamed(AppRoute.spendingDetail.name)),
                           const SizedBox(height: 10),
                           RingStat(
                               color: c.move,
                               label: 'Workout',
                               value: '${today.moveKcal}',
-                              goal: '/ ${goals.dailyMoveKcal} KCAL'),
+                              goal: '/ ${goals.dailyMoveKcal} KCAL',
+                              onTap: () =>
+                                  context.pushNamed(AppRoute.moveDetail.name)),
                           const SizedBox(height: 10),
                           RingStat(
                               color: c.rituals,
                               label: 'Routines',
                               value: '$ritualsDone',
-                              goal: '/ ${goals.dailyRitualTarget}'),
+                              goal: '/ ${goals.dailyRitualTarget}',
+                              onTap: () => context
+                                  .pushNamed(AppRoute.ritualsDetail.name)),
                         ],
                       ),
                     ),
@@ -198,53 +204,6 @@ class _TodayBody extends ConsumerWidget {
                 ),
               ],
             ),
-          ),
-        ),
-
-        // 3-up summary tile row (money / move / rituals).
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 18),
-          child: SizedBox(
-            height: 132,
-            child: Row(
-            children: [
-              Expanded(
-                child: SummaryTile(
-                  type: 'money',
-                  icon: 'dollarsign.circle.fill',
-                  label: 'Spent',
-                  big: '\$${moneySpent.toStringAsFixed(0)}',
-                  sub: 'of \$${goals.dailyBudget.toStringAsFixed(0)} budget',
-                  onTap: () =>
-                      context.pushNamed(AppRoute.spendingDetail.name),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: SummaryTile(
-                  type: 'move',
-                  icon: 'figure.run',
-                  label: 'Workout',
-                  big: '${today.moveKcal}',
-                  unit: 'KCAL',
-                  sub: 'of ${goals.dailyMoveKcal} kcal goal',
-                  onTap: () => context.pushNamed(AppRoute.moveDetail.name),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: SummaryTile(
-                  type: 'rituals',
-                  icon: 'sparkles',
-                  label: 'Routines',
-                  big: '$ritualsDone',
-                  unit: '/ ${goals.dailyRitualTarget}',
-                  sub: closePrompt,
-                  onTap: () => context.pushNamed(AppRoute.ritualsDetail.name),
-                ),
-              ),
-            ],
-          ),
           ),
         ),
 
