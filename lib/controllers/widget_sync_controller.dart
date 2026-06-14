@@ -28,7 +28,7 @@ class WidgetSyncController extends _$WidgetSyncController {
         moveKcal: s.moveKcal,
         dailyMoveKcal: s.goals.dailyMoveKcal,
         ritualsDone: s.ritualsDone,
-        dailyRitualTarget: s.goals.dailyRitualTarget,
+        dailyRitualTarget: s.ritualsTarget,
       );
     }, fireImmediately: true);
   }

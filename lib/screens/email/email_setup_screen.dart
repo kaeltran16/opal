@@ -303,7 +303,7 @@ class _HowToCard extends StatelessWidget {
         const TextSpan(text: '.'),
       ]),
       TextSpan(
-          text: 'Create an app password labeled "ExpensePal" — paste the '
+          text: 'Create an app password labeled "Opal" — paste the '
               '16 characters above.'),
     ];
     return Container(

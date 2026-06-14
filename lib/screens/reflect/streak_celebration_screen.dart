@@ -5,22 +5,35 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../controllers/profile_controller.dart';
+import '../../controllers/providers.dart';
+import '../../models/models.dart';
+import '../../services/pal/pal_context_builder.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_text.dart';
 import '../../widgets/app_icon.dart';
 import '../../widgets/press_scale.dart';
+
+/// Live timeline entries for the move-streak math. The repository already
+/// scopes the heavy lifting; the seed/live history is short enough that the
+/// whole stream is a fine lookback for [moveStreakDays] (it counts back from
+/// today on its own). A manual provider (not codegen) since no controller
+/// exposes the raw entry stream and this screen is its only consumer.
+final _moveEntriesProvider = StreamProvider.autoDispose<List<Entry>>(
+  (ref) => ref.watch(entryRepositoryProvider).watchAll(),
+);
 
 /// Screen 15 — Streak Celebration.
 ///
 /// A milestone moment. A radial green glow + faint radiating rays behind a giant
 /// streak number, two-line copy, three pill stats, a rotated shareable card
 /// preview, and Share / Keep going CTAs. Respects light/dark theme (the glow and
-/// surfaces read from [AppColors]). The streak number reads
-/// [profileStatsProvider]'s `longestStreak`, falling back to 11.
+/// surfaces read from [AppColors]). This is the *workout* streak celebration
+/// ("days moving"), so the number is the live move streak — the same value the
+/// rest of the app uses — computed from the entry stream via [moveStreakDays].
+/// The stat pills still draw from [profileStatsProvider] (kcal totals/best day).
 class StreakCelebrationScreen extends ConsumerWidget {
   const StreakCelebrationScreen({super.key});
 
-  static const _fallbackStreak = 11;
   static const _milestoneDots = 16;
 
   static const _white = Color(0xFFFFFFFF);
@@ -55,15 +68,24 @@ class StreakCelebrationScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final c = context.colors;
     final stats = ref.watch(profileStatsProvider).asData?.value;
-    final streak = stats?.longestStreak ?? _fallbackStreak;
+    // the workout streak the rest of the app reports: consecutive move days,
+    // counted from the live entry stream (the same helper the Pal context uses).
+    // profileStats.longestStreak is the *ritual* streak — wrong source for this
+    // "days moving" screen — so we derive the move streak from entries directly.
+    final entries = ref.watch(_moveEntriesProvider).asData?.value;
+    final streak = entries == null ? 0 : moveStreakDays(entries);
     final filledDots = streak.clamp(0, _milestoneDots);
     final pills = _statsFor(stats, streak);
+    // only frame it as an unlocked milestone once there's an actual streak.
+    final unlocked = streak >= 1;
     final start = streakStartDate(streak, DateTime.now());
-    final sinceLine = start == null
-        ? 'Your longest streak this year.'
-        : "You haven't missed a day since "
-            '${_monthAbbrev[start.month - 1]} ${start.day}.\n'
-            'Your longest streak this year.';
+    final sinceLine = !unlocked
+        ? 'Move on any day to start a streak.'
+        : start == null
+            ? 'Your longest streak this year.'
+            : "You haven't missed a day since "
+                '${_monthAbbrev[start.month - 1]} ${start.day}.\n'
+                'Your longest streak this year.';
 
     return DecoratedBox(
       decoration: BoxDecoration(
@@ -118,7 +140,7 @@ class StreakCelebrationScreen extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Text('STREAK UNLOCKED',
+                    Text(unlocked ? 'STREAK UNLOCKED' : 'WORKOUT STREAK',
                         textAlign: TextAlign.center,
                         style: AppFonts.sf(
                             size: 12,
@@ -144,7 +166,7 @@ class StreakCelebrationScreen extends ConsumerWidget {
                           ],
                         )),
                     const SizedBox(height: 4),
-                    Text('days moving',
+                    Text(streak == 1 ? 'day moving' : 'days moving',
                         textAlign: TextAlign.center,
                         style: AppFonts.sfr(
                             size: 28,
@@ -332,7 +354,7 @@ class _ShareCard extends StatelessWidget {
                         color: c.move,
                         letterSpacing: 0.3)),
                 const SizedBox(height: 2),
-                Text('$streak days',
+                Text('$streak ${streak == 1 ? 'day' : 'days'}',
                     style: AppFonts.sfr(
                         size: 44,
                         weight: FontWeight.w700,

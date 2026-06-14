@@ -28,7 +28,14 @@ class _BudgetsGoalsScreenState extends ConsumerState<BudgetsGoalsScreen> {
   bool _saving = false;
   double _budget = 0;
   int _move = 0;
-  int _rituals = 0;
+  // The persisted ritual target is no longer user-editable here: the Today
+  // "Routines" metric is completed-routines ÷ total-routines, so the
+  // denominator derives from the actual routine count ([_routineCount]). We
+  // still keep the stored [Goals.dailyRitualTarget] value untouched on save so
+  // the period-based "rituals kept" metrics (reviews/insights/Pal) are
+  // unaffected.
+  int _ritualTarget = 0;
+  int _routineCount = 0;
 
   @override
   void initState() {
@@ -38,11 +45,13 @@ class _BudgetsGoalsScreenState extends ConsumerState<BudgetsGoalsScreen> {
 
   Future<void> _load() async {
     final g = await ref.read(goalsRepositoryProvider).get();
+    final routines = await ref.read(ritualRepositoryProvider).getAll();
     if (!mounted) return;
     setState(() {
       _budget = g.dailyBudget;
       _move = g.dailyMoveKcal;
-      _rituals = g.dailyRitualTarget;
+      _ritualTarget = g.dailyRitualTarget;
+      _routineCount = routines.length;
       _loaded = true;
     });
   }
@@ -54,7 +63,7 @@ class _BudgetsGoalsScreenState extends ConsumerState<BudgetsGoalsScreen> {
       await ref.read(goalsRepositoryProvider).save(Goals(
             dailyBudget: _budget,
             dailyMoveKcal: _move,
-            dailyRitualTarget: _rituals,
+            dailyRitualTarget: _ritualTarget,
           ));
       if (!mounted) return;
       context.pop();
@@ -96,7 +105,8 @@ class _BudgetsGoalsScreenState extends ConsumerState<BudgetsGoalsScreen> {
           else
             InsetSection(
               header: 'Daily targets',
-              footer: 'Targets power your daily rings and Pal’s nudges.',
+              footer:
+                  'Targets power your daily rings and Pal’s nudges. The Routines ring tracks how many of your routines you complete each day — manage routines in Rituals.',
               children: [
                 _StepperRow(
                   icon: 'dollarsign.circle.fill',
@@ -120,12 +130,13 @@ class _BudgetsGoalsScreenState extends ConsumerState<BudgetsGoalsScreen> {
                   icon: 'sparkles',
                   color: c.rituals,
                   label: 'Routines',
-                  value: '$_rituals',
+                  // Derived from the number of routines you have — completing
+                  // all of them closes the ring. Edit routines in Rituals.
+                  value: _routineCount == 1
+                      ? '1 routine'
+                      : '$_routineCount routines',
+                  showSteppers: false,
                   last: true,
-                  onMinus: () =>
-                      setState(() => _rituals = (_rituals - 1).clamp(0, 50)),
-                  onPlus: () =>
-                      setState(() => _rituals = (_rituals + 1).clamp(0, 50)),
                 ),
               ],
             ),
@@ -142,8 +153,9 @@ class _StepperRow extends StatelessWidget {
     required this.color,
     required this.label,
     required this.value,
-    required this.onMinus,
-    required this.onPlus,
+    this.onMinus,
+    this.onPlus,
+    this.showSteppers = true,
     this.last = false,
   });
 
@@ -151,8 +163,9 @@ class _StepperRow extends StatelessWidget {
   final Color color;
   final String label;
   final String value;
-  final VoidCallback onMinus;
-  final VoidCallback onPlus;
+  final VoidCallback? onMinus;
+  final VoidCallback? onPlus;
+  final bool showSteppers;
   final bool last;
 
   @override
@@ -186,10 +199,13 @@ class _StepperRow extends StatelessWidget {
                         color: c.ink2,
                         letterSpacing: -0.43,
                         tabular: true)),
-                const SizedBox(width: 10),
-                _StepButton(icon: CupertinoIcons.minus, onTap: onMinus),
-                const SizedBox(width: 8),
-                _StepButton(icon: CupertinoIcons.add, onTap: onPlus),
+                if (showSteppers) ...[
+                  const SizedBox(width: 10),
+                  _StepButton(
+                      icon: CupertinoIcons.minus, onTap: onMinus ?? () {}),
+                  const SizedBox(width: 8),
+                  _StepButton(icon: CupertinoIcons.add, onTap: onPlus ?? () {}),
+                ],
               ],
             ),
           ),

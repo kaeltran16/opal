@@ -26,11 +26,15 @@ class MockPalService implements PalService {
     "Totally doable. Want me to nudge you 30 minutes before sleep to close your last routine?",
   ];
 
+  // Qualitative only: the mock has no access to the real month aggregates
+  // (review() receives just an anchor + range), so any hardcoded count here can
+  // contradict the structured "By the numbers" block. Keep the prose grounded in
+  // patterns, not invented numbers.
   static const _reviews = <String>[
-    "This month leaned steady. You stayed under budget 19 of 30 days, and your "
-        "longest routine streak hit 12. The pattern is clear: mornings set the tone "
+    "This month leaned steady. You stayed under budget most days, and your "
+        "routine streak held strong. The pattern is clear: mornings set the tone "
         "for the whole day.",
-    "A strong month. Workouts were your anchor — 22 active days — and spending "
+    "A strong month. Workouts were your anchor, and spending "
         "stayed tight on the days you trained. Keep riding that link.",
   ];
 
@@ -153,8 +157,41 @@ class MockPalService implements PalService {
       type: EntryType.money,
       title: _titleCase(text.replaceAll(RegExp(r'[\d.\$]'), '').trim()),
       amount: amount == null ? null : -amount,
-      category: lower.contains('coffee') ? 'Coffee' : null,
+      category: _expenseCategory(text),
     );
+  }
+
+  /// Known expense category keywords the mock parser recognizes, mapped to a
+  /// display label. First match wins.
+  static const _categoryKeywords = <String, String>{
+    'coffee': 'Coffee',
+    'breakfast': 'Dining',
+    'lunch': 'Dining',
+    'dinner': 'Dining',
+    'restaurant': 'Dining',
+    'groceries': 'Groceries',
+    'grocery': 'Groceries',
+    'gas': 'Transport',
+    'fuel': 'Transport',
+    'uber': 'Transport',
+    'taxi': 'Transport',
+    'rent': 'Housing',
+  };
+
+  /// Best-effort category/merchant for an expense, used to pre-fill the entry
+  /// form. Tries a known category keyword first, then falls back to the noun
+  /// after "on"/"at" (e.g. "on dinner", "at Tartine"). Returns null when the
+  /// text gives no signal, so the form leaves the field for the user.
+  String? _expenseCategory(String text) {
+    final lower = text.toLowerCase();
+    for (final entry in _categoryKeywords.entries) {
+      if (lower.contains(entry.key)) return entry.value;
+    }
+    // "spent X on Y" / "X at Y": take the word(s) right after on/at.
+    final match = RegExp(r'\b(?:on|at)\s+([a-zA-Z][\w\-]*(?:\s+[a-zA-Z][\w\-]*)?)')
+        .firstMatch(lower);
+    if (match != null) return _titleCase(match.group(1)!.trim());
+    return null;
   }
 
   @override

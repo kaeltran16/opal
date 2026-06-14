@@ -182,7 +182,7 @@ void main() {
     expect(find.text('\$85'), findsOneWidget); // dailyBudget default
     expect(find.widgetWithText(ListRow, 'Workout goal'), findsOneWidget);
     expect(find.text('500 kcal'), findsOneWidget); // dailyMoveKcal default
-    expect(find.widgetWithText(ListRow, 'Daily rituals'), findsOneWidget);
+    expect(find.widgetWithText(ListRow, 'Daily routines'), findsOneWidget);
 
     // The removed stat grid must NOT render.
     expect(find.text('Total spent'), findsNothing);

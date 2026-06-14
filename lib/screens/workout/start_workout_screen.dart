@@ -237,8 +237,12 @@ class _PalPickCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final c = context.colors;
     final async = ref.watch(palPickControllerProvider);
-    final loading = async.isLoading;
+    // Prefer any resolved suggestion (incl. one kept across a background
+    // re-request) so the card shows the real pick instead of staying on
+    // "Thinking…" once data is ready. Only genuinely-empty loads (no value
+    // yet) show the placeholder text.
     final suggestion = async.asData?.value;
+    final loading = async.isLoading && suggestion == null;
     final targetId = _targetId(suggestion);
     final routine = _targetRoutine(targetId);
 
@@ -309,11 +313,9 @@ class _PalPickCard extends ConsumerWidget {
 
           // Title.
           Text(
-            async.when(
-              loading: () => 'Thinking…',
-              error: (_, _) => 'Freestyle session',
-              data: (s) => s.title,
-            ),
+            loading
+                ? 'Thinking…'
+                : suggestion?.title ?? 'Freestyle session',
             style: AppFonts.sfr(
                 size: 26,
                 weight: FontWeight.w700,
@@ -343,11 +345,10 @@ class _PalPickCard extends ConsumerWidget {
 
           // Rationale.
           Text(
-            async.when(
-              loading: () => 'Pal is picking your session…',
-              error: (_, _) => "Pal couldn't pick one just now — go freestyle.",
-              data: (s) => s.rationale,
-            ),
+            loading
+                ? 'Pal is picking your session…'
+                : suggestion?.rationale ??
+                    "Pal couldn't pick one just now — go freestyle.",
             style: AppFonts.sf(
                 size: 14,
                 color: _white.withValues(alpha: loading ? 0.3 : 0.88),

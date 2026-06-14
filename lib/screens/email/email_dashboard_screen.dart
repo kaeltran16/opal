@@ -60,6 +60,10 @@ class EmailDashboardScreen extends ConsumerWidget {
     final statusAsync = ref.watch(syncStatusProvider);
     final status = statusAsync.asData?.value ?? SyncStatus.idle;
 
+    // single source of truth for every connection-dependent affordance: the
+    // chip/badge, the Disconnect action, the stats, and the empty-state text
+    // all derive from this, so the card can't contradict itself.
+    final connected = dash.isConnected;
     final syncing = status == SyncStatus.scanning ||
         status == SyncStatus.filtering ||
         status == SyncStatus.categorizing;
@@ -114,7 +118,7 @@ class EmailDashboardScreen extends ConsumerWidget {
                                           letterSpacing: -0.24)),
                                 ),
                                 const SizedBox(width: 8),
-                                _ConnectionChip(syncing: syncing),
+                                if (connected) _ConnectionChip(syncing: syncing),
                               ],
                             ),
                             const SizedBox(height: 2),
@@ -173,12 +177,12 @@ class EmailDashboardScreen extends ConsumerWidget {
                   Expanded(
                       child: _StatTile(
                           label: 'This month',
-                          value: '${dash.importsThisMonth}',
+                          value: '${connected ? dash.importsThisMonth : 0}',
                           color: c.accent)),
                   Expanded(
                       child: _StatTile(
                           label: 'All time',
-                          value: '${dash.importsAllTime}',
+                          value: '${connected ? dash.importsAllTime : 0}',
                           color: c.money)),
                 ],
               ),
@@ -186,6 +190,9 @@ class EmailDashboardScreen extends ConsumerWidget {
           ),
 
           // --- Recently synced ----------------------------------------------
+          // The "Recently synced" list shows this session's freshly synced
+          // items; the empty state keys off the persisted all-time count so it
+          // can't contradict the stat tile (e.g. "2 All time" + "No imports").
           if (dash.imports.isNotEmpty)
             InsetSection(
               header: 'Recently synced',
@@ -210,7 +217,12 @@ class EmailDashboardScreen extends ConsumerWidget {
                   border: Border.all(color: c.hair, width: 0.5),
                 ),
                 alignment: Alignment.center,
-                child: Text('No imports yet — tap Sync now.',
+                child: Text(
+                    !connected
+                        ? 'Connect Gmail to start importing receipts.'
+                        : dash.importsAllTime > 0
+                            ? 'Synced earlier — tap Sync now to refresh.'
+                            : 'No imports yet — tap Sync now.',
                     style: AppFonts.sf(
                         size: 15, color: c.ink3, letterSpacing: -0.24)),
               ),
@@ -254,38 +266,40 @@ class EmailDashboardScreen extends ConsumerWidget {
           ),
 
           // --- Disconnect ----------------------------------------------------
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: () async {
-                try {
-                  await ref
-                      .read(emailDashboardControllerProvider.notifier)
-                      .disconnect();
-                } catch (_) {
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                          content: Text('Couldn\'t disconnect — try again')),
-                    );
+          // Only meaningful when an account is connected.
+          if (connected)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () async {
+                  try {
+                    await ref
+                        .read(emailDashboardControllerProvider.notifier)
+                        .disconnect();
+                  } catch (_) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                            content: Text('Couldn\'t disconnect — try again')),
+                      );
+                    }
+                    return;
                   }
-                  return;
-                }
-                if (context.mounted) context.pop();
-              },
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 13),
-                alignment: Alignment.center,
-                child: Text('Disconnect Gmail',
-                    style: AppFonts.sf(
-                        size: 15,
-                        weight: FontWeight.w500,
-                        color: c.red,
-                        letterSpacing: -0.24)),
+                  if (context.mounted) context.pop();
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 13),
+                  alignment: Alignment.center,
+                  child: Text('Disconnect Gmail',
+                      style: AppFonts.sf(
+                          size: 15,
+                          weight: FontWeight.w500,
+                          color: c.red,
+                          letterSpacing: -0.24)),
+                ),
               ),
             ),
-          ),
         ],
       ),
     );
