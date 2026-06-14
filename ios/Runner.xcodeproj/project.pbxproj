@@ -109,6 +109,7 @@
 		9CD4C993B82D03FC1FE7EDD3 /* Pods-Runner.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.debug.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.debug.xcconfig"; sourceTree = "<group>"; };
 		9E77ABB9E9F46DA1A6B5CB68 /* OpalLiveActivityBridge.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = OpalLiveActivityBridge.swift; sourceTree = "<group>"; };
 		C75B617C22B89E263DEAF8C9 /* Pods_Runner.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_Runner.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		C86EDE622B665A851909A8ED /* PalConfig.generated.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = PalConfig.generated.xcconfig; path = Flutter/PalConfig.generated.xcconfig; sourceTree = "<group>"; };
 		E5160FAC68BACCB0E68EAD93 /* OpalAppIntents.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = OpalAppIntents.swift; sourceTree = "<group>"; };
 		E80AC2FD855A8D78A4635FF2 /* OpalWidgetsBundle.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = OpalWidgetsBundle.swift; sourceTree = "<group>"; };
 		FCE516EA60789813A353DAF4 /* Pods-RunnerTests.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RunnerTests.debug.xcconfig"; path = "Target Support Files/Pods-RunnerTests/Pods-RunnerTests.debug.xcconfig"; sourceTree = "<group>"; };
@@ -209,6 +210,7 @@
 				9740EEB21CF90195004384FC /* Debug.xcconfig */,
 				7AFA3C8E1D35360C0083082E /* Release.xcconfig */,
 				9740EEB31CF90195004384FC /* Generated.xcconfig */,
+				C86EDE622B665A851909A8ED /* PalConfig.generated.xcconfig */,
 			);
 			name = Flutter;
 			sourceTree = "<group>";
@@ -713,6 +715,7 @@
 		};
 		8583C8CB35059888FF232BDF /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = C86EDE622B665A851909A8ED /* PalConfig.generated.xcconfig */;
 			buildSettings = {
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_WEAK = NO;
@@ -898,6 +901,7 @@
 		};
 		ACB31F01E3339A159FD055CA /* Profile */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = C86EDE622B665A851909A8ED /* PalConfig.generated.xcconfig */;
 			buildSettings = {
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_WEAK = NO;
@@ -928,6 +932,7 @@
 		};
 		D98B1A2427C353EB46111027 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = C86EDE622B665A851909A8ED /* PalConfig.generated.xcconfig */;
 			buildSettings = {
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_WEAK = NO;

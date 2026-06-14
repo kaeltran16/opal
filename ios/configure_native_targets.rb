@@ -119,6 +119,32 @@ widget.build_configurations.each do |config|
 end
 
 # ---------------------------------------------------------------------------
+# B2b — give the widget target a base xcconfig so its Info.plist
+#       $(PAL_BASE_URL)/$(PAL_PROVISIONING_KEY) resolve to the backend.
+# Unlike Runner, this target has no base config, so without this the proxy
+# vars are undefined and the widget's plist substitutes empty strings (the
+# widget then can't fetch its snapshot). PalConfig.generated.xcconfig is
+# gitignored and written by scripts/build_ipa.sh from the same config the
+# app's dart-defines use; it's absent for standalone builds, where the vars
+# simply resolve empty and the widget falls back to no backend.
+# ---------------------------------------------------------------------------
+flutter_group = project.main_group.find_subpath('Flutter')
+pal_xcconfig = 'Flutter/PalConfig.generated.xcconfig'
+pal_ref = flutter_group.files.find { |f| f.path == pal_xcconfig } ||
+          flutter_group.new_reference(pal_xcconfig)
+pal_ref.last_known_file_type = 'text.xcconfig'
+widget.build_configurations.each do |config|
+  config.base_configuration_reference = pal_ref
+end
+# Stub the file if absent so the base-config reference never dangles on a fresh
+# checkout / direct Xcode build (build_ipa.sh overwrites it with real values).
+pal_path = File.join(__dir__, pal_xcconfig)
+unless File.exist?(pal_path)
+  File.write(pal_path, "// AUTO-GENERATED stub — overwritten by scripts/build_ipa.sh; do not commit.\n" \
+                       "PAL_BASE_URL =\nPAL_PROVISIONING_KEY =\n")
+end
+
+# ---------------------------------------------------------------------------
 #      embed the extension into Runner (dependency + Embed App Extensions).
 # ---------------------------------------------------------------------------
 runner.add_dependency(widget) unless runner.dependencies.any? { |d| d.target == widget }
