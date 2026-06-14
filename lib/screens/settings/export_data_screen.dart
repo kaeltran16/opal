@@ -7,8 +7,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../controllers/providers.dart';
 import '../../models/models.dart';
-import '../../theme/app_colors.dart';
-import '../../theme/app_text.dart';
+import '../../theme/theme.dart';
 import '../../widgets/app_icon.dart';
 import '../email/email_nav.dart';
 
@@ -105,7 +104,7 @@ class _ExportDataScreenState extends ConsumerState<ExportDataScreen> {
             onLeading: () => context.pop(),
           ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+            padding: const EdgeInsets.fromLTRB(Spacing.xxl, Spacing.lg, Spacing.xxl, Spacing.xxl),
             child: Column(
               children: [
                 Container(
@@ -113,68 +112,60 @@ class _ExportDataScreenState extends ConsumerState<ExportDataScreen> {
                   height: 64,
                   decoration: BoxDecoration(
                     color: c.accentTint,
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(Radii.lg),
                   ),
                   alignment: Alignment.center,
                   child: AppIcon('square.and.arrow.up', size: 32, color: c.accent),
                 ),
-                const SizedBox(height: 18),
+                const SizedBox(height: Spacing.xl),
                 Text(
                   'Export your timeline',
-                  style: AppFonts.sf(
-                      size: 22,
-                      weight: FontWeight.w700,
-                      color: c.ink,
-                      letterSpacing: -0.35),
+                  style: AppType.title2.copyWith(color: c.ink, letterSpacing: -0.35),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: Spacing.sm),
                 Text(
                   'Copies every logged entry as a JSON array to your '
                   'clipboard. Paste it into a note, a spreadsheet, or a backup.',
                   textAlign: TextAlign.center,
-                  style: AppFonts.sf(
-                      size: 15, color: c.ink3, letterSpacing: -0.24, height: 1.3),
+                  style: AppType.subhead
+                      .copyWith(color: c.ink3, letterSpacing: -0.24, height: 1.3),
                 ),
               ],
             ),
           ),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.symmetric(horizontal: Spacing.lg),
             child: GestureDetector(
               onTap: _export,
               behavior: HitTestBehavior.opaque,
               child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 15),
+                padding: const EdgeInsets.symmetric(vertical: Spacing.lg),
                 decoration: BoxDecoration(
                   color: c.accent,
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(Radii.card),
                 ),
                 alignment: Alignment.center,
                 child: Text(
                   _busy ? 'Copying…' : label,
-                  style: AppFonts.sf(
-                      size: 17,
-                      weight: FontWeight.w600,
-                      color: const Color(0xFFFFFFFF),
-                      letterSpacing: -0.43),
+                  style: AppType.headline.copyWith(color: c.onAccent),
                 ),
               ),
             ),
           ),
           if (_result != null)
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+              padding: const EdgeInsets.fromLTRB(Spacing.lg, Spacing.lg, Spacing.lg, 0),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   AppIcon(_ok ? 'checkmark' : 'xmark',
                       size: 15, color: _ok ? c.move : c.red),
-                  const SizedBox(width: 6),
+                  const SizedBox(width: Spacing.sm),
                   Flexible(
                     child: Text(
                       _result!,
-                      style: AppFonts.sf(
-                          size: 14, color: c.ink3, letterSpacing: -0.15),
+                      style: AppType.footnote
+                          .copyWith(color: c.ink3, letterSpacing: -0.15),
                     ),
                   ),
                 ],

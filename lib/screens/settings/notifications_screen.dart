@@ -3,8 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../controllers/providers.dart';
-import '../../theme/app_colors.dart';
-import '../../theme/app_text.dart';
+import '../../theme/theme.dart';
 import '../../widgets/app_icon.dart';
 import '../../widgets/inset_section.dart';
 import '../email/email_nav.dart';
@@ -71,7 +70,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
             leadingLabel: 'You',
             onLeading: () => context.pop(),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: Spacing.sm),
           InsetSection(
             header: 'Permission',
             footer: 'Opal asks iOS for permission before it can deliver any '
@@ -139,7 +138,7 @@ class _SwitchRow extends StatelessWidget {
     return Stack(
       children: [
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: Spacing.lg, vertical: Spacing.sm),
           child: ConstrainedBox(
             constraints: const BoxConstraints(minHeight: 44),
             child: Row(
@@ -148,15 +147,14 @@ class _SwitchRow extends StatelessWidget {
                   width: 29,
                   height: 29,
                   decoration: BoxDecoration(
-                      color: color, borderRadius: BorderRadius.circular(7)),
+                      color: color, borderRadius: BorderRadius.circular(Radii.sm)),
                   alignment: Alignment.center,
-                  child: AppIcon(icon, size: 17, color: const Color(0xFFFFFFFF)),
+                  child: AppIcon(icon, size: 17, color: c.onAccent),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: Spacing.md),
                 Expanded(
                   child: Text(title,
-                      style: AppFonts.sf(
-                          size: 17, color: c.ink, letterSpacing: -0.43)),
+                      style: AppType.body.copyWith(color: c.ink)),
                 ),
                 CupertinoSwitch(
                   value: value,

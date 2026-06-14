@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../controllers/providers.dart';
-import '../../theme/app_colors.dart';
+import '../../theme/theme.dart';
 import '../../widgets/app_icon.dart';
 import '../../widgets/controls.dart';
 import '../../widgets/inset_section.dart';
@@ -34,12 +34,12 @@ class AppearanceScreen extends ConsumerWidget {
             leadingLabel: 'You',
             onLeading: () => context.pop(),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: Spacing.sm),
           InsetSection(
             header: 'Theme',
             children: [
               Padding(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(Spacing.lg),
                 child: Segmented<Brightness>(
                   options: const [
                     (Brightness.light, 'Light'),
@@ -55,10 +55,10 @@ class AppearanceScreen extends ConsumerWidget {
             header: 'Accent',
             children: [
               Padding(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(Spacing.lg),
                 child: Wrap(
-                  spacing: 14,
-                  runSpacing: 14,
+                  spacing: Spacing.lg,
+                  runSpacing: Spacing.lg,
                   children: [
                     for (final a in AppAccent.values)
                       PressScale(
@@ -77,8 +77,8 @@ class AppearanceScreen extends ConsumerWidget {
                                 : Border.all(color: c.hair, width: 0.5),
                           ),
                           child: a == settings.accent
-                              ? const AppIcon('checkmark',
-                                  size: 16, color: Color(0xFFFFFFFF))
+                              ? AppIcon('checkmark',
+                                  size: 16, color: c.onAccent)
                               : null,
                         ),
                       ),

@@ -5,8 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../controllers/providers.dart';
 import '../../models/models.dart';
-import '../../theme/app_colors.dart';
-import '../../theme/app_text.dart';
+import '../../theme/theme.dart';
 import '../../widgets/app_icon.dart';
 import '../../widgets/inset_section.dart';
 import '../email/email_nav.dart';
@@ -84,14 +83,13 @@ class _BudgetsGoalsScreenState extends ConsumerState<BudgetsGoalsScreen> {
             onTrailing: _save,
             trailingEnabled: _loaded && !_saving,
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: Spacing.sm),
           if (!_loaded)
             Padding(
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.all(Spacing.xxl),
               child: Text('…',
                   textAlign: TextAlign.center,
-                  style: AppFonts.sf(
-                      size: 17, color: c.ink3, letterSpacing: -0.43)),
+                  style: AppType.body.copyWith(color: c.ink3)),
             )
           else
             InsetSection(
@@ -161,7 +159,7 @@ class _StepperRow extends StatelessWidget {
     return Stack(
       children: [
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: Spacing.lg, vertical: Spacing.sm),
           child: ConstrainedBox(
             constraints: const BoxConstraints(minHeight: 44),
             child: Row(
@@ -170,25 +168,22 @@ class _StepperRow extends StatelessWidget {
                   width: 29,
                   height: 29,
                   decoration: BoxDecoration(
-                      color: color, borderRadius: BorderRadius.circular(7)),
+                      color: color, borderRadius: BorderRadius.circular(Radii.sm)),
                   alignment: Alignment.center,
-                  child: AppIcon(icon, size: 17, color: const Color(0xFFFFFFFF)),
+                  child: AppIcon(icon, size: 17, color: c.onAccent),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: Spacing.md),
                 Expanded(
                   child: Text(label,
-                      style: AppFonts.sf(
-                          size: 17, color: c.ink, letterSpacing: -0.43)),
+                      style: AppType.body.copyWith(color: c.ink)),
                 ),
                 Text(value,
-                    style: AppFonts.sf(
-                        size: 17,
+                    style: AppType.body.copyWith(
                         color: c.ink2,
-                        letterSpacing: -0.43,
-                        tabular: true)),
-                const SizedBox(width: 10),
+                        fontFeatures: const [FontFeature.tabularFigures()])),
+                const SizedBox(width: Spacing.md),
                 _StepButton(icon: CupertinoIcons.minus, onTap: onMinus),
-                const SizedBox(width: 8),
+                const SizedBox(width: Spacing.sm),
                 _StepButton(icon: CupertinoIcons.add, onTap: onPlus),
               ],
             ),
