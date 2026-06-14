@@ -417,8 +417,9 @@ class _VolumeChart extends StatelessWidget {
                             ? c.move
                             : c.move.withValues(alpha: 0.27),
                         borderRadius: const BorderRadius.vertical(
-                          top: Radius.circular(Radii.sm),
-                          bottom: Radius.circular(Radii.xs),
+                          // decorative chart-bar foot; sub-token geometry, keep literal
+                          top: Radius.circular(6),
+                          bottom: Radius.circular(3),
                         ),
                       ),
                     ],
@@ -603,7 +604,8 @@ class _SetVolumeSparkline extends StatelessWidget {
                               : c.move.withValues(alpha: 0.27),
                           borderRadius: const BorderRadius.vertical(
                             top: Radius.circular(Radii.xs),
-                            bottom: Radius.circular(Radii.xs),
+                            // decorative chart-bar foot; sub-token geometry, keep literal
+                            bottom: Radius.circular(2),
                           ),
                         ),
                       ),

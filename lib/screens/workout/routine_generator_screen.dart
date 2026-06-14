@@ -51,7 +51,8 @@ class _RoutineGeneratorScreenState
         _QuickGoal('Quick full-body, no barbell', 'figure.mixed.cardio', c.accent),
         _QuickGoal('Pull day focused on back', 'figure.pullup', c.rituals),
         _QuickGoal('Short HIIT cardio', 'bolt.fill', c.money),
-        _QuickGoal('Legs — glutes and hams', 'figure.walk', c.money),
+        // decorative per-goal accent, not the money token
+        _QuickGoal('Legs — glutes and hams', 'figure.walk', const Color(0xFFFF9500)),
         _QuickGoal('Home workout, no gear', 'house.fill', c.red),
       ];
 

@@ -693,7 +693,8 @@ class _SetBar extends StatelessWidget {
                       color: pr ? c.money : c.move.withValues(alpha: 0.53),
                       borderRadius: const BorderRadius.vertical(
                         top: Radius.circular(Radii.xs),
-                        bottom: Radius.circular(Radii.xs),
+                        // decorative chart-bar foot; sub-token geometry, keep literal
+                        bottom: Radius.circular(2),
                       ),
                     ),
                   ),

@@ -357,6 +357,7 @@ class _ChecklistRow extends StatelessWidget {
                     row.step.title,
                     style: AppType.subhead.copyWith(
                       fontWeight: FontWeight.w600,
+                      letterSpacing: -0.24,
                       color: checked
                           ? EveningCloseOutScreen._white55
                           : EveningCloseOutScreen._white,

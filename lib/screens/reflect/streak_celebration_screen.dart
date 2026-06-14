@@ -300,7 +300,8 @@ class _ShareCard extends StatelessWidget {
         color: c.surface,
         borderRadius: BorderRadius.circular(Radii.lg),
         border: Border.all(color: c.hair, width: 0.5),
-        boxShadow: Elevation.fab(c.shadow),
+        // oversized soft share-card shadow; no Elevation preset fits (spec: record inline)
+        boxShadow: [BoxShadow(color: c.shadow, blurRadius: 40, offset: const Offset(0, 12))],
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
