@@ -8,13 +8,10 @@ import '../../controllers/move_controller.dart';
 import '../../controllers/providers.dart';
 import '../../models/models.dart';
 import '../../router.dart';
-import '../../theme/app_colors.dart';
-import '../../theme/app_text.dart';
+import '../../theme/theme.dart';
 import '../../widgets/app_icon.dart';
 import '../../widgets/inset_section.dart';
 import '../../widgets/nav_bar.dart';
-
-const _white = Color(0xFFFFFFFF);
 
 /// Screen 07 — Move landing, on live data.
 ///
@@ -34,15 +31,15 @@ class MoveScreen extends ConsumerWidget {
 
     return async.when(
       loading: () => Center(
-        child: Text('…',
-            style: AppFonts.sf(size: 17, color: c.ink3, letterSpacing: -0.43)),
+        child: Text('…', style: AppType.body.copyWith(color: c.ink3)),
       ),
       error: (e, _) => Center(
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(Spacing.xxl),
           child: Text("Couldn't load Workout.\n$e",
               textAlign: TextAlign.center,
-              style: AppFonts.sf(size: 15, color: c.ink3, letterSpacing: -0.24)),
+              style: AppType.subhead
+                  .copyWith(color: c.ink3, letterSpacing: -0.24)),
         ),
       ),
       data: (state) => _MoveBody(state: state, exerciseCount: exerciseCount),
@@ -70,11 +67,13 @@ class _MoveBody extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 110),
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 4, 16, 18),
+          padding: const EdgeInsets.fromLTRB(
+              Spacing.lg, Spacing.xs, Spacing.lg, Spacing.xl),
           child: _WeekHero(state: state),
         ),
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 18),
+          padding: const EdgeInsets.fromLTRB(
+              Spacing.lg, 0, Spacing.lg, Spacing.xl),
           child: _StartCta(routineName: state.suggestedRoutineName),
         ),
         _QuickLinks(
@@ -143,7 +142,7 @@ class _WeekHero extends StatelessWidget {
     final pct = (state.weekProgress * 100).round();
     return DecoratedBox(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(Radii.lg),
         gradient: LinearGradient(
           // 155° move → move·ee → accent·dd, matching the design hero.
           begin: const Alignment(-0.7, -1),
@@ -164,7 +163,7 @@ class _WeekHero extends StatelessWidget {
         ],
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(Radii.lg),
         child: Stack(
           children: [
             // soft radial light blob, top-right.
@@ -172,18 +171,19 @@ class _WeekHero extends StatelessWidget {
               top: -60,
               right: -50,
               child: Container(
-                width: 180,
+                width: 180, // decorative blob
                 height: 180,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: _white.withValues(alpha: 0.08),
+                  color: c.onAccent.withValues(alpha: 0.08),
                 ),
               ),
             ),
             // diagonal hairline hatch overlay.
-            Positioned.fill(child: CustomPaint(painter: _HatchPainter())),
+            Positioned.fill(
+                child: CustomPaint(painter: _HatchPainter(c.onAccent))),
             Padding(
-              padding: const EdgeInsets.all(18),
+              padding: const EdgeInsets.all(Spacing.xl),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -196,32 +196,28 @@ class _WeekHero extends StatelessWidget {
                           children: [
                             Text(
                               'THIS WEEK',
-                              style: AppFonts.sf(
-                                  size: 11,
-                                  weight: FontWeight.w700,
-                                  color: _white.withValues(alpha: 0.82),
+                              style: AppType.caption2.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                  color: c.onAccent.withValues(alpha: 0.82),
                                   letterSpacing: 1.2),
                             ),
-                            const SizedBox(height: 6),
+                            const SizedBox(height: Spacing.sm),
                             Row(
                               crossAxisAlignment: CrossAxisAlignment.baseline,
                               textBaseline: TextBaseline.alphabetic,
                               children: [
                                 Text(
                                   '${state.weekWorkouts}',
-                                  style: AppFonts.sfr(
-                                      size: 48,
-                                      weight: FontWeight.w700,
-                                      color: _white,
+                                  style: AppType.amountLg.copyWith(
+                                      color: c.onAccent,
                                       letterSpacing: -1.2,
                                       height: 0.95),
                                 ),
-                                const SizedBox(width: 6),
+                                const SizedBox(width: Spacing.sm),
                                 Text(
                                   '/ ${state.weekGoal} workouts',
-                                  style: AppFonts.sf(
-                                      size: 15,
-                                      color: _white.withValues(alpha: 0.82),
+                                  style: AppType.subhead.copyWith(
+                                      color: c.onAccent.withValues(alpha: 0.82),
                                       letterSpacing: -0.1),
                                 ),
                               ],
@@ -232,16 +228,17 @@ class _WeekHero extends StatelessWidget {
                       _MiniRing(progress: state.weekProgress, percent: pct),
                     ],
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: Spacing.lg),
                   _WeekStrip(days: state.weekDays, move: c.move),
-                  const SizedBox(height: 14),
+                  const SizedBox(height: Spacing.lg),
                   Container(
                     margin: const EdgeInsets.only(top: 0),
-                    padding: const EdgeInsets.only(top: 14),
+                    padding: const EdgeInsets.only(top: Spacing.lg),
                     decoration: BoxDecoration(
                       border: Border(
                         top: BorderSide(
-                            color: _white.withValues(alpha: 0.2), width: 0.5),
+                            color: c.onAccent.withValues(alpha: 0.2),
+                            width: 0.5),
                       ),
                     ),
                     child: Row(
@@ -251,13 +248,13 @@ class _WeekHero extends StatelessWidget {
                               '${(state.weekVolumeKg / 1000).toStringAsFixed(1)}t',
                           label: 'Volume',
                         ),
-                        _heroDivider,
+                        _heroDivider(c.onAccent),
                         _HeroStat(
                           value: '${state.weekMinutes}',
                           unit: 'm',
                           label: 'Time',
                         ),
-                        _heroDivider,
+                        _heroDivider(c.onAccent),
                         _HeroStat(
                           value: '${state.weekPrCount} PR',
                           label: 'Records',
@@ -274,11 +271,11 @@ class _WeekHero extends StatelessWidget {
     );
   }
 
-  Widget get _heroDivider => Container(
+  Widget _heroDivider(Color color) => Container(
         width: 1,
         height: 30,
-        margin: const EdgeInsets.symmetric(horizontal: 14),
-        color: _white.withValues(alpha: 0.2),
+        margin: const EdgeInsets.symmetric(horizontal: Spacing.lg),
+        color: color.withValues(alpha: 0.2),
       );
 }
 
@@ -291,22 +288,23 @@ class _MiniRing extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final onAccent = context.colors.onAccent;
     return SizedBox(
-      width: 56,
+      width: 56, // fixed ring size
       height: 56,
       child: Stack(
         alignment: Alignment.center,
         children: [
           CustomPaint(
             size: const Size(56, 56),
-            painter: _RingPainter(progress: progress),
+            painter: _RingPainter(progress: progress, color: onAccent),
           ),
           Text(
             '$percent%',
             style: AppFonts.sfr(
                 size: 14,
                 weight: FontWeight.w700,
-                color: _white,
+                color: onAccent,
                 letterSpacing: -0.2),
           ),
         ],
@@ -316,8 +314,9 @@ class _MiniRing extends StatelessWidget {
 }
 
 class _RingPainter extends CustomPainter {
-  _RingPainter({required this.progress});
+  _RingPainter({required this.progress, required this.color});
   final double progress;
+  final Color color;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -327,7 +326,7 @@ class _RingPainter extends CustomPainter {
     final track = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = stroke
-      ..color = _white.withValues(alpha: 0.22);
+      ..color = color.withValues(alpha: 0.22);
     canvas.drawCircle(center, radius, track);
 
     if (progress <= 0) return;
@@ -335,7 +334,7 @@ class _RingPainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = stroke
       ..strokeCap = StrokeCap.round
-      ..color = _white;
+      ..color = color;
     canvas.drawArc(
       Rect.fromCircle(center: center, radius: radius),
       -math.pi / 2,
@@ -346,16 +345,20 @@ class _RingPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_RingPainter old) => old.progress != progress;
+  bool shouldRepaint(_RingPainter old) =>
+      old.progress != progress || old.color != color;
 }
 
 /// Diagonal hairline hatch overlay (~125° from horizontal, 25px spacing),
 /// matching the design hero's `repeating-linear-gradient` decoration.
 class _HatchPainter extends CustomPainter {
+  _HatchPainter(this.color);
+  final Color color;
+
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = _white.withValues(alpha: 0.04)
+      ..color = color.withValues(alpha: 0.04)
       ..strokeWidth = 1;
     const spacing = 25.0;
     final extent = size.width + size.height;
@@ -369,7 +372,7 @@ class _HatchPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_HatchPainter old) => false;
+  bool shouldRepaint(_HatchPainter old) => old.color != color;
 }
 
 /// 7-day Mon→Sun strip: filled white + checkmark when done, dashed border for
@@ -384,7 +387,7 @@ class _WeekStrip extends StatelessWidget {
     return Row(
       children: [
         for (var i = 0; i < days.length; i++) ...[
-          if (i != 0) const SizedBox(width: 4),
+          if (i != 0) const SizedBox(width: Spacing.xs),
           Expanded(child: _DayCell(day: days[i], move: move)),
         ],
       ],
@@ -399,11 +402,12 @@ class _DayCell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final onAccent = context.colors.onAccent;
     final bg = day.done
-        ? _white
+        ? onAccent
         : day.today
-            ? _white.withValues(alpha: 0.25)
-            : _white.withValues(alpha: 0.1);
+            ? onAccent.withValues(alpha: 0.25)
+            : onAccent.withValues(alpha: 0.1);
     final dashed = day.today && !day.done;
     return Column(
       children: [
@@ -412,10 +416,10 @@ class _DayCell extends StatelessWidget {
           child: DecoratedBox(
             decoration: BoxDecoration(
               color: bg,
-              borderRadius: BorderRadius.circular(9),
+              borderRadius: BorderRadius.circular(Radii.sm),
               border: dashed
                   ? Border.all(
-                      color: _white.withValues(alpha: 0.7), width: 1.5)
+                      color: onAccent.withValues(alpha: 0.7), width: 1.5)
                   : null,
             ),
             child: day.done
@@ -423,13 +427,12 @@ class _DayCell extends StatelessWidget {
                 : null,
           ),
         ),
-        const SizedBox(height: 5),
+        const SizedBox(height: Spacing.xs),
         Text(
           day.letter,
-          style: AppFonts.sf(
-              size: 10,
-              weight: FontWeight.w700,
-              color: _white.withValues(alpha: day.today ? 1 : 0.75),
+          style: AppType.caption2.copyWith(
+              fontWeight: FontWeight.w700,
+              color: onAccent.withValues(alpha: day.today ? 1 : 0.75),
               letterSpacing: 0.3),
         ),
       ],
@@ -445,6 +448,7 @@ class _HeroStat extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final onAccent = context.colors.onAccent;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -454,7 +458,7 @@ class _HeroStat extends StatelessWidget {
             style: AppFonts.sfr(
                 size: 18,
                 weight: FontWeight.w700,
-                color: _white,
+                color: onAccent,
                 letterSpacing: -0.3,
                 height: 1),
             children: unit == null
@@ -462,20 +466,18 @@ class _HeroStat extends StatelessWidget {
                 : [
                     TextSpan(
                       text: unit,
-                      style: AppFonts.sf(
-                          size: 11,
-                          color: _white.withValues(alpha: 0.75)),
+                      style: AppType.caption2
+                          .copyWith(color: onAccent.withValues(alpha: 0.75)),
                     ),
                   ],
           ),
         ),
-        const SizedBox(height: 2),
+        const SizedBox(height: Spacing.xxs),
         Text(
           label.toUpperCase(),
-          style: AppFonts.sf(
-              size: 10,
-              weight: FontWeight.w600,
-              color: _white.withValues(alpha: 0.75),
+          style: AppType.caption2.copyWith(
+              fontWeight: FontWeight.w600,
+              color: onAccent.withValues(alpha: 0.75),
               letterSpacing: 0.5),
         ),
       ],
@@ -495,16 +497,17 @@ class _StartCta extends StatelessWidget {
       onTap: () => context.pushNamed(AppRoute.startWorkout.name),
       behavior: HitTestBehavior.opaque,
       child: Container(
-        padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+        padding: const EdgeInsets.fromLTRB(
+            Spacing.lg, Spacing.lg, Spacing.lg, Spacing.lg),
         decoration: BoxDecoration(
           color: c.surface,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(Radii.lg),
           border: Border.all(color: c.hair, width: 0.5),
         ),
         child: Row(
           children: [
             Container(
-              width: 52,
+              width: 52, // fixed play circle
               height: 52,
               decoration: BoxDecoration(
                 gradient: RadialGradient(
@@ -514,6 +517,7 @@ class _StartCta extends StatelessWidget {
                 ),
                 shape: BoxShape.circle,
                 boxShadow: [
+                  // move-tinted glow, kept inline (not neutral elevation)
                   BoxShadow(
                     color: c.move.withValues(alpha: 0.33),
                     blurRadius: 14,
@@ -522,22 +526,21 @@ class _StartCta extends StatelessWidget {
                 ],
               ),
               alignment: Alignment.center,
-              child: const AppIcon('play.fill', size: 20, color: _white),
+              child: AppIcon('play.fill', size: 20, color: c.onAccent),
             ),
-            const SizedBox(width: 14),
+            const SizedBox(width: Spacing.lg),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     "● PAL'S PICK FOR TODAY",
-                    style: AppFonts.sf(
-                        size: 10,
-                        weight: FontWeight.w700,
+                    style: AppType.caption2.copyWith(
+                        fontWeight: FontWeight.w700,
                         color: c.move,
                         letterSpacing: 1),
                   ),
-                  const SizedBox(height: 2),
+                  const SizedBox(height: Spacing.xxs),
                   Text(
                     routineName ?? 'Freestyle session',
                     style: AppFonts.sfr(
@@ -549,17 +552,17 @@ class _StartCta extends StatelessWidget {
                 ],
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: Spacing.md),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              padding: const EdgeInsets.symmetric(
+                  horizontal: Spacing.lg, vertical: Spacing.md),
               decoration: BoxDecoration(
-                  color: c.move, borderRadius: BorderRadius.circular(100)),
+                  color: c.move, borderRadius: BorderRadius.circular(Radii.pill)),
               child: Text(
                 'Start',
-                style: AppFonts.sf(
-                    size: 13,
-                    weight: FontWeight.w700,
-                    color: _white,
+                style: AppType.footnote.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: c.onAccent,
                     letterSpacing: -0.1),
               ),
             ),
@@ -625,20 +628,20 @@ class _RecentSessions extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: Spacing.lg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(4, 12, 4, 10),
+            padding: const EdgeInsets.fromLTRB(
+                Spacing.xs, Spacing.md, Spacing.xs, Spacing.md),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
                   'RECENT SESSIONS',
-                  style: AppFonts.sf(
-                      size: 12,
-                      weight: FontWeight.w700,
+                  style: AppType.caption.copyWith(
+                      fontWeight: FontWeight.w700,
                       color: c.ink3,
                       letterSpacing: 0.8),
                 ),
@@ -652,9 +655,8 @@ class _RecentSessions extends StatelessWidget {
                   behavior: HitTestBehavior.opaque,
                   child: Text(
                     'See all',
-                    style: AppFonts.sf(
-                        size: 13,
-                        weight: FontWeight.w600,
+                    style: AppType.footnote.copyWith(
+                        fontWeight: FontWeight.w600,
                         color: c.accent,
                         letterSpacing: -0.08),
                   ),
@@ -664,7 +666,7 @@ class _RecentSessions extends StatelessWidget {
           ),
           for (final s in sessions) ...[
             _SessionCard(session: s),
-            const SizedBox(height: 8),
+            const SizedBox(height: Spacing.sm),
           ],
         ],
       ),
@@ -686,28 +688,29 @@ class _SessionCard extends StatelessWidget {
           pathParameters: {'id': w.id}),
       behavior: HitTestBehavior.opaque,
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(Radii.card),
         child: ColoredBox(
           color: c.surface,
           child: IntrinsicHeight(
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Container(width: 4, color: color),
+                Container(width: 4, color: color), // accent rail
                 Expanded(
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+                    padding: const EdgeInsets.fromLTRB(
+                        Spacing.lg, Spacing.md, Spacing.lg, Spacing.md),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(
                           children: [
                             Container(
-                              width: 32,
+                              width: 32, // fixed icon tile
                               height: 32,
                               decoration: BoxDecoration(
                                 color: color.withValues(alpha: 0.12),
-                                borderRadius: BorderRadius.circular(9),
+                                borderRadius: BorderRadius.circular(Radii.sm),
                               ),
                               alignment: Alignment.center,
                               child: AppIcon(
@@ -717,7 +720,7 @@ class _SessionCard extends StatelessWidget {
                                   size: 16,
                                   color: color),
                             ),
-                            const SizedBox(width: 10),
+                            const SizedBox(width: Spacing.md),
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -726,9 +729,8 @@ class _SessionCard extends StatelessWidget {
                                     w.name,
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
-                                    style: AppFonts.sf(
-                                        size: 15,
-                                        weight: FontWeight.w600,
+                                    style: AppType.subhead.copyWith(
+                                        fontWeight: FontWeight.w600,
                                         color: c.ink,
                                         letterSpacing: -0.24),
                                   ),
@@ -736,8 +738,7 @@ class _SessionCard extends StatelessWidget {
                                     padding: const EdgeInsets.only(top: 1),
                                     child: Text(
                                       session.relativeDate,
-                                      style: AppFonts.sf(
-                                          size: 11,
+                                      style: AppType.caption2.copyWith(
                                           color: c.ink3,
                                           letterSpacing: -0.08),
                                     ),
@@ -748,9 +749,9 @@ class _SessionCard extends StatelessWidget {
                             if (w.prCount > 0) _PrBadge(count: w.prCount),
                           ],
                         ),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: Spacing.sm),
                         Padding(
-                          padding: const EdgeInsets.only(left: 42),
+                          padding: const EdgeInsets.only(left: 42), // align under title
                           child: Row(
                             children: [
                               _StatChip(
@@ -759,9 +760,9 @@ class _SessionCard extends StatelessWidget {
                               if (session.volumeTonnes > 0) ...[
                                 Container(
                                   width: 1,
-                                  height: 14,
+                                  height: 14, // fixed divider height
                                   margin: const EdgeInsets.symmetric(
-                                      horizontal: 14),
+                                      horizontal: Spacing.lg),
                                   color: c.hair,
                                 ),
                                 _StatChip(
@@ -820,19 +821,19 @@ class _VolumeSparkline extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 18,
+      height: 18, // sparkline geometry
       child: Row(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           for (var i = 0; i < bars.length; i++) ...[
-            if (i != 0) const SizedBox(width: 2),
+            if (i != 0) const SizedBox(width: Spacing.xxs),
             Container(
-              width: 3,
+              width: 3, // bar width (geometry)
               height: 18 * bars[i],
               decoration: BoxDecoration(
                 color: color.withValues(alpha: 0.4 + i * 0.1),
-                borderRadius: BorderRadius.circular(1),
+                borderRadius: BorderRadius.circular(1), // bar corner (geometry)
               ),
             ),
           ],
@@ -862,10 +863,10 @@ class _StatChip extends StatelessWidget {
               color: c.ink,
               letterSpacing: -0.2),
         ),
-        const SizedBox(width: 3),
+        const SizedBox(width: Spacing.xs),
         Text(
           label,
-          style: AppFonts.sf(size: 10, color: c.ink3, letterSpacing: -0.08),
+          style: AppType.caption2.copyWith(color: c.ink3, letterSpacing: -0.08),
         ),
       ],
     );
@@ -880,20 +881,19 @@ class _PrBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      padding: const EdgeInsets.symmetric(horizontal: Spacing.sm, vertical: 3),
       decoration: BoxDecoration(
-          color: c.money, borderRadius: BorderRadius.circular(100)),
+          color: c.money, borderRadius: BorderRadius.circular(Radii.pill)),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const AppIcon('star.fill', size: 8, color: _white),
-          const SizedBox(width: 3),
+          AppIcon('star.fill', size: 8, color: c.onAccent),
+          const SizedBox(width: Spacing.xs),
           Text(
             '$count PR',
-            style: AppFonts.sf(
-                size: 10,
-                weight: FontWeight.w700,
-                color: _white,
+            style: AppType.caption2.copyWith(
+                fontWeight: FontWeight.w700,
+                color: c.onAccent,
                 letterSpacing: 0.3),
           ),
         ],
@@ -911,7 +911,7 @@ class _OtherActivity extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     return Padding(
-      padding: const EdgeInsets.only(top: 18),
+      padding: const EdgeInsets.only(top: Spacing.xl),
       child: InsetSection(
         header: 'Other activity',
         children: [

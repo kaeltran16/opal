@@ -6,15 +6,12 @@ import 'package:go_router/go_router.dart';
 import '../../controllers/providers.dart';
 import '../../controllers/workout_detail_controller.dart';
 import '../../models/models.dart';
-import '../../theme/app_colors.dart';
-import '../../theme/app_text.dart';
+import '../../theme/theme.dart';
 import '../../util/format.dart';
 import '../../widgets/app_icon.dart';
 import '../../widgets/inset_section.dart';
 import '../../widgets/nav_bar.dart';
 import '../../widgets/press_scale.dart';
-
-const _white = Color(0xFFFFFFFF);
 
 const _monthAbbr = [
   'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
@@ -46,16 +43,15 @@ class WorkoutDetailScreen extends ConsumerWidget {
       child: async.when(
         loading: () => Center(
           child: Text('…',
-              style:
-                  AppFonts.sf(size: 17, color: c.ink3, letterSpacing: -0.43)),
+              style: AppType.body.copyWith(color: c.ink3, letterSpacing: -0.43)),
         ),
         error: (e, _) => Center(
           child: Padding(
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.all(Spacing.xxl),
             child: Text("Couldn't load this session.",
                 textAlign: TextAlign.center,
-                style: AppFonts.sf(
-                    size: 15, color: c.ink3, letterSpacing: -0.24)),
+                style:
+                    AppType.subhead.copyWith(color: c.ink3, letterSpacing: -0.24)),
           ),
         ),
         data: (state) => _Body(workoutId: workoutId, state: state),
@@ -94,7 +90,7 @@ class _Body extends StatelessWidget {
       children: [
         // --- 2×2 summary grid -------------------------------------------------
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
+          padding: const EdgeInsets.fromLTRB(Spacing.lg, Spacing.xs, Spacing.lg, Spacing.xs),
           child: Column(
             children: [
               Row(
@@ -108,7 +104,7 @@ class _Body extends StatelessWidget {
                       unit: 'min',
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: Spacing.sm),
                   Expanded(
                     child: _SummaryTile(
                       type: '',
@@ -120,7 +116,7 @@ class _Body extends StatelessWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: Spacing.sm),
               Row(
                 children: [
                   Expanded(
@@ -132,7 +128,7 @@ class _Body extends StatelessWidget {
                       unit: '$reps reps',
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: Spacing.sm),
                   Expanded(
                     child: _SummaryTile(
                       type: 'money',
@@ -151,11 +147,12 @@ class _Body extends StatelessWidget {
         // --- 8-week volume bar chart -----------------------------------------
         const _SectionHeader('Volume over 8 weeks'),
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+          padding: const EdgeInsets.fromLTRB(Spacing.lg, 0, Spacing.lg, Spacing.xs),
           child: Container(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+            padding:
+                const EdgeInsets.fromLTRB(Spacing.lg, Spacing.lg, Spacing.lg, Spacing.lg),
             decoration: BoxDecoration(
-                color: c.surface, borderRadius: BorderRadius.circular(14)),
+                color: c.surface, borderRadius: BorderRadius.circular(Radii.card)),
             child: _VolumeChart(weeks: state.weeklyVolume),
           ),
         ),
@@ -163,10 +160,10 @@ class _Body extends StatelessWidget {
         // --- Per-exercise set tables -----------------------------------------
         _SectionHeader('Exercises · ${state.exercises.length}'),
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+          padding: const EdgeInsets.fromLTRB(Spacing.lg, 0, Spacing.lg, Spacing.xs),
           child: Container(
             decoration: BoxDecoration(
-                color: c.surface, borderRadius: BorderRadius.circular(14)),
+                color: c.surface, borderRadius: BorderRadius.circular(Radii.card)),
             clipBehavior: Clip.antiAlias,
             child: Column(
               children: [
@@ -182,13 +179,13 @@ class _Body extends StatelessWidget {
 
         // --- Pal's note ------------------------------------------------------
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+          padding: const EdgeInsets.fromLTRB(Spacing.lg, Spacing.md, Spacing.lg, 0),
           child: _PalNote(workoutId: workoutId),
         ),
 
         // --- Delete ----------------------------------------------------------
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+          padding: const EdgeInsets.fromLTRB(Spacing.lg, Spacing.sm, Spacing.lg, 0),
           child: _DeleteButton(workoutId: workoutId),
         ),
       ],
@@ -265,11 +262,11 @@ class _DeleteButton extends ConsumerWidget {
       child: Container(
         width: double.infinity,
         alignment: Alignment.center,
+        // off-grid tap-target padding — keep literal.
         padding: const EdgeInsets.symmetric(vertical: 13),
         child: Text('Delete workout',
-            style: AppFonts.sf(
-                size: 15,
-                weight: FontWeight.w500,
+            style: AppType.subhead.copyWith(
+                fontWeight: FontWeight.w500,
                 color: c.red,
                 letterSpacing: -0.24)),
       ),
@@ -285,10 +282,9 @@ class _SectionHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+      padding: const EdgeInsets.fromLTRB(Spacing.xl, Spacing.lg, Spacing.xl, Spacing.sm),
       child: Text(text.toUpperCase(),
-          style: AppFonts.sf(
-              size: 13, color: c.ink3, letterSpacing: -0.08)),
+          style: AppType.footnote.copyWith(color: c.ink3, letterSpacing: -0.08)),
     );
   }
 }
@@ -314,9 +310,10 @@ class _SummaryTile extends StatelessWidget {
     final c = context.colors;
     final color = c.forType(type);
     return Container(
-      padding: const EdgeInsets.fromLTRB(14, 13, 14, 13),
+      // vertical 13 off-grid — keep literal.
+      padding: const EdgeInsets.fromLTRB(Spacing.lg, 13, Spacing.lg, 13),
       decoration: BoxDecoration(
-          color: c.surface, borderRadius: BorderRadius.circular(14)),
+          color: c.surface, borderRadius: BorderRadius.circular(Radii.card)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -327,21 +324,20 @@ class _SummaryTile extends StatelessWidget {
                 height: 20,
                 decoration: BoxDecoration(
                   color: color.withValues(alpha: 0.13),
-                  borderRadius: BorderRadius.circular(6),
+                  borderRadius: BorderRadius.circular(Radii.sm),
                 ),
                 alignment: Alignment.center,
                 child: AppIcon(icon, size: 10, color: color),
               ),
-              const SizedBox(width: 6),
+              const SizedBox(width: Spacing.sm),
               Text(label.toUpperCase(),
-                  style: AppFonts.sf(
-                      size: 10,
-                      weight: FontWeight.w700,
+                  style: AppType.caption2.copyWith(
+                      fontWeight: FontWeight.w700,
                       color: c.ink3,
                       letterSpacing: 0.5)),
             ],
           ),
-          const SizedBox(height: 5),
+          const SizedBox(height: Spacing.xs),
           Row(
             crossAxisAlignment: CrossAxisAlignment.baseline,
             textBaseline: TextBaseline.alphabetic,
@@ -349,13 +345,13 @@ class _SummaryTile extends StatelessWidget {
               Text(value,
                   style: AppFonts.sfr(
                       size: 26, weight: FontWeight.w700, color: color, letterSpacing: -0.5)),
-              const SizedBox(width: 4),
+              const SizedBox(width: Spacing.xs),
               Flexible(
                 child: Text(unit,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: AppFonts.sf(
-                        size: 11, color: c.ink3, letterSpacing: -0.08)),
+                    style: AppType.caption2.copyWith(
+                        color: c.ink3, letterSpacing: -0.08)),
               ),
             ],
           ),
@@ -391,30 +387,30 @@ class _VolumeChart extends StatelessWidget {
             Text(totalT.toStringAsFixed(1),
                 style: AppFonts.sfr(
                     size: 26, weight: FontWeight.w700, color: c.ink, letterSpacing: -0.5)),
-            const SizedBox(width: 4),
+            const SizedBox(width: Spacing.xs),
             Text('t total',
-                style: AppFonts.sf(
-                    size: 13,
-                    weight: FontWeight.w500,
+                style: AppType.footnote.copyWith(
+                    fontWeight: FontWeight.w500,
                     color: c.ink3,
                     letterSpacing: -0.08)),
             const Spacer(),
             if (trend != null) _TrendPill(pct: trend),
           ],
         ),
-        const SizedBox(height: 14),
+        const SizedBox(height: Spacing.lg),
         // value label sits above the latest (highlighted) bar, which spaceBetween
         // pins to the right edge.
         if (weeks.isNotEmpty)
           Align(
             alignment: Alignment.centerRight,
             child: Padding(
-              padding: const EdgeInsets.only(bottom: 4),
+              padding: const EdgeInsets.only(bottom: Spacing.xs),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                // vertical 1 hairline — keep literal.
+                padding: const EdgeInsets.symmetric(horizontal: Spacing.xs, vertical: 1),
                 decoration: BoxDecoration(
                   color: c.move.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(4),
+                  borderRadius: BorderRadius.circular(Radii.xs),
                 ),
                 child: Text('${latestT.toStringAsFixed(1)}t',
                     style: AppFonts.sfr(
@@ -449,11 +445,10 @@ class _VolumeChart extends StatelessWidget {
                       final i = value.toInt();
                       final isLast = i == weeks.length - 1;
                       return Padding(
-                        padding: const EdgeInsets.only(top: 4),
+                        padding: const EdgeInsets.only(top: Spacing.xs),
                         child: Text('W${i + 1}',
-                            style: AppFonts.sf(
-                                size: 9,
-                                weight:
+                            style: AppType.caption2.copyWith(
+                                fontWeight:
                                     isLast ? FontWeight.w700 : FontWeight.w500,
                                 color: isLast ? c.move : c.ink3,
                                 letterSpacing: 0.3)),
@@ -474,6 +469,7 @@ class _VolumeChart extends StatelessWidget {
                             ? c.move
                             : c.move.withValues(alpha: 0.27),
                         borderRadius: const BorderRadius.vertical(
+                          // decorative chart-bar foot; sub-token geometry, keep literal
                           top: Radius.circular(6),
                           bottom: Radius.circular(3),
                         ),
@@ -513,10 +509,11 @@ class _TrendPill extends StatelessWidget {
     final up = pct >= 0;
     final color = up ? c.move : c.red;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+      // horizontal 9 off-grid — keep literal.
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: Spacing.xs),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(100),
+        borderRadius: BorderRadius.circular(Radii.pill),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -526,11 +523,10 @@ class _TrendPill extends StatelessWidget {
             angle: up ? 0 : 1.5707963267948966,
             child: AppIcon('arrow.up.right', size: 10, color: color),
           ),
-          const SizedBox(width: 4),
+          const SizedBox(width: Spacing.xs),
           Text('${up ? '+' : ''}$pct% in 4 wks',
-              style: AppFonts.sf(
-                  size: 11,
-                  weight: FontWeight.w700,
+              style: AppType.caption2.copyWith(
+                  fontWeight: FontWeight.w700,
                   color: color,
                   letterSpacing: -0.08)),
         ],
@@ -556,7 +552,7 @@ class _ExerciseBlock extends StatelessWidget {
         border:
             last ? null : Border(bottom: BorderSide(color: c.hair, width: 0.5)),
       ),
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+      padding: const EdgeInsets.fromLTRB(Spacing.lg, Spacing.lg, Spacing.lg, Spacing.lg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -566,9 +562,8 @@ class _ExerciseBlock extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(group.name,
-                    style: AppFonts.sf(
-                        size: 16,
-                        weight: FontWeight.w600,
+                    style: AppType.callout.copyWith(
+                        fontWeight: FontWeight.w600,
                         color: c.ink,
                         letterSpacing: -0.3)),
               ),
@@ -580,9 +575,9 @@ class _ExerciseBlock extends StatelessWidget {
                       letterSpacing: -0.08)),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: Spacing.md),
           _SetVolumeSparkline(sets: group.sets),
-          const SizedBox(height: 10),
+          const SizedBox(height: Spacing.md),
           _SetTableHeader(),
           for (var i = 0; i < group.sets.length; i++)
             _SetRow(
@@ -629,10 +624,11 @@ class _SetVolumeSparkline extends StatelessWidget {
             child: Align(
               alignment: Alignment(_labelX(topIdx, sets.length), 0),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                // vertical 1 hairline — keep literal.
+                padding: const EdgeInsets.symmetric(horizontal: Spacing.xs, vertical: 1),
                 decoration: BoxDecoration(
                   color: c.move.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(4),
+                  borderRadius: BorderRadius.circular(Radii.xs),
                 ),
                 child: Text(topLabel,
                     style: AppFonts.sfr(
@@ -643,13 +639,13 @@ class _SetVolumeSparkline extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(height: 3),
+          const SizedBox(height: Spacing.xs),
           Expanded(
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 for (var i = 0; i < vols.length; i++) ...[
-                  if (i > 0) const SizedBox(width: 5),
+                  if (i > 0) const SizedBox(width: Spacing.xs),
                   Expanded(
                     child: FractionallySizedBox(
                       heightFactor: (vols[i] / maxVol).clamp(0.08, 1.0),
@@ -659,7 +655,8 @@ class _SetVolumeSparkline extends StatelessWidget {
                               ? c.move
                               : c.move.withValues(alpha: 0.27),
                           borderRadius: const BorderRadius.vertical(
-                            top: Radius.circular(4),
+                            top: Radius.circular(Radii.xs),
+                            // decorative chart-bar foot; sub-token geometry, keep literal
                             bottom: Radius.circular(2),
                           ),
                         ),
@@ -688,8 +685,8 @@ class _SetTableHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     Widget cell(String t, {int flex = 1, double width = 0}) {
-      final style = AppFonts.sf(
-          size: 10, weight: FontWeight.w700, color: c.ink3, letterSpacing: 0.5);
+      final style = AppType.caption2.copyWith(
+          fontWeight: FontWeight.w700, color: c.ink3, letterSpacing: 0.5);
       final text = Text(t, style: style);
       return width > 0
           ? SizedBox(width: width, child: text)
@@ -699,7 +696,7 @@ class _SetTableHeader extends StatelessWidget {
     return Container(
       decoration:
           BoxDecoration(border: Border(bottom: BorderSide(color: c.hair, width: 0.5))),
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: Spacing.xs),
       child: Row(
         children: [
           cell('SET', width: 32),
@@ -735,7 +732,7 @@ class _SetRow extends StatelessWidget {
                 bottom: BorderSide(
                     color: c.hair.withValues(alpha: 0.5), width: 0.5)),
       ),
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.symmetric(vertical: Spacing.sm),
       child: Row(
         children: [
           SizedBox(
@@ -765,19 +762,20 @@ class _PrTag extends StatelessWidget {
     return Align(
       alignment: Alignment.centerLeft,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-        decoration:
-            BoxDecoration(color: c.money, borderRadius: BorderRadius.circular(5)),
+        padding: const EdgeInsets.symmetric(horizontal: Spacing.xs, vertical: Spacing.xxs),
+        decoration: BoxDecoration(
+            color: c.money, borderRadius: BorderRadius.circular(Radii.xs)),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const AppIcon('star.fill', size: 8, color: _white),
-            const SizedBox(width: 3),
+            AppIcon('star.fill', size: 8, color: c.onAccent),
+            const SizedBox(width: Spacing.xs),
             Text('PR',
-                style: AppFonts.sf(
-                    size: 9,
-                    weight: FontWeight.w700,
-                    color: _white,
+                // size 9 (not caption2's 11) — tag must fit the 32px SET column.
+                style: AppType.caption2.copyWith(
+                    fontSize: 9,
+                    fontWeight: FontWeight.w700,
+                    color: c.onAccent,
                     letterSpacing: 0.3)),
           ],
         ),
@@ -797,10 +795,10 @@ class _PalNote extends ConsumerWidget {
     final note = ref.watch(workoutNoteProvider(workoutId));
     final loading = note.isLoading;
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(Spacing.lg),
       decoration: BoxDecoration(
         color: c.accentTint,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(Radii.card),
         border: Border.all(color: c.accent.withValues(alpha: 0.13), width: 0.5),
       ),
       child: Column(
@@ -809,24 +807,22 @@ class _PalNote extends ConsumerWidget {
           Row(
             children: [
               AppIcon('sparkles', size: 12, color: c.accent),
-              const SizedBox(width: 6),
+              const SizedBox(width: Spacing.sm),
               Text("PAL'S NOTE",
-                  style: AppFonts.sf(
-                      size: 11,
-                      weight: FontWeight.w700,
+                  style: AppType.caption2.copyWith(
+                      fontWeight: FontWeight.w700,
                       color: c.accent,
                       letterSpacing: 0.5)),
             ],
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: Spacing.sm),
           Text(
             note.when(
               loading: () => 'Pal is reading your session…',
               error: (_, _) => "Pal couldn't write a note just now.",
               data: (text) => text,
             ),
-            style: AppFonts.sf(
-                size: 14,
+            style: AppType.subhead.copyWith(
                 color: loading ? c.ink3 : c.ink,
                 letterSpacing: -0.2,
                 height: 1.45),

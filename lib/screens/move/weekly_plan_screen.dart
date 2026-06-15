@@ -6,14 +6,11 @@ import 'package:go_router/go_router.dart';
 
 import '../../controllers/weekly_plan_controller.dart';
 import '../../router.dart';
-import '../../theme/app_colors.dart';
-import '../../theme/app_text.dart';
+import '../../theme/theme.dart';
 import '../../widgets/app_icon.dart';
 import '../../widgets/inset_section.dart';
 import '../../widgets/nav_bar.dart';
 import '../../widgets/press_scale.dart';
-
-const _white = Color(0xFFFFFFFF);
 
 /// Screen 24 — Weekly Plan, the derived 7-day workout schedule.
 ///
@@ -57,11 +54,12 @@ class WeeklyPlanScreen extends ConsumerWidget {
     return ColoredBox(
       color: c.bg,
       child: ListView(
-        padding: const EdgeInsets.only(bottom: 110),
+        padding: const EdgeInsets.only(bottom: 110), // scroll bottom inset
       children: [
         // Nav: back "Move" + trailing ellipsis.
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 56, 16, 8),
+          padding: const EdgeInsets.fromLTRB(
+              Spacing.lg, 56, Spacing.lg, Spacing.sm), // 56 = status-bar offset
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -82,32 +80,31 @@ class WeeklyPlanScreen extends ConsumerWidget {
 
         // Title block.
         Padding(
-          padding: const EdgeInsets.fromLTRB(20, 4, 20, 14),
+          padding: const EdgeInsets.fromLTRB(
+              Spacing.xl, Spacing.xs, Spacing.xl, Spacing.lg),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 _weekOfLabel(),
-                style: AppFonts.sf(
-                    size: 12,
-                    weight: FontWeight.w700,
+                style: AppType.caption.copyWith(
+                    fontWeight: FontWeight.w700,
                     color: c.move,
                     letterSpacing: 0.5),
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: Spacing.xs),
               Text(
                 'Your plan.',
-                style: AppFonts.sf(
-                    size: 34,
-                    weight: FontWeight.w700,
+                style: AppType.large.copyWith(
                     color: c.ink,
                     letterSpacing: 0.37,
                     height: 41 / 34),
               ),
-              const SizedBox(height: 2),
+              const SizedBox(height: Spacing.xxs),
               Text(
                 '${plan.doneCount} of ${plan.totalCount} done · ${plan.totalMinutes} min planned',
-                style: AppFonts.sf(size: 15, color: c.ink3, letterSpacing: -0.24),
+                style: AppType.subhead
+                    .copyWith(color: c.ink3, letterSpacing: -0.24),
               ),
             ],
           ),
@@ -115,11 +112,12 @@ class WeeklyPlanScreen extends ConsumerWidget {
 
         // Week strip.
         Padding(
-          padding: const EdgeInsets.fromLTRB(12, 0, 12, 18),
+          padding: const EdgeInsets.fromLTRB(
+              Spacing.md, 0, Spacing.md, Spacing.xl),
           child: Row(
             children: [
               for (var i = 0; i < plan.days.length; i++) ...[
-                if (i > 0) const SizedBox(width: 6),
+                if (i > 0) const SizedBox(width: Spacing.sm),
                 Expanded(child: _WeekChip(day: plan.days[i])),
               ],
             ],
@@ -129,28 +127,26 @@ class WeeklyPlanScreen extends ConsumerWidget {
         // Today spotlight.
         if (today != null)
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 18),
+            padding: const EdgeInsets.fromLTRB(
+                Spacing.lg, 0, Spacing.lg, Spacing.xl),
             child: _TodaySpotlight(day: today),
           ),
 
         // Schedule header.
         Padding(
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
+          padding: const EdgeInsets.fromLTRB(
+              Spacing.xl, 0, Spacing.xl, Spacing.md),
           child: Text(
             'Schedule',
-            style: AppFonts.sf(
-                size: 22,
-                weight: FontWeight.w700,
-                color: c.ink,
-                letterSpacing: 0.35),
+            style: AppType.title2.copyWith(color: c.ink, letterSpacing: 0.35),
           ),
         ),
 
         // Full schedule inset list.
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
+          padding: const EdgeInsets.symmetric(horizontal: Spacing.lg),
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(Radii.card),
             child: ColoredBox(
               color: c.surface,
               child: Column(
@@ -167,7 +163,8 @@ class WeeklyPlanScreen extends ConsumerWidget {
         // Weekly progress summary (computed from the plan — no fabricated coach
         // prose; coaching is Pal-territory and has no real source here).
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 18, 16, 0),
+          padding: const EdgeInsets.fromLTRB(
+              Spacing.lg, Spacing.xl, Spacing.lg, 0),
           child: _WeekProgressNote(plan: plan),
         ),
       ],
@@ -232,7 +229,7 @@ class _WeekChip extends StatelessWidget {
     var dashedRing = false;
     if (day.today) {
       circleBg = c.move;
-      dateColor = _white;
+      dateColor = c.onAccent;
       border = null;
     } else if (day.done) {
       circleBg = color.withValues(alpha: 0.13);
@@ -251,22 +248,21 @@ class _WeekChip extends StatelessWidget {
 
     return Column(
       children: [
-        const SizedBox(height: 8),
+        const SizedBox(height: Spacing.sm),
         Text(
           day.day[0],
-          style: AppFonts.sf(
-              size: 11,
-              weight: FontWeight.w600,
+          style: AppType.caption2.copyWith(
+              fontWeight: FontWeight.w600,
               color: day.today ? c.move : c.ink3,
               letterSpacing: 0.3),
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: Spacing.sm),
         CustomPaint(
           foregroundPainter: dashedRing
               ? _DashedCirclePainter(color: color.withValues(alpha: 0.33))
               : null,
           child: Container(
-            width: 36,
+            width: 36, // fixed day circle
             height: 36,
             decoration: BoxDecoration(
               color: circleBg,
@@ -284,9 +280,9 @@ class _WeekChip extends StatelessWidget {
             ),
           ),
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: Spacing.sm),
         Container(
-          width: 6,
+          width: 6, // fixed completion dot
           height: 6,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
@@ -314,7 +310,7 @@ class _TodaySpotlight extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: c.surface,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(Radii.lg),
         border: Border.all(color: color.withValues(alpha: 0.27), width: 0.5),
       ),
       clipBehavior: Clip.antiAlias,
@@ -332,41 +328,41 @@ class _TodaySpotlight extends StatelessWidget {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(Spacing.lg),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Today pill.
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: Spacing.sm, vertical: 3),
                   decoration: BoxDecoration(
                     color: color.withValues(alpha: 0.13),
-                    borderRadius: BorderRadius.circular(100),
+                    borderRadius: BorderRadius.circular(Radii.pill),
                   ),
                   child: Text(
                     'Today · ${day.day}'.toUpperCase(),
-                    style: AppFonts.sf(
-                        size: 11,
-                        weight: FontWeight.w700,
+                    style: AppType.caption2.copyWith(
+                        fontWeight: FontWeight.w700,
                         color: color,
                         letterSpacing: 0.4),
                   ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: Spacing.md),
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Container(
-                      width: 52,
+                      width: 52, // fixed icon tile
                       height: 52,
                       decoration: BoxDecoration(
                         color: color,
-                        borderRadius: BorderRadius.circular(13),
+                        borderRadius: BorderRadius.circular(Radii.md),
                       ),
                       alignment: Alignment.center,
-                      child: AppIcon(day.icon, size: 24, color: _white),
+                      child: AppIcon(day.icon, size: 24, color: c.onAccent),
                     ),
-                    const SizedBox(width: 14),
+                    const SizedBox(width: Spacing.lg),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -380,11 +376,10 @@ class _TodaySpotlight extends StatelessWidget {
                                 letterSpacing: -0.3,
                                 height: 1.15),
                           ),
-                          const SizedBox(height: 3),
+                          const SizedBox(height: Spacing.xs),
                           Text(
                             '${day.muscles.join(' · ')} · ${day.est} min',
-                            style: AppFonts.sf(
-                                size: 13,
+                            style: AppType.footnote.copyWith(
                                 color: c.ink3,
                                 letterSpacing: -0.08,
                                 height: 1.4),
@@ -394,7 +389,7 @@ class _TodaySpotlight extends StatelessWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: 14),
+                const SizedBox(height: Spacing.lg),
                 Row(
                   children: [
                     Expanded(
@@ -402,22 +397,21 @@ class _TodaySpotlight extends StatelessWidget {
                         onTap: () => context.go('/move/start'),
                         semanticLabel: 'Start workout',
                         child: Container(
-                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          padding: const EdgeInsets.symmetric(vertical: Spacing.md),
                           decoration: BoxDecoration(
                             color: color,
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(Radii.md),
                           ),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const AppIcon('play.fill', size: 13, color: _white),
-                              const SizedBox(width: 8),
+                              AppIcon('play.fill', size: 13, color: c.onAccent),
+                              const SizedBox(width: Spacing.sm),
                               Text(
                                 'Start workout',
-                                style: AppFonts.sf(
-                                    size: 15,
-                                    weight: FontWeight.w600,
-                                    color: _white,
+                                style: AppType.subhead.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                    color: c.onAccent,
                                     letterSpacing: -0.24),
                               ),
                             ],
@@ -425,22 +419,21 @@ class _TodaySpotlight extends StatelessWidget {
                         ),
                       ),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: Spacing.sm),
                     PressScale(
                       onTap: () => context.go('/move/start'),
                       semanticLabel: 'Swap workout',
                       child: Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 14, vertical: 12),
+                            horizontal: Spacing.lg, vertical: Spacing.md),
                         decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(Radii.md),
                           border: Border.all(color: c.hair, width: 0.5),
                         ),
                         child: Text(
                           'Swap',
-                          style: AppFonts.sf(
-                              size: 14,
-                              weight: FontWeight.w500,
+                          style: AppType.subhead.copyWith(
+                              fontWeight: FontWeight.w500,
                               color: c.ink2,
                               letterSpacing: -0.15),
                         ),
@@ -481,10 +474,10 @@ class _ScheduleRow extends StatelessWidget {
           if (day.today)
             Positioned(
               left: 0,
-              top: 8,
-              bottom: 8,
+              top: Spacing.sm,
+              bottom: Spacing.sm,
               child: Container(
-                width: 3,
+                width: 3, // rail width (geometry)
                 decoration: BoxDecoration(
                   color: color,
                   borderRadius:
@@ -493,19 +486,19 @@ class _ScheduleRow extends StatelessWidget {
               ),
             ),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            padding: const EdgeInsets.symmetric(
+                horizontal: Spacing.lg, vertical: Spacing.md),
             child: Row(
               children: [
                 // Day chip (abbr + date).
                 SizedBox(
-                  width: 40,
+                  width: 40, // fixed day-chip column
                   child: Column(
                     children: [
                       Text(
                         day.day.toUpperCase(),
-                        style: AppFonts.sf(
-                            size: 10,
-                            weight: FontWeight.w700,
+                        style: AppType.caption2.copyWith(
+                            fontWeight: FontWeight.w700,
                             color: c.ink3,
                             letterSpacing: 0.5),
                       ),
@@ -521,20 +514,20 @@ class _ScheduleRow extends StatelessWidget {
                     ],
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: Spacing.md),
                 // Type icon tile.
                 Container(
-                  width: 34,
+                  width: 34, // fixed icon tile
                   height: 34,
                   decoration: BoxDecoration(
                     color: isRest ? c.fill : color,
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(Radii.md),
                   ),
                   alignment: Alignment.center,
                   child: AppIcon(day.icon,
-                      size: 15, color: isRest ? c.ink3 : _white),
+                      size: 15, color: isRest ? c.ink3 : c.onAccent),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: Spacing.md),
                 // Title + subtitle.
                 Expanded(
                   child: Column(
@@ -547,39 +540,38 @@ class _ScheduleRow extends StatelessWidget {
                               isRest ? 'Rest day' : day.type,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: AppFonts.sf(
-                                  size: 15,
-                                  weight: FontWeight.w600,
+                              style: AppType.subhead.copyWith(
+                                  fontWeight: FontWeight.w600,
                                   color: isRest ? c.ink2 : c.ink,
                                   letterSpacing: -0.24),
                             ),
                           ),
                           if (day.done) ...[
-                            const SizedBox(width: 6),
+                            const SizedBox(width: Spacing.sm),
                             Container(
-                              width: 14,
+                              width: 14, // fixed check badge
                               height: 14,
                               decoration: BoxDecoration(
                                 color: c.move,
                                 shape: BoxShape.circle,
                               ),
                               alignment: Alignment.center,
-                              child: const AppIcon('checkmark',
-                                  size: 8, color: _white),
+                              child: AppIcon('checkmark',
+                                  size: 8, color: c.onAccent),
                             ),
                           ],
                         ],
                       ),
                       Padding(
-                        padding: const EdgeInsets.only(top: 1),
+                        padding: const EdgeInsets.only(top: 1), // hairline gap
                         child: Text(
                           isRest
                               ? 'Recovery · stretch optional'
                               : '${day.routine} · ${day.est} min',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: AppFonts.sf(
-                              size: 12, color: c.ink3, letterSpacing: -0.08),
+                          style: AppType.caption
+                              .copyWith(color: c.ink3, letterSpacing: -0.08),
                         ),
                       ),
                     ],
@@ -617,7 +609,7 @@ class _WeekProgressNote extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(Spacing.lg),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
@@ -627,14 +619,14 @@ class _WeekProgressNote extends StatelessWidget {
             c.move.withValues(alpha: 0.07),
           ],
         ),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(Radii.lg),
         border: Border.all(color: c.accent.withValues(alpha: 0.2), width: 0.5),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            width: 28,
+            width: 28, // fixed icon badge
             height: 28,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
@@ -645,26 +637,24 @@ class _WeekProgressNote extends StatelessWidget {
               ),
             ),
             alignment: Alignment.center,
-            child: const AppIcon('sparkles', size: 13, color: _white),
+            child: AppIcon('sparkles', size: 13, color: c.onAccent),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: Spacing.md),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   'THIS WEEK',
-                  style: AppFonts.sf(
-                      size: 11,
-                      weight: FontWeight.w700,
+                  style: AppType.caption2.copyWith(
+                      fontWeight: FontWeight.w700,
                       color: c.ink3,
                       letterSpacing: 0.3),
                 ),
-                const SizedBox(height: 3),
+                const SizedBox(height: Spacing.xs),
                 Text(
                   _summary,
-                  style: AppFonts.sf(
-                      size: 14,
+                  style: AppType.subhead.copyWith(
                       color: c.ink,
                       letterSpacing: -0.15,
                       height: 1.45),

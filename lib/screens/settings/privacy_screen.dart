@@ -1,7 +1,7 @@
 import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../theme/app_colors.dart';
+import '../../theme/theme.dart';
 import '../../widgets/inset_section.dart';
 import '../email/email_nav.dart';
 
@@ -26,7 +26,7 @@ class PrivacyScreen extends StatelessWidget {
             leadingLabel: 'You',
             onLeading: () => context.pop(),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: Spacing.sm),
           InsetSection(
             header: 'Your data',
             footer: 'Opal has no account and no analytics. Your timeline never '

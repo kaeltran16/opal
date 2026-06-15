@@ -2,8 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../controllers/providers.dart';
-import '../theme/app_colors.dart';
-import '../theme/app_text.dart';
+import '../theme/theme.dart';
 import 'app_icon.dart';
 import 'press_scale.dart';
 
@@ -87,13 +86,13 @@ class _BudgetSheetState extends ConsumerState<BudgetSheet> {
           child: GestureDetector(
             onTap: () => Navigator.of(context).pop(),
             behavior: HitTestBehavior.opaque,
-            child: const ColoredBox(color: Color(0x59000000)),
+            child: ColoredBox(color: c.scrim),
           ),
         ),
         Align(
           alignment: Alignment.bottomCenter,
           child: ClipRRect(
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(Radii.lg)),
             child: ColoredBox(
               color: c.bg,
               child: SafeArea(
@@ -103,24 +102,25 @@ class _BudgetSheetState extends ConsumerState<BudgetSheet> {
                   children: [
                     _NavRow(onCancel: () => Navigator.of(context).pop(), onSave: _saving ? null : _save),
                     Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 18, 16, 20),
+                      padding: const EdgeInsets.fromLTRB(
+                          Spacing.lg, Spacing.xl, Spacing.lg, Spacing.xl),
                       child: Column(
                         children: [
                           _PeriodSegmented(period: _period, onChanged: _switchPeriod),
-                          const SizedBox(height: 26),
+                          const SizedBox(height: Spacing.xxl),
                           _AmountStepper(
                             amount: _amount,
                             caption: _period == _Period.daily ? 'PER DAY' : 'PER WEEK',
                             onMinus: () => _bump(-_step),
                             onPlus: () => _bump(_step),
                           ),
-                          const SizedBox(height: 24),
+                          const SizedBox(height: Spacing.xxl),
                           _PresetChips(
                             presets: presets,
                             selected: _amount,
                             onSelect: (v) => setState(() => _amount = v),
                           ),
-                          const SizedBox(height: 20),
+                          const SizedBox(height: Spacing.xl),
                           _Footnote(period: _period),
                         ],
                       ),
@@ -146,7 +146,8 @@ class _NavRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+      padding: const EdgeInsets.fromLTRB(
+          Spacing.lg, Spacing.lg, Spacing.lg, Spacing.lg),
       decoration: BoxDecoration(
         border: Border(bottom: BorderSide(color: c.hair, width: 0.5)),
       ),
@@ -155,24 +156,19 @@ class _NavRow extends StatelessWidget {
           PressScale(
             onTap: onCancel,
             semanticLabel: 'Cancel',
-            child: Text('Cancel',
-                style: AppFonts.sf(size: 17, color: c.accent, letterSpacing: -0.43)),
+            child: Text('Cancel', style: AppType.body.copyWith(color: c.accent)),
           ),
           Expanded(
             child: Text('Budget',
                 textAlign: TextAlign.center,
-                style: AppFonts.sf(
-                    size: 17, weight: FontWeight.w600, color: c.ink, letterSpacing: -0.43)),
+                style: AppType.headline.copyWith(color: c.ink)),
           ),
           PressScale(
             onTap: onSave,
             semanticLabel: 'Save',
             child: Text('Save',
-                style: AppFonts.sf(
-                    size: 17,
-                    weight: FontWeight.w600,
-                    color: onSave == null ? c.ink4 : c.accent,
-                    letterSpacing: -0.43)),
+                style: AppType.headline
+                    .copyWith(color: onSave == null ? c.ink4 : c.accent)),
           ),
         ],
       ),
@@ -190,8 +186,8 @@ class _PeriodSegmented extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     return Container(
-      padding: const EdgeInsets.all(2),
-      decoration: BoxDecoration(color: c.fill, borderRadius: BorderRadius.circular(9)),
+      padding: const EdgeInsets.all(Spacing.xxs),
+      decoration: BoxDecoration(color: c.fill, borderRadius: BorderRadius.circular(Radii.sm)),
       child: Row(
         children: [
           _seg(context, 'Daily', _Period.daily),
@@ -209,19 +205,16 @@ class _PeriodSegmented extends StatelessWidget {
         onTap: () => onChanged(p),
         behavior: HitTestBehavior.opaque,
         child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 8),
+          padding: const EdgeInsets.symmetric(vertical: Spacing.sm),
           decoration: BoxDecoration(
             color: active ? c.surface : const Color(0x00000000),
-            borderRadius: BorderRadius.circular(7),
-            boxShadow: active
-                ? const [BoxShadow(color: Color(0x1F000000), blurRadius: 3, offset: Offset(0, 1))]
-                : null,
+            borderRadius: BorderRadius.circular(Radii.sm),
+            boxShadow: active ? Elevation.sm(c.shadow) : null,
           ),
           alignment: Alignment.center,
           child: Text(label,
-              style: AppFonts.sf(
-                  size: 14,
-                  weight: FontWeight.w600,
+              style: AppType.footnote.copyWith(
+                  fontWeight: FontWeight.w600,
                   color: active ? c.ink : c.ink3,
                   letterSpacing: -0.15)),
         ),
@@ -261,7 +254,7 @@ class _AmountStepper extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         _circle(context, CupertinoIcons.minus, onMinus, 'Decrease'),
-        const SizedBox(width: 22),
+        const SizedBox(width: Spacing.xxl),
         Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -269,11 +262,11 @@ class _AmountStepper extends StatelessWidget {
                 style: AppFonts.sfr(
                     size: 54, weight: FontWeight.w700, color: c.money, letterSpacing: -1.8)),
             Text(caption,
-                style: AppFonts.sf(
-                    size: 12, weight: FontWeight.w600, color: c.ink3, letterSpacing: 0.3)),
+                style: AppType.caption.copyWith(
+                    fontWeight: FontWeight.w600, color: c.ink3, letterSpacing: 0.3)),
           ],
         ),
-        const SizedBox(width: 22),
+        const SizedBox(width: Spacing.xxl),
         _circle(context, CupertinoIcons.add, onPlus, 'Increase'),
       ],
     );
@@ -311,18 +304,18 @@ class _PresetChips extends StatelessWidget {
     final c = context.colors;
     return Wrap(
       alignment: WrapAlignment.center,
-      spacing: 8,
-      runSpacing: 8,
+      spacing: Spacing.sm,
+      runSpacing: Spacing.sm,
       children: [
         for (final p in presets)
           GestureDetector(
             onTap: () => onSelect(p),
             behavior: HitTestBehavior.opaque,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: Spacing.lg, vertical: Spacing.sm),
               decoration: BoxDecoration(
                 color: p == selected ? c.moneyTint : c.surface,
-                borderRadius: BorderRadius.circular(11),
+                borderRadius: BorderRadius.circular(Radii.md),
                 border: Border.all(color: p == selected ? c.money : c.hair, width: 1),
               ),
               child: Text('\$$p',
@@ -347,8 +340,8 @@ class _Footnote extends StatelessWidget {
     final c = context.colors;
     final word = period == _Period.daily ? 'daily' : 'weekly';
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(color: c.surface, borderRadius: BorderRadius.circular(12)),
+      padding: const EdgeInsets.symmetric(horizontal: Spacing.lg, vertical: Spacing.md),
+      decoration: BoxDecoration(color: c.surface, borderRadius: BorderRadius.circular(Radii.md)),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -356,11 +349,12 @@ class _Footnote extends StatelessWidget {
             padding: const EdgeInsets.only(top: 1),
             child: AppIcon('sparkles', size: 15, color: c.accent),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: Spacing.md),
           Expanded(
             child: Text(
               'Pal nudges you as you near your $word budget — gently, and never blocks a purchase.',
-              style: AppFonts.sf(size: 13, color: c.ink2, letterSpacing: -0.08, height: 1.35),
+              style: AppType.footnote
+                  .copyWith(color: c.ink2, letterSpacing: -0.08, height: 1.35),
             ),
           ),
         ],

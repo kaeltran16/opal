@@ -1,6 +1,5 @@
 import 'package:flutter/widgets.dart';
-import '../theme/app_colors.dart';
-import '../theme/app_text.dart';
+import '../theme/theme.dart';
 import 'app_icon.dart';
 
 /// Thin progress bar (sync, budget, rituals). Track + animated fill.
@@ -93,13 +92,13 @@ class _CheckButtonState extends State<CheckButton> {
             height: 28,
             decoration: BoxDecoration(
               color: widget.checked ? fillColor : c.fill,
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(Radii.sm),
               border:
                   widget.checked ? null : Border.all(color: c.ink3, width: 1.5),
             ),
             alignment: Alignment.center,
             child: widget.checked
-                ? const AppIcon('checkmark', size: 16, color: Color(0xFFFFFFFF))
+                ? AppIcon('checkmark', size: 16, color: c.onAccent)
                 : null,
           ),
         ),
@@ -127,8 +126,8 @@ class Segmented<T> extends StatelessWidget {
     final selectedBg =
         c.brightness == Brightness.dark ? const Color(0xFF636366) : const Color(0xFFFFFFFF);
     return Container(
-      padding: const EdgeInsets.all(2),
-      decoration: BoxDecoration(color: c.fill, borderRadius: BorderRadius.circular(9)),
+      padding: const EdgeInsets.all(Spacing.xxs),
+      decoration: BoxDecoration(color: c.fill, borderRadius: BorderRadius.circular(Radii.sm)),
       child: Row(
         children: [
           for (final (val, label) in options)
@@ -138,20 +137,17 @@ class Segmented<T> extends StatelessWidget {
                 behavior: HitTestBehavior.opaque,
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 150),
-                  padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 10),
+                  padding: const EdgeInsets.symmetric(vertical: Spacing.sm, horizontal: Spacing.md),
                   decoration: BoxDecoration(
                     color: val == value ? selectedBg : const Color(0x00000000),
-                    borderRadius: BorderRadius.circular(7),
-                    boxShadow: val == value
-                        ? const [BoxShadow(color: Color(0x1F000000), blurRadius: 8, offset: Offset(0, 3))]
-                        : null,
+                    borderRadius: BorderRadius.circular(Radii.sm),
+                    boxShadow: val == value ? Elevation.sm(c.shadow) : null,
                   ),
                   alignment: Alignment.center,
                   child: Text(
                     label,
-                    style: AppFonts.sf(
-                      size: 13,
-                      weight: val == value ? FontWeight.w600 : FontWeight.w500,
+                    style: AppType.footnote.copyWith(
+                      fontWeight: val == value ? FontWeight.w600 : FontWeight.w500,
                       color: c.ink,
                       letterSpacing: -0.08,
                     ),

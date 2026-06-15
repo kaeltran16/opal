@@ -1,8 +1,7 @@
 import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../theme/app_colors.dart';
-import '../../theme/app_text.dart';
+import '../../theme/theme.dart';
 import '../../widgets/app_icon.dart';
 import '../../widgets/inset_section.dart';
 import '../email/email_nav.dart';
@@ -31,7 +30,8 @@ class AboutScreen extends StatelessWidget {
             onLeading: () => context.pop(),
           ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(24, 20, 24, 28),
+            // bottom 28 off-grid; kept literal to preserve identity-block rhythm
+            padding: const EdgeInsets.fromLTRB(Spacing.xxl, Spacing.xl, Spacing.xxl, 28),
             child: Column(
               children: [
                 Container(
@@ -39,25 +39,21 @@ class AboutScreen extends StatelessWidget {
                   height: 76,
                   decoration: BoxDecoration(
                     color: c.accent,
-                    borderRadius: BorderRadius.circular(18),
+                    borderRadius: BorderRadius.circular(Radii.lg),
                   ),
                   alignment: Alignment.center,
-                  child: AppIcon('sparkles', size: 40, color: const Color(0xFFFFFFFF)),
+                  child: AppIcon('sparkles', size: 40, color: c.onAccent),
                 ),
-                const SizedBox(height: 14),
+                const SizedBox(height: Spacing.lg),
                 Text(
                   'Opal',
-                  style: AppFonts.sf(
-                      size: 26,
-                      weight: FontWeight.w700,
-                      color: c.ink,
-                      letterSpacing: -0.4),
+                  style: AppType.title1.copyWith(color: c.ink, letterSpacing: -0.4),
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: Spacing.xxs),
                 Text(
                   'Version $_version',
-                  style: AppFonts.sf(
-                      size: 15, color: c.ink3, letterSpacing: -0.24),
+                  style: AppType.subhead
+                      .copyWith(color: c.ink3, letterSpacing: -0.24),
                 ),
               ],
             ),

@@ -63,6 +63,9 @@ class AppColors extends ThemeExtension<AppColors> {
     required this.accent,
     required this.accentTint,
     required this.red,
+    required this.onAccent,
+    required this.scrim,
+    required this.shadow,
   });
 
   final Brightness brightness;
@@ -74,6 +77,9 @@ class AppColors extends ThemeExtension<AppColors> {
   final Color rituals, ritualsTint;
   final Color accent, accentTint;
   final Color red;
+  final Color onAccent;
+  final Color scrim;
+  final Color shadow;
 
   /// Color for a tracker type token: 'money' | 'move' | 'rituals'.
   Color forType(String type) => switch (type) {
@@ -106,6 +112,9 @@ class AppColors extends ThemeExtension<AppColors> {
       accent: a,
       accentTint: a.withValues(alpha: 0.14),
       red: const Color(0xFFFF3B30),
+      onAccent: const Color(0xFFFFFFFF),
+      scrim: const Color.fromRGBO(0, 0, 0, 0.40),
+      shadow: const Color.fromRGBO(0, 0, 0, 0.12),
     );
   }
 
@@ -132,6 +141,9 @@ class AppColors extends ThemeExtension<AppColors> {
       accent: a,
       accentTint: a.withValues(alpha: 0.18),
       red: const Color(0xFFFF453A),
+      onAccent: const Color(0xFFFFFFFF),
+      scrim: const Color.fromRGBO(0, 0, 0, 0.40),
+      shadow: const Color.fromRGBO(0, 0, 0, 0.40),
     );
   }
 
@@ -156,6 +168,9 @@ class AppColors extends ThemeExtension<AppColors> {
       accent: a,
       accentTint: a.withValues(alpha: dark ? 0.18 : 0.14),
       red: base.red,
+      onAccent: base.onAccent,
+      scrim: base.scrim,
+      shadow: base.shadow,
     );
   }
 
@@ -184,6 +199,9 @@ class AppColors extends ThemeExtension<AppColors> {
       accent: c(accent, other.accent),
       accentTint: c(accentTint, other.accentTint),
       red: c(red, other.red),
+      onAccent: c(onAccent, other.onAccent),
+      scrim: c(scrim, other.scrim),
+      shadow: c(shadow, other.shadow),
     );
   }
 }

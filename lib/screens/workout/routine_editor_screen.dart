@@ -4,15 +4,12 @@ import 'package:go_router/go_router.dart';
 
 import '../../controllers/routine_editor_controller.dart';
 import '../../models/models.dart';
-import '../../theme/app_colors.dart';
-import '../../theme/app_text.dart';
+import '../../theme/theme.dart';
 import '../../util/format.dart';
 import '../../widgets/app_icon.dart';
 import '../../widgets/controls.dart';
 import '../../widgets/inset_section.dart';
 import '../../widgets/nav_bar.dart';
-
-const _white = Color(0xFFFFFFFF);
 
 /// Common rest presets (seconds) offered by the rest segmented control.
 const List<int> _restPresets = [60, 90, 120, 180];
@@ -39,16 +36,15 @@ class RoutineEditorScreen extends ConsumerWidget {
       body: async.when(
         loading: () => Center(
           child: Text('…',
-              style:
-                  AppFonts.sf(size: 17, color: c.ink3, letterSpacing: -0.43)),
+              style: AppType.body.copyWith(color: c.ink3)),
         ),
         error: (e, _) => Center(
           child: Padding(
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.all(Spacing.xxl),
             child: Text("Couldn't load workout.\n$e",
                 textAlign: TextAlign.center,
-                style:
-                    AppFonts.sf(size: 15, color: c.ink3, letterSpacing: -0.24)),
+                style: AppType.subhead.copyWith(
+                    color: c.ink3, letterSpacing: -0.24)),
           ),
         ),
         data: (state) => _Body(routineId: routineId, state: state),
@@ -92,13 +88,14 @@ class _Body extends ConsumerWidget {
           ),
           Expanded(
             child: ListView(
-              padding: const EdgeInsets.only(top: 8, bottom: 40),
+              // 40 off-grid, kept literal as the list's bottom inset
+              padding: const EdgeInsets.only(top: Spacing.sm, bottom: 40),
               children: [
                 _NameField(
                   value: draft.name,
                   onChanged: controller.setName,
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: Spacing.xl),
                 _TagSection(
                   tag: draft.tag,
                   onChanged: controller.setTag,
@@ -160,16 +157,16 @@ class _SaveButton extends StatelessWidget {
       child: Opacity(
         opacity: enabled ? 1 : 0.4,
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
+          padding:
+              const EdgeInsets.symmetric(horizontal: Spacing.lg, vertical: Spacing.sm),
           decoration: BoxDecoration(
             color: c.accent,
-            borderRadius: BorderRadius.circular(100),
+            borderRadius: BorderRadius.circular(Radii.pill),
           ),
           child: Text('Save',
-              style: AppFonts.sf(
-                  size: 15,
-                  weight: FontWeight.w600,
-                  color: _white,
+              style: AppType.subhead.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: c.onAccent,
                   letterSpacing: -0.2)),
         ),
       ),
@@ -214,27 +211,26 @@ class _NameFieldState extends State<_NameField> {
   Widget build(BuildContext context) {
     final c = context.colors;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+      padding: const EdgeInsets.fromLTRB(Spacing.lg, 0, Spacing.lg, 0),
       child: Container(
         height: 44,
-        padding: const EdgeInsets.symmetric(horizontal: 12),
+        padding: const EdgeInsets.symmetric(horizontal: Spacing.md),
         decoration: BoxDecoration(
           color: c.surface,
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(Radii.md),
         ),
         alignment: Alignment.center,
         child: TextField(
           controller: _controller,
           onChanged: widget.onChanged,
           cursorColor: c.accent,
-          style: AppFonts.sf(size: 17, color: c.ink, letterSpacing: -0.43),
+          style: AppType.body.copyWith(color: c.ink),
           decoration: InputDecoration(
             isDense: true,
             border: InputBorder.none,
             contentPadding: EdgeInsets.zero,
             hintText: 'Workout name',
-            hintStyle:
-                AppFonts.sf(size: 17, color: c.ink3, letterSpacing: -0.43),
+            hintStyle: AppType.body.copyWith(color: c.ink3),
           ),
         ),
       ),
@@ -251,9 +247,9 @@ class _SectionHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+      padding: const EdgeInsets.fromLTRB(Spacing.xl, 0, Spacing.xl, Spacing.sm),
       child: Text(text.toUpperCase(),
-          style: AppFonts.sf(size: 13, color: c.ink3, letterSpacing: -0.08)),
+          style: AppType.footnote.copyWith(color: c.ink3, letterSpacing: -0.08)),
     );
   }
 }
@@ -270,7 +266,7 @@ class _TagSection extends StatelessWidget {
       children: [
         const _SectionHeader('Tag'),
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
+          padding: const EdgeInsets.fromLTRB(Spacing.lg, 0, Spacing.lg, Spacing.xl),
           child: Segmented<RoutineTag>(
             value: tag,
             onChanged: onChanged,
@@ -302,7 +298,7 @@ class _RestSection extends StatelessWidget {
       children: [
         const _SectionHeader('Rest between sets'),
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
+          padding: const EdgeInsets.fromLTRB(Spacing.lg, 0, Spacing.lg, Spacing.xl),
           child: Segmented<int>(
             value: rest,
             onChanged: onChanged,
@@ -374,7 +370,8 @@ class _SwitchRow extends StatelessWidget {
     return Stack(
       children: [
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+          padding: const EdgeInsets.symmetric(
+              horizontal: Spacing.lg, vertical: Spacing.sm),
           child: ConstrainedBox(
             constraints: const BoxConstraints(minHeight: 44),
             child: Row(
@@ -384,16 +381,15 @@ class _SwitchRow extends StatelessWidget {
                   height: 29,
                   decoration: BoxDecoration(
                     color: iconBg,
-                    borderRadius: BorderRadius.circular(7),
+                    borderRadius: BorderRadius.circular(Radii.sm),
                   ),
                   alignment: Alignment.center,
-                  child: AppIcon(icon, size: 17, color: _white),
+                  child: AppIcon(icon, size: 17, color: c.onAccent),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: Spacing.md),
                 Expanded(
                   child: Text(title,
-                      style: AppFonts.sf(
-                          size: 17, color: c.ink, letterSpacing: -0.43)),
+                      style: AppType.body.copyWith(color: c.ink)),
                 ),
                 Switch.adaptive(
                   value: value,
@@ -440,16 +436,16 @@ class _ExerciseList extends StatelessWidget {
         _SectionHeader('Exercises · ${slots.length}'),
         if (slots.isEmpty)
           Padding(
-            padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+            padding: const EdgeInsets.fromLTRB(Spacing.xl, 0, Spacing.xl, Spacing.md),
             child: Text('No exercises yet — add one below.',
-                style:
-                    AppFonts.sf(size: 15, color: c.ink3, letterSpacing: -0.24)),
+                style: AppType.subhead.copyWith(
+                    color: c.ink3, letterSpacing: -0.24)),
           )
         else
           ReorderableListView(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+            padding: const EdgeInsets.fromLTRB(Spacing.lg, 0, Spacing.lg, Spacing.md),
             onReorderItem: onReorder,
             children: [
               for (final slot in slots)
@@ -464,10 +460,10 @@ class _ExerciseList extends StatelessWidget {
           ),
         if (slots.isNotEmpty)
           Padding(
-            padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+            padding: const EdgeInsets.fromLTRB(Spacing.xl, 0, Spacing.xl, Spacing.md),
             child: Text(
               'Drag to reorder · tap ✕ to remove · tap a set to edit targets',
-              style: AppFonts.sf(size: 12, color: c.ink3, letterSpacing: -0.08),
+              style: AppType.caption.copyWith(color: c.ink3, letterSpacing: -0.08),
             ),
           ),
       ],
@@ -504,16 +500,17 @@ class _ExerciseTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.only(bottom: Spacing.sm),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(Radii.md),
         child: GestureDetector(
           onTap: onEdit,
           behavior: HitTestBehavior.opaque,
           child: ColoredBox(
             color: c.surface,
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              padding: const EdgeInsets.symmetric(
+                  horizontal: Spacing.md, vertical: Spacing.sm),
               child: Row(
                 children: [
                   Container(
@@ -521,13 +518,13 @@ class _ExerciseTile extends StatelessWidget {
                     height: 29,
                     decoration: BoxDecoration(
                       color: c.move,
-                      borderRadius: BorderRadius.circular(7),
+                      borderRadius: BorderRadius.circular(Radii.sm),
                     ),
                     alignment: Alignment.center,
                     child: AppIcon(exercise?.icon ?? 'dumbbell.fill',
-                        size: 17, color: _white),
+                        size: 17, color: c.onAccent),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: Spacing.md),
                   Expanded(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -536,15 +533,13 @@ class _ExerciseTile extends StatelessWidget {
                         Text(exercise?.name ?? 'Unknown exercise',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: AppFonts.sf(
-                                size: 17, color: c.ink, letterSpacing: -0.43)),
+                            style: AppType.body.copyWith(color: c.ink)),
                         Padding(
+                          // 1px nudge, kept literal (below smallest token)
                           padding: const EdgeInsets.only(top: 1),
                           child: Text(_targets,
-                              style: AppFonts.sf(
-                                  size: 13,
-                                  color: c.ink3,
-                                  letterSpacing: -0.08)),
+                              style: AppType.footnote.copyWith(
+                                  color: c.ink3, letterSpacing: -0.08)),
                         ),
                       ],
                     ),
@@ -553,11 +548,11 @@ class _ExerciseTile extends StatelessWidget {
                     behavior: HitTestBehavior.opaque,
                     onTap: onRemove,
                     child: Padding(
-                      padding: const EdgeInsets.all(6),
+                      padding: const EdgeInsets.all(Spacing.sm),
                       child: AppIcon('xmark', size: 15, color: c.ink3),
                     ),
                   ),
-                  const SizedBox(width: 2),
+                  const SizedBox(width: Spacing.xxs),
                   AppIcon('slider.horizontal.3', size: 16, color: c.ink4),
                 ],
               ),
@@ -648,13 +643,13 @@ class _ExercisePickerSheetState extends State<_ExercisePickerSheet> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+              padding: const EdgeInsets.fromLTRB(
+                  Spacing.lg, Spacing.lg, Spacing.lg, Spacing.xs),
               child: Row(
                 children: [
                   Text('Add exercise',
-                      style: AppFonts.sf(
-                          size: 20,
-                          weight: FontWeight.w700,
+                      style: AppType.title3.copyWith(
+                          fontWeight: FontWeight.w700,
                           color: c.ink,
                           letterSpacing: -0.4)),
                   const Spacer(),
@@ -667,32 +662,31 @@ class _ExercisePickerSheetState extends State<_ExercisePickerSheet> {
               ),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+              padding: const EdgeInsets.fromLTRB(
+                  Spacing.lg, Spacing.sm, Spacing.lg, Spacing.sm),
               child: Container(
                 height: 36,
-                padding: const EdgeInsets.symmetric(horizontal: 10),
+                padding: const EdgeInsets.symmetric(horizontal: Spacing.md),
                 decoration: BoxDecoration(
                   color: c.fill,
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(Radii.md),
                 ),
                 child: Row(
                   children: [
                     AppIcon('magnifyingglass', size: 16, color: c.ink3),
-                    const SizedBox(width: 6),
+                    const SizedBox(width: Spacing.sm),
                     Expanded(
                       child: TextField(
                         controller: _controller,
                         onChanged: (v) => setState(() => _query = v),
                         cursorColor: c.accent,
-                        style: AppFonts.sf(
-                            size: 17, color: c.ink, letterSpacing: -0.43),
+                        style: AppType.body.copyWith(color: c.ink),
                         decoration: InputDecoration(
                           isDense: true,
                           border: InputBorder.none,
                           contentPadding: EdgeInsets.zero,
                           hintText: 'Search exercises',
-                          hintStyle: AppFonts.sf(
-                              size: 17, color: c.ink3, letterSpacing: -0.43),
+                          hintStyle: AppType.body.copyWith(color: c.ink3),
                         ),
                       ),
                     ),
@@ -704,11 +698,11 @@ class _ExercisePickerSheetState extends State<_ExercisePickerSheet> {
               child: results.isEmpty
                   ? Center(
                       child: Text('No exercises match "$_query".',
-                          style: AppFonts.sf(
-                              size: 15, color: c.ink3, letterSpacing: -0.24)),
+                          style: AppType.subhead.copyWith(
+                              color: c.ink3, letterSpacing: -0.24)),
                     )
                   : ListView(
-                      padding: const EdgeInsets.only(top: 4, bottom: 24),
+                      padding: const EdgeInsets.only(top: Spacing.xs, bottom: Spacing.xxl),
                       children: [
                         InsetSection(
                           children: [
@@ -779,11 +773,11 @@ class _TargetsSheetState extends State<_TargetsSheet> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+              padding: const EdgeInsets.fromLTRB(
+                  Spacing.lg, Spacing.lg, Spacing.lg, Spacing.md),
               child: Text('Targets',
-                  style: AppFonts.sf(
-                      size: 20,
-                      weight: FontWeight.w700,
+                  style: AppType.title3.copyWith(
+                      fontWeight: FontWeight.w700,
                       color: c.ink,
                       letterSpacing: -0.4)),
             ),
@@ -808,7 +802,8 @@ class _TargetsSheetState extends State<_TargetsSheet> {
                   setState(() => _weight = (_weight + 2.5).clamp(0, 999)),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+              padding: const EdgeInsets.fromLTRB(
+                  Spacing.lg, Spacing.lg, Spacing.lg, Spacing.lg),
               child: GestureDetector(
                 behavior: HitTestBehavior.opaque,
                 onTap: () {
@@ -816,18 +811,15 @@ class _TargetsSheetState extends State<_TargetsSheet> {
                   Navigator.of(context).pop();
                 },
                 child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  padding: const EdgeInsets.symmetric(vertical: Spacing.lg),
                   decoration: BoxDecoration(
                     color: c.accent,
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(Radii.md),
                   ),
                   alignment: Alignment.center,
                   child: Text('Done',
-                      style: AppFonts.sf(
-                          size: 17,
-                          weight: FontWeight.w600,
-                          color: _white,
-                          letterSpacing: -0.4)),
+                      style: AppType.headline.copyWith(
+                          color: c.onAccent, letterSpacing: -0.4)),
                 ),
               ),
             ),
@@ -855,12 +847,13 @@ class _StepperRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      padding: const EdgeInsets.symmetric(
+          horizontal: Spacing.lg, vertical: Spacing.sm),
       child: Row(
         children: [
           Expanded(
             child: Text(label,
-                style: AppFonts.sf(size: 17, color: c.ink, letterSpacing: -0.43)),
+                style: AppType.body.copyWith(color: c.ink)),
           ),
           _StepButton(icon: 'chevron.down', onTap: onDec),
           SizedBox(

@@ -4,8 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../controllers/rituals_controller.dart';
 import '../../models/models.dart';
-import '../../theme/app_colors.dart';
-import '../../theme/app_text.dart';
+import '../../theme/theme.dart';
 import '../../widgets/app_icon.dart';
 import '../../widgets/nav_bar.dart';
 import '../../widgets/press_scale.dart';
@@ -27,15 +26,15 @@ class RitualsScreen extends ConsumerWidget {
 
     return async.when(
       loading: () => Center(
-        child: Text('…',
-            style: AppFonts.sf(size: 17, color: c.ink3, letterSpacing: -0.43)),
+        child: Text('…', style: AppType.body.copyWith(color: c.ink3)),
       ),
       error: (e, _) => Center(
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(Spacing.xxl),
           child: Text("Couldn't load routines.\n$e",
               textAlign: TextAlign.center,
-              style: AppFonts.sf(size: 15, color: c.ink3, letterSpacing: -0.24)),
+              style: AppType.subhead
+                  .copyWith(color: c.ink3, letterSpacing: -0.24)),
         ),
       ),
       data: (state) => _RitualsBody(state: state),
@@ -82,12 +81,12 @@ class _UpNextHero extends StatelessWidget {
 
     if (routine == null) {
       return Padding(
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 18),
+        padding: const EdgeInsets.fromLTRB(Spacing.lg, 0, Spacing.lg, Spacing.xl),
         child: Container(
-          padding: const EdgeInsets.all(22),
+          padding: const EdgeInsets.all(Spacing.xxl),
           decoration: BoxDecoration(
             color: c.surface,
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(Radii.xl),
             boxShadow: [BoxShadow(color: c.hair, blurRadius: 0.5)],
           ),
           child: Column(
@@ -100,15 +99,15 @@ class _UpNextHero extends StatelessWidget {
                 alignment: Alignment.center,
                 child: AppIcon('checkmark', size: 24, color: c.move),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: Spacing.md),
               Text('All routines done',
                   style: AppFonts.sfr(
                       size: 20, color: c.ink, letterSpacing: -0.4)),
-              const SizedBox(height: 4),
+              const SizedBox(height: Spacing.xs),
               Text('Every step checked off. Rest easy.',
                   textAlign: TextAlign.center,
-                  style:
-                      AppFonts.sf(size: 14, color: c.ink3, letterSpacing: -0.1)),
+                  style: AppType.subhead.copyWith(
+                      color: c.ink3, letterSpacing: -0.1)),
             ],
           ),
         ),
@@ -121,14 +120,15 @@ class _UpNextHero extends StatelessWidget {
     final done = state.doneCount(routine.id);
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 18),
+      padding: const EdgeInsets.fromLTRB(Spacing.lg, 0, Spacing.lg, Spacing.xl),
       child: PressScale(
         onTap: () => context.go('/rituals/player/${routine.id}'),
         pressedScale: 0.985,
         child: Container(
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(22),
+            borderRadius: BorderRadius.circular(Radii.xl),
             boxShadow: [
+              // accent glow, not neutral elevation — kept inline.
               BoxShadow(
                 color: tone.withValues(alpha: 0.25),
                 blurRadius: 34,
@@ -137,7 +137,7 @@ class _UpNextHero extends StatelessWidget {
             ],
           ),
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(22),
+            borderRadius: BorderRadius.circular(Radii.xl),
             child: Stack(
               children: [
                 // base tone gradient.
@@ -177,94 +177,85 @@ class _UpNextHero extends StatelessWidget {
                   ),
                 ),
                 Padding(
-                  padding: const EdgeInsets.all(20),
+                  padding: const EdgeInsets.all(Spacing.xl),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  AppIcon(routine.icon, size: 13, color: const Color(0xFFFFFFFF)),
-                  const SizedBox(width: 6),
+                  AppIcon(routine.icon, size: 13, color: c.onAccent),
+                  const SizedBox(width: Spacing.sm),
                   Text(
                     (inProgress
                             ? 'Pick up where you left off'
                             : 'Up next')
                         .toUpperCase(),
-                    style: AppFonts.sf(
-                      size: 11,
-                      weight: FontWeight.w700,
+                    style: AppType.caption2.copyWith(
+                      fontWeight: FontWeight.w700,
                       color: const Color(0xD9FFFFFF),
                       letterSpacing: 1.3,
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: Spacing.md),
               Text(
                 routine.name,
                 style: AppFonts.sfr(
                   size: 28,
-                  color: const Color(0xFFFFFFFF),
+                  color: c.onAccent,
                   letterSpacing: -0.6,
                   height: 1.05,
                 ),
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: Spacing.xs),
               Text(
                 '${routine.time} · $left ${left == 1 ? 'step' : 'steps'} left · ~${left * _minutesPerStep} min',
-                style: AppFonts.sf(
-                  size: 14,
+                style: AppType.subhead.copyWith(
                   color: const Color(0xE6FFFFFF),
                   letterSpacing: -0.1,
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: Spacing.lg),
               // segmented progress pips — one per step, white when done.
               Row(
                 children: [
                   for (var i = 0; i < routine.steps.length; i++) ...[
-                    if (i > 0) const SizedBox(width: 5),
+                    if (i > 0) const SizedBox(width: Spacing.xs),
                     Expanded(
                       child: Container(
                         height: 5,
                         decoration: BoxDecoration(
                           color: i < done
-                              ? const Color(0xFFFFFFFF)
+                              ? c.onAccent
                               : const Color(0x52FFFFFF),
-                          borderRadius: BorderRadius.circular(3),
+                          borderRadius: BorderRadius.circular(Radii.xs),
                         ),
                       ),
                     ),
                   ],
                 ],
               ),
-              const SizedBox(height: 18),
+              const SizedBox(height: Spacing.xl),
               Container(
                 width: double.infinity,
                 height: 48,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFFFFFF),
-                  borderRadius: BorderRadius.circular(14),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Color(0x24000000),
-                      blurRadius: 16,
-                      offset: Offset(0, 6),
-                    ),
-                  ],
+                  color: c.onAccent,
+                  borderRadius: BorderRadius.circular(Radii.card),
+                  boxShadow: Elevation.card(c.shadow),
                 ),
                 alignment: Alignment.center,
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     AppIcon('play.fill', size: 15, color: tone),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: Spacing.sm),
                     Text(
                       inProgress ? 'Continue routine' : 'Begin routine',
-                      style: AppFonts.sf(
-                        size: 16,
-                        weight: FontWeight.w700,
+                      style: AppType.callout.copyWith(
+                        fontWeight: FontWeight.w700,
                         color: tone,
                         letterSpacing: -0.2,
                       ),
@@ -321,26 +312,26 @@ class _Timeline extends StatelessWidget {
     final c = context.colors;
     if (state.routines.isEmpty) {
       return Padding(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+        padding: const EdgeInsets.fromLTRB(Spacing.lg, Spacing.sm, Spacing.lg, 0),
         child: Center(
           child: Text('No routines yet. Add one to get started.',
               textAlign: TextAlign.center,
-              style: AppFonts.sf(size: 15, color: c.ink3, letterSpacing: -0.24)),
+              style: AppType.subhead
+                  .copyWith(color: c.ink3, letterSpacing: -0.24)),
         ),
       );
     }
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: Spacing.lg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(4, 0, 4, 12),
+            padding: const EdgeInsets.fromLTRB(Spacing.xs, 0, Spacing.xs, Spacing.md),
             child: Text('YOUR DAY',
-                style: AppFonts.sf(
-                    size: 12,
-                    weight: FontWeight.w700,
+                style: AppType.caption.copyWith(
+                    fontWeight: FontWeight.w700,
                     color: c.ink3,
                     letterSpacing: 0.8)),
           ),
@@ -383,7 +374,7 @@ class _TimelineNode extends StatelessWidget {
     final done = state.doneCount(routine.id);
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.only(bottom: Spacing.lg),
       child: Stack(
         clipBehavior: Clip.none,
         children: [
@@ -402,16 +393,15 @@ class _TimelineNode extends StatelessWidget {
               ),
               alignment: Alignment.center,
               child: complete
-                  ? const AppIcon('checkmark',
-                      size: 15, color: Color(0xFFFFFFFF))
+                  ? AppIcon('checkmark', size: 15, color: c.onAccent)
                   : AppIcon(routine.icon, size: 14, color: tone),
             ),
           ),
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(Spacing.lg),
             decoration: BoxDecoration(
               color: c.surface,
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(Radii.lg),
               boxShadow: [BoxShadow(color: c.hair, blurRadius: 0.5)],
             ),
             child: Column(
@@ -422,12 +412,11 @@ class _TimelineNode extends StatelessWidget {
                   textBaseline: TextBaseline.alphabetic,
                   children: [
                     Text(routine.name,
-                        style: AppFonts.sf(
-                            size: 16,
-                            weight: FontWeight.w700,
+                        style: AppType.callout.copyWith(
+                            fontWeight: FontWeight.w700,
                             color: c.ink,
                             letterSpacing: -0.3)),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: Spacing.sm),
                     Text(routine.time,
                         style: AppFonts.sfr(
                             size: 12,
@@ -442,7 +431,7 @@ class _TimelineNode extends StatelessWidget {
                             color: c.ink3)),
                   ],
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: Spacing.md),
                 for (var i = 0; i < routine.steps.length; i++)
                   _StepRow(
                     routine: routine,
@@ -450,7 +439,7 @@ class _TimelineNode extends StatelessWidget {
                     done: state.isStepDone(routine.id, i),
                     tone: tone,
                   ),
-                const SizedBox(height: 12),
+                const SizedBox(height: Spacing.md),
                 _StartButton(routine: routine, state: state, tone: tone),
               ],
             ),
@@ -483,7 +472,7 @@ class _StepRow extends ConsumerWidget {
           .read(ritualsControllerProvider.notifier)
           .toggleStep(routine, index),
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 6),
+        padding: const EdgeInsets.symmetric(vertical: Spacing.sm),
         child: Row(
           children: [
             // 180ms fill matches the shared CheckButton's check animation.
@@ -493,20 +482,20 @@ class _StepRow extends ConsumerWidget {
               width: 20,
               height: 20,
               decoration: BoxDecoration(
-                color: done ? tone : const Color(0x00000000),
+                color: done ? tone : Colors.transparent,
                 shape: BoxShape.circle,
                 border: done ? null : Border.all(color: c.ink4, width: 1.5),
               ),
               alignment: Alignment.center,
               child: done
-                  ? const AppIcon('checkmark',
-                      size: 11, color: Color(0xFFFFFFFF))
+                  ? AppIcon('checkmark', size: 11, color: c.onAccent)
                   : null,
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: Spacing.md),
             Expanded(
               child: Text(
                 routine.steps[index].title,
+                // 14.5 has no type token; kept inline to preserve exact size.
                 style: AppFonts.sf(
                   size: 14.5,
                   color: done ? c.ink3 : c.ink2,
@@ -554,7 +543,7 @@ class _StartButton extends StatelessWidget {
         height: 38,
         decoration: BoxDecoration(
           color: tone.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(Radii.md),
         ),
         alignment: Alignment.center,
         // Label uses ink2 (not the tone) so it clears WCAG contrast on the
@@ -563,11 +552,10 @@ class _StartButton extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             AppIcon(icon, size: 13, color: tone),
-            const SizedBox(width: 6),
+            const SizedBox(width: Spacing.sm),
             Text(label,
-                style: AppFonts.sf(
-                    size: 14,
-                    weight: FontWeight.w700,
+                style: AppType.subhead.copyWith(
+                    fontWeight: FontWeight.w700,
                     color: c.ink2,
                     letterSpacing: -0.2)),
           ],
@@ -586,12 +574,12 @@ class _NewRoutineButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
+      padding: const EdgeInsets.fromLTRB(Spacing.lg, Spacing.xs, Spacing.lg, 0),
       child: PressScale(
         onTap: () => context.go('/rituals/manage'),
         child: DottedBorderBox(
           color: c.hair,
-          radius: 14,
+          radius: Radii.card,
           child: SizedBox(
             height: 46,
             child: Center(
@@ -599,11 +587,10 @@ class _NewRoutineButton extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   AppIcon('plus', size: 14, color: c.ink3),
-                  const SizedBox(width: 6),
+                  const SizedBox(width: Spacing.sm),
                   Text('New routine',
-                      style: AppFonts.sf(
-                          size: 15,
-                          weight: FontWeight.w600,
+                      style: AppType.subhead.copyWith(
+                          fontWeight: FontWeight.w600,
                           color: c.ink3,
                           letterSpacing: -0.24)),
                 ],
@@ -623,7 +610,7 @@ class DottedBorderBox extends StatelessWidget {
     super.key,
     required this.child,
     required this.color,
-    this.radius = 12,
+    this.radius = Radii.md,
   });
 
   final Widget child;

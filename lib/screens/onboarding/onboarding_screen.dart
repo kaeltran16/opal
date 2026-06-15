@@ -6,8 +6,7 @@ import '../../controllers/providers.dart';
 import '../../data/seed/seed_data.dart';
 import '../../models/models.dart';
 import '../../router.dart';
-import '../../theme/app_colors.dart';
-import '../../theme/app_text.dart';
+import '../../theme/theme.dart';
 import '../../widgets/app_icon.dart';
 
 /// Screen 01 — Onboarding (first-run setup), U17.
@@ -126,66 +125,69 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       backgroundColor: c.bg,
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
+          padding: const EdgeInsets.fromLTRB(
+            Spacing.xxl,
+            Spacing.xxl,
+            Spacing.xxl,
+            Spacing.xxl,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               _ProgressDots(step: step, count: _stepCount),
-              const SizedBox(height: 36),
+              const SizedBox(height: 36), // off-grid hero gap, no token
+
               Expanded(
                 child: SingleChildScrollView(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       _Hero(glyph: _heroGlyph(step), color: heroColor),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: Spacing.xxl),
                       Text(
                         _title(step),
                         textAlign: TextAlign.center,
-                        style: AppFonts.sfr(
-                          size: 34,
-                          weight: FontWeight.w700,
+                        style: AppType.amount.copyWith(
                           color: c.ink,
                           letterSpacing: -0.8,
                           height: 1.1,
                         ),
                       ),
-                      const SizedBox(height: 14),
+                      const SizedBox(height: Spacing.lg),
                       Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: Spacing.lg,
+                        ),
                         child: Text(
                           _body(step),
                           textAlign: TextAlign.center,
-                          style: AppFonts.sf(
-                            size: 17,
+                          style: AppType.body.copyWith(
                             color: c.ink3,
-                            letterSpacing: -0.43,
                             height: 1.4,
                           ),
                         ),
                       ),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: Spacing.xl),
                       ..._stepContent(step, c, heroColor),
                     ],
                   ),
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: Spacing.lg),
               _Cta(
                 label: _cta(step),
                 enabled: !_saving && _canContinue(step),
                 onTap: _next,
               ),
               if (step > 0) ...[
-                const SizedBox(height: 12),
+                const SizedBox(height: Spacing.md),
                 Center(
                   child: GestureDetector(
                     behavior: HitTestBehavior.opaque,
                     onTap: _saving ? null : _finish,
                     child: Text(
                       'Skip',
-                      style: AppFonts.sf(
-                        size: 15,
+                      style: AppType.subhead.copyWith(
                         color: c.ink3,
                         letterSpacing: -0.24,
                       ),
@@ -222,7 +224,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       case 1:
         return [
           _BigValue(text: '\$${_budget.toStringAsFixed(0)}', color: c.ink),
-          const SizedBox(height: 24),
+          const SizedBox(height: Spacing.xxl),
           _ChipRow(
             labels: [for (final v in _budgetOptions) '\$${v.toStringAsFixed(0)}'],
             selectedIndex: _budgetOptions.indexOf(_budget),
@@ -233,7 +235,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       case 2:
         return [
           _BigValue(text: '$_moveKcal kcal', color: c.ink),
-          const SizedBox(height: 24),
+          const SizedBox(height: Spacing.xxl),
           _ChipRow(
             labels: [for (final m in _moveOptions) '$m kcal'],
             selectedIndex: _moveOptions.indexOf(_moveKcal),
@@ -308,7 +310,7 @@ class _NameField extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: Spacing.lg),
       child: TextField(
         controller: controller,
         textAlign: TextAlign.center,
@@ -316,21 +318,22 @@ class _NameField extends StatelessWidget {
         textInputAction: TextInputAction.done,
         cursorColor: accent,
         onSubmitted: onSubmitted,
-        style: AppFonts.sf(size: 17, color: c.ink, letterSpacing: -0.43),
+        style: AppType.body.copyWith(color: c.ink),
         decoration: InputDecoration(
           hintText: 'Your name',
-          hintStyle:
-              AppFonts.sf(size: 17, color: c.ink3, letterSpacing: -0.43),
+          hintStyle: AppType.body.copyWith(color: c.ink3),
           filled: true,
           fillColor: c.surface,
-          contentPadding:
-              const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: Spacing.lg,
+            vertical: Spacing.lg,
+          ),
           enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(Radii.lg),
             borderSide: BorderSide(color: c.hair, width: 0.5),
           ),
           focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(Radii.lg),
             borderSide: BorderSide(color: accent, width: 1.5),
           ),
         ),
@@ -352,15 +355,15 @@ class _ProgressDots extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         for (var i = 0; i < count; i++) ...[
-          if (i > 0) const SizedBox(width: 6),
+          if (i > 0) const SizedBox(width: Spacing.sm),
           AnimatedContainer(
             duration: const Duration(milliseconds: 200),
             curve: Curves.easeOut,
-            width: i == step ? 20 : 6,
+            width: i == step ? 20 : 6, // fixed dot sizes
             height: 6,
             decoration: BoxDecoration(
               color: i == step ? c.accent : c.fill,
-              borderRadius: BorderRadius.circular(100),
+              borderRadius: BorderRadius.circular(Radii.pill),
             ),
           ),
         ],
@@ -383,8 +386,9 @@ class _Hero extends StatelessWidget {
         height: 96,
         decoration: BoxDecoration(
           color: color.withValues(alpha: 0.12),
-          borderRadius: BorderRadius.circular(28),
+          borderRadius: BorderRadius.circular(Radii.xxl),
           boxShadow: [
+            // accent-tinted glow, not neutral elevation — kept inline
             BoxShadow(
               color: color.withValues(alpha: 0.20),
               blurRadius: 40,
@@ -395,7 +399,7 @@ class _Hero extends StatelessWidget {
         alignment: Alignment.center,
         child: Text(
           glyph,
-          style: AppFonts.sfr(size: 48, weight: FontWeight.w700, color: color),
+          style: AppType.amountLg.copyWith(color: color),
         ),
       ),
     );
@@ -443,8 +447,8 @@ class _ChipRow extends StatelessWidget {
     final c = context.colors;
     return Wrap(
       alignment: WrapAlignment.center,
-      spacing: 8,
-      runSpacing: 8,
+      spacing: Spacing.sm,
+      runSpacing: Spacing.sm,
       children: [
         for (var i = 0; i < labels.length; i++)
           GestureDetector(
@@ -452,22 +456,22 @@ class _ChipRow extends StatelessWidget {
             onTap: () => onSelected(i),
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 150),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              padding: const EdgeInsets.symmetric(
+                horizontal: Spacing.lg,
+                vertical: Spacing.md,
+              ),
               decoration: BoxDecoration(
                 color: i == selectedIndex ? selectedColor : c.surface,
-                borderRadius: BorderRadius.circular(100),
+                borderRadius: BorderRadius.circular(Radii.pill),
                 border: i == selectedIndex
                     ? null
                     : Border.all(color: c.hair, width: 0.5),
               ),
               child: Text(
                 labels[i],
-                style: AppFonts.sf(
-                  size: 15,
-                  weight: FontWeight.w500,
-                  color: i == selectedIndex
-                      ? const Color(0xFFFFFFFF)
-                      : c.ink,
+                style: AppType.subhead.copyWith(
+                  fontWeight: FontWeight.w500,
+                  color: i == selectedIndex ? c.onAccent : c.ink,
                   letterSpacing: -0.24,
                 ),
               ),
@@ -496,7 +500,7 @@ class _RoutinePicker extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: c.surface,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(Radii.lg),
       ),
       clipBehavior: Clip.antiAlias,
       child: Column(
@@ -541,7 +545,10 @@ class _RoutineRow extends StatelessWidget {
               ? Border(bottom: BorderSide(color: c.hair, width: 0.5))
               : null,
         ),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        padding: const EdgeInsets.symmetric(
+          horizontal: Spacing.lg,
+          vertical: Spacing.md,
+        ),
         child: Row(
           children: [
             Container(
@@ -549,22 +556,20 @@ class _RoutineRow extends StatelessWidget {
               height: 32,
               decoration: BoxDecoration(
                 color: tone,
-                borderRadius: BorderRadius.circular(9),
+                borderRadius: BorderRadius.circular(Radii.sm),
               ),
               alignment: Alignment.center,
-              child:
-                  AppIcon(routine.icon, size: 16, color: const Color(0xFFFFFFFF)),
+              child: AppIcon(routine.icon, size: 16, color: c.onAccent),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: Spacing.md),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     routine.name,
-                    style: AppFonts.sf(
-                      size: 15,
-                      weight: FontWeight.w600,
+                    style: AppType.subhead.copyWith(
+                      fontWeight: FontWeight.w600,
                       color: c.ink,
                       letterSpacing: -0.24,
                     ),
@@ -572,8 +577,10 @@ class _RoutineRow extends StatelessWidget {
                   const SizedBox(height: 1),
                   Text(
                     '${routine.time} · $steps ${steps == 1 ? 'step' : 'steps'}',
-                    style: AppFonts.sf(
-                        size: 12, color: c.ink3, letterSpacing: -0.08),
+                    style: AppType.caption.copyWith(
+                      color: c.ink3,
+                      letterSpacing: -0.08,
+                    ),
                   ),
                 ],
               ),
@@ -601,16 +608,18 @@ class _Toggle extends StatelessWidget {
       height: 24,
       decoration: BoxDecoration(
         color: on ? color : track,
-        borderRadius: BorderRadius.circular(100),
+        borderRadius: BorderRadius.circular(Radii.pill),
       ),
       child: AnimatedAlign(
         duration: const Duration(milliseconds: 200),
         curve: Curves.easeOut,
         alignment: on ? Alignment.centerRight : Alignment.centerLeft,
         child: Container(
-          margin: const EdgeInsets.all(2),
+          margin: const EdgeInsets.all(Spacing.xxs),
           width: 20,
           height: 20,
+          // fixed iOS toggle knob: always-white with a tight knob shadow (kept
+          // literal — snapping blur 4→8 would change the control's intent)
           decoration: const BoxDecoration(
             color: Color(0xFFFFFFFF),
             shape: BoxShape.circle,
@@ -647,17 +656,12 @@ class _Cta extends StatelessWidget {
           height: 56,
           decoration: BoxDecoration(
             color: c.accent,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(Radii.lg),
           ),
           alignment: Alignment.center,
           child: Text(
             label,
-            style: AppFonts.sf(
-              size: 17,
-              weight: FontWeight.w600,
-              color: const Color(0xFFFFFFFF),
-              letterSpacing: -0.43,
-            ),
+            style: AppType.headline.copyWith(color: c.onAccent),
           ),
         ),
       ),

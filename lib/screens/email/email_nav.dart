@@ -1,8 +1,7 @@
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
-import '../../theme/app_colors.dart';
-import '../../theme/app_text.dart';
+import '../../theme/theme.dart';
 import '../../widgets/nav_bar.dart';
 
 /// iOS small-title nav header used by the Email Sync flow (Intro/Setup).
@@ -36,20 +35,15 @@ class EmailNavBar extends StatelessWidget {
     final c = context.colors;
     return Container(
       color: c.bg,
-      padding: const EdgeInsets.fromLTRB(4, 48, 4, 4),
+      padding: const EdgeInsets.fromLTRB(Spacing.xs, 48, Spacing.xs, Spacing.xs),
       child: SizedBox(
-        height: 44,
+        height: 44, // tap-target height — keep literal
         child: Stack(
           alignment: Alignment.center,
           children: [
             Text(
               title,
-              style: AppFonts.sf(
-                size: 17,
-                weight: FontWeight.w600,
-                color: c.ink,
-                letterSpacing: -0.43,
-              ),
+              style: AppType.headline.copyWith(color: c.ink),
             ),
             if (leadingLabel != null)
               Align(

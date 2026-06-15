@@ -5,8 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../controllers/spending_controller.dart';
 import '../../models/models.dart';
 import '../../router.dart';
-import '../../theme/app_colors.dart';
-import '../../theme/app_text.dart';
+import '../../theme/theme.dart';
 import '../../widgets/app_icon.dart';
 import '../../widgets/controls.dart';
 import '../../widgets/nav_bar.dart';
@@ -50,8 +49,7 @@ class _Loading extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     return Center(
-      child: Text('…',
-          style: AppFonts.sf(size: 17, color: c.ink3, letterSpacing: -0.43)),
+      child: Text('…', style: AppType.body.copyWith(color: c.ink3)),
     );
   }
 }
@@ -64,10 +62,11 @@ class _Error extends StatelessWidget {
     final c = context.colors;
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(Spacing.xxl),
         child: Text(message,
             textAlign: TextAlign.center,
-            style: AppFonts.sf(size: 15, color: c.ink3, letterSpacing: -0.24)),
+            style: AppType.subhead
+                .copyWith(color: c.ink3, letterSpacing: -0.24)),
       ),
     );
   }
@@ -99,7 +98,7 @@ class _DetailBody extends StatelessWidget {
     return Stack(
       children: [
         ListView(
-          padding: const EdgeInsets.only(bottom: 96),
+          padding: const EdgeInsets.only(bottom: 96), // bottom-pill clearance; keep literal
           children: [
             _NavBar(title: data.tracker.title, color: color),
             _HeroCard(data: data, color: color, fmt: _fmt),
@@ -114,20 +113,20 @@ class _DetailBody extends StatelessWidget {
             ],
             if (data.categories.isEmpty && data.days.isEmpty)
               Padding(
-                padding: const EdgeInsets.fromLTRB(16, 40, 16, 0),
+                padding: const EdgeInsets.fromLTRB(Spacing.lg, 40, Spacing.lg, 0),
                 child: Center(
                   child: Text('Nothing logged yet.',
-                      style: AppFonts.sf(
-                          size: 15, color: c.ink3, letterSpacing: -0.24)),
+                      style: AppType.subhead
+                          .copyWith(color: c.ink3, letterSpacing: -0.24)),
                 ),
               ),
           ],
         ),
         // Bottom "Ask Pal about …" pill.
         Positioned(
-          left: 16,
-          right: 16,
-          bottom: 16,
+          left: Spacing.lg,
+          right: Spacing.lg,
+          bottom: Spacing.lg,
           child: _AskPalPill(label: data.tracker.askPalPrompt),
         ),
       ],
@@ -146,7 +145,7 @@ class _NavBar extends StatelessWidget {
     final c = context.colors;
     return Container(
       color: c.bg,
-      padding: const EdgeInsets.fromLTRB(8, 52, 8, 8),
+      padding: const EdgeInsets.fromLTRB(Spacing.sm, 52, Spacing.sm, Spacing.sm),
       child: Row(
         children: [
           NavAction(
@@ -157,11 +156,7 @@ class _NavBar extends StatelessWidget {
           Expanded(
             child: Text(title,
                 textAlign: TextAlign.center,
-                style: AppFonts.sf(
-                    size: 17,
-                    weight: FontWeight.w600,
-                    color: c.ink,
-                    letterSpacing: -0.43)),
+                style: AppType.headline.copyWith(color: c.ink)),
           ),
           NavAction(
             icon: 'plus',
@@ -191,12 +186,13 @@ class _HeroCard extends StatelessWidget {
         ? 'of ${fmt(data.target)} daily budget'
         : 'of ${fmt(data.target)} daily goal';
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
+      padding: const EdgeInsets.fromLTRB(
+          Spacing.lg, Spacing.sm, Spacing.lg, Spacing.xl),
       child: Container(
-        padding: const EdgeInsets.all(18),
+        padding: const EdgeInsets.all(Spacing.xl),
         decoration: BoxDecoration(
           color: color.withValues(alpha: 0.12),
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(Radii.lg),
           border: Border.all(color: color.withValues(alpha: 0.13), width: 0.5),
         ),
         child: Row(
@@ -206,7 +202,8 @@ class _HeroCard extends StatelessWidget {
               height: 56,
               decoration: BoxDecoration(
                 color: color,
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(Radii.card),
+                // accent-tinted glow on the colored tile; keep inline
                 boxShadow: [
                   BoxShadow(
                       color: color.withValues(alpha: 0.33),
@@ -215,36 +212,34 @@ class _HeroCard extends StatelessWidget {
                 ],
               ),
               alignment: Alignment.center,
-              child: AppIcon(data.tracker.heroIcon,
-                  size: 28, color: const Color(0xFFFFFFFF)),
+              child: AppIcon(data.tracker.heroIcon, size: 28, color: c.onAccent),
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: Spacing.lg),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(fmt(data.total),
                       style: AppFonts.sfr(
-                          size: 40,
+                          size: 40, // no sfr token for 40; keep inline
                           weight: FontWeight.w700,
                           color: c.ink,
                           letterSpacing: -1,
                           height: 1)),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: Spacing.xs),
                   Text(data.tracker.heroSub,
-                      style: AppFonts.sf(
-                          size: 15,
-                          weight: FontWeight.w600,
+                      style: AppType.subhead.copyWith(
+                          fontWeight: FontWeight.w600,
                           color: color,
                           letterSpacing: -0.24)),
-                  const SizedBox(height: 2),
+                  const SizedBox(height: Spacing.xxs),
                   Text(goalLine,
-                      style: AppFonts.sf(
-                          size: 13, color: c.ink2, letterSpacing: -0.08)),
+                      style: AppType.footnote
+                          .copyWith(color: c.ink2, letterSpacing: -0.08)),
                 ],
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: Spacing.md),
             _PercentRing(pct: pct, color: color),
           ],
         ),
@@ -268,9 +263,8 @@ class _PercentRing extends StatelessWidget {
         painter: _RingPainter(pct: pct, color: color),
         child: Center(
           child: Text('${(pct * 100).round()}%',
-              style: AppFonts.sf(
-                  size: 12,
-                  weight: FontWeight.w700,
+              style: AppType.caption.copyWith(
+                  fontWeight: FontWeight.w700,
                   color: color,
                   letterSpacing: -0.08)),
         ),
@@ -317,13 +311,11 @@ class _SectionHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
+      padding: const EdgeInsets.fromLTRB(
+          Spacing.xl, Spacing.md, Spacing.xl, Spacing.sm),
       child: Text(label.toUpperCase(),
-          style: AppFonts.sf(
-              size: 12,
-              weight: FontWeight.w600,
-              color: c.ink3,
-              letterSpacing: 0.3)),
+          style: AppType.caption.copyWith(
+              fontWeight: FontWeight.w600, color: c.ink3, letterSpacing: 0.3)),
     );
   }
 }
@@ -340,17 +332,17 @@ class _CategoryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
+      margin: const EdgeInsets.symmetric(horizontal: Spacing.lg),
+      padding: const EdgeInsets.fromLTRB(
+          Spacing.lg, Spacing.xs, Spacing.lg, Spacing.xs),
       decoration: BoxDecoration(
-          color: c.surface, borderRadius: BorderRadius.circular(14)),
+          color: c.surface, borderRadius: BorderRadius.circular(Radii.card)),
       child: Column(
         children: [
           for (var i = 0; i < data.categories.length; i++)
             Padding(
-              padding: EdgeInsets.only(
-                  top: i == 0 ? 12 : 10,
-                  bottom: i == data.categories.length - 1 ? 12 : 10),
+              // first/last rows were 12, inner 10 — both snap to Spacing.md
+              padding: const EdgeInsets.symmetric(vertical: Spacing.md),
               child: _CategoryRow(
                   row: data.categories[i],
                   color: color,
@@ -386,33 +378,31 @@ class _CategoryRow extends StatelessWidget {
               width: 29,
               height: 29,
               decoration: BoxDecoration(
-                  color: color, borderRadius: BorderRadius.circular(7)),
+                  color: color, borderRadius: BorderRadius.circular(Radii.sm)),
               alignment: Alignment.center,
               child: AppIcon(_categoryIcon(row.label, fallbackIcon),
-                  size: 16, color: const Color(0xFFFFFFFF)),
+                  size: 16, color: c.onAccent),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: Spacing.md),
             Expanded(
               child: Text(row.label,
-                  style: AppFonts.sf(
-                      size: 15,
-                      weight: FontWeight.w500,
+                  style: AppType.subhead.copyWith(
+                      fontWeight: FontWeight.w500,
                       color: c.ink,
                       letterSpacing: -0.24)),
             ),
             Text(fmt(row.amount),
-                style: AppFonts.sf(
-                    size: 15,
-                    weight: FontWeight.w500,
+                style: AppType.subhead.copyWith(
+                    fontWeight: FontWeight.w500,
                     color: c.ink,
                     letterSpacing: -0.24,
-                    tabular: true)),
+                    fontFeatures: const [FontFeature.tabularFigures()])),
           ],
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: Spacing.sm),
         Padding(
           // align bar under the label, past the icon tile (29 + 12)
-          padding: const EdgeInsets.only(left: 41),
+          padding: const EdgeInsets.only(left: 41), // alignment offset; keep literal
           child: ProgressBar(value: row.fraction, color: color),
         ),
       ],
@@ -446,23 +436,23 @@ class _DayGroupCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.only(bottom: Spacing.md),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(20, 4, 20, 6),
+            padding: const EdgeInsets.fromLTRB(
+                Spacing.xl, Spacing.xs, Spacing.xl, Spacing.sm),
             child: Text(_dayLabel.toUpperCase(),
-                style: AppFonts.sf(
-                    size: 12,
-                    weight: FontWeight.w600,
+                style: AppType.caption.copyWith(
+                    fontWeight: FontWeight.w600,
                     color: c.ink3,
                     letterSpacing: 0.3)),
           ),
           Container(
-            margin: const EdgeInsets.symmetric(horizontal: 16),
+            margin: const EdgeInsets.symmetric(horizontal: Spacing.lg),
             decoration: BoxDecoration(
-                color: c.surface, borderRadius: BorderRadius.circular(14)),
+                color: c.surface, borderRadius: BorderRadius.circular(Radii.card)),
             clipBehavior: Clip.antiAlias,
             child: Column(
               children: [
@@ -543,32 +533,32 @@ class _EntryRow extends StatelessWidget {
         border:
             last ? null : Border(bottom: BorderSide(color: c.hair, width: 0.5)),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+      padding: const EdgeInsets.symmetric(
+          horizontal: Spacing.lg, vertical: Spacing.md),
       child: Row(
         children: [
           SizedBox(
             width: 38,
             child: Text(_time,
-                style: AppFonts.sf(
-                    size: 12,
-                    weight: FontWeight.w500,
+                style: AppType.caption.copyWith(
+                    fontWeight: FontWeight.w500,
                     color: c.ink3,
                     letterSpacing: -0.08,
-                    tabular: true)),
+                    fontFeatures: const [FontFeature.tabularFigures()])),
           ),
           Container(
             width: 30,
             height: 30,
             decoration: BoxDecoration(
-                color: color, borderRadius: BorderRadius.circular(9)),
+                color: color, borderRadius: BorderRadius.circular(Radii.sm)),
             alignment: Alignment.center,
             child: AppIcon(
                 _categoryIcon(
                     entry.category ?? entry.title, data.tracker.heroIcon),
                 size: 15,
-                color: const Color(0xFFFFFFFF)),
+                color: c.onAccent),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: Spacing.md),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -576,9 +566,8 @@ class _EntryRow extends StatelessWidget {
                 Text(entry.title,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: AppFonts.sf(
-                        size: 15,
-                        weight: FontWeight.w500,
+                    style: AppType.subhead.copyWith(
+                        fontWeight: FontWeight.w500,
                         color: c.ink,
                         letterSpacing: -0.24)),
                 if (entry.detail != null)
@@ -587,21 +576,20 @@ class _EntryRow extends StatelessWidget {
                     child: Text(entry.detail!,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: AppFonts.sf(
-                            size: 12, color: c.ink3, letterSpacing: -0.08)),
+                        style: AppType.caption
+                            .copyWith(color: c.ink3, letterSpacing: -0.08)),
                   ),
               ],
             ),
           ),
           Padding(
-            padding: const EdgeInsets.only(left: 8),
+            padding: const EdgeInsets.only(left: Spacing.sm),
             child: Text(fmt(data.tracker.magnitudeOf(entry), withSign: true),
-                style: AppFonts.sf(
-                    size: 14,
-                    weight: FontWeight.w600,
+                style: AppType.subhead.copyWith(
+                    fontWeight: FontWeight.w600,
                     color: c.ink,
                     letterSpacing: -0.15,
-                    tabular: true)),
+                    fontFeatures: const [FontFeature.tabularFigures()])),
           ),
         ],
       ),
@@ -628,23 +616,19 @@ class _AskPalPill extends StatelessWidget {
             end: Alignment.bottomRight,
             colors: [c.accent, c.rituals],
           ),
-          borderRadius: BorderRadius.circular(26),
-          boxShadow: const [
-            BoxShadow(
-                color: Color(0x33000000), blurRadius: 16, offset: Offset(0, 6)),
-          ],
+          borderRadius: BorderRadius.circular(Radii.xxl),
+          boxShadow: Elevation.card(c.shadow),
         ),
         alignment: Alignment.center,
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const AppIcon('sparkles', size: 16, color: Color(0xFFFFFFFF)),
-            const SizedBox(width: 8),
+            AppIcon('sparkles', size: 16, color: c.onAccent),
+            const SizedBox(width: Spacing.sm),
             Text(label,
-                style: AppFonts.sf(
-                    size: 16,
-                    weight: FontWeight.w600,
-                    color: const Color(0xFFFFFFFF),
+                style: AppType.callout.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: c.onAccent,
                     letterSpacing: -0.31)),
           ],
         ),

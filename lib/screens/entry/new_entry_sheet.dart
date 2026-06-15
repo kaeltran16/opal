@@ -5,8 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../controllers/providers.dart';
 import '../../models/models.dart';
 import '../../services/services.dart';
-import '../../theme/app_colors.dart';
-import '../../theme/app_text.dart';
+import '../../theme/theme.dart';
 import '../../widgets/app_icon.dart';
 import '../../widgets/controls.dart';
 import '../../widgets/keypad.dart';
@@ -395,19 +394,20 @@ class _NewEntrySheetState extends ConsumerState<NewEntrySheet> {
           children: [
             // Grabber.
             Padding(
-              padding: const EdgeInsets.only(top: 8, bottom: 4),
+              padding: const EdgeInsets.only(top: Spacing.sm, bottom: Spacing.xs),
               child: Container(
                 width: 36,
                 height: 5,
                 decoration: BoxDecoration(
                   color: c.ink4,
-                  borderRadius: BorderRadius.circular(2.5),
+                  borderRadius: BorderRadius.circular(2.5), // grabber corner; keep literal
                 ),
               ),
             ),
             // Header: Cancel / New Entry / Add.
             Padding(
-              padding: const EdgeInsets.fromLTRB(4, 2, 4, 2),
+              padding: const EdgeInsets.fromLTRB(
+                  Spacing.xs, Spacing.xxs, Spacing.xs, Spacing.xxs),
               child: Row(
                 children: [
                   NavAction(
@@ -418,12 +418,7 @@ class _NewEntrySheetState extends ConsumerState<NewEntrySheet> {
                     child: Text(
                       'New Entry',
                       textAlign: TextAlign.center,
-                      style: AppFonts.sf(
-                        size: 17,
-                        weight: FontWeight.w600,
-                        color: c.ink,
-                        letterSpacing: -0.43,
-                      ),
+                      style: AppType.headline.copyWith(color: c.ink),
                     ),
                   ),
                   NavAction(
@@ -437,7 +432,8 @@ class _NewEntrySheetState extends ConsumerState<NewEntrySheet> {
             ),
             // Fixed top: segmented type picker.
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+              padding: const EdgeInsets.fromLTRB(
+                  Spacing.lg, Spacing.sm, Spacing.lg, 0),
               child: Segmented<_Kind>(
                 options: const [
                   (_Kind.expense, 'Expense'),
@@ -448,16 +444,17 @@ class _NewEntrySheetState extends ConsumerState<NewEntrySheet> {
                 onChanged: _selectKind,
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: Spacing.xl),
 
             // Fixed big display.
             Center(child: _buildDisplay(c, typeColor)),
-            const SizedBox(height: 16),
+            const SizedBox(height: Spacing.lg),
 
             // Scrollable middle: Log with Pal + quick picks + optional fields.
             Expanded(
               child: ListView(
-                padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+                padding: const EdgeInsets.fromLTRB(
+                    Spacing.lg, Spacing.xs, Spacing.lg, Spacing.md),
                 children: [
                   // "Log with Pal" — inline natural-language entry (U16). Parses
                   // free text via PalService and pre-fills the form.
@@ -467,19 +464,18 @@ class _NewEntrySheetState extends ConsumerState<NewEntrySheet> {
                     parsing: _parsing,
                     onParse: _parseNl,
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: Spacing.lg),
                   Text(
                     'CATEGORY',
-                    style: AppFonts.sf(
-                      size: 12,
-                      weight: FontWeight.w600,
+                    style: AppType.caption.copyWith(
+                      fontWeight: FontWeight.w600,
                       color: c.ink3,
                       letterSpacing: 0.3,
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: Spacing.sm),
                   _buildQuickPicks(c),
-                  const SizedBox(height: 18),
+                  const SizedBox(height: Spacing.xl),
 
                   // Optional category / calories / note.
                   if (_kind == _Kind.expense) ...[
@@ -488,7 +484,7 @@ class _NewEntrySheetState extends ConsumerState<NewEntrySheet> {
                       hint: 'Category (optional)',
                       icon: 'tray.fill',
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: Spacing.sm),
                   ],
                   if (_kind == _Kind.workout) ...[
                     _OptionalField(
@@ -497,7 +493,7 @@ class _NewEntrySheetState extends ConsumerState<NewEntrySheet> {
                       icon: 'flame.fill',
                       keyboardType: TextInputType.number,
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: Spacing.sm),
                   ],
                   _OptionalField(
                     controller: _noteCtrl,
@@ -510,7 +506,8 @@ class _NewEntrySheetState extends ConsumerState<NewEntrySheet> {
 
             // Fixed bottom: keypad (money/move) or ritual title field.
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+              padding: const EdgeInsets.fromLTRB(
+                  Spacing.lg, Spacing.xs, Spacing.lg, Spacing.sm),
               child: _kind == _Kind.ritual
                   ? _RitualTitleField(
                       controller: _titleCtrl,
@@ -534,9 +531,7 @@ class _NewEntrySheetState extends ConsumerState<NewEntrySheet> {
       return Text(
         _displayText,
         textAlign: TextAlign.center,
-        style: AppFonts.sf(
-          size: 34,
-          weight: FontWeight.w700,
+        style: AppType.large.copyWith(
           color: _titleCtrl.text.trim().isEmpty ? c.ink4 : c.ink,
           letterSpacing: -0.4,
         ),
@@ -555,11 +550,11 @@ class _NewEntrySheetState extends ConsumerState<NewEntrySheet> {
       children: [
         if (_kind == _Kind.expense)
           Padding(
-            padding: const EdgeInsets.only(right: 4),
+            padding: const EdgeInsets.only(right: Spacing.xs),
             child: Text(
               '\$',
               style: AppFonts.sfr(
-                size: 46,
+                size: 46, // no sfr token for 46; keep inline
                 weight: FontWeight.w300,
                 color: c.ink4,
                 letterSpacing: -1,
@@ -569,7 +564,7 @@ class _NewEntrySheetState extends ConsumerState<NewEntrySheet> {
         Text(
           number,
           style: AppFonts.sfr(
-            size: 72,
+            size: 72, // hero display > 54; keep inline
             weight: FontWeight.w700,
             color: numberColor,
             letterSpacing: -2,
@@ -578,14 +573,10 @@ class _NewEntrySheetState extends ConsumerState<NewEntrySheet> {
         ),
         if (_kind == _Kind.workout)
           Padding(
-            padding: const EdgeInsets.only(left: 6),
+            padding: const EdgeInsets.only(left: Spacing.sm),
             child: Text(
               'min',
-              style: AppFonts.sf(
-                size: 20,
-                weight: FontWeight.w600,
-                color: c.ink3,
-              ),
+              style: AppType.title3.copyWith(color: c.ink3),
             ),
           ),
       ],
@@ -594,8 +585,8 @@ class _NewEntrySheetState extends ConsumerState<NewEntrySheet> {
 
   Widget _buildQuickPicks(AppColors c) {
     return Wrap(
-      spacing: 8,
-      runSpacing: 8,
+      spacing: Spacing.sm,
+      runSpacing: Spacing.sm,
       children: [
         for (final p in _picks.where((p) => p.kind == _kind))
           _QuickPickTile(
@@ -626,10 +617,11 @@ class _QuickPickTile extends StatelessWidget {
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        padding: const EdgeInsets.symmetric(
+            horizontal: Spacing.md, vertical: Spacing.md),
         decoration: BoxDecoration(
           color: c.surface,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(Radii.md),
           border: Border.all(color: c.hair, width: 0.5),
         ),
         child: Row(
@@ -640,29 +632,27 @@ class _QuickPickTile extends StatelessWidget {
               height: 26,
               decoration: BoxDecoration(
                 color: color,
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(Radii.sm),
               ),
               alignment: Alignment.center,
-              child: AppIcon(pick.icon, size: 14, color: const Color(0xFFFFFFFF)),
+              child: AppIcon(pick.icon, size: 14, color: c.onAccent),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: Spacing.sm),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
                   pick.title,
-                  style: AppFonts.sf(
-                    size: 14,
-                    weight: FontWeight.w500,
+                  style: AppType.subhead.copyWith(
+                    fontWeight: FontWeight.w500,
                     color: c.ink,
                     letterSpacing: -0.24,
                   ),
                 ),
                 Text(
                   pick.label,
-                  style: AppFonts.sf(
-                    size: 12,
+                  style: AppType.caption.copyWith(
                     color: c.ink3,
                     letterSpacing: -0.08,
                   ),
@@ -693,28 +683,30 @@ class _OptionalField extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      padding: const EdgeInsets.symmetric(
+          horizontal: Spacing.md, vertical: Spacing.xs),
       decoration: BoxDecoration(
         color: c.surface,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(Radii.md),
         border: Border.all(color: c.hair, width: 0.5),
       ),
       child: Row(
         children: [
           AppIcon(icon, size: 16, color: c.ink3),
-          const SizedBox(width: 10),
+          const SizedBox(width: Spacing.md),
           Expanded(
             child: TextField(
               controller: controller,
               keyboardType: keyboardType,
-              style: AppFonts.sf(size: 15, color: c.ink, letterSpacing: -0.24),
+              style: AppType.subhead
+                  .copyWith(color: c.ink, letterSpacing: -0.24),
               cursorColor: c.accent,
               decoration: InputDecoration(
                 isDense: true,
                 border: InputBorder.none,
                 hintText: hint,
-                hintStyle:
-                    AppFonts.sf(size: 15, color: c.ink4, letterSpacing: -0.24),
+                hintStyle: AppType.subhead
+                    .copyWith(color: c.ink4, letterSpacing: -0.24),
               ),
             ),
           ),
@@ -734,24 +726,24 @@ class _RitualTitleField extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+      padding: const EdgeInsets.symmetric(
+          horizontal: Spacing.lg, vertical: Spacing.sm),
       decoration: BoxDecoration(
         color: c.surface,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(Radii.md),
         border: Border.all(color: c.hair, width: 0.5),
       ),
       child: TextField(
         controller: controller,
         autofocus: true,
         onChanged: onChanged,
-        style: AppFonts.sf(size: 17, color: c.ink, letterSpacing: -0.43),
+        style: AppType.body.copyWith(color: c.ink),
         cursorColor: c.rituals,
         decoration: InputDecoration(
           isDense: true,
           border: InputBorder.none,
           hintText: 'Routine title',
-          hintStyle:
-              AppFonts.sf(size: 17, color: c.ink4, letterSpacing: -0.43),
+          hintStyle: AppType.body.copyWith(color: c.ink4),
         ),
       ),
     );
@@ -778,10 +770,10 @@ class _LogWithPalBox extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(Spacing.md),
       decoration: BoxDecoration(
         color: accent.withValues(alpha: 0.10),
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(Radii.card),
         border: Border.all(color: accent.withValues(alpha: 0.33), width: 0.5),
       ),
       child: Column(
@@ -790,28 +782,27 @@ class _LogWithPalBox extends StatelessWidget {
           Row(
             children: [
               AppIcon('sparkles', size: 14, color: accent),
-              const SizedBox(width: 6),
+              const SizedBox(width: Spacing.sm),
               Text(
                 'LOG WITH PAL',
-                style: AppFonts.sf(
-                  size: 12,
-                  weight: FontWeight.w700,
+                style: AppType.caption.copyWith(
+                  fontWeight: FontWeight.w700,
                   color: accent,
                   letterSpacing: 0.3,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: Spacing.sm),
           Row(
             children: [
               Expanded(
                 child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: Spacing.md, vertical: Spacing.sm),
                   decoration: BoxDecoration(
                     color: c.surface,
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(Radii.md),
                     border: Border.all(color: c.hair, width: 0.5),
                   ),
                   child: TextField(
@@ -819,19 +810,19 @@ class _LogWithPalBox extends StatelessWidget {
                     textInputAction: TextInputAction.done,
                     onSubmitted: (_) => onParse(),
                     cursorColor: accent,
-                    style: AppFonts.sf(
-                        size: 15, color: c.ink, letterSpacing: -0.24),
+                    style: AppType.subhead
+                        .copyWith(color: c.ink, letterSpacing: -0.24),
                     decoration: InputDecoration(
                       isDense: true,
                       border: InputBorder.none,
                       hintText: 'spent \$14 on ramen',
-                      hintStyle: AppFonts.sf(
-                          size: 15, color: c.ink4, letterSpacing: -0.24),
+                      hintStyle: AppType.subhead
+                          .copyWith(color: c.ink4, letterSpacing: -0.24),
                     ),
                   ),
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: Spacing.sm),
               ValueListenableBuilder<TextEditingValue>(
                 valueListenable: controller,
                 builder: (context, value, _) {
@@ -841,27 +832,23 @@ class _LogWithPalBox extends StatelessWidget {
                     behavior: HitTestBehavior.opaque,
                     child: Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 10),
+                          horizontal: Spacing.lg, vertical: Spacing.md),
                       decoration: BoxDecoration(
                         color: enabled ? accent : c.fill,
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(Radii.md),
                       ),
                       child: parsing
                           ? SizedBox(
                               width: 15,
                               height: 15,
                               child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: const Color(0xFFFFFFFF)),
+                                  strokeWidth: 2, color: c.onAccent),
                             )
                           : Text(
                               'Parse',
-                              style: AppFonts.sf(
-                                size: 14,
-                                weight: FontWeight.w600,
-                                color: enabled
-                                    ? const Color(0xFFFFFFFF)
-                                    : c.ink3,
+                              style: AppType.subhead.copyWith(
+                                fontWeight: FontWeight.w600,
+                                color: enabled ? c.onAccent : c.ink3,
                                 letterSpacing: -0.2,
                               ),
                             ),

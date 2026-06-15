@@ -1,8 +1,7 @@
 import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../theme/app_colors.dart';
-import '../../theme/app_text.dart';
+import '../../theme/theme.dart';
 import '../../widgets/app_icon.dart';
 import '../../widgets/gmail_glyph.dart';
 import '../../widgets/inset_section.dart';
@@ -54,30 +53,28 @@ class EmailIntroScreen extends StatelessWidget {
 
           // --- Value prop ----------------------------------------------------
           Padding(
-            padding: const EdgeInsets.fromLTRB(24, 16, 24, 28),
+            padding: const EdgeInsets.fromLTRB(
+                Spacing.xxl, Spacing.lg, Spacing.xxl, 28), // 28: no token, keep
             child: Column(
               children: [
                 _IntroGlyph(),
-                const SizedBox(height: 20),
+                const SizedBox(height: Spacing.xl),
                 Text(
                   'Stop logging card\ncharges by hand.',
                   textAlign: TextAlign.center,
-                  style: AppFonts.sf(
-                    size: 26,
-                    weight: FontWeight.w700,
+                  style: AppType.title1.copyWith(
                     color: c.ink,
                     letterSpacing: -0.5,
                     height: 1.15,
                   ),
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: Spacing.md),
                 Text(
                   'Connect your inbox with a read-only app password. Pal scans '
                   'for bank alert emails in the background and drops them on '
                   'your timeline — categorized, deduped, silent.',
                   textAlign: TextAlign.center,
-                  style: AppFonts.sf(
-                    size: 15,
+                  style: AppType.subhead.copyWith(
                     color: c.ink2,
                     letterSpacing: -0.2,
                     height: 1.45,
@@ -98,12 +95,14 @@ class EmailIntroScreen extends StatelessWidget {
 
           // --- Reassurance note ----------------------------------------------
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            padding: const EdgeInsets.fromLTRB(
+                Spacing.lg, 0, Spacing.lg, Spacing.lg),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              padding: const EdgeInsets.symmetric(
+                  horizontal: Spacing.lg, vertical: Spacing.md),
               decoration: BoxDecoration(
                 color: c.accent.withValues(alpha: 0.06),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(Radii.md),
                 border: Border.all(
                     color: c.accent.withValues(alpha: 0.20), width: 0.5),
               ),
@@ -111,15 +110,14 @@ class EmailIntroScreen extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   AppIcon('heart.fill', size: 14, color: c.accent),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: Spacing.md),
                   Expanded(
                     child: Text(
                       'App password, not your real one. You generate a '
                       'disposable password in your email settings — Pal stores '
                       'it encrypted in the iOS keychain. Revoke it anytime from '
                       'Gmail without touching anything else.',
-                      style: AppFonts.sf(
-                        size: 12,
+                      style: AppType.caption.copyWith(
                         color: c.ink2,
                         letterSpacing: -0.08,
                         height: 1.5,
@@ -133,15 +131,17 @@ class EmailIntroScreen extends StatelessWidget {
 
           // --- CTA -----------------------------------------------------------
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+            padding: const EdgeInsets.fromLTRB(
+                Spacing.lg, 0, Spacing.lg, Spacing.xs),
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
               onTap: () => context.pushNamed('emailSetup'),
               child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 15),
+                padding: const EdgeInsets.symmetric(vertical: Spacing.lg),
                 decoration: BoxDecoration(
                   color: c.ink,
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(Radii.card),
+                  // accent-tinted glow (matches ink fill), not neutral elevation
                   boxShadow: [
                     BoxShadow(
                       color: c.ink.withValues(alpha: 0.20),
@@ -155,13 +155,12 @@ class EmailIntroScreen extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     const GmailGlyph(size: 18),
-                    const SizedBox(width: 10),
+                    const SizedBox(width: Spacing.md),
                     Text(
                       'Set up Gmail sync',
-                      style: AppFonts.sf(
-                        size: 16,
-                        weight: FontWeight.w600,
+                      style: AppType.callout.copyWith(
                         color: c.bg,
+                        fontWeight: FontWeight.w600,
                         letterSpacing: -0.2,
                       ),
                     ),
@@ -171,11 +170,11 @@ class EmailIntroScreen extends StatelessWidget {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.symmetric(vertical: 12),
+            padding: const EdgeInsets.symmetric(vertical: Spacing.md),
             child: Text(
               'iCloud, Outlook, any IMAP coming',
               textAlign: TextAlign.center,
-              style: AppFonts.sf(size: 14, color: c.ink3, letterSpacing: -0.2),
+              style: AppType.footnote.copyWith(color: c.ink3, letterSpacing: -0.2),
             ),
           ),
         ],
@@ -199,7 +198,7 @@ class _IntroGlyph extends StatelessWidget {
             width: 120,
             height: 120,
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(28),
+              borderRadius: BorderRadius.circular(Radii.xxl),
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
@@ -219,6 +218,7 @@ class _IntroGlyph extends StatelessWidget {
               decoration: BoxDecoration(
                 color: c.money,
                 shape: BoxShape.circle,
+                // money-tinted glow, not neutral elevation — keep inline
                 boxShadow: [
                   BoxShadow(
                     color: c.money.withValues(alpha: 0.33),
@@ -228,8 +228,7 @@ class _IntroGlyph extends StatelessWidget {
                 ],
               ),
               alignment: Alignment.center,
-              child: const AppIcon('sparkles',
-                  size: 18, color: Color(0xFFFFFFFF)),
+              child: AppIcon('sparkles', size: 18, color: c.onAccent),
             ),
           ),
         ],
@@ -253,7 +252,7 @@ class _StepRow extends StatelessWidget {
         border:
             last ? null : Border(bottom: BorderSide(color: c.hair, width: 0.5)),
       ),
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(Spacing.lg),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -262,26 +261,24 @@ class _StepRow extends StatelessWidget {
             height: 34,
             decoration: BoxDecoration(
               color: color.withValues(alpha: 0.13),
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(Radii.md),
             ),
             alignment: Alignment.center,
             child: AppIcon(step.$1, size: 17, color: color),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: Spacing.md),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(step.$3,
-                    style: AppFonts.sf(
-                        size: 15,
-                        weight: FontWeight.w500,
+                    style: AppType.subhead.copyWith(
+                        fontWeight: FontWeight.w500,
                         color: c.ink,
                         letterSpacing: -0.24)),
-                const SizedBox(height: 2),
+                const SizedBox(height: Spacing.xxs),
                 Text(step.$4,
-                    style: AppFonts.sf(
-                        size: 13,
+                    style: AppType.footnote.copyWith(
                         color: c.ink3,
                         letterSpacing: -0.08,
                         height: 1.4)),

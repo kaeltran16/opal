@@ -9,8 +9,7 @@ import '../../controllers/weekly_review_controller.dart'
     show WeeklyStats, weekStartFor;
 import '../../models/models.dart';
 import '../../router.dart';
-import '../../theme/app_colors.dart';
-import '../../theme/app_text.dart';
+import '../../theme/theme.dart';
 import '../../widgets/budget_sheet.dart';
 import '../../widgets/inset_section.dart';
 import '../../widgets/nav_bar.dart';
@@ -36,16 +35,15 @@ class ProfileScreen extends ConsumerWidget {
 
     return async.when(
       loading: () => Center(
-        child: Text('…',
-            style: AppFonts.sf(size: 17, color: c.ink3, letterSpacing: -0.43)),
+        child: Text('…', style: AppType.body.copyWith(color: c.ink3)),
       ),
       error: (e, _) => Center(
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(Spacing.xxl),
           child: Text("Couldn't load your profile.",
               textAlign: TextAlign.center,
-              style:
-                  AppFonts.sf(size: 15, color: c.ink3, letterSpacing: -0.24)),
+              style: AppType.subhead
+                  .copyWith(color: c.ink3, letterSpacing: -0.24)),
         ),
       ),
       data: (goals) => _ProfileBody(
@@ -169,12 +167,12 @@ class _ProfileBody extends StatelessWidget {
       children: [
         // --- Profile card ---
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          padding: const EdgeInsets.fromLTRB(Spacing.lg, 0, Spacing.lg, Spacing.lg),
           child: Container(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(Spacing.lg),
             decoration: BoxDecoration(
               color: c.surface,
-              borderRadius: BorderRadius.circular(18),
+              borderRadius: BorderRadius.circular(Radii.lg),
               boxShadow: [
                 BoxShadow(color: c.hair, blurRadius: 0, spreadRadius: 0.5),
               ],
@@ -194,26 +192,20 @@ class _ProfileBody extends StatelessWidget {
                   ),
                   alignment: Alignment.center,
                   child: Text(initial,
-                      style: AppFonts.sf(
-                          size: 22,
-                          weight: FontWeight.w700,
-                          color: const Color(0xFFFFFFFF))),
+                      style: AppType.title2.copyWith(color: c.onAccent)),
                 ),
-                const SizedBox(width: 14),
+                const SizedBox(width: Spacing.lg),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(displayName,
-                          style: AppFonts.sf(
-                              size: 17,
-                              weight: FontWeight.w600,
-                              color: c.ink,
-                              letterSpacing: -0.3)),
-                      const SizedBox(height: 2),
+                          style: AppType.headline
+                              .copyWith(color: c.ink, letterSpacing: -0.3)),
+                      const SizedBox(height: Spacing.xxs),
                       Text(tenure,
-                          style: AppFonts.sf(
-                              size: 13, color: c.ink3, letterSpacing: -0.08)),
+                          style: AppType.footnote
+                              .copyWith(color: c.ink3, letterSpacing: -0.08)),
                     ],
                   ),
                 ),

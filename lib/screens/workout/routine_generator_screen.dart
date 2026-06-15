@@ -5,8 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../controllers/routine_generator_controller.dart';
 import '../../models/models.dart';
 import '../../services/pal/pal_service.dart';
-import '../../theme/app_colors.dart';
-import '../../theme/app_text.dart';
+import '../../theme/theme.dart';
 import '../../widgets/app_icon.dart';
 import '../../widgets/inset_section.dart';
 import '../../widgets/nav_bar.dart';
@@ -52,6 +51,7 @@ class _RoutineGeneratorScreenState
         _QuickGoal('Quick full-body, no barbell', 'figure.mixed.cardio', c.accent),
         _QuickGoal('Pull day focused on back', 'figure.pullup', c.rituals),
         _QuickGoal('Short HIIT cardio', 'bolt.fill', c.money),
+        // decorative per-goal accent, not the money token
         _QuickGoal('Legs — glutes and hams', 'figure.walk', const Color(0xFFFF9500)),
         _QuickGoal('Home workout, no gear', 'house.fill', c.red),
       ];
@@ -97,15 +97,16 @@ class _RoutineGeneratorScreenState
           label: 'Cancel',
           onTap: () => context.pop(),
         ),
+        // bottom: 110 scroll-tail clearance for floating actions → keep literal
         padding: const EdgeInsets.only(bottom: 110),
         children: [
           if (!isResult) ...[
             const Padding(
-              padding: EdgeInsets.fromLTRB(16, 4, 16, 18),
+              padding: EdgeInsets.fromLTRB(Spacing.lg, Spacing.xs, Spacing.lg, Spacing.xl),
               child: _HeroCard(),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
+              padding: const EdgeInsets.fromLTRB(Spacing.lg, 0, Spacing.lg, Spacing.lg),
               child: _PromptCard(
                 controller: _promptController,
                 enabled: !isLoading,
@@ -113,7 +114,7 @@ class _RoutineGeneratorScreenState
               ),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+              padding: const EdgeInsets.fromLTRB(Spacing.lg, 0, Spacing.lg, 0),
               child: _QuickPicks(
                 goals: _goals(c),
                 disabled: isLoading,
@@ -126,18 +127,18 @@ class _RoutineGeneratorScreenState
 
           if (state is RoutineGeneratorError)
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+              padding: const EdgeInsets.fromLTRB(Spacing.lg, 0, Spacing.lg, 0),
               child: _ErrorCard(message: state.message),
             ),
 
           if (state is RoutineGeneratorResult) ...[
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 4, 16, 14),
+              padding: const EdgeInsets.fromLTRB(Spacing.lg, Spacing.xs, Spacing.lg, Spacing.lg),
               child: _ResultHeader(draft: state.draft),
             ),
             _ExerciseSection(state: state),
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+              padding: const EdgeInsets.fromLTRB(Spacing.lg, Spacing.sm, Spacing.lg, 0),
               child: _ResultActions(
                 onTryAgain:
                     ref.read(routineGeneratorControllerProvider.notifier).reset,
@@ -160,7 +161,7 @@ class _HeroCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     return ClipRRect(
-      borderRadius: BorderRadius.circular(18),
+      borderRadius: BorderRadius.circular(Radii.lg),
       child: Stack(
         children: [
           Positioned.fill(child: ColoredBox(color: c.ink)),
@@ -175,7 +176,7 @@ class _HeroCard extends StatelessWidget {
             child: _RadialTint(size: 120, color: c.accent, alpha: 0.2),
           ),
           Padding(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(Spacing.xl),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -189,16 +190,15 @@ class _HeroCard extends StatelessWidget {
                       alignment: Alignment.center,
                       child: const AppIcon('sparkles', size: 12, color: _white),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: Spacing.sm),
                     Text('PAL BUILDS YOUR ROUTINE',
-                        style: AppFonts.sf(
-                            size: 11,
-                            weight: FontWeight.w700,
+                        style: AppType.caption2.copyWith(
+                            fontWeight: FontWeight.w700,
                             color: _white.withValues(alpha: 0.85),
                             letterSpacing: 1.2)),
                   ],
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: Spacing.md),
                 Text('Describe what you want.\nPal picks the exercises.',
                     style: AppFonts.sfr(
                         size: 22,
@@ -206,11 +206,10 @@ class _HeroCard extends StatelessWidget {
                         color: _white,
                         letterSpacing: -0.4,
                         height: 1.15)),
-                const SizedBox(height: 6),
+                const SizedBox(height: Spacing.sm),
                 Text('"A 30-min pull day I can do at the gym" or '
                     '"legs at home with dumbbells."',
-                    style: AppFonts.sf(
-                        size: 13,
+                    style: AppType.footnote.copyWith(
                         color: _white.withValues(alpha: 0.75),
                         letterSpacing: -0.1,
                         height: 1.45)),
@@ -261,10 +260,10 @@ class _PromptCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(Spacing.lg),
       decoration: BoxDecoration(
         color: c.surface,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(Radii.lg),
         border: Border.all(color: c.hair, width: 0.5),
       ),
       child: Column(
@@ -278,22 +277,22 @@ class _PromptCard extends StatelessWidget {
               minLines: 3,
               maxLines: 6,
               cursorColor: c.accent,
-              style: AppFonts.sf(
-                  size: 15, color: c.ink, letterSpacing: -0.2, height: 1.4),
+              style: AppType.subhead.copyWith(
+                  color: c.ink, letterSpacing: -0.2, height: 1.4),
               decoration: InputDecoration(
                 isDense: true,
                 border: InputBorder.none,
                 contentPadding: EdgeInsets.zero,
                 hintText:
                     'What kind of workout do you want? Goal, duration, equipment…',
-                hintStyle: AppFonts.sf(
-                    size: 15, color: c.ink3, letterSpacing: -0.2, height: 1.4),
+                hintStyle: AppType.subhead.copyWith(
+                    color: c.ink3, letterSpacing: -0.2, height: 1.4),
               ),
             ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: Spacing.md),
           Container(height: 0.5, color: c.hair),
-          const SizedBox(height: 10),
+          const SizedBox(height: Spacing.md),
           ValueListenableBuilder<TextEditingValue>(
             valueListenable: controller,
             builder: (context, value, _) {
@@ -302,10 +301,10 @@ class _PromptCard extends StatelessWidget {
                 children: [
                   Expanded(
                     child: Text('Pal uses your exercise library & recent sessions',
-                        style: AppFonts.sf(
-                            size: 11, color: c.ink4, letterSpacing: -0.08)),
+                        style: AppType.caption2.copyWith(
+                            color: c.ink4, letterSpacing: -0.08)),
                   ),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: Spacing.md),
                   _GenerateButton(
                     enabled: canGenerate,
                     onTap: canGenerate ? onGenerate : null,
@@ -334,20 +333,20 @@ class _GenerateButton extends StatelessWidget {
       onTap: onTap,
       semanticLabel: 'Generate',
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
+        // vertical: 9 off-grid (CTA pill height) → keep literal
+        padding: const EdgeInsets.symmetric(horizontal: Spacing.lg, vertical: 9),
         decoration: BoxDecoration(
           color: enabled ? c.move : c.fill,
-          borderRadius: BorderRadius.circular(100),
+          borderRadius: BorderRadius.circular(Radii.pill),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             AppIcon('sparkles', size: 11, color: fg),
-            const SizedBox(width: 5),
+            const SizedBox(width: Spacing.xs),
             Text('Generate',
-                style: AppFonts.sf(
-                    size: 13,
-                    weight: FontWeight.w700,
+                style: AppType.footnote.copyWith(
+                    fontWeight: FontWeight.w700,
                     color: fg,
                     letterSpacing: -0.1)),
           ],
@@ -375,11 +374,10 @@ class _QuickPicks extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(4, 0, 4, 10),
+          padding: const EdgeInsets.fromLTRB(Spacing.xs, 0, Spacing.xs, Spacing.md),
           child: Text('OR TRY ONE OF THESE',
-              style: AppFonts.sf(
-                  size: 12,
-                  weight: FontWeight.w700,
+              style: AppType.caption.copyWith(
+                  fontWeight: FontWeight.w700,
                   color: c.ink3,
                   letterSpacing: 0.8)),
         ),
@@ -387,8 +385,8 @@ class _QuickPicks extends StatelessWidget {
           crossAxisCount: 2,
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          mainAxisSpacing: 8,
-          crossAxisSpacing: 8,
+          mainAxisSpacing: Spacing.sm,
+          crossAxisSpacing: Spacing.sm,
           childAspectRatio: 2.6,
           children: [
             for (final g in goals)
@@ -423,10 +421,10 @@ class _QuickGoalButton extends StatelessWidget {
       child: Opacity(
         opacity: disabled ? 0.4 : 1,
         child: Container(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(Spacing.md),
           decoration: BoxDecoration(
             color: c.surface,
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(Radii.card),
             border: Border.all(color: c.hair, width: 0.5),
           ),
           child: Row(
@@ -436,19 +434,18 @@ class _QuickGoalButton extends StatelessWidget {
                 height: 32,
                 decoration: BoxDecoration(
                   color: goal.color.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(9),
+                  borderRadius: BorderRadius.circular(Radii.sm),
                 ),
                 alignment: Alignment.center,
                 child: AppIcon(goal.icon, size: 15, color: goal.color),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: Spacing.md),
               Expanded(
                 child: Text(goal.label,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: AppFonts.sf(
-                        size: 13,
-                        weight: FontWeight.w500,
+                    style: AppType.footnote.copyWith(
+                        fontWeight: FontWeight.w500,
                         color: c.ink,
                         letterSpacing: -0.1,
                         height: 1.2)),
@@ -469,13 +466,13 @@ class _LoadingPill extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 24, 16, 0),
+      padding: const EdgeInsets.fromLTRB(Spacing.lg, Spacing.xxl, Spacing.lg, 0),
       child: Center(
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          padding: const EdgeInsets.symmetric(horizontal: Spacing.lg, vertical: Spacing.md),
           decoration: BoxDecoration(
             color: c.surface,
-            borderRadius: BorderRadius.circular(100),
+            borderRadius: BorderRadius.circular(Radii.pill),
             border: Border.all(color: c.hair, width: 0.5),
           ),
           child: Row(
@@ -490,10 +487,10 @@ class _LoadingPill extends StatelessWidget {
                   backgroundColor: c.move.withValues(alpha: 0.2),
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: Spacing.sm),
               Text('Pal is building your routine…',
-                  style: AppFonts.sf(
-                      size: 13, color: c.ink2, letterSpacing: -0.1)),
+                  style: AppType.footnote.copyWith(
+                      color: c.ink2, letterSpacing: -0.1)),
             ],
           ),
         ),
@@ -511,14 +508,14 @@ class _ErrorCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(Spacing.lg),
       decoration: BoxDecoration(
         color: c.red.withValues(alpha: 0.07),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(Radii.md),
         border: Border.all(color: c.red.withValues(alpha: 0.27), width: 0.5),
       ),
       child: Text(message,
-          style: AppFonts.sf(size: 13, color: c.red, letterSpacing: -0.1)),
+          style: AppType.footnote.copyWith(color: c.red, letterSpacing: -0.1)),
     );
   }
 }
@@ -545,9 +542,9 @@ class _ResultHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(Spacing.xl),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(Radii.lg),
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -558,26 +555,25 @@ class _ResultHeader extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+            padding: const EdgeInsets.symmetric(horizontal: Spacing.sm, vertical: Spacing.xs),
             decoration: BoxDecoration(
               color: _white.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(100),
+              borderRadius: BorderRadius.circular(Radii.pill),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 const AppIcon('sparkles', size: 9, color: _white),
-                const SizedBox(width: 5),
+                const SizedBox(width: Spacing.xs),
                 Text('GENERATED',
-                    style: AppFonts.sf(
-                        size: 10,
-                        weight: FontWeight.w700,
+                    style: AppType.caption2.copyWith(
+                        fontWeight: FontWeight.w700,
                         color: _white,
                         letterSpacing: 1)),
               ],
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: Spacing.sm),
           Text(draft.name,
               style: AppFonts.sfr(
                   size: 24,
@@ -585,39 +581,36 @@ class _ResultHeader extends StatelessWidget {
                   color: _white,
                   letterSpacing: -0.5,
                   height: 1.1)),
-          const SizedBox(height: 8),
+          const SizedBox(height: Spacing.sm),
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                padding: const EdgeInsets.symmetric(horizontal: Spacing.sm, vertical: Spacing.xxs),
                 decoration: BoxDecoration(
                   color: _white.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(100),
+                  borderRadius: BorderRadius.circular(Radii.pill),
                 ),
                 child: Text(_tagLabel,
-                    style: AppFonts.sf(
-                        size: 11,
-                        weight: FontWeight.w600,
+                    style: AppType.caption2.copyWith(
+                        fontWeight: FontWeight.w600,
                         color: _white,
                         letterSpacing: -0.08)),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: Spacing.sm),
               Flexible(
                 child: Text(_meta,
-                    style: AppFonts.sf(
-                        size: 12,
+                    style: AppType.caption.copyWith(
                         color: _white.withValues(alpha: 0.85),
                         letterSpacing: -0.08)),
               ),
             ],
           ),
           if (draft.rationale != null && draft.rationale!.isNotEmpty) ...[
-            const SizedBox(height: 12),
+            const SizedBox(height: Spacing.md),
             Container(height: 0.5, color: _white.withValues(alpha: 0.2)),
-            const SizedBox(height: 12),
+            const SizedBox(height: Spacing.md),
             Text(draft.rationale!,
-                style: AppFonts.sf(
-                    size: 13,
+                style: AppType.footnote.copyWith(
                     color: _white.withValues(alpha: 0.9),
                     letterSpacing: -0.1,
                     height: 1.45)),
@@ -689,7 +682,7 @@ class _ExerciseRow extends StatelessWidget {
     return Stack(
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+          padding: const EdgeInsets.fromLTRB(Spacing.lg, Spacing.md, Spacing.lg, Spacing.md),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -700,13 +693,13 @@ class _ExerciseRow extends StatelessWidget {
                     height: 32,
                     decoration: BoxDecoration(
                       color: c.move.withValues(alpha: 0.13),
-                      borderRadius: BorderRadius.circular(9),
+                      borderRadius: BorderRadius.circular(Radii.sm),
                     ),
                     alignment: Alignment.center,
                     child: AppIcon(exercise?.icon ?? 'dumbbell.fill',
                         size: 16, color: c.move),
                   ),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: Spacing.md),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -714,15 +707,13 @@ class _ExerciseRow extends StatelessWidget {
                         Text(exercise?.name ?? 'Unknown exercise',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: AppFonts.sf(
-                                size: 15,
-                                weight: FontWeight.w600,
+                            style: AppType.subhead.copyWith(
+                                fontWeight: FontWeight.w600,
                                 color: c.ink,
                                 letterSpacing: -0.24)),
                         if (subtitle.isNotEmpty)
                           Text(subtitle,
-                              style: AppFonts.sf(
-                                  size: 12,
+                              style: AppType.caption.copyWith(
                                   color: c.ink3,
                                   letterSpacing: -0.08)),
                       ],
@@ -730,20 +721,21 @@ class _ExerciseRow extends StatelessWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: Spacing.sm),
               Padding(
+                // left: 42 aligns set chips under the title (past the 32 icon + gap) → keep literal
                 padding: const EdgeInsets.only(left: 42),
                 child: Wrap(
-                  spacing: 5,
-                  runSpacing: 5,
+                  spacing: Spacing.xs,
+                  runSpacing: Spacing.xs,
                   children: [
                     for (final s in generated.sets)
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 4),
+                            horizontal: Spacing.md, vertical: Spacing.xs),
                         decoration: BoxDecoration(
                           color: c.fill,
-                          borderRadius: BorderRadius.circular(6),
+                          borderRadius: BorderRadius.circular(Radii.sm),
                         ),
                         child: Text(_setLabel(s),
                             style: AppFonts.sfr(
@@ -760,6 +752,7 @@ class _ExerciseRow extends StatelessWidget {
         ),
         if (!last)
           Positioned(
+            // left: 14 inset aligns divider with row content → keep literal
             left: 14,
             right: 0,
             bottom: 0,
@@ -787,21 +780,21 @@ class _ResultActions extends StatelessWidget {
             onTap: onTryAgain,
             semanticLabel: 'Try again',
             child: Container(
+              // vertical: 13 off-grid (CTA button height) → keep literal
               padding: const EdgeInsets.symmetric(vertical: 13),
               decoration: BoxDecoration(
                 color: c.surface,
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(Radii.md),
                 border: Border.all(color: c.hair, width: 0.5),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   AppIcon('arrow.clockwise', size: 12, color: c.ink2),
-                  const SizedBox(width: 5),
+                  const SizedBox(width: Spacing.xs),
                   Text('Try again',
-                      style: AppFonts.sf(
-                          size: 14,
-                          weight: FontWeight.w600,
+                      style: AppType.subhead.copyWith(
+                          fontWeight: FontWeight.w600,
                           color: c.ink2,
                           letterSpacing: -0.2)),
                 ],
@@ -809,23 +802,23 @@ class _ResultActions extends StatelessWidget {
             ),
           ),
         ),
-        const SizedBox(width: 10),
+        const SizedBox(width: Spacing.md),
         Expanded(
           flex: 2,
           child: PressScale(
             onTap: onSave,
             semanticLabel: 'Save routine',
             child: Container(
+              // vertical: 13 off-grid (CTA button height) → keep literal
               padding: const EdgeInsets.symmetric(vertical: 13),
               decoration: BoxDecoration(
                 color: c.move,
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(Radii.md),
               ),
               alignment: Alignment.center,
               child: Text('Save routine',
-                  style: AppFonts.sf(
-                      size: 15,
-                      weight: FontWeight.w700,
+                  style: AppType.subhead.copyWith(
+                      fontWeight: FontWeight.w700,
                       color: _white,
                       letterSpacing: -0.24)),
             ),

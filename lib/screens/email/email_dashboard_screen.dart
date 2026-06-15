@@ -10,8 +10,7 @@ import '../../controllers/email_sync_controller.dart';
 import '../../data/repositories/settings_repository.dart' show SyncCadence;
 import '../../models/models.dart';
 import '../../services/email/email_sync_service.dart';
-import '../../theme/app_colors.dart';
-import '../../theme/app_text.dart';
+import '../../theme/theme.dart';
 import '../../widgets/app_icon.dart';
 import '../../widgets/controls.dart';
 import '../../widgets/gmail_glyph.dart';
@@ -86,12 +85,13 @@ class EmailDashboardScreen extends ConsumerWidget {
         children: [
           // --- Sync-job hero -------------------------------------------------
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+            padding: const EdgeInsets.fromLTRB(
+                Spacing.lg, Spacing.xs, Spacing.lg, Spacing.lg),
             child: Container(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(Spacing.lg),
               decoration: BoxDecoration(
                 color: c.surface,
-                borderRadius: BorderRadius.circular(18),
+                borderRadius: BorderRadius.circular(Radii.lg),
                 border: Border.all(color: c.hair, width: 0.5),
               ),
               child: Column(
@@ -100,7 +100,7 @@ class EmailDashboardScreen extends ConsumerWidget {
                   Row(
                     children: [
                       const GmailGlyph(size: 32),
-                      const SizedBox(width: 12),
+                      const SizedBox(width: Spacing.md),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -111,34 +111,34 @@ class EmailDashboardScreen extends ConsumerWidget {
                                   child: Text(address,
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
-                                      style: AppFonts.sf(
-                                          size: 15,
-                                          weight: FontWeight.w600,
+                                      style: AppType.subhead.copyWith(
+                                          fontWeight: FontWeight.w600,
                                           color: c.ink,
                                           letterSpacing: -0.24)),
                                 ),
-                                const SizedBox(width: 8),
+                                const SizedBox(width: Spacing.sm),
                                 if (connected) _ConnectionChip(syncing: syncing),
                               ],
                             ),
-                            const SizedBox(height: 2),
+                            const SizedBox(height: Spacing.xxs),
                             Text(line,
-                                style: AppFonts.sf(
-                                    size: 12,
+                                style: AppType.caption.copyWith(
                                     color: c.ink3,
                                     letterSpacing: -0.08,
-                                    tabular: true)),
+                                    fontFeatures: const [
+                                      FontFeature.tabularFigures()
+                                    ])),
                           ],
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 14),
+                  const SizedBox(height: Spacing.lg), // 14→16
                   ProgressBar(
                     value: progress,
                     color: status == SyncStatus.upToDate ? c.move : c.accent,
                   ),
-                  const SizedBox(height: 14),
+                  const SizedBox(height: Spacing.lg), // 14→16
                   Row(
                     children: [
                       Expanded(
@@ -150,7 +150,7 @@ class EmailDashboardScreen extends ConsumerWidget {
                               .syncNow()),
                         ),
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: Spacing.sm),
                       _ScheduleChip(cadence: dash.syncCadence),
                     ],
                   ),
@@ -164,12 +164,14 @@ class EmailDashboardScreen extends ConsumerWidget {
           // No "recurring"/subscription tile: that data model was removed and is
           // not reconstructed here (would be fabricated).
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            padding: const EdgeInsets.fromLTRB(
+                Spacing.lg, 0, Spacing.lg, Spacing.lg),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 16),
+              padding: const EdgeInsets.symmetric(
+                  horizontal: Spacing.md, vertical: Spacing.lg),
               decoration: BoxDecoration(
                 color: c.surface,
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(Radii.card),
                 border: Border.all(color: c.hair, width: 0.5),
               ),
               child: Row(
@@ -208,12 +210,13 @@ class EmailDashboardScreen extends ConsumerWidget {
             )
           else
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              padding: const EdgeInsets.fromLTRB(
+                  Spacing.lg, 0, Spacing.lg, Spacing.lg),
               child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 28),
+                padding: const EdgeInsets.symmetric(vertical: 28), // no token
                 decoration: BoxDecoration(
                   color: c.surface,
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(Radii.card),
                   border: Border.all(color: c.hair, width: 0.5),
                 ),
                 alignment: Alignment.center,
@@ -223,8 +226,8 @@ class EmailDashboardScreen extends ConsumerWidget {
                         : dash.importsAllTime > 0
                             ? 'Synced earlier — tap Sync now to refresh.'
                             : 'No imports yet — tap Sync now.',
-                    style: AppFonts.sf(
-                        size: 15, color: c.ink3, letterSpacing: -0.24)),
+                    style: AppType.subhead.copyWith(
+                        color: c.ink3, letterSpacing: -0.24)),
               ),
             ),
 
@@ -269,7 +272,8 @@ class EmailDashboardScreen extends ConsumerWidget {
           // Only meaningful when an account is connected.
           if (connected)
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+              padding: const EdgeInsets.fromLTRB(
+                  Spacing.lg, Spacing.sm, Spacing.lg, 0),
               child: GestureDetector(
                 behavior: HitTestBehavior.opaque,
                 onTap: () async {
@@ -289,12 +293,11 @@ class EmailDashboardScreen extends ConsumerWidget {
                   if (context.mounted) context.pop();
                 },
                 child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 13),
+                  padding: const EdgeInsets.symmetric(vertical: Spacing.md), // 13→12
                   alignment: Alignment.center,
                   child: Text('Disconnect Gmail',
-                      style: AppFonts.sf(
-                          size: 15,
-                          weight: FontWeight.w500,
+                      style: AppType.subhead.copyWith(
+                          fontWeight: FontWeight.w500,
                           color: c.red,
                           letterSpacing: -0.24)),
                 ),
@@ -315,20 +318,19 @@ class _ConnectionChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+      padding: const EdgeInsets.symmetric(horizontal: Spacing.sm, vertical: Spacing.xxs),
       decoration: BoxDecoration(
         color: c.move.withValues(alpha: 0.13),
-        borderRadius: BorderRadius.circular(100),
+        borderRadius: BorderRadius.circular(Radii.pill),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           _PulseDot(active: syncing, color: c.move),
-          const SizedBox(width: 4),
+          const SizedBox(width: Spacing.xs),
           Text(syncing ? 'Syncing' : 'Connected',
-              style: AppFonts.sf(
-                  size: 11,
-                  weight: FontWeight.w600,
+              style: AppType.caption2.copyWith(
+                  fontWeight: FontWeight.w600,
                   color: c.move,
                   letterSpacing: -0.05)),
         ],
@@ -423,21 +425,21 @@ class _SyncNowButton extends StatelessWidget {
       behavior: HitTestBehavior.opaque,
       onTap: syncing ? null : onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 11, horizontal: 14),
+        padding: const EdgeInsets.symmetric(
+            vertical: Spacing.md, horizontal: Spacing.lg), // 11→12
         decoration: BoxDecoration(
           color: syncing ? c.fill : c.ink,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(Radii.md),
         ),
         alignment: Alignment.center,
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             leading,
-            const SizedBox(width: 7),
+            const SizedBox(width: Spacing.sm),
             Text(label,
-                style: AppFonts.sf(
-                    size: 14,
-                    weight: FontWeight.w600,
+                style: AppType.subhead.copyWith(
+                    fontWeight: FontWeight.w600,
                     color: fg,
                     letterSpacing: -0.1)),
           ],
@@ -456,18 +458,18 @@ class _ScheduleChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 11, horizontal: 14),
-      decoration:
-          BoxDecoration(color: c.fill, borderRadius: BorderRadius.circular(12)),
+      padding: const EdgeInsets.symmetric(
+          vertical: Spacing.md, horizontal: Spacing.lg), // 11→12
+      decoration: BoxDecoration(
+          color: c.fill, borderRadius: BorderRadius.circular(Radii.md)),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           AppIcon('clock.fill', size: 13, color: c.ink2),
-          const SizedBox(width: 6),
+          const SizedBox(width: Spacing.sm),
           Text(cadence.label,
-              style: AppFonts.sf(
-                  size: 14,
-                  weight: FontWeight.w500,
+              style: AppType.subhead.copyWith(
+                  fontWeight: FontWeight.w500,
                   color: c.ink,
                   letterSpacing: -0.1)),
         ],
@@ -520,12 +522,14 @@ class _ImportRowState extends State<_ImportRow> {
       decoration: BoxDecoration(
         color: _badgeVisible
             ? c.accent.withValues(alpha: 0.05)
+            // Colors.transparent unavailable: material imported with show-clause
             : const Color(0x00000000),
         border: widget.last
             ? null
             : Border(bottom: BorderSide(color: c.hair, width: 0.5)),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      padding: const EdgeInsets.symmetric(
+          horizontal: Spacing.lg, vertical: Spacing.md),
       child: Row(
         children: [
           Container(
@@ -533,12 +537,12 @@ class _ImportRowState extends State<_ImportRow> {
             height: 36,
             decoration: BoxDecoration(
               color: c.money.withValues(alpha: 0.13),
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(Radii.md),
             ),
             alignment: Alignment.center,
             child: AppIcon('basket.fill', size: 16, color: c.money),
           ),
-          const SizedBox(width: 11),
+          const SizedBox(width: Spacing.md), // 11→12
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -549,38 +553,36 @@ class _ImportRowState extends State<_ImportRow> {
                       child: Text(item.merchant,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: AppFonts.sf(
-                              size: 15,
-                              weight: FontWeight.w500,
+                          style: AppType.subhead.copyWith(
+                              fontWeight: FontWeight.w500,
                               color: c.ink,
                               letterSpacing: -0.24)),
                     ),
                     if (item.isNew) ...[
-                      const SizedBox(width: 6),
+                      const SizedBox(width: Spacing.sm),
                       AnimatedOpacity(
                         opacity: _badgeVisible ? 1 : 0,
                         duration: const Duration(milliseconds: 600),
                         child: Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 6, vertical: 1),
+                              horizontal: Spacing.sm, vertical: 1), // 1px — keep
                           decoration: BoxDecoration(
                               color: c.accent,
-                              borderRadius: BorderRadius.circular(100)),
+                              borderRadius: BorderRadius.circular(Radii.pill)),
                           child: Text('NEW',
-                              style: AppFonts.sf(
-                                  size: 9,
-                                  weight: FontWeight.w700,
-                                  color: const Color(0xFFFFFFFF),
+                              style: AppType.caption2.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                  color: c.onAccent,
                                   letterSpacing: 0.3)),
                         ),
                       ),
                     ],
                   ],
                 ),
-                const SizedBox(height: 1),
+                const SizedBox(height: 1), // 1px — keep
                 Text(item.category ?? 'Uncategorized',
-                    style: AppFonts.sf(
-                        size: 12, color: c.ink3, letterSpacing: -0.08)),
+                    style: AppType.caption.copyWith(
+                        color: c.ink3, letterSpacing: -0.08)),
               ],
             ),
           ),
@@ -615,9 +617,9 @@ class _StatTile extends StatelessWidget {
                 weight: FontWeight.w700,
                 color: color,
                 letterSpacing: -0.3)),
-        const SizedBox(height: 1),
+        const SizedBox(height: 1), // 1px — keep
         Text(label,
-            style: AppFonts.sf(size: 11, color: c.ink3, letterSpacing: -0.08)),
+            style: AppType.caption2.copyWith(color: c.ink3, letterSpacing: -0.08)),
       ],
     );
   }
