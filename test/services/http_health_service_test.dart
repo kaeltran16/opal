@@ -105,4 +105,16 @@ void main() {
       throwsA(isA<PalException>()),
     );
   });
+
+  test('throws PalException (not a raw TypeError) on a malformed 2xx body',
+      () async {
+    // a 200 with an HTML error page / non-object JSON must normalize to
+    // PalException so the caller's offline path is reached consistently.
+    final service = build(MockClient(
+        (req) async => http.Response('<html>maintenance</html>', 200)));
+    expect(
+      () => service.fetchDay(DateTime(2026, 6, 9)),
+      throwsA(isA<PalException>()),
+    );
+  });
 }

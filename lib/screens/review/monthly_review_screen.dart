@@ -8,6 +8,7 @@ import '../../services/pal/pal_service.dart';
 import '../../theme/theme.dart';
 import '../../widgets/app_icon.dart';
 import '../../widgets/nav_bar.dart';
+import '../../widgets/pal_avatar.dart';
 
 /// Screen 14 — Monthly Review (mock).
 ///
@@ -39,7 +40,12 @@ class MonthlyReviewScreen extends ConsumerWidget {
     final insightsAsync = ref.watch(insightsProvider(InsightRange.month));
     final patterns = insightsAsync.asData?.value?.patterns ?? const [];
 
-    return LargeTitleScrollView(
+    // Root-navigator route (above the shell) with no scaffold to paint a page
+    // background; without this the transparent scroll view shows the black
+    // void — matches `bg` on dark theme, but reads as a black page on light.
+    return ColoredBox(
+        color: c.bg,
+        child: LargeTitleScrollView(
       title: monthName,
       subtitle: 'Monthly review',
       leading: NavAction(
@@ -124,7 +130,7 @@ class MonthlyReviewScreen extends ConsumerWidget {
           ),
         ),
       ],
-    );
+    ));
   }
 }
 
@@ -261,21 +267,7 @@ class _NarrativeCard extends ConsumerWidget {
         children: [
           Row(
             children: [
-              Container(
-                width: 22,
-                height: 22,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [c.accent, c.rituals],
-                  ),
-                ),
-                alignment: Alignment.center,
-                child: AppIcon('sparkles',
-                    size: 11, color: c.onAccent),
-              ),
+              const PalAvatar(size: 22, glyphSize: 11),
               const SizedBox(width: Spacing.sm),
               Text('WRITTEN BY PAL',
                   style: AppType.caption

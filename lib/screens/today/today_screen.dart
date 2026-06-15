@@ -15,6 +15,7 @@ import '../../widgets/app_icon.dart';
 import '../../widgets/controls.dart';
 import '../../widgets/dashed_border.dart';
 import '../../widgets/nav_bar.dart';
+import '../../widgets/pal_avatar.dart';
 import '../../widgets/press_scale.dart';
 import '../../widgets/summary_tile.dart';
 
@@ -211,21 +212,7 @@ class _TodayBody extends ConsumerWidget {
                 children: [
                   Row(
                     children: [
-                      Container(
-                        width: 22,
-                        height: 22,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          gradient: LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: [c.accent, c.rituals],
-                          ),
-                        ),
-                        alignment: Alignment.center,
-                        child: AppIcon('sparkles',
-                            size: 11, color: c.onAccent),
-                      ),
+                      const PalAvatar(size: 22, glyphSize: 11),
                       const SizedBox(width: Spacing.sm),
                       Expanded(
                         child: Text('PAL NOTICED',

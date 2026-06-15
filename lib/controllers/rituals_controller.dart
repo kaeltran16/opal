@@ -71,14 +71,14 @@ class RitualsState {
 class RitualsController extends _$RitualsController {
   @override
   Stream<RitualsState> build() async* {
-    final ritualRepo = ref.watch(ritualRepositoryProvider);
     final entryRepo = ref.watch(entryRepositoryProvider);
+    // Awaited via `.future` (not re-read) so a routine-only edit re-emits, and
+    // routines are present on the first tick rather than racing the entries
+    // stream.
+    final routines = await ref.watch(ritualRoutinesStreamProvider.future);
 
-    // Re-emit whenever today's entries change; re-read routines each tick
-    // (small list, cheap) so builder edits show up immediately.
+    // Re-emit whenever today's entries change.
     await for (final entries in entryRepo.watchToday()) {
-      final routines = await ritualRepo.getAll();
-
       // stepId -> (routineId, stepIndex).
       final lookup = <String, (String, int)>{};
       for (final r in routines) {

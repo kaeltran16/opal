@@ -45,6 +45,13 @@ class _RecordingNotificationService implements NotificationService {
   Future<void> cancelAll() async {}
 }
 
+/// Throws on one-shot [schedule] to simulate a delivery/plugin failure.
+class _FailingScheduleService extends _RecordingNotificationService {
+  @override
+  Future<void> schedule(NotificationRequest request) async =>
+      throw StateError('plugin not ready');
+}
+
 Future<SharedPreferences> _prefs(Map<String, Object> initial) async {
   SharedPreferences.setMockInitialValues(initial);
   return SharedPreferences.getInstance();
@@ -185,6 +192,24 @@ void main() {
       await ctrl.checkAfterSpend();
 
       expect(service.oneShots, isEmpty);
+    });
+
+    test('a failed schedule does not persist the dedup date (can retry)',
+        () async {
+      final prefs = await _prefs({'settings.budgetAlerts': true});
+      final service = _FailingScheduleService();
+      final container = makeContainer(prefs, service);
+      await seedBudget(50);
+
+      final entries = container.read(entryRepositoryProvider);
+      final ctrl = container.read(budgetAlertControllerProvider.notifier);
+
+      await entries.insert(expense(60)); // over budget
+
+      // The delivery failure must not propagate into the entry-add flow...
+      await ctrl.checkAfterSpend();
+      // ...and must not mark the day handled, or the alert is lost until tomorrow.
+      expect(prefs.getString('settings.budgetAlertDate'), isNull);
     });
 
     test('does not fire while under budget', () async {

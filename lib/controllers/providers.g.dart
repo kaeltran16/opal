@@ -481,6 +481,186 @@ final class ExercisesProvider
 
 String _$exercisesHash() => r'ee2f8f9130f459ff475ccb109de3daa27b5b38b3';
 
+/// Live ritual routines (Today / Rituals).
+
+@ProviderFor(ritualRoutinesStream)
+const ritualRoutinesStreamProvider = RitualRoutinesStreamProvider._();
+
+/// Live ritual routines (Today / Rituals).
+
+final class RitualRoutinesStreamProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<List<RitualRoutine>>,
+          List<RitualRoutine>,
+          Stream<List<RitualRoutine>>
+        >
+    with
+        $FutureModifier<List<RitualRoutine>>,
+        $StreamProvider<List<RitualRoutine>> {
+  /// Live ritual routines (Today / Rituals).
+  const RitualRoutinesStreamProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'ritualRoutinesStreamProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$ritualRoutinesStreamHash();
+
+  @$internal
+  @override
+  $StreamProviderElement<List<RitualRoutine>> $createElement(
+    $ProviderPointer pointer,
+  ) => $StreamProviderElement(pointer);
+
+  @override
+  Stream<List<RitualRoutine>> create(Ref ref) {
+    return ritualRoutinesStream(ref);
+  }
+}
+
+String _$ritualRoutinesStreamHash() =>
+    r'4813cddcb5f07afa4843e9053fce6be01eeea7eb';
+
+/// Live workout routines (Move / Weekly plan).
+
+@ProviderFor(workoutRoutinesStream)
+const workoutRoutinesStreamProvider = WorkoutRoutinesStreamProvider._();
+
+/// Live workout routines (Move / Weekly plan).
+
+final class WorkoutRoutinesStreamProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<List<Routine>>,
+          List<Routine>,
+          Stream<List<Routine>>
+        >
+    with $FutureModifier<List<Routine>>, $StreamProvider<List<Routine>> {
+  /// Live workout routines (Move / Weekly plan).
+  const WorkoutRoutinesStreamProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'workoutRoutinesStreamProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$workoutRoutinesStreamHash();
+
+  @$internal
+  @override
+  $StreamProviderElement<List<Routine>> $createElement(
+    $ProviderPointer pointer,
+  ) => $StreamProviderElement(pointer);
+
+  @override
+  Stream<List<Routine>> create(Ref ref) {
+    return workoutRoutinesStream(ref);
+  }
+}
+
+String _$workoutRoutinesStreamHash() =>
+    r'f3d78d12cd646eae30c6a734337df030fd375b0a';
+
+/// Live workout history, most-recent first (Move / Weekly plan).
+
+@ProviderFor(workoutsStream)
+const workoutsStreamProvider = WorkoutsStreamProvider._();
+
+/// Live workout history, most-recent first (Move / Weekly plan).
+
+final class WorkoutsStreamProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<List<Workout>>,
+          List<Workout>,
+          Stream<List<Workout>>
+        >
+    with $FutureModifier<List<Workout>>, $StreamProvider<List<Workout>> {
+  /// Live workout history, most-recent first (Move / Weekly plan).
+  const WorkoutsStreamProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'workoutsStreamProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$workoutsStreamHash();
+
+  @$internal
+  @override
+  $StreamProviderElement<List<Workout>> $createElement(
+    $ProviderPointer pointer,
+  ) => $StreamProviderElement(pointer);
+
+  @override
+  Stream<List<Workout>> create(Ref ref) {
+    return workoutsStream(ref);
+  }
+}
+
+String _$workoutsStreamHash() => r'ea571574485b485683562481451696d7acd71f5e';
+
+/// All entries, any type (Move's non-workout move entries + kcal).
+
+@ProviderFor(allEntriesStream)
+const allEntriesStreamProvider = AllEntriesStreamProvider._();
+
+/// All entries, any type (Move's non-workout move entries + kcal).
+
+final class AllEntriesStreamProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<List<Entry>>,
+          List<Entry>,
+          Stream<List<Entry>>
+        >
+    with $FutureModifier<List<Entry>>, $StreamProvider<List<Entry>> {
+  /// All entries, any type (Move's non-workout move entries + kcal).
+  const AllEntriesStreamProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'allEntriesStreamProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$allEntriesStreamHash();
+
+  @$internal
+  @override
+  $StreamProviderElement<List<Entry>> $createElement(
+    $ProviderPointer pointer,
+  ) => $StreamProviderElement(pointer);
+
+  @override
+  Stream<List<Entry>> create(Ref ref) {
+    return allEntriesStream(ref);
+  }
+}
+
+String _$allEntriesStreamHash() => r'8380611d01422abee4909f49895633e494bb5687';
+
 @ProviderFor(settingsRepository)
 const settingsRepositoryProvider = SettingsRepositoryProvider._();
 
@@ -568,7 +748,7 @@ final class PalServiceProvider
   }
 }
 
-String _$palServiceHash() => r'72cdb01e5dee82f8273cd9575ad193c91fa90402';
+String _$palServiceHash() => r'28d39af072c114b63ea4d48c68067477e210f6ca';
 
 /// Real [HttpHealthService] when `PAL_BASE_URL` is set; [MockHealthService]
 /// otherwise (tests, backend-less preview). Shares the proxy's http client +
@@ -1004,7 +1184,7 @@ final class AppSettingsControllerProvider
 }
 
 String _$appSettingsControllerHash() =>
-    r'99e319ee07b126a29740e64f1240ab9e716af825';
+    r'a329bbd48cc5232dc8a52d8787846643149c1644';
 
 /// Holds and persists the theme (brightness + accent). Reads initial values
 /// from [SettingsRepository]; every setter writes back so the selection

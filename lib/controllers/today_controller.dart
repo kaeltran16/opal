@@ -163,14 +163,17 @@ class TodayState {
 Stream<Goals> goalsStream(Ref ref) =>
     ref.watch(goalsRepositoryProvider).watchGoals();
 
-/// Streams the Today view model from the live entries + goals streams.
-/// Re-emits whenever either changes: the entries `await for` drives entry
-/// edits, and watching [goalsStreamProvider] rebuilds this provider on a
-/// goals-only edit.
+/// Streams the Today view model from the live entries + goals + routines
+/// streams. Re-emits whenever any changes: the entries `await for` drives entry
+/// edits, and watching [goalsStreamProvider] / [ritualRoutinesStreamProvider]
+/// rebuilds this provider on a goals- or routine-only edit.
 @riverpod
 Stream<TodayState> todayState(Ref ref) async* {
   final entriesRepo = ref.watch(entryRepositoryProvider);
-  final ritualRepo = ref.watch(ritualRepositoryProvider);
+  // Awaited via `.future` (not re-read) so a routine-only edit re-emits Today,
+  // and routines are present on the first tick rather than racing the entries
+  // stream.
+  final routines = await ref.watch(ritualRoutinesStreamProvider.future);
   final goals = ref.watch(goalsStreamProvider).asData?.value ?? const Goals();
   final mode = ref.watch(timelineModeControllerProvider);
 
@@ -184,7 +187,6 @@ Stream<TodayState> todayState(Ref ref) async* {
     // Drive week mode off the full-week stream so edits to any same-week day
     // re-emit. Today's slice (rings/tiles) is the bounded list from `today` on.
     await for (final week in entriesRepo.watchEntriesInRange(weekStart, tomorrow)) {
-      final routines = await ritualRepo.getAll();
       yield TodayState(
         entries: week.where((e) => !e.timestamp.isBefore(today)).toList(),
         timelineEntries: week,
@@ -195,7 +197,6 @@ Stream<TodayState> todayState(Ref ref) async* {
     }
   } else {
     await for (final entries in entriesRepo.watchToday()) {
-      final routines = await ritualRepo.getAll();
       yield TodayState(
         entries: entries,
         goals: goals,

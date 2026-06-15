@@ -218,4 +218,40 @@ void main() {
     // the streak computed from those persisted entries is a real 2-day run.
     expect(ritualStreakDays(await entries.getAll(), now: now), 2);
   });
+
+  test('a routine-only edit re-emits even with no entry change', () async {
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
+    final db = LoopDatabase.forTesting(NativeDatabase.memory());
+    addTearDown(db.close);
+
+    final rituals = RitualRepository(db);
+    await rituals.upsertRoutine(_morning);
+
+    final container = ProviderContainer(overrides: [
+      sharedPreferencesProvider.overrideWithValue(prefs),
+      loopDatabaseProvider.overrideWithValue(db),
+      hapticsServiceProvider.overrideWithValue(_SpyHaptics()),
+    ]);
+    addTearDown(container.dispose);
+    container.listen(ritualsControllerProvider, (_, _) {});
+
+    var state = await container.read(ritualsControllerProvider.future);
+    expect(state.routines.map((r) => r.id), ['morning']);
+
+    // Add a second routine — no ritual Entry is written. Before the controller
+    // watched the routines stream (it was driven only by the entries stream),
+    // this would never re-emit and the new routine would not appear.
+    await rituals.upsertRoutine(_morning.copyWith(
+      id: 'evening',
+      name: 'Evening',
+      steps: [
+        _morning.steps[0].copyWith(id: 'evening-step-0'),
+        _morning.steps[1].copyWith(id: 'evening-step-1'),
+      ],
+    ));
+
+    state = await _waitFor(container, (s) => s.routines.length == 2);
+    expect(state.routines.map((r) => r.id), containsAll(['morning', 'evening']));
+  });
 }

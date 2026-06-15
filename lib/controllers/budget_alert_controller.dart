@@ -44,15 +44,23 @@ class BudgetAlertController extends _$BudgetAlertController {
         .fold<double>(0, (sum, e) => sum + e.amount!.abs());
     if (spent <= budget) return; // still within budget
 
-    await settings.setBudgetAlertDate(today);
-    await ref.read(notificationServiceProvider).schedule(
-          NotificationRequest(
-            id: NotificationIds.budgetAlert,
-            title: 'Over budget',
-            body: "You've passed today's spending budget.",
-            scheduledAt: now,
-          ),
-        );
+    // Schedule first; only mark the day handled once delivery succeeds. A
+    // transient failure then re-alerts on the next spend instead of silently
+    // suppressing the rest of the day, and never propagates into the
+    // entry-add flow that awaits this.
+    try {
+      await ref.read(notificationServiceProvider).schedule(
+            NotificationRequest(
+              id: NotificationIds.budgetAlert,
+              title: 'Over budget',
+              body: "You've passed today's spending budget.",
+              scheduledAt: now,
+            ),
+          );
+      await settings.setBudgetAlertDate(today);
+    } catch (_) {
+      // delivery failed; leave the dedup date unset so the next spend retries.
+    }
   }
 
   static String _formatDate(DateTime d) {

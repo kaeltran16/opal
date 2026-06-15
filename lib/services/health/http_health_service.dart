@@ -54,7 +54,14 @@ class HttpHealthService implements HealthService {
       throw PalException('proxy returned ${res.statusCode}');
     }
 
-    final json = jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
+    final Map<String, dynamic> json;
+    try {
+      json = jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
+    } catch (_) {
+      // a 200 with a non-JSON / non-object body (e.g. an HTML error page);
+      // normalize to PalException so callers hit the offline path.
+      throw const PalException('malformed health response');
+    }
     final metrics = (json['metrics'] as Map<String, dynamic>?) ?? const {};
     return HealthDay(
       activeEnergyKcal: _metricValue(metrics['activeEnergy']),

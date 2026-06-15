@@ -8,6 +8,7 @@ import '../../services/pal/pal_service.dart';
 import '../../theme/theme.dart';
 import '../../widgets/app_icon.dart';
 import '../../widgets/nav_bar.dart';
+import '../../widgets/pal_avatar.dart';
 
 /// Screen 17 — Weekly Review.
 ///
@@ -37,7 +38,12 @@ class WeeklyReviewScreen extends ConsumerWidget {
     final headline = insights?.headline ?? _fallbackHeadline;
     final lede = insights?.lede ?? _fallbackLede;
 
-    return ListView(
+    // Root-navigator route (above the shell) with no scaffold to paint a page
+    // background; without this the transparent list shows the black void —
+    // matches `bg` on dark theme, but reads as a black page on light.
+    return ColoredBox(
+        color: c.bg,
+        child: ListView(
       padding: const EdgeInsets.only(bottom: 40),
       children: [
         // --- Nav: back to You -----------------------------------------------
@@ -118,7 +124,7 @@ class WeeklyReviewScreen extends ConsumerWidget {
                   color: c.ink3, letterSpacing: -0.08)),
         ),
       ],
-    );
+    ));
   }
 
   /// The Pal-found qualitative block (Wins / Patterns / One thing to try). Shows
@@ -408,20 +414,7 @@ class _OneThingCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Container(
-                width: 22,
-                height: 22,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [c.accent, c.rituals],
-                  ),
-                ),
-                alignment: Alignment.center,
-                child: AppIcon('sparkles', size: 11, color: c.onAccent),
-              ),
+              const PalAvatar(size: 22, glyphSize: 11),
               const SizedBox(width: Spacing.sm),
               Text('ONE THING TO TRY',
                   style: AppType.caption.copyWith(

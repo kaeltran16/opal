@@ -80,6 +80,31 @@ WeeklyPlanRepository weeklyPlanRepository(Ref ref) =>
 Stream<List<Exercise>> exercises(Ref ref) =>
     ref.watch(routineRepositoryProvider).watchExercises();
 
+// Live collection streams watched by view-model providers so an edit to a
+// *secondary* table re-emits even when the provider's primary `await for`
+// stream is unchanged (e.g. editing a ritual routine refreshes Today, which is
+// otherwise driven by the entries stream). Mirrors [goalsStream].
+
+/// Live ritual routines (Today / Rituals).
+@riverpod
+Stream<List<RitualRoutine>> ritualRoutinesStream(Ref ref) =>
+    ref.watch(ritualRepositoryProvider).watchRoutines();
+
+/// Live workout routines (Move / Weekly plan).
+@riverpod
+Stream<List<Routine>> workoutRoutinesStream(Ref ref) =>
+    ref.watch(routineRepositoryProvider).watchRoutines();
+
+/// Live workout history, most-recent first (Move / Weekly plan).
+@riverpod
+Stream<List<Workout>> workoutsStream(Ref ref) =>
+    ref.watch(workoutRepositoryProvider).watchWorkouts();
+
+/// All entries, any type (Move's non-workout move entries + kcal).
+@riverpod
+Stream<List<Entry>> allEntriesStream(Ref ref) =>
+    ref.watch(entryRepositoryProvider).watchAll();
+
 @Riverpod(keepAlive: true)
 SettingsRepository settingsRepository(Ref ref) =>
     SettingsRepository(ref.watch(sharedPreferencesProvider));

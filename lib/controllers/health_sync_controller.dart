@@ -24,22 +24,27 @@ class HealthSyncController extends _$HealthSyncController {
   }
 
   Future<void> _sync(HealthService service, EntryRepository entries) async {
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final day = await service.fetchDay(today);
-    if (day.activeEnergyKcal == 0) return; // no data yet
+    // best-effort: a failed health pull must not crash startup.
+    try {
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day);
+      final day = await service.fetchDay(today);
+      if (day.activeEnergyKcal == 0) return; // no data yet
 
-    final date = _formatDate(today);
-    await entries.upsert(Entry(
-      id: 'health:move:$date',
-      timestamp: DateTime(today.year, today.month, today.day, 12),
-      type: EntryType.move,
-      title: 'Apple Watch',
-      detail: day.steps > 0 ? '${day.steps} steps' : null,
-      calories: day.activeEnergyKcal,
-      source: EntrySource.health,
-      sourceRef: 'health:active-energy:$date',
-    ));
+      final date = _formatDate(today);
+      await entries.upsert(Entry(
+        id: 'health:move:$date',
+        timestamp: DateTime(today.year, today.month, today.day, 12),
+        type: EntryType.move,
+        title: 'Apple Watch',
+        detail: day.steps > 0 ? '${day.steps} steps' : null,
+        calories: day.activeEnergyKcal,
+        source: EntrySource.health,
+        sourceRef: 'health:active-energy:$date',
+      ));
+    } catch (_) {
+      // swallow: health is supplementary; the move ring just stays empty.
+    }
   }
 
   static String _formatDate(DateTime d) {

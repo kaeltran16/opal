@@ -144,15 +144,12 @@ List<WeekDay> buildWeekDays(List<Workout> workouts, DateTime now) {
 @riverpod
 Stream<MoveState> moveState(Ref ref) async* {
   final workoutRepo = ref.watch(workoutRepositoryProvider);
-  final entryRepo = ref.watch(entryRepositoryProvider);
-  final routineRepo = ref.watch(routineRepositoryProvider);
+  // Drive off the live workouts stream; await routines + entries via `.future`
+  // (not re-read) so a routine edit or a non-workout move entry also re-emits.
+  final routines = await ref.watch(workoutRoutinesStreamProvider.future);
+  final entries = await ref.watch(allEntriesStreamProvider.future);
 
-  // Drive off the live workouts stream; re-read routines + entries each tick
-  // (small tables) so counts and the cardio classification stay current.
   await for (final workouts in workoutRepo.watchWorkouts()) {
-    final routines = await routineRepo.getAll();
-    final entries = await entryRepo.getAll();
-
     // routineId -> cardio? for tagging recent sessions.
     final cardioRoutineIds = {
       for (final r in routines)

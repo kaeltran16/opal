@@ -6,6 +6,7 @@ import 'package:opal/controllers/providers.dart';
 import 'package:opal/data/db/database.dart';
 import 'package:opal/models/models.dart';
 import 'package:opal/services/health/health_service.dart';
+import 'package:opal/services/pal/http_pal_service.dart' show PalException;
 
 /// Returns a fixed [HealthDay] each call (latest assigned wins, for re-sync).
 class _FakeHealthService implements HealthService {
@@ -14,6 +15,13 @@ class _FakeHealthService implements HealthService {
 
   @override
   Future<HealthDay> fetchDay(DateTime d) async => day;
+}
+
+/// Always throws, mirroring a real network/proxy failure.
+class _ThrowingHealthService implements HealthService {
+  @override
+  Future<HealthDay> fetchDay(DateTime d) async =>
+      throw const PalException('proxy returned 500');
 }
 
 void main() {
@@ -98,6 +106,23 @@ void main() {
     container.read(healthSyncControllerProvider);
     await Future<void>.delayed(const Duration(milliseconds: 50));
 
+    final repo = container.read(entryRepositoryProvider);
+    expect(await repo.getAll(), isEmpty);
+  });
+
+  test('a failed health pull is swallowed: no entry, no error escapes',
+      () async {
+    final container = ProviderContainer(overrides: [
+      loopDatabaseProvider.overrideWithValue(db),
+      healthServiceProvider.overrideWithValue(_ThrowingHealthService()),
+    ]);
+    addTearDown(container.dispose);
+
+    container.read(healthSyncControllerProvider); // triggers fire-and-forget sync
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+
+    // The startup sync must tolerate failure: nothing written, and the
+    // un-awaited future must not throw into the zone (which would fail here).
     final repo = container.read(entryRepositoryProvider);
     expect(await repo.getAll(), isEmpty);
   });

@@ -1,10 +1,35 @@
+import 'dart:async';
+
 import 'package:drift/native.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:opal/controllers/providers.dart';
 import 'package:opal/controllers/weekly_plan_controller.dart';
 import 'package:opal/data/db/database.dart';
 import 'package:opal/data/repositories/repositories.dart';
 import 'package:opal/data/seed/seeder.dart';
 import 'package:opal/models/models.dart';
+
+/// Awaits the next [WeeklyPlan] emission satisfying [test] (a drift write
+/// re-runs the watched streams asynchronously, so `.future` — which caches the
+/// first emission — can't be re-read after a mutation).
+Future<WeeklyPlan> _waitForPlan(
+  ProviderContainer c,
+  bool Function(WeeklyPlan) test,
+) async {
+  final current = c.read(weeklyPlanControllerProvider).value;
+  if (current != null && test(current)) return current;
+  final completer = Completer<WeeklyPlan>();
+  final sub = c.listen(weeklyPlanControllerProvider, (_, next) {
+    final v = next.value;
+    if (v != null && test(v) && !completer.isCompleted) completer.complete(v);
+  });
+  try {
+    return await completer.future.timeout(const Duration(seconds: 2));
+  } finally {
+    sub.close();
+  }
+}
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -79,6 +104,43 @@ void main() {
       // Default has Push on Monday.
       final mon = schedule.firstWhere((a) => a.weekday == 1);
       expect(mon.routineId, 'seed-routine-push-a');
+    });
+  });
+
+  group('weeklyPlanController reactivity', () {
+    test('completing a workout re-emits the plan (workouts watched, not read '
+        'once)', () async {
+      final db = LoopDatabase.forTesting(NativeDatabase.memory());
+      addTearDown(db.close);
+
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day);
+
+      // A routine assigned to today's weekday.
+      await db.into(db.routines).insert(
+          RoutinesCompanion.insert(id: 'r1', name: 'Push A', tag: 'upper'));
+      await WeeklyPlanRepository(db).upsert(now.weekday, 'r1');
+
+      final container = ProviderContainer(
+          overrides: [loopDatabaseProvider.overrideWithValue(db)]);
+      addTearDown(container.dispose);
+      container.listen(weeklyPlanControllerProvider, (_, _) {});
+
+      var plan = await container.read(weeklyPlanControllerProvider.future);
+      expect(plan.doneCount, 0);
+
+      // Complete a workout for that routine today — only the workouts table
+      // changes, not the schedule. The plan (driven by watchSchedule) must
+      // still refresh because it now watches the workouts stream.
+      await WorkoutRepository(db).insert(Workout(
+        id: 'w1',
+        routineId: 'r1',
+        name: 'Push A',
+        startedAt: today.add(const Duration(hours: 8)),
+      ));
+
+      plan = await _waitForPlan(container, (p) => p.doneCount == 1);
+      expect(plan.doneCount, 1);
     });
   });
 

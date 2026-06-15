@@ -207,14 +207,14 @@ List<String> _muscles(Routine routine, Map<String, Exercise> exercisesById) {
 @riverpod
 Stream<WeeklyPlan> weeklyPlanController(Ref ref) async* {
   final scheduleRepo = ref.watch(weeklyPlanRepositoryProvider);
-  final routineRepo = ref.watch(routineRepositoryProvider);
-  final workoutRepo = ref.watch(workoutRepositoryProvider);
+  // Await routines/exercises/workouts via `.future` (not re-read) so completing
+  // a workout — or editing a routine — refreshes the plan's completion state,
+  // not just a schedule edit.
+  final routines = await ref.watch(workoutRoutinesStreamProvider.future);
+  final exercises = await ref.watch(exercisesProvider.future);
+  final workouts = await ref.watch(workoutsStreamProvider.future);
 
   await for (final schedule in scheduleRepo.watchSchedule()) {
-    final routines = await routineRepo.getAll();
-    final exercises = await routineRepo.getAllExercises();
-    final workouts = await workoutRepo.watchWorkouts().first;
-
     yield buildWeeklyPlan(
       schedule: schedule,
       routines: routines,
