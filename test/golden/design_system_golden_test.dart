@@ -10,6 +10,7 @@ import 'package:opal/controllers/providers.dart';
 import 'package:opal/data/db/database.dart';
 import 'package:opal/data/seed/seeder.dart';
 import 'package:opal/screens/entry/new_entry_sheet.dart';
+import 'package:opal/services/pal/mock_pal_service.dart';
 import 'package:opal/theme/app_colors.dart';
 import 'package:opal/widgets/loop_tab_bar.dart';
 
@@ -51,7 +52,7 @@ void main() {
 
   /// Boots the full seeded app (onboardingComplete=true) and settles the first
   /// frame, mirroring `widget_test.dart`.
-  Future<void> bootApp(WidgetTester tester) async {
+  Future<void> bootApp(WidgetTester tester, {MockPalService? palService}) async {
     ignoreOverflowErrors();
     SharedPreferences.setMockInitialValues({
       'settings.onboardingComplete': true,
@@ -66,6 +67,8 @@ void main() {
         overrides: [
           sharedPreferencesProvider.overrideWithValue(prefs),
           loopDatabaseProvider.overrideWithValue(db),
+          if (palService != null)
+            palServiceProvider.overrideWithValue(palService),
         ],
         child: const LoopApp(),
       ),
@@ -126,7 +129,9 @@ void main() {
 
   testWidgets('golden: profile', (tester) async {
     pinSurface(tester);
-    await bootApp(tester);
+    // Profile watches the Pal agenda seam; a zero-latency mock keeps the badge
+    // deterministic and leaves no pending timer at capture time.
+    await bootApp(tester, palService: MockPalService(latency: Duration.zero));
 
     // The profile tab's nav label is "You".
     await tester.tap(find.descendant(

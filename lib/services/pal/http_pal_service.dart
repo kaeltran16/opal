@@ -340,6 +340,54 @@ class HttpPalService implements PalService {
     );
   }
 
+  @override
+  Future<PalAgenda> agenda() async {
+    // No client context — the proxy reads the user's current state server-side.
+    final json = await _post('/v1/agenda', const {});
+    List<T> mapList<T>(String key, T Function(Map<String, dynamic>) f) =>
+        ((json[key] as List?) ?? const [])
+            .cast<Map<String, dynamic>>()
+            .map(f)
+            .toList();
+    return PalAgenda(
+      streakDays: (json['streakDays'] as num?)?.round() ?? 0,
+      // colorToken passes through raw; the screen's color map clamps unknowns.
+      proposals: mapList(
+        'proposals',
+        (p) => PalProposal(
+          id: p['id'] as String? ?? '',
+          tag: p['tag'] as String? ?? '',
+          colorToken: p['colorToken'] as String? ?? 'accent',
+          icon: p['icon'] as String? ?? 'sparkles',
+          title: p['title'] as String? ?? '',
+          body: p['body'] as String? ?? '',
+          approveLabel: p['approveLabel'] as String? ?? 'Approve',
+          approveIcon: p['approveIcon'] as String? ?? 'checkmark',
+          doneLabel: p['doneLabel'] as String? ?? 'Done',
+          action: p['action'] as String?,
+        ),
+      ),
+      autopilot: mapList(
+        'autopilot',
+        (a) => PalAutopilotItem(
+          id: a['id'] as String? ?? '',
+          colorToken: a['colorToken'] as String? ?? 'accent',
+          icon: a['icon'] as String? ?? 'sparkles',
+          title: a['title'] as String? ?? '',
+          subtitle: a['subtitle'] as String? ?? '',
+          enabled: a['enabled'] as bool? ?? false,
+        ),
+      ),
+      memory: mapList(
+        'memory',
+        (m) => PalMemory(
+          text: m['text'] as String? ?? '',
+          meta: m['meta'] as String? ?? '',
+        ),
+      ),
+    );
+  }
+
   EntryType _entryTypeFromWire(String token) => switch (token) {
         'money' => EntryType.money,
         'move' => EntryType.move,

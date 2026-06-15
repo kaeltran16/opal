@@ -14,6 +14,10 @@ import 'package:opal/services/services.dart';
 /// proxy being unreachable). Only `chat` is exercised; the rest are no-ops.
 class _FakePal implements PalService {
   _FakePal({this.reply = 'Got it.', this.fails = false, this.actions = const []});
+
+  @override
+  Future<PalAgenda> agenda() async => const PalAgenda();
+
   final String reply;
   final bool fails;
   final List<PalAction> actions;

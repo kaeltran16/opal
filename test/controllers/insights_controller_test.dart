@@ -13,6 +13,10 @@ import 'package:opal/services/pal/pal_service.dart';
 /// assert the deterministic gate decides whether to call Pal at all.
 class _FakePal implements PalService {
   _FakePal({this.result = const PalInsights(headline: 'hi'), this.fail = false});
+
+  @override
+  Future<PalAgenda> agenda() async => const PalAgenda();
+
   final PalInsights result;
   final bool fail;
   int calls = 0;

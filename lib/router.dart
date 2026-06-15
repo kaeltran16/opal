@@ -13,6 +13,7 @@ import 'screens/move/move_screen.dart';
 import 'screens/move/weekly_plan_screen.dart';
 import 'screens/onboarding/onboarding_screen.dart';
 import 'screens/pal/pal_composer_screen.dart';
+import 'screens/pal/pal_home_screen.dart';
 import 'screens/pal/pal_inbox_screen.dart';
 import 'screens/money/budgets_screen.dart';
 import 'screens/money/insights_screen.dart';
@@ -90,6 +91,8 @@ enum AppRoute {
   // Pal composer — the unified FAB input surface (replaces Quick Actions menu).
   palComposer('palComposer', '/pal-composer'),
   palInbox('palInbox', '/pal-inbox'),
+  // Pal Home — the agentic hub (daily brief + actions to approve + autopilot).
+  palHome('palHome', '/pal-home'),
   eveningCloseOut('eveningCloseOut', '/close-out'),
   streakCelebration('streakCelebration', '/streak'),
   weeklyReview('weeklyReview', '/weekly-review'),
@@ -424,6 +427,13 @@ GoRouter createRouter({
         parentNavigatorKey: _rootNavigatorKey,
         pageBuilder: (context, state) =>
             _sheetPage(state.pageKey, const PalInboxScreen()),
+      ),
+      GoRoute(
+        path: AppRoute.palHome.path,
+        name: AppRoute.palHome.name,
+        parentNavigatorKey: _rootNavigatorKey,
+        pageBuilder: (context, state) =>
+            _sheetPage(state.pageKey, const PalHomeScreen()),
       ),
       GoRoute(
         path: AppRoute.eveningCloseOut.path,

@@ -15,6 +15,9 @@ import 'package:opal/services/services.dart';
 class _FakePal implements PalService {
   _FakePal({this.routineFails = false});
 
+  @override
+  Future<PalAgenda> agenda() async => const PalAgenda();
+
   final bool routineFails;
   int generateCalls = 0;
 
@@ -208,6 +211,10 @@ void main() {
 /// the entry and the first routine get rolled back.
 class _CountingFailPal implements PalService {
   _CountingFailPal({required this.failOnCall});
+
+  @override
+  Future<PalAgenda> agenda() async => const PalAgenda();
+
   final int failOnCall;
   int _calls = 0;
 

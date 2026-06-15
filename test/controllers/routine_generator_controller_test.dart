@@ -14,6 +14,9 @@ import 'package:opal/services/services.dart';
 class _FakePal implements PalService {
   _FakePal({this.fails = false});
 
+  @override
+  Future<PalAgenda> agenda() async => const PalAgenda();
+
   final bool fails;
   int generateCalls = 0;
   String? lastGoal;

@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../controllers/pal_agenda_controller.dart';
 import '../../controllers/profile_controller.dart';
 import '../../controllers/providers.dart';
 import '../../controllers/today_controller.dart';
@@ -33,6 +34,9 @@ class ProfileScreen extends ConsumerWidget {
     final memberSince = stats?.memberSince;
     final routineCount = stats?.routineCount ?? 0;
     final currency = ref.watch(appSettingsControllerProvider).currency;
+    // Pal's "needs you" count for the Reviews row badge (from the agenda seam).
+    final palCount =
+        ref.watch(palAgendaProvider).asData?.value.proposals.length;
 
     return async.when(
       loading: () => Center(
@@ -53,6 +57,7 @@ class ProfileScreen extends ConsumerWidget {
         tenure: _tenure(memberSince),
         routineCount: routineCount,
         currency: currency,
+        palCount: palCount,
       ),
     );
   }
@@ -77,6 +82,7 @@ class _ProfileBody extends StatelessWidget {
     required this.tenure,
     required this.routineCount,
     required this.currency,
+    required this.palCount,
   });
   final Goals goals;
 
@@ -93,6 +99,10 @@ class _ProfileBody extends StatelessWidget {
   /// ring and Budgets & Goals (derived from the routine count, not the stored
   /// [Goals.dailyRitualTarget]).
   final int routineCount;
+
+  /// Number of Pal proposals awaiting the user, shown as the Reviews row badge.
+  /// Null while the agenda is still loading (badge hidden until it resolves).
+  final int? palCount;
 
   void _openBudgetSheet(BuildContext context) {
     // present over the whole shell so the sheet's backdrop covers the tab bar
@@ -235,6 +245,15 @@ class _ProfileBody extends StatelessWidget {
         InsetSection(
           header: 'Reviews',
           children: [
+            ListRow(
+              icon: 'sparkles',
+              iconBg: c.accent,
+              title: 'Pal',
+              subtitle: "Your daily brief & what Pal's handling",
+              value: palCount != null && palCount! > 0 ? '$palCount for you' : null,
+              valueColor: c.accent,
+              onTap: () => context.pushNamed(AppRoute.palHome.name),
+            ),
             ListRow(
               icon: 'calendar',
               iconBg: c.rituals,

@@ -95,6 +95,7 @@ class _LoopAppState extends ConsumerState<LoopApp> {
     const overlays = <String>{
       '/pal-composer',
       '/pal-inbox',
+      '/pal-home',
       '/entry/new',
       '/post-workout',
       '/monthly-review',

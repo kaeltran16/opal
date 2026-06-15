@@ -407,6 +407,131 @@ class PalInsights {
       patterns.isEmpty;
 }
 
+/// A cross-pillar action Pal proposes on the Pal Home hub for the user to
+/// approve (the "Needs you" list). Presentation is data-driven: [colorToken]
+/// picks the pillar accent and [icon]/[approveIcon] are SF-symbol names rendered
+/// through the safe icon map. [action] drives approve behavior — `'close_out'`
+/// navigates to the Evening Close-Out flow; any other value (or null) flips the
+/// card to its optimistic "done" confirmation.
+class PalProposal {
+  const PalProposal({
+    required this.id,
+    required this.tag,
+    required this.colorToken,
+    required this.icon,
+    required this.title,
+    required this.body,
+    required this.approveLabel,
+    required this.approveIcon,
+    required this.doneLabel,
+    this.action,
+  });
+
+  final String id;
+  final String tag;
+  final String colorToken; // 'money' | 'move' | 'rituals'
+  final String icon;
+  final String title;
+  final String body;
+  final String approveLabel;
+  final String approveIcon;
+  final String doneLabel;
+  final String? action;
+
+  bool get navigatesToCloseOut => action == 'close_out';
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is PalProposal &&
+          other.id == id &&
+          other.tag == tag &&
+          other.colorToken == colorToken &&
+          other.icon == icon &&
+          other.title == title &&
+          other.body == body &&
+          other.approveLabel == approveLabel &&
+          other.approveIcon == approveIcon &&
+          other.doneLabel == doneLabel &&
+          other.action == action;
+
+  @override
+  int get hashCode => Object.hash(id, tag, colorToken, icon, title, body,
+      approveLabel, approveIcon, doneLabel, action);
+}
+
+/// A background task Pal handles automatically, shown in the "On autopilot"
+/// list with a toggle. [enabled] is the server-side default.
+class PalAutopilotItem {
+  const PalAutopilotItem({
+    required this.id,
+    required this.colorToken,
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.enabled,
+  });
+
+  final String id;
+  final String colorToken;
+  final String icon;
+  final String title;
+  final String subtitle;
+  final bool enabled;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is PalAutopilotItem &&
+          other.id == id &&
+          other.colorToken == colorToken &&
+          other.icon == icon &&
+          other.title == title &&
+          other.subtitle == subtitle &&
+          other.enabled == enabled;
+
+  @override
+  int get hashCode =>
+      Object.hash(id, colorToken, icon, title, subtitle, enabled);
+}
+
+/// One thing Pal has learned about the user, shown in "What Pal remembers".
+class PalMemory {
+  const PalMemory({required this.text, required this.meta});
+
+  final String text;
+  final String meta;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is PalMemory && other.text == text && other.meta == meta;
+
+  @override
+  int get hashCode => Object.hash(text, meta);
+}
+
+/// The Pal Home hub payload (the `/agenda` seam): the proposals to approve, the
+/// autopilot delegation list, Pal's persistent memory, and the current workout
+/// [streakDays] shown in the hero. Fields default empty so a partial/older
+/// server payload degrades to empty sections rather than an error.
+class PalAgenda {
+  const PalAgenda({
+    this.proposals = const [],
+    this.autopilot = const [],
+    this.memory = const [],
+    this.streakDays = 0,
+  });
+
+  final List<PalProposal> proposals;
+  final List<PalAutopilotItem> autopilot;
+  final List<PalMemory> memory;
+  final int streakDays;
+
+  bool get isEmpty =>
+      proposals.isEmpty && autopilot.isEmpty && memory.isEmpty;
+}
+
 /// The Pal AI interface. All methods are async to model network latency.
 abstract interface class PalService {
   /// `/chat`: continue a conversation given prior [history] and the new
@@ -441,4 +566,9 @@ abstract interface class PalService {
     String goal,
     List<Exercise> available,
   );
+
+  /// `/agenda`: the Pal Home hub payload — cross-pillar [PalProposal]s to
+  /// approve, the autopilot delegation list, persistent memory, and the workout
+  /// streak. Drives the agentic Pal Home screen.
+  Future<PalAgenda> agenda();
 }

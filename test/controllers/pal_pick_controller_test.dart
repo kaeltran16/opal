@@ -11,6 +11,9 @@ import 'package:opal/services/pal/pal_service.dart';
 class _RecordingPal implements PalService {
   _RecordingPal(this._suggestions);
 
+  @override
+  Future<PalAgenda> agenda() async => const PalAgenda();
+
   final List<WorkoutSuggestion> _suggestions;
   final List<({bool another, String? excludeRoutineId})> calls = [];
   int _i = 0;

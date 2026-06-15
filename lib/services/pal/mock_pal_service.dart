@@ -352,6 +352,105 @@ class MockPalService implements PalService {
   }
 
   @override
+  Future<PalAgenda> agenda() async {
+    await Future<void>.delayed(latency);
+    return const PalAgenda(
+      streakDays: 11,
+      proposals: [
+        PalProposal(
+          id: 'move-legs-friday',
+          tag: 'Workout',
+          colorToken: 'move',
+          icon: 'figure.run',
+          title: 'Move Legs day to Friday',
+          body: 'Rain hits at 6pm — you log 40% shorter sessions in the wet. '
+              'Friday is clear and open.',
+          approveLabel: 'Reschedule',
+          approveIcon: 'arrow.triangle.2.circlepath',
+          doneLabel: 'Legs moved to Friday · plan updated',
+        ),
+        PalProposal(
+          id: 'hold-rent-40',
+          tag: 'Money',
+          colorToken: 'money',
+          icon: 'dollarsign.circle.fill',
+          title: 'Set aside \$40 for rent',
+          body: 'Rent (\$2,400) auto-pays Monday. Holding \$40 today clears it '
+              'with \$4,192 to spare.',
+          approveLabel: 'Hold \$40',
+          approveIcon: 'checkmark',
+          doneLabel: 'Held \$40 in your Rent envelope',
+        ),
+        PalProposal(
+          id: 'close-out-tonight',
+          tag: 'Rituals',
+          colorToken: 'rituals',
+          icon: 'moon.stars.fill',
+          title: 'Close out tonight',
+          body: '4 of 5 rituals done. A 5-min wind-down at 21:30 closes your '
+              'ring — I can cue it now.',
+          approveLabel: 'Start close-out',
+          approveIcon: 'play.fill',
+          doneLabel: 'Close-out queued for 21:30',
+          action: 'close_out',
+        ),
+        PalProposal(
+          id: 'add-wind-down-ritual',
+          tag: 'Rituals',
+          colorToken: 'rituals',
+          icon: 'sparkles',
+          title: 'Add a 2-min wind-down ritual',
+          body: 'Your evening routine slips 3 of 5 nights. A short wind-down '
+              'could anchor it.',
+          approveLabel: 'Add ritual',
+          approveIcon: 'plus',
+          doneLabel: 'Added to your Evening rituals',
+        ),
+      ],
+      autopilot: [
+        PalAutopilotItem(
+          id: 'rent-watch',
+          colorToken: 'money',
+          icon: 'house.fill',
+          title: 'Rent auto-pay watch',
+          subtitle: 'Alerts if balance dips before Mon',
+          enabled: true,
+        ),
+        PalAutopilotItem(
+          id: 'weekly-review-draft',
+          colorToken: 'accent',
+          icon: 'chart.bar.fill',
+          title: 'Weekly review draft',
+          subtitle: 'Ready for you Sunday morning',
+          enabled: true,
+        ),
+        PalAutopilotItem(
+          id: 'coffee-nudge',
+          colorToken: 'money',
+          icon: 'cup.and.saucer.fill',
+          title: 'Coffee nudge at \$15 / wk',
+          subtitle: "You're at \$23 — currently paused",
+          enabled: false,
+        ),
+      ],
+      memory: [
+        PalMemory(
+            text: 'Mornings with journaling → 32% less food spend',
+            meta: 'Learned over 6 weeks'),
+        PalMemory(
+            text: 'You move 40% more after 7+ hours of sleep',
+            meta: 'Learned over 2 months'),
+        PalMemory(
+            text: 'Fridays are your spendiest day, about \$94',
+            meta: 'Ongoing pattern'),
+        PalMemory(
+            text: 'Evening rituals slip when you work past 8pm',
+            meta: 'Learned over 4 weeks'),
+      ],
+    );
+  }
+
+  @override
   Future<String> postWorkoutNote(Workout workout) async {
     await Future<void>.delayed(latency);
     final prs = workout.prCount;

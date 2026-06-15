@@ -25,6 +25,9 @@ DateTime _thisMonthAt(int day, int hour) {
 /// A PalService whose `review()` returns a different canned string on each
 /// call, so a Regenerate tap is guaranteed to swap the text.
 class _SequencedPalService implements PalService {
+  @override
+  Future<PalAgenda> agenda() async => const PalAgenda();
+
   int _i = 0;
   static const _reviews = [
     'FIRST_REVIEW — a steady month.',

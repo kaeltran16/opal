@@ -22,6 +22,9 @@ Entry _entry(EntryType type, {double? amount, int? calories}) => Entry(
 /// regenerate is guaranteed to swap text) and records the range it was asked
 /// for. Other seams are unused no-ops.
 class _SequencedPal implements PalService {
+  @override
+  Future<PalAgenda> agenda() async => const PalAgenda();
+
   int _i = 0;
   final List<ReviewRange> reviewRanges = [];
   static const _reviews = ['FIRST week review.', 'SECOND week review.'];
