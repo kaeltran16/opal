@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../models/models.dart';
+import '../services/pal/pal_context_builder.dart' show ritualStreakDays;
 import '../services/services.dart' show ReviewRange;
 import 'providers.dart';
 
@@ -117,7 +118,8 @@ class MonthlyStats {
   /// The previous month's aggregates, for vs-last-month deltas.
   final MonthAggregate previous;
 
-  /// Longest current ritual streak (days) across all rituals.
+  /// Current ritual streak (days): consecutive days with at least one completed
+  /// ritual step, computed from persisted ritual entries.
   final int longestStreak;
 
   double get totalSpent => current.totalSpent;
@@ -200,22 +202,21 @@ class MonthlyStats {
   }
 }
 
-/// Folds the current month's [entries] + [previous] month's entries + [routines]
-/// into [MonthlyStats]. Extracted from the provider so it can be tested with
-/// fixtures.
+/// Folds the current month's [entries] + [previous] month's entries into
+/// [MonthlyStats]. [ritualStreak] is the current consecutive-day ritual streak,
+/// computed upstream from a lookback that can span the month boundary. Extracted
+/// from the provider so it can be tested with fixtures.
 MonthlyStats buildMonthlyStats(
   DateTime month,
   List<Entry> entries,
   List<Entry> previousEntries,
-  List<RitualRoutine> routines,
+  int ritualStreak,
 ) {
-  final longestStreak =
-      routines.fold<int>(0, (max, r) => r.streak > max ? r.streak : max);
   return MonthlyStats(
     month: DateTime(month.year, month.month),
     current: foldMonth(entries),
     previous: foldMonth(previousEntries),
-    longestStreak: longestStreak,
+    longestStreak: ritualStreak,
   );
 }
 
@@ -225,20 +226,26 @@ MonthlyStats buildMonthlyStats(
 @riverpod
 Stream<MonthlyStats> monthlyStats(Ref ref) async* {
   final entriesRepo = ref.watch(entryRepositoryProvider);
-  final ritualRepo = ref.watch(ritualRepositoryProvider);
 
   final now = DateTime.now();
   final start = DateTime(now.year, now.month);
   final end = DateTime(now.year, now.month + 1);
   final prevStart = DateTime(now.year, now.month - 1);
+  final today = DateTime(now.year, now.month, now.day);
 
   await for (final entries in entriesRepo.watchEntriesInRange(start, end)) {
     // The prior month is closed, so a one-shot read (not a nested watch) is
     // correct — and a watch's `.first` never resolves under flutter_test's
     // fake async, which would wedge this stream in its loading state.
     final previous = await entriesRepo.getEntriesInRange(prevStart, start);
-    final routines = await ritualRepo.getAll();
-    yield buildMonthlyStats(start, entries, previous, routines);
+    // 60-day lookback so an ongoing ritual streak that spans the month start is
+    // counted in full (the month window alone would truncate it).
+    final lookback = await entriesRepo.getEntriesInRange(
+      today.subtract(const Duration(days: 60)),
+      today.add(const Duration(days: 1)),
+    );
+    yield buildMonthlyStats(
+        start, entries, previous, ritualStreakDays(lookback, now: now));
   }
 }
 

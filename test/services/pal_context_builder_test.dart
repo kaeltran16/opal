@@ -104,6 +104,34 @@ void main() {
     expect(moveStreakDays(const [], now: now), 0);
   });
 
+  test('ritualStreakDays counts consecutive ritual days, anchoring on yesterday',
+      () {
+    final now = DateTime(2026, 6, 12, 15); // today has no ritual entry yet
+    final entries = [
+      ritual(at: DateTime(2026, 6, 11, 7)), // yesterday
+      ritual(at: DateTime(2026, 6, 11, 21)), // same day, must not double-count
+      ritual(at: DateTime(2026, 6, 10, 7)),
+      ritual(at: DateTime(2026, 6, 9, 7)),
+      // gap on Jun 8 breaks the streak
+      ritual(at: DateTime(2026, 6, 7, 7)),
+      // non-ritual entries are ignored
+      move(30, at: DateTime(2026, 6, 8, 9)),
+    ];
+
+    expect(ritualStreakDays(entries, now: now), 3);
+    expect(ritualStreakDays(const [], now: now), 0);
+  });
+
+  test('ritualStreakDays includes today when a ritual is logged today', () {
+    final now = DateTime(2026, 6, 12, 15);
+    final entries = [
+      ritual(at: DateTime(2026, 6, 12, 7)), // today
+      ritual(at: DateTime(2026, 6, 11, 7)),
+    ];
+
+    expect(ritualStreakDays(entries, now: now), 2);
+  });
+
   test('buildSuggestContext resolves set exerciseIds to muscle, then group, then raw id', () {
     final catalog = {
       'bench': const Exercise(

@@ -163,4 +163,4 @@ final class TodayStateProvider
   }
 }
 
-String _$todayStateHash() => r'cc59287263bc00aa28f18f1f5e5136ca051884ba';
+String _$todayStateHash() => r'd93661f836b04c0f7f5c92002468bfacb12c7207';

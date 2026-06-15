@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../controllers/profile_controller.dart';
 import '../../controllers/rituals_controller.dart';
 import '../../models/models.dart';
 import '../../theme/theme.dart';
@@ -335,16 +336,19 @@ class _StepView extends StatelessWidget {
   }
 }
 
-class _CompletionView extends StatelessWidget {
+class _CompletionView extends ConsumerWidget {
   const _CompletionView({super.key, required this.routine, required this.tone});
 
   final RitualRoutine routine;
   final Color tone;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final c = context.colors;
     final total = routine.steps.length;
+    // real consecutive-day ritual streak from persisted completions (includes
+    // today's just-finished routine); not the never-incremented seed value.
+    final streak = ref.watch(profileStatsProvider).asData?.value.longestStreak;
     return Padding(
       // 30 has no spacing token; kept literal as a deliberate content inset.
       padding: const EdgeInsets.symmetric(horizontal: 30),
@@ -386,27 +390,29 @@ class _CompletionView extends StatelessWidget {
             style: AppType.callout
                 .copyWith(color: c.ink2, letterSpacing: -0.2, height: 1.5),
           ),
-          const SizedBox(height: Spacing.lg),
-          Container(
-            padding: const EdgeInsets.symmetric(
-                horizontal: Spacing.lg, vertical: Spacing.sm),
-            decoration: BoxDecoration(
-              color: tone.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(Radii.pill),
+          if (streak != null && streak > 0) ...[
+            const SizedBox(height: Spacing.lg),
+            Container(
+              padding: const EdgeInsets.symmetric(
+                  horizontal: Spacing.lg, vertical: Spacing.sm),
+              decoration: BoxDecoration(
+                color: tone.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(Radii.pill),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  AppIcon('flame.fill', size: 14, color: tone),
+                  const SizedBox(width: Spacing.sm),
+                  Text(
+                    '$streak-day streak',
+                    style: AppType.subhead
+                        .copyWith(fontWeight: FontWeight.w700, color: tone),
+                  ),
+                ],
+              ),
             ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                AppIcon('flame.fill', size: 14, color: tone),
-                const SizedBox(width: Spacing.sm),
-                Text(
-                  '${routine.streak + 1}-day streak',
-                  style: AppType.subhead
-                      .copyWith(fontWeight: FontWeight.w700, color: tone),
-                ),
-              ],
-            ),
-          ),
+          ],
         ],
       ),
     );

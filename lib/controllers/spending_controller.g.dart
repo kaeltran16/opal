@@ -73,7 +73,7 @@ final class DetailDataProvider
   }
 }
 
-String _$detailDataHash() => r'8364fd47572e009c2755c8d3ab6cd39a166963ea';
+String _$detailDataHash() => r'baadeb45768ced9eae08ae7c0afa2918c8a7b2f1';
 
 /// Streams the [DetailData] for a [tracker]. Reactive: re-emits whenever the
 /// entries or goals change. Reads all entries (the detail shows recent history

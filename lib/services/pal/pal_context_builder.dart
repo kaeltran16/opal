@@ -93,24 +93,38 @@ const _maxInsightEntries = 60;
 /// yesterday — a streak isn't broken until a full day passes without moving),
 /// that have at least one move entry. Pure so it can be unit-tested with a
 /// fixed [now]; pass a lookback window of [entries] (e.g. the last 60 days).
-int moveStreakDays(List<Entry> entries, {DateTime? now}) {
+int moveStreakDays(List<Entry> entries, {DateTime? now}) =>
+    _streakDays(entries, EntryType.move, now: now);
+
+/// Current ritual streak in days: consecutive calendar days, ending today (or
+/// yesterday), on which at least one ritual step was completed. Mirrors
+/// [moveStreakDays] but over ritual-type entries — the persisted completion
+/// records written by `RitualsController` (the single source of truth shared
+/// with the Today rings). Pure; pass a lookback window of [entries].
+int ritualStreakDays(List<Entry> entries, {DateTime? now}) =>
+    _streakDays(entries, EntryType.rituals, now: now);
+
+/// Consecutive-day streak ending today (or yesterday if today has no qualifying
+/// entry yet) over entries of [type]. Shared by [moveStreakDays] and
+/// [ritualStreakDays].
+int _streakDays(List<Entry> entries, EntryType type, {DateTime? now}) {
   final today = now ?? DateTime.now();
-  final moveDays = <int>{};
+  final days = <int>{};
   for (final e in entries) {
-    if (e.type != EntryType.move) continue;
+    if (e.type != type) continue;
     final t = e.timestamp;
-    moveDays.add(t.year * 10000 + t.month * 100 + t.day);
+    days.add(t.year * 10000 + t.month * 100 + t.day);
   }
   int key(DateTime d) => d.year * 10000 + d.month * 100 + d.day;
 
   var cursor = DateTime(today.year, today.month, today.day);
-  // allow the streak to anchor on yesterday if today has no move entry yet
-  if (!moveDays.contains(key(cursor))) {
+  // allow the streak to anchor on yesterday if today has no qualifying entry yet
+  if (!days.contains(key(cursor))) {
     cursor = cursor.subtract(const Duration(days: 1));
-    if (!moveDays.contains(key(cursor))) return 0;
+    if (!days.contains(key(cursor))) return 0;
   }
   var streak = 0;
-  while (moveDays.contains(key(cursor))) {
+  while (days.contains(key(cursor))) {
     streak++;
     cursor = cursor.subtract(const Duration(days: 1));
   }
