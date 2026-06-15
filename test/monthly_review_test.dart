@@ -9,6 +9,7 @@ import 'package:opal/data/db/database.dart';
 import 'package:opal/data/repositories/repositories.dart';
 import 'package:opal/models/models.dart';
 import 'package:opal/screens/review/monthly_review_screen.dart';
+import 'package:opal/services/pal/pal_context_builder.dart' show ritualStreakDays;
 import 'package:opal/services/pal/pal_service.dart';
 import 'package:opal/theme/app_colors.dart';
 
@@ -143,25 +144,6 @@ void main() {
         source: EntrySource.manual,
       ),
     ];
-    final routines = [
-      const RitualRoutine(
-          id: 'morning',
-          name: 'Morning',
-          time: '7:00 AM',
-          tone: RitualTone.morning,
-          icon: 'sunrise.fill',
-          blurb: '',
-          streak: 4),
-      const RitualRoutine(
-          id: 'evening',
-          name: 'Evening',
-          time: '9:30 PM',
-          tone: RitualTone.evening,
-          icon: 'moon.stars.fill',
-          blurb: '',
-          streak: 12),
-    ];
-
     // Previous month: $60 spent, 50 move kcal over 1 day, 0 rituals.
     final previousEntries = [
       Entry(
@@ -183,11 +165,15 @@ void main() {
       ),
     ];
 
-    final s = buildMonthlyStats(month, entries, previousEntries, routines);
+    // The streak is computed upstream (here from the lone Apr 7 ritual entry,
+    // with `now` on Apr 7 → a 1-day streak) and passed in, not derived from
+    // seeded RitualRoutine.streak values.
+    final ritualStreak = ritualStreakDays(entries, now: DateTime(2026, 4, 7, 12));
+    final s = buildMonthlyStats(month, entries, previousEntries, ritualStreak);
     expect(s.totalSpent, 36); // 6 + 30 (income excluded)
     expect(s.moveKcal, 75); // 30 + 45
     expect(s.ritualsKept, 1);
-    expect(s.longestStreak, 12);
+    expect(s.longestStreak, 1);
 
     // Active move days this month: Apr 5 and Apr 6 → 2 distinct days.
     expect(s.current.activeMoveDays, 2);
@@ -219,7 +205,7 @@ void main() {
       ),
     ];
 
-    final s = buildMonthlyStats(month, entries, const [], const []);
+    final s = buildMonthlyStats(month, entries, const [], 0);
     expect(s.rows[0].sub, isNull); // total spent: no baseline → no delta
     expect(s.rows[1].sub, isNull); // workout: no move kcal, no active days
   });
@@ -234,6 +220,8 @@ void main() {
     addTearDown(db.close);
 
     final rituals = RitualRepository(db);
+    // seeded streak is intentionally a wrong, never-incremented value: the
+    // displayed streak must come from persisted ritual entries, not this.
     await rituals.upsertRoutine(const RitualRoutine(
         id: 'morning',
         name: 'Morning',
@@ -243,6 +231,8 @@ void main() {
         blurb: '',
         streak: 9));
 
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
     final entries = EntryRepository(db);
     await entries.insert(Entry(
       id: 'e1',
@@ -262,9 +252,17 @@ void main() {
       calories: 40,
       source: EntrySource.health,
     ));
+    // A real 2-day ritual streak: today + yesterday (ending today).
     await entries.insert(Entry(
       id: 'e3',
-      timestamp: _thisMonthAt(4, 6),
+      timestamp: today.add(const Duration(hours: 6)),
+      type: EntryType.rituals,
+      title: 'Meditate',
+      source: EntrySource.manual,
+    ));
+    await entries.insert(Entry(
+      id: 'e4',
+      timestamp: today.subtract(const Duration(hours: 6)), // yesterday evening
       type: EntryType.rituals,
       title: 'Meditate',
       source: EntrySource.manual,
@@ -293,10 +291,15 @@ void main() {
     expect(find.text('Routines kept'), findsOneWidget);
     expect(find.text('Streak'), findsOneWidget);
 
-    // Computed stat values: spent $6, moved 40 kcal, streak 9.
+    // Computed stat values: spent $6, moved 40 kcal. The streak comes from the
+    // persisted ritual entries (a real 2-day run), NOT the seeded streak: 9.
     expect(find.text('\$6'), findsOneWidget);
     expect(find.text('40'), findsOneWidget);
-    expect(find.text('9'), findsOneWidget);
+    expect(find.text('9'), findsNothing); // seeded value must not surface
+    expect(find.text('Routines, ongoing'), findsOneWidget); // the Streak row
+    // The Streak row's value (2) renders; "Routines kept" may also read "2" when
+    // both ritual entries land in the current month, so allow ≥1 match.
+    expect(find.text('2'), findsWidgets);
 
     // First narrative from the mock PalService.
     expect(find.text('FIRST_REVIEW — a steady month.'), findsOneWidget);

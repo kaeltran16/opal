@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../models/models.dart';
+import '../services/pal/pal_context_builder.dart';
 import 'providers.dart';
 
 part 'profile_controller.g.dart';
@@ -39,7 +40,8 @@ class ProfileStats {
   /// from the routine count rather than the stored [Goals.dailyRitualTarget]).
   final int routineCount;
 
-  /// Best current streak across all rituals (days).
+  /// Current ritual streak: consecutive days (ending today or yesterday) with
+  /// at least one completed ritual step, computed from persisted ritual entries.
   final int longestStreak;
 
   /// Earliest entry's full timestamp, or null when there are no entries.
@@ -136,9 +138,9 @@ ProfileStats buildProfileStats(
     }
   }
 
-  final longestStreak = routines.isEmpty
-      ? 0
-      : routines.map((r) => r.streak).reduce((a, b) => a > b ? a : b);
+  // real consecutive-day ritual streak from persisted completions, not the
+  // never-incremented seeded RitualRoutine.streak values.
+  final longestStreak = ritualStreakDays(entries, now: today);
 
   DateTime? bestMoveDay;
   var bestMoveDayKcal = 0;

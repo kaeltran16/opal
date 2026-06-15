@@ -165,4 +165,57 @@ void main() {
     s = await _waitFor(container, (s) => s.doneCount('morning') == 2);
     expect(s.doneCount('morning'), 2);
   });
+
+  test(
+      'completing a routine persists a date-stamped completion that feeds the '
+      'computed ritual streak', () async {
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
+    final db = LoopDatabase.forTesting(NativeDatabase.memory());
+    addTearDown(db.close);
+
+    final rituals = RitualRepository(db);
+    final entries = EntryRepository(db);
+    await rituals.upsertRoutine(_morning);
+
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+
+    // Backfill a persisted completion for yesterday so finishing today's
+    // routine extends a real streak to 2 (proving it counts persisted days,
+    // not the seeded RitualRoutine.streak of 4).
+    await entries.insert(Entry(
+      id: '',
+      timestamp: today.subtract(const Duration(hours: 3)), // yesterday evening
+      type: EntryType.rituals,
+      title: 'Glass of water',
+      ritualId: 'morning-step-0',
+      source: EntrySource.manual,
+    ));
+
+    final container = ProviderContainer(overrides: [
+      sharedPreferencesProvider.overrideWithValue(prefs),
+      loopDatabaseProvider.overrideWithValue(db),
+      hapticsServiceProvider.overrideWithValue(_SpyHaptics()),
+    ]);
+    addTearDown(container.dispose);
+    container.listen(ritualsControllerProvider, (_, _) {});
+
+    final notifier = container.read(ritualsControllerProvider.notifier);
+    final state = await container.read(ritualsControllerProvider.future);
+    final routine = state.routines.firstWhere((r) => r.id == 'morning');
+
+    // finish today's routine.
+    await notifier.completeStep(routine, 0);
+    await notifier.completeStep(routine, 1);
+    await _waitFor(container, (s) => s.isComplete(routine));
+
+    // every completion is a persisted, date-stamped ritual Entry.
+    final ritualEntries =
+        (await entries.getAll()).where((e) => e.type == EntryType.rituals);
+    expect(ritualEntries, hasLength(3)); // yesterday + 2 today
+
+    // the streak computed from those persisted entries is a real 2-day run.
+    expect(ritualStreakDays(await entries.getAll(), now: now), 2);
+  });
 }

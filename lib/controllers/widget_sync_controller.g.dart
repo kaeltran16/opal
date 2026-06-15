@@ -60,7 +60,7 @@ final class WidgetSyncControllerProvider
 }
 
 String _$widgetSyncControllerHash() =>
-    r'f16b1b800674e6c5da509966508458e0229c07ea';
+    r'dc0b8ab7d8f7a2cd4637131c118894a1bb3e18f0';
 
 /// Keeps the iOS rings widget in sync with today's progress.
 ///

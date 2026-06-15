@@ -59,14 +59,26 @@ void main() {
           duration: 30,
           calories: 60,
           source: EntrySource.manual),
-      // This-year rituals: 3 kept.
-      for (var i = 0; i < 3; i++)
-        Entry(
-            id: 'r$i',
-            timestamp: DateTime(2026, 4, i + 1),
-            type: EntryType.rituals,
-            title: 'Read',
-            source: EntrySource.manual),
+      // This-year rituals: 3 kept (these also form a 3-day ritual streak
+      // ending on `now`, May 30 / 31 / Jun 1).
+      Entry(
+          id: 'r0',
+          timestamp: DateTime(2026, 5, 30, 7),
+          type: EntryType.rituals,
+          title: 'Read',
+          source: EntrySource.manual),
+      Entry(
+          id: 'r1',
+          timestamp: DateTime(2026, 5, 31, 7),
+          type: EntryType.rituals,
+          title: 'Read',
+          source: EntrySource.manual),
+      Entry(
+          id: 'r2',
+          timestamp: DateTime(2026, 6, 1, 7),
+          type: EntryType.rituals,
+          title: 'Read',
+          source: EntrySource.manual),
       // Last-year entry: must be excluded from totals but set memberSince.
       Entry(
           id: 'old',
@@ -100,7 +112,9 @@ void main() {
     expect(stats.totalSpent, 50); // -30 + -20, income excluded
     expect(stats.moveKcal, 150);
     expect(stats.ritualsKept, 3);
-    expect(stats.longestStreak, 12);
+    // computed from the persisted ritual entries (3 consecutive days ending on
+    // `now`), not the seeded RitualRoutine.streak values (12/5).
+    expect(stats.longestStreak, 3);
     expect(stats.memberSinceYear, 2024); // earliest entry year
     expect(stats.memberSince, DateTime(2024, 12, 1)); // earliest full date
     // best move day: mv1 (90 kcal) beats mv2 (60 kcal)
