@@ -262,3 +262,20 @@ class WeeklyPlanDays extends Table {
         'FOREIGN KEY (routine_id) REFERENCES routines (id) ON DELETE SET NULL',
       ];
 }
+
+/// Per-category monthly budget envelopes, ordered by [position].
+///
+/// Each row caps one spending category; expense entries are matched to an
+/// envelope case-insensitively by category name at read time (no FK to a
+/// category table — categories are free-form strings on entries).
+@DataClassName('BudgetEnvelopeRow')
+class BudgetEnvelopes extends Table {
+  TextColumn get id => text()();
+  TextColumn get category => text()();
+  RealColumn get cap => real()();
+  TextColumn get icon => text()();
+  TextColumn get colorToken => text()();
+  IntColumn get position => integer().withDefault(const Constant(0))();
+  @override
+  Set<Column> get primaryKey => {id};
+}

@@ -51,4 +51,4 @@ final class MoveStateProvider
   }
 }
 
-String _$moveStateHash() => r'8862103008324a5fa2c65154ca535bf5380144bb';
+String _$moveStateHash() => r'4d619171e9edd12ae76fe1409ae5d1c00d1fe902';

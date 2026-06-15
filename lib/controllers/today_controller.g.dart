@@ -113,18 +113,18 @@ final class GoalsStreamProvider
 
 String _$goalsStreamHash() => r'7bdb2c2e9e4d0a113140641c242ed65d89263c2d';
 
-/// Streams the Today view model from the live entries + goals streams.
-/// Re-emits whenever either changes: the entries `await for` drives entry
-/// edits, and watching [goalsStreamProvider] rebuilds this provider on a
-/// goals-only edit.
+/// Streams the Today view model from the live entries + goals + routines
+/// streams. Re-emits whenever any changes: the entries `await for` drives entry
+/// edits, and watching [goalsStreamProvider] / [ritualRoutinesStreamProvider]
+/// rebuilds this provider on a goals- or routine-only edit.
 
 @ProviderFor(todayState)
 const todayStateProvider = TodayStateProvider._();
 
-/// Streams the Today view model from the live entries + goals streams.
-/// Re-emits whenever either changes: the entries `await for` drives entry
-/// edits, and watching [goalsStreamProvider] rebuilds this provider on a
-/// goals-only edit.
+/// Streams the Today view model from the live entries + goals + routines
+/// streams. Re-emits whenever any changes: the entries `await for` drives entry
+/// edits, and watching [goalsStreamProvider] / [ritualRoutinesStreamProvider]
+/// rebuilds this provider on a goals- or routine-only edit.
 
 final class TodayStateProvider
     extends
@@ -134,10 +134,10 @@ final class TodayStateProvider
           Stream<TodayState>
         >
     with $FutureModifier<TodayState>, $StreamProvider<TodayState> {
-  /// Streams the Today view model from the live entries + goals streams.
-  /// Re-emits whenever either changes: the entries `await for` drives entry
-  /// edits, and watching [goalsStreamProvider] rebuilds this provider on a
-  /// goals-only edit.
+  /// Streams the Today view model from the live entries + goals + routines
+  /// streams. Re-emits whenever any changes: the entries `await for` drives entry
+  /// edits, and watching [goalsStreamProvider] / [ritualRoutinesStreamProvider]
+  /// rebuilds this provider on a goals- or routine-only edit.
   const TodayStateProvider._()
     : super(
         from: null,
@@ -163,4 +163,4 @@ final class TodayStateProvider
   }
 }
 
-String _$todayStateHash() => r'd93661f836b04c0f7f5c92002468bfacb12c7207';
+String _$todayStateHash() => r'dbe401dcc08564b9dbfa3ecc43f982b07b45a99a';

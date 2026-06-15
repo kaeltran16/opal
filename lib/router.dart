@@ -14,11 +14,12 @@ import 'screens/move/weekly_plan_screen.dart';
 import 'screens/onboarding/onboarding_screen.dart';
 import 'screens/pal/pal_composer_screen.dart';
 import 'screens/pal/pal_inbox_screen.dart';
+import 'screens/money/budgets_screen.dart';
+import 'screens/money/insights_screen.dart';
 import 'screens/profile/profile_screen.dart';
+import 'screens/recap/recap_screen.dart';
 import 'screens/reflect/evening_close_out_screen.dart';
 import 'screens/reflect/streak_celebration_screen.dart';
-import 'screens/review/monthly_review_screen.dart';
-import 'screens/review/weekly_review_screen.dart';
 import 'screens/rituals/rituals_builder_screen.dart';
 import 'screens/rituals/routine_player_screen.dart';
 import 'screens/rituals/rituals_screen.dart';
@@ -31,6 +32,7 @@ import 'screens/settings/notifications_screen.dart';
 import 'screens/settings/privacy_screen.dart';
 import 'screens/shell/loop_shell.dart';
 import 'models/models.dart';
+import 'services/pal/pal_service.dart' show InsightRange;
 import 'screens/workout/active_session_screen.dart';
 import 'screens/workout/post_workout_screen.dart';
 import 'screens/workout/routine_editor_screen.dart';
@@ -66,7 +68,9 @@ enum AppRoute {
   manageRituals('manageRituals', 'manage'), //   U21b -> /rituals/manage
 
   // You / Settings sub-routes (push within the You tab, tab bar stays).
-  budgetsGoals('budgetsGoals', 'budgets'), //       -> /you/budgets
+  youBudgets('youBudgets', 'budgets'), //           -> /you/budgets
+  youInsights('youInsights', 'insights'), //        -> /you/insights
+  budgetsGoals('budgetsGoals', 'budgets-goals'), // -> /you/budgets-goals
   notificationSettings('notificationSettings', 'notifications'), // /you/notifications
   appearance('appearance', 'appearance'), //        -> /you/appearance
   privacy('privacy', 'privacy'), //                 -> /you/privacy
@@ -76,7 +80,8 @@ enum AppRoute {
   // Modal sheets / focus routes (stubbed; built in later units).
   newEntry('newEntry', '/entry/new'), //            U07
   exerciseLibrary('exerciseLibrary', '/library'), // U11
-  monthlyReview('monthlyReview', '/monthly-review'), // U18
+  recap('recap', '/recap'), //                      consolidated Day/Week/Month
+  monthlyReview('monthlyReview', '/monthly-review'), // U18 → redirects to recap
   emailSync('emailSync', '/email'), //              U20 Intro
   emailSetup('emailSetup', 'setup'), //             U20 -> /email/setup
   emailDashboard('emailDashboard', 'dashboard'), //  U20 -> /email/dashboard
@@ -242,6 +247,16 @@ GoRouter createRouter({
                 builder: (context, state) => const ProfileScreen(),
                 routes: [
                   GoRoute(
+                    path: AppRoute.youBudgets.path,
+                    name: AppRoute.youBudgets.name,
+                    builder: (context, state) => const BudgetsScreen(),
+                  ),
+                  GoRoute(
+                    path: AppRoute.youInsights.path,
+                    name: AppRoute.youInsights.name,
+                    builder: (context, state) => const InsightsScreen(),
+                  ),
+                  GoRoute(
                     path: AppRoute.budgetsGoals.path,
                     name: AppRoute.budgetsGoals.name,
                     builder: (context, state) => const BudgetsGoalsScreen(),
@@ -310,13 +325,23 @@ GoRouter createRouter({
         pageBuilder: (context, state) => _sheetPage(
             state.pageKey, PostWorkoutScreen(workout: state.extra as Workout?)),
       ),
-      // U18 — Monthly Review (root-level; no screen links here yet).
+      // Consolidated Recap (Day / Week / Month). `?range=` opens the matching
+      // segment; absent/unknown defaults to Day.
+      GoRoute(
+        path: AppRoute.recap.path,
+        name: AppRoute.recap.name,
+        parentNavigatorKey: _rootNavigatorKey,
+        pageBuilder: (context, state) => _fadePage(
+          state.pageKey,
+          RecapScreen(initialRange: _rangeFrom(state.uri.queryParameters['range'])),
+        ),
+      ),
+      // U18 — Monthly Review deep link kept stable; redirects into the Recap.
       GoRoute(
         path: AppRoute.monthlyReview.path,
         name: AppRoute.monthlyReview.name,
         parentNavigatorKey: _rootNavigatorKey,
-        pageBuilder: (context, state) =>
-            _fadePage(state.pageKey, const MonthlyReviewScreen()),
+        redirect: (context, state) => '/recap?range=month',
       ),
       // Email sync intro — real screens land in U20; stub for now so the
       // profile Integrations row has a stable deep-link target.
@@ -414,12 +439,12 @@ GoRouter createRouter({
         pageBuilder: (context, state) =>
             _fadePage(state.pageKey, const StreakCelebrationScreen()),
       ),
+      // Weekly Review deep link kept stable; redirects into the Recap.
       GoRoute(
         path: AppRoute.weeklyReview.path,
         name: AppRoute.weeklyReview.name,
         parentNavigatorKey: _rootNavigatorKey,
-        pageBuilder: (context, state) =>
-            _sheetPage(state.pageKey, const WeeklyReviewScreen()),
+        redirect: (context, state) => '/recap?range=week',
       ),
       // --- U17 first-run onboarding (full-screen, above the shell) ---
       GoRoute(
@@ -436,6 +461,14 @@ GoRouter createRouter({
 /// Default gate predicate: when no `SettingsRepository` is supplied (tests,
 /// stand-alone use) the app behaves as if onboarding is already done.
 bool _alwaysComplete() => true;
+
+/// Maps the Recap `?range=` query value to an [InsightRange]; anything other
+/// than `week`/`month` (including absent) opens on Day.
+InsightRange _rangeFrom(String? raw) => switch (raw) {
+      'week' => InsightRange.week,
+      'month' => InsightRange.month,
+      _ => InsightRange.day,
+    };
 
 /// Slide-up + ease cover transition for modal / focus routes (the New Entry
 /// sheet, Ask Pal, and the full-screen workout flow). Shares the Quick Actions

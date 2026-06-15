@@ -5,8 +5,6 @@ import 'package:go_router/go_router.dart';
 import '../../controllers/profile_controller.dart';
 import '../../controllers/providers.dart';
 import '../../controllers/today_controller.dart';
-import '../../controllers/weekly_review_controller.dart'
-    show WeeklyStats, weekStartFor;
 import '../../models/models.dart';
 import '../../router.dart';
 import '../../theme/theme.dart';
@@ -96,24 +94,6 @@ class _ProfileBody extends StatelessWidget {
   /// [Goals.dailyRitualTarget]).
   final int routineCount;
 
-  /// Current week's date span (e.g. "Jun 15–21") — reuses the weekly review's
-  /// [WeeklyStats.rangeLabel] so the Profile row matches the Weekly Review.
-  static String _weeklyRangeLabel(DateTime now) {
-    return WeeklyStats(
-      weekStart: weekStartFor(now),
-      spent: 0,
-      budget: 0,
-      moveKcal: 0,
-      moveTarget: 0,
-      ritualsKept: 0,
-      ritualsTarget: 0,
-    ).rangeLabel;
-  }
-
-  /// Current month name (e.g. "June") — matches the Monthly Review title, which
-  /// indexes its month array by `DateTime.now().month`.
-  static String _monthlyLabel(DateTime now) => kMonths[now.month - 1];
-
   void _openBudgetSheet(BuildContext context) {
     // present over the whole shell so the sheet's backdrop covers the tab bar
     Navigator.of(context, rootNavigator: true).push(
@@ -145,7 +125,6 @@ class _ProfileBody extends StatelessWidget {
     final c = context.colors;
     final displayName = name;
     final initial = displayName.characters.first.toUpperCase();
-    final now = DateTime.now();
 
     return LargeTitleScrollView(
       title: 'You',
@@ -231,6 +210,27 @@ class _ProfileBody extends StatelessWidget {
           ],
         ),
 
+        // --- Money ---
+        InsetSection(
+          header: 'Money',
+          children: [
+            ListRow(
+              icon: 'square.grid.2x2.fill',
+              iconBg: c.money,
+              title: 'Budgets',
+              onTap: () => context.pushNamed(AppRoute.youBudgets.name),
+              last: false,
+            ),
+            ListRow(
+              icon: 'chart.bar.fill',
+              iconBg: c.accent,
+              title: 'Insights',
+              onTap: () => context.pushNamed(AppRoute.youInsights.name),
+              last: true,
+            ),
+          ],
+        ),
+
         // --- Reviews ---
         InsetSection(
           header: 'Reviews',
@@ -238,16 +238,9 @@ class _ProfileBody extends StatelessWidget {
             ListRow(
               icon: 'calendar',
               iconBg: c.rituals,
-              title: 'Weekly review',
-              value: _weeklyRangeLabel(now),
-              onTap: () => context.pushNamed(AppRoute.weeklyReview.name),
-            ),
-            ListRow(
-              icon: 'chart.bar.fill',
-              iconBg: c.accent,
-              title: 'Monthly review',
-              value: _monthlyLabel(now),
-              onTap: () => context.pushNamed(AppRoute.monthlyReview.name),
+              title: "Today's recap",
+              onTap: () => context.pushNamed(AppRoute.recap.name,
+                  queryParameters: const {'range': 'day'}),
               last: true,
             ),
           ],
@@ -276,7 +269,8 @@ class _ProfileBody extends StatelessWidget {
               icon: 'chart.bar.fill',
               iconBg: c.move,
               title: 'All stats',
-              onTap: () => context.pushNamed(AppRoute.weeklyReview.name),
+              onTap: () => context.pushNamed(AppRoute.recap.name,
+                  queryParameters: const {'range': 'week'}),
             ),
             ListRow(
               icon: 'tray.fill',

@@ -4,6 +4,7 @@
 /// insert. No Riverpod here — U03 wires these into providers.
 library;
 
+export 'budget_envelope_repository.dart';
 export 'entry_repository.dart';
 export 'goals_repository.dart';
 export 'pal_note_repository.dart';

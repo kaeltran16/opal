@@ -868,4 +868,69 @@ class SeedData {
           source: EntrySource.email,
         ),
       ];
+
+  /// The seven default per-category budget envelopes, position-ordered.
+  ///
+  /// Seed money [entries] use free-form categories (Coffee / Dining /
+  /// Groceries), so under exact case-insensitive matching only "Groceries"
+  /// lands in an envelope; "Coffee" and "Dining" don't map to "Food & Drink".
+  /// This is intentional for v1 — there is no fuzzy/alias matching.
+  static List<BudgetEnvelope> budgetEnvelopes() => const [
+        BudgetEnvelope(
+          id: 'env-food',
+          category: 'Food & Drink',
+          cap: 600,
+          icon: 'cup.and.saucer.fill',
+          colorToken: 'money',
+          position: 0,
+        ),
+        BudgetEnvelope(
+          id: 'env-grocer',
+          category: 'Groceries',
+          cap: 500,
+          icon: 'basket.fill',
+          colorToken: 'money',
+          position: 1,
+        ),
+        BudgetEnvelope(
+          id: 'env-bills',
+          category: 'Bills & Utilities',
+          cap: 670,
+          icon: 'bolt.fill',
+          colorToken: 'accent',
+          position: 2,
+        ),
+        BudgetEnvelope(
+          id: 'env-shop',
+          category: 'Shopping',
+          cap: 300,
+          icon: 'bag.fill',
+          colorToken: 'rituals',
+          position: 3,
+        ),
+        BudgetEnvelope(
+          id: 'env-transit',
+          category: 'Transport',
+          cap: 200,
+          icon: 'car.fill',
+          colorToken: 'move',
+          position: 4,
+        ),
+        BudgetEnvelope(
+          id: 'env-fun',
+          category: 'Entertainment',
+          cap: 180,
+          icon: 'tv.fill',
+          colorToken: 'rituals',
+          position: 5,
+        ),
+        BudgetEnvelope(
+          id: 'env-health',
+          category: 'Health',
+          cap: 150,
+          icon: 'heart.fill',
+          colorToken: 'move',
+          position: 6,
+        ),
+      ];
 }

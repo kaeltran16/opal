@@ -56,4 +56,4 @@ final class WeeklyPlanControllerProvider
 }
 
 String _$weeklyPlanControllerHash() =>
-    r'dc72515aa6074eef6f111b95230d9bc704b891a4';
+    r'6e60297b024954c09fb25fdc12dc2078a09bec88';

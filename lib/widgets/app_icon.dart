@@ -39,6 +39,7 @@ const Map<String, IconData> _sfMap = {
   'checkmark': CupertinoIcons.checkmark_alt,
   'xmark': CupertinoIcons.xmark,
   'arrow.up.right': CupertinoIcons.arrow_up_right,
+  'arrow.down.right': CupertinoIcons.arrow_down_right,
   'lock.fill': CupertinoIcons.lock_fill,
   'clock.fill': CupertinoIcons.clock_fill,
   'house.fill': CupertinoIcons.house_fill,
@@ -74,6 +75,11 @@ const Map<String, IconData> _sfMap = {
   'timer': CupertinoIcons.timer,
   'list.number': CupertinoIcons.list_number,
   'arrow.uturn.backward': CupertinoIcons.arrow_counterclockwise,
+  // Budgets (Phase 1) envelope + action glyphs.
+  'bag.fill': CupertinoIcons.bag_fill,
+  'car.fill': CupertinoIcons.car_fill,
+  'tv.fill': CupertinoIcons.tv_fill,
+  'plus.circle.fill': CupertinoIcons.add_circled_solid,
 };
 
 IconData iconForSf(String name) => _sfMap[name] ?? CupertinoIcons.circle;

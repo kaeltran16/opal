@@ -434,6 +434,54 @@ final class WeeklyPlanRepositoryProvider
 String _$weeklyPlanRepositoryHash() =>
     r'c3738b6eac4779275e5171feaf67aa8e78bf391b';
 
+@ProviderFor(budgetEnvelopeRepository)
+const budgetEnvelopeRepositoryProvider = BudgetEnvelopeRepositoryProvider._();
+
+final class BudgetEnvelopeRepositoryProvider
+    extends
+        $FunctionalProvider<
+          BudgetEnvelopeRepository,
+          BudgetEnvelopeRepository,
+          BudgetEnvelopeRepository
+        >
+    with $Provider<BudgetEnvelopeRepository> {
+  const BudgetEnvelopeRepositoryProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'budgetEnvelopeRepositoryProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$budgetEnvelopeRepositoryHash();
+
+  @$internal
+  @override
+  $ProviderElement<BudgetEnvelopeRepository> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  BudgetEnvelopeRepository create(Ref ref) {
+    return budgetEnvelopeRepository(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(BudgetEnvelopeRepository value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<BudgetEnvelopeRepository>(value),
+    );
+  }
+}
+
+String _$budgetEnvelopeRepositoryHash() =>
+    r'2d265a0c9798af46ccbf1fb5f3be25c882b6737a';
+
 /// The exercise catalog (name-ascending), streamed from [RoutineRepository].
 /// Powers the Exercise Library (U11); U12/U13 reuse the same source.
 
@@ -748,7 +796,7 @@ final class PalServiceProvider
   }
 }
 
-String _$palServiceHash() => r'28d39af072c114b63ea4d48c68067477e210f6ca';
+String _$palServiceHash() => r'bd1eab82f413d45628e1c4a79683c31078b3c18d';
 
 /// Real [HttpHealthService] when `PAL_BASE_URL` is set; [MockHealthService]
 /// otherwise (tests, backend-less preview). Shares the proxy's http client +

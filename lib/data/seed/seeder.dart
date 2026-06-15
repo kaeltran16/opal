@@ -16,10 +16,10 @@ class Seeder {
 
   /// Marker key written once the initial seed completes.
   ///
-  /// Bumped to `v5`: a default weekly schedule (`weekly_plan_days`) is seeded,
-  /// so DBs seeded under `initial_seed_v4` re-run (insertOrReplace) and backfill
-  /// the schedule referencing the seed routines.
-  static const String _markerKey = 'initial_seed_v5';
+  /// Bumped to `v6`: default per-category budget envelopes (`budget_envelopes`)
+  /// are seeded, so DBs seeded under `initial_seed_v5` re-run (insertOrReplace)
+  /// and backfill the default envelopes.
+  static const String _markerKey = 'initial_seed_v6';
 
   /// Seeds the DB if it hasn't been seeded yet. Safe to call on every launch.
   Future<void> seedIfNeeded() async {
@@ -101,6 +101,13 @@ class Seeder {
         await _db
             .into(_db.weeklyPlanDays)
             .insert(assignment.toCompanion(), mode: replace);
+      }
+
+      // Per-category budget envelopes (no FK; standalone).
+      for (final envelope in SeedData.budgetEnvelopes()) {
+        await _db
+            .into(_db.budgetEnvelopes)
+            .insert(envelope.toCompanion(), mode: replace);
       }
 
       // Mark done. Drop stale older `initial_seed_*` markers so version bumps

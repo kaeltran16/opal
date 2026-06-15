@@ -5433,6 +5433,413 @@ class WeeklyPlanDaysCompanion extends UpdateCompanion<WeeklyPlanDayRow> {
   }
 }
 
+class $BudgetEnvelopesTable extends BudgetEnvelopes
+    with TableInfo<$BudgetEnvelopesTable, BudgetEnvelopeRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $BudgetEnvelopesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _categoryMeta = const VerificationMeta(
+    'category',
+  );
+  @override
+  late final GeneratedColumn<String> category = GeneratedColumn<String>(
+    'category',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _capMeta = const VerificationMeta('cap');
+  @override
+  late final GeneratedColumn<double> cap = GeneratedColumn<double>(
+    'cap',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _iconMeta = const VerificationMeta('icon');
+  @override
+  late final GeneratedColumn<String> icon = GeneratedColumn<String>(
+    'icon',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _colorTokenMeta = const VerificationMeta(
+    'colorToken',
+  );
+  @override
+  late final GeneratedColumn<String> colorToken = GeneratedColumn<String>(
+    'color_token',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _positionMeta = const VerificationMeta(
+    'position',
+  );
+  @override
+  late final GeneratedColumn<int> position = GeneratedColumn<int>(
+    'position',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    category,
+    cap,
+    icon,
+    colorToken,
+    position,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'budget_envelopes';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<BudgetEnvelopeRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('category')) {
+      context.handle(
+        _categoryMeta,
+        category.isAcceptableOrUnknown(data['category']!, _categoryMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_categoryMeta);
+    }
+    if (data.containsKey('cap')) {
+      context.handle(
+        _capMeta,
+        cap.isAcceptableOrUnknown(data['cap']!, _capMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_capMeta);
+    }
+    if (data.containsKey('icon')) {
+      context.handle(
+        _iconMeta,
+        icon.isAcceptableOrUnknown(data['icon']!, _iconMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_iconMeta);
+    }
+    if (data.containsKey('color_token')) {
+      context.handle(
+        _colorTokenMeta,
+        colorToken.isAcceptableOrUnknown(data['color_token']!, _colorTokenMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_colorTokenMeta);
+    }
+    if (data.containsKey('position')) {
+      context.handle(
+        _positionMeta,
+        position.isAcceptableOrUnknown(data['position']!, _positionMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  BudgetEnvelopeRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return BudgetEnvelopeRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      category: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}category'],
+      )!,
+      cap: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}cap'],
+      )!,
+      icon: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}icon'],
+      )!,
+      colorToken: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}color_token'],
+      )!,
+      position: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}position'],
+      )!,
+    );
+  }
+
+  @override
+  $BudgetEnvelopesTable createAlias(String alias) {
+    return $BudgetEnvelopesTable(attachedDatabase, alias);
+  }
+}
+
+class BudgetEnvelopeRow extends DataClass
+    implements Insertable<BudgetEnvelopeRow> {
+  final String id;
+  final String category;
+  final double cap;
+  final String icon;
+  final String colorToken;
+  final int position;
+  const BudgetEnvelopeRow({
+    required this.id,
+    required this.category,
+    required this.cap,
+    required this.icon,
+    required this.colorToken,
+    required this.position,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['category'] = Variable<String>(category);
+    map['cap'] = Variable<double>(cap);
+    map['icon'] = Variable<String>(icon);
+    map['color_token'] = Variable<String>(colorToken);
+    map['position'] = Variable<int>(position);
+    return map;
+  }
+
+  BudgetEnvelopesCompanion toCompanion(bool nullToAbsent) {
+    return BudgetEnvelopesCompanion(
+      id: Value(id),
+      category: Value(category),
+      cap: Value(cap),
+      icon: Value(icon),
+      colorToken: Value(colorToken),
+      position: Value(position),
+    );
+  }
+
+  factory BudgetEnvelopeRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return BudgetEnvelopeRow(
+      id: serializer.fromJson<String>(json['id']),
+      category: serializer.fromJson<String>(json['category']),
+      cap: serializer.fromJson<double>(json['cap']),
+      icon: serializer.fromJson<String>(json['icon']),
+      colorToken: serializer.fromJson<String>(json['colorToken']),
+      position: serializer.fromJson<int>(json['position']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'category': serializer.toJson<String>(category),
+      'cap': serializer.toJson<double>(cap),
+      'icon': serializer.toJson<String>(icon),
+      'colorToken': serializer.toJson<String>(colorToken),
+      'position': serializer.toJson<int>(position),
+    };
+  }
+
+  BudgetEnvelopeRow copyWith({
+    String? id,
+    String? category,
+    double? cap,
+    String? icon,
+    String? colorToken,
+    int? position,
+  }) => BudgetEnvelopeRow(
+    id: id ?? this.id,
+    category: category ?? this.category,
+    cap: cap ?? this.cap,
+    icon: icon ?? this.icon,
+    colorToken: colorToken ?? this.colorToken,
+    position: position ?? this.position,
+  );
+  BudgetEnvelopeRow copyWithCompanion(BudgetEnvelopesCompanion data) {
+    return BudgetEnvelopeRow(
+      id: data.id.present ? data.id.value : this.id,
+      category: data.category.present ? data.category.value : this.category,
+      cap: data.cap.present ? data.cap.value : this.cap,
+      icon: data.icon.present ? data.icon.value : this.icon,
+      colorToken: data.colorToken.present
+          ? data.colorToken.value
+          : this.colorToken,
+      position: data.position.present ? data.position.value : this.position,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('BudgetEnvelopeRow(')
+          ..write('id: $id, ')
+          ..write('category: $category, ')
+          ..write('cap: $cap, ')
+          ..write('icon: $icon, ')
+          ..write('colorToken: $colorToken, ')
+          ..write('position: $position')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(id, category, cap, icon, colorToken, position);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is BudgetEnvelopeRow &&
+          other.id == this.id &&
+          other.category == this.category &&
+          other.cap == this.cap &&
+          other.icon == this.icon &&
+          other.colorToken == this.colorToken &&
+          other.position == this.position);
+}
+
+class BudgetEnvelopesCompanion extends UpdateCompanion<BudgetEnvelopeRow> {
+  final Value<String> id;
+  final Value<String> category;
+  final Value<double> cap;
+  final Value<String> icon;
+  final Value<String> colorToken;
+  final Value<int> position;
+  final Value<int> rowid;
+  const BudgetEnvelopesCompanion({
+    this.id = const Value.absent(),
+    this.category = const Value.absent(),
+    this.cap = const Value.absent(),
+    this.icon = const Value.absent(),
+    this.colorToken = const Value.absent(),
+    this.position = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  BudgetEnvelopesCompanion.insert({
+    required String id,
+    required String category,
+    required double cap,
+    required String icon,
+    required String colorToken,
+    this.position = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       category = Value(category),
+       cap = Value(cap),
+       icon = Value(icon),
+       colorToken = Value(colorToken);
+  static Insertable<BudgetEnvelopeRow> custom({
+    Expression<String>? id,
+    Expression<String>? category,
+    Expression<double>? cap,
+    Expression<String>? icon,
+    Expression<String>? colorToken,
+    Expression<int>? position,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (category != null) 'category': category,
+      if (cap != null) 'cap': cap,
+      if (icon != null) 'icon': icon,
+      if (colorToken != null) 'color_token': colorToken,
+      if (position != null) 'position': position,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  BudgetEnvelopesCompanion copyWith({
+    Value<String>? id,
+    Value<String>? category,
+    Value<double>? cap,
+    Value<String>? icon,
+    Value<String>? colorToken,
+    Value<int>? position,
+    Value<int>? rowid,
+  }) {
+    return BudgetEnvelopesCompanion(
+      id: id ?? this.id,
+      category: category ?? this.category,
+      cap: cap ?? this.cap,
+      icon: icon ?? this.icon,
+      colorToken: colorToken ?? this.colorToken,
+      position: position ?? this.position,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (category.present) {
+      map['category'] = Variable<String>(category.value);
+    }
+    if (cap.present) {
+      map['cap'] = Variable<double>(cap.value);
+    }
+    if (icon.present) {
+      map['icon'] = Variable<String>(icon.value);
+    }
+    if (colorToken.present) {
+      map['color_token'] = Variable<String>(colorToken.value);
+    }
+    if (position.present) {
+      map['position'] = Variable<int>(position.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('BudgetEnvelopesCompanion(')
+          ..write('id: $id, ')
+          ..write('category: $category, ')
+          ..write('cap: $cap, ')
+          ..write('icon: $icon, ')
+          ..write('colorToken: $colorToken, ')
+          ..write('position: $position, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$LoopDatabase extends GeneratedDatabase {
   _$LoopDatabase(QueryExecutor e) : super(e);
   $LoopDatabaseManager get managers => $LoopDatabaseManager(this);
@@ -5450,6 +5857,9 @@ abstract class _$LoopDatabase extends GeneratedDatabase {
   late final $GoalsTableTable goalsTable = $GoalsTableTable(this);
   late final $SeedMarkersTable seedMarkers = $SeedMarkersTable(this);
   late final $WeeklyPlanDaysTable weeklyPlanDays = $WeeklyPlanDaysTable(this);
+  late final $BudgetEnvelopesTable budgetEnvelopes = $BudgetEnvelopesTable(
+    this,
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -5467,6 +5877,7 @@ abstract class _$LoopDatabase extends GeneratedDatabase {
     goalsTable,
     seedMarkers,
     weeklyPlanDays,
+    budgetEnvelopes,
   ];
 }
 
@@ -8296,6 +8707,237 @@ typedef $$WeeklyPlanDaysTableProcessedTableManager =
       WeeklyPlanDayRow,
       PrefetchHooks Function()
     >;
+typedef $$BudgetEnvelopesTableCreateCompanionBuilder =
+    BudgetEnvelopesCompanion Function({
+      required String id,
+      required String category,
+      required double cap,
+      required String icon,
+      required String colorToken,
+      Value<int> position,
+      Value<int> rowid,
+    });
+typedef $$BudgetEnvelopesTableUpdateCompanionBuilder =
+    BudgetEnvelopesCompanion Function({
+      Value<String> id,
+      Value<String> category,
+      Value<double> cap,
+      Value<String> icon,
+      Value<String> colorToken,
+      Value<int> position,
+      Value<int> rowid,
+    });
+
+class $$BudgetEnvelopesTableFilterComposer
+    extends Composer<_$LoopDatabase, $BudgetEnvelopesTable> {
+  $$BudgetEnvelopesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get category => $composableBuilder(
+    column: $table.category,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get cap => $composableBuilder(
+    column: $table.cap,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get icon => $composableBuilder(
+    column: $table.icon,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get colorToken => $composableBuilder(
+    column: $table.colorToken,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get position => $composableBuilder(
+    column: $table.position,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$BudgetEnvelopesTableOrderingComposer
+    extends Composer<_$LoopDatabase, $BudgetEnvelopesTable> {
+  $$BudgetEnvelopesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get category => $composableBuilder(
+    column: $table.category,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get cap => $composableBuilder(
+    column: $table.cap,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get icon => $composableBuilder(
+    column: $table.icon,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get colorToken => $composableBuilder(
+    column: $table.colorToken,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get position => $composableBuilder(
+    column: $table.position,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$BudgetEnvelopesTableAnnotationComposer
+    extends Composer<_$LoopDatabase, $BudgetEnvelopesTable> {
+  $$BudgetEnvelopesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get category =>
+      $composableBuilder(column: $table.category, builder: (column) => column);
+
+  GeneratedColumn<double> get cap =>
+      $composableBuilder(column: $table.cap, builder: (column) => column);
+
+  GeneratedColumn<String> get icon =>
+      $composableBuilder(column: $table.icon, builder: (column) => column);
+
+  GeneratedColumn<String> get colorToken => $composableBuilder(
+    column: $table.colorToken,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get position =>
+      $composableBuilder(column: $table.position, builder: (column) => column);
+}
+
+class $$BudgetEnvelopesTableTableManager
+    extends
+        RootTableManager<
+          _$LoopDatabase,
+          $BudgetEnvelopesTable,
+          BudgetEnvelopeRow,
+          $$BudgetEnvelopesTableFilterComposer,
+          $$BudgetEnvelopesTableOrderingComposer,
+          $$BudgetEnvelopesTableAnnotationComposer,
+          $$BudgetEnvelopesTableCreateCompanionBuilder,
+          $$BudgetEnvelopesTableUpdateCompanionBuilder,
+          (
+            BudgetEnvelopeRow,
+            BaseReferences<
+              _$LoopDatabase,
+              $BudgetEnvelopesTable,
+              BudgetEnvelopeRow
+            >,
+          ),
+          BudgetEnvelopeRow,
+          PrefetchHooks Function()
+        > {
+  $$BudgetEnvelopesTableTableManager(
+    _$LoopDatabase db,
+    $BudgetEnvelopesTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$BudgetEnvelopesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$BudgetEnvelopesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$BudgetEnvelopesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> category = const Value.absent(),
+                Value<double> cap = const Value.absent(),
+                Value<String> icon = const Value.absent(),
+                Value<String> colorToken = const Value.absent(),
+                Value<int> position = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => BudgetEnvelopesCompanion(
+                id: id,
+                category: category,
+                cap: cap,
+                icon: icon,
+                colorToken: colorToken,
+                position: position,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String category,
+                required double cap,
+                required String icon,
+                required String colorToken,
+                Value<int> position = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => BudgetEnvelopesCompanion.insert(
+                id: id,
+                category: category,
+                cap: cap,
+                icon: icon,
+                colorToken: colorToken,
+                position: position,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$BudgetEnvelopesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$LoopDatabase,
+      $BudgetEnvelopesTable,
+      BudgetEnvelopeRow,
+      $$BudgetEnvelopesTableFilterComposer,
+      $$BudgetEnvelopesTableOrderingComposer,
+      $$BudgetEnvelopesTableAnnotationComposer,
+      $$BudgetEnvelopesTableCreateCompanionBuilder,
+      $$BudgetEnvelopesTableUpdateCompanionBuilder,
+      (
+        BudgetEnvelopeRow,
+        BaseReferences<
+          _$LoopDatabase,
+          $BudgetEnvelopesTable,
+          BudgetEnvelopeRow
+        >,
+      ),
+      BudgetEnvelopeRow,
+      PrefetchHooks Function()
+    >;
 
 class $LoopDatabaseManager {
   final _$LoopDatabase _db;
@@ -8324,4 +8966,6 @@ class $LoopDatabaseManager {
       $$SeedMarkersTableTableManager(_db, _db.seedMarkers);
   $$WeeklyPlanDaysTableTableManager get weeklyPlanDays =>
       $$WeeklyPlanDaysTableTableManager(_db, _db.weeklyPlanDays);
+  $$BudgetEnvelopesTableTableManager get budgetEnvelopes =>
+      $$BudgetEnvelopesTableTableManager(_db, _db.budgetEnvelopes);
 }

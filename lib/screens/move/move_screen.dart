@@ -612,7 +612,8 @@ class _QuickLinks extends StatelessWidget {
           value: 'All time',
           last: true,
           // Same destination as the profile "All stats" row.
-          onTap: () => context.pushNamed(AppRoute.weeklyReview.name),
+          onTap: () => context.pushNamed(AppRoute.recap.name,
+              queryParameters: const {'range': 'week'}),
         ),
       ],
     );

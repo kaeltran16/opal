@@ -294,6 +294,32 @@ extension WeeklyPlanAssignmentModelMapper on WeeklyPlanAssignment {
 }
 
 // ---------------------------------------------------------------------------
+// BudgetEnvelope
+// ---------------------------------------------------------------------------
+
+extension BudgetEnvelopeRowMapper on BudgetEnvelopeRow {
+  BudgetEnvelope toModel() => BudgetEnvelope(
+        id: id,
+        category: category,
+        cap: cap,
+        icon: icon,
+        colorToken: colorToken,
+        position: position,
+      );
+}
+
+extension BudgetEnvelopeModelMapper on BudgetEnvelope {
+  BudgetEnvelopesCompanion toCompanion() => BudgetEnvelopesCompanion(
+        id: Value(id),
+        category: Value(category),
+        cap: Value(cap),
+        icon: Value(icon),
+        colorToken: Value(colorToken),
+        position: Value(position),
+      );
+}
+
+// ---------------------------------------------------------------------------
 // Goals (single row)
 // ---------------------------------------------------------------------------
 

@@ -9,7 +9,7 @@ import 'package:opal/controllers/providers.dart';
 import 'package:opal/data/db/database.dart';
 import 'package:opal/data/repositories/repositories.dart';
 import 'package:opal/models/models.dart';
-import 'package:opal/screens/review/monthly_review_screen.dart';
+import 'package:opal/screens/recap/recap_screen.dart';
 import 'package:opal/services/pal/pal_context_builder.dart' show ritualStreakDays;
 import 'package:opal/services/pal/pal_service.dart';
 import 'package:opal/theme/app_colors.dart';
@@ -212,10 +212,11 @@ void main() {
   });
 
   // ---------------------------------------------------------------------------
-  // Widget — stat rows + mock narrative render; Regenerate swaps the text.
+  // Widget — the consolidated Recap, opened on the Month segment, renders the
+  // computed tiles + the reused Pal patterns block.
   // ---------------------------------------------------------------------------
   testWidgets(
-      'MonthlyReviewScreen renders stats + narrative; Regenerate swaps text',
+      'RecapScreen(month) renders the computed tiles + Pal patterns',
       (tester) async {
     final db = LoopDatabase.forTesting(NativeDatabase.memory());
     addTearDown(db.close);
@@ -278,54 +279,34 @@ void main() {
           palServiceProvider.overrideWithValue(_SequencedPalService()),
           sharedPreferencesProvider.overrideWithValue(prefs),
         ],
-        child: _wrap(const MonthlyReviewScreen()),
+        child: _wrap(const RecapScreen(initialRange: InsightRange.month)),
       ),
     );
     await tester.pumpAndSettle();
-    // Wait for the async monthlyStats stream to emit before asserting.
-    await _pumpUntil(tester, find.text('Total spent'));
+    // Wait for the async recapData stream to emit before asserting.
+    await _pumpUntil(tester, find.text('SPENT'));
 
-    // Section header + "Written by Pal" label render (above the fold).
-    expect(find.text('By the numbers'), findsOneWidget);
-    expect(find.text('WRITTEN BY PAL'), findsOneWidget);
+    // The three tinted tiles render (labels are uppercased in the tile).
+    expect(find.text('SPENT'), findsOneWidget);
+    expect(find.text('MOVED'), findsOneWidget);
+    expect(find.text('RITUALS'), findsOneWidget);
 
-    // The four stat rows.
-    expect(find.text('Total spent'), findsOneWidget);
-    expect(find.text('Active energy'), findsOneWidget);
-    expect(find.text('Routines kept'), findsOneWidget);
-    expect(find.text('Streak'), findsOneWidget);
-
-    // Computed stat values: spent $6, moved 40 kcal. The streak comes from the
-    // persisted ritual entries (a real 2-day run), NOT the seeded streak: 9.
+    // Computed values for the month: spent $6, moved 40 kcal.
     expect(find.text('\$6'), findsOneWidget);
     expect(find.text('40'), findsOneWidget);
-    expect(find.text('9'), findsNothing); // seeded value must not surface
-    expect(find.text('Routines, ongoing'), findsOneWidget); // the Streak row
-    // The Streak row's value (2) renders; "Routines kept" may also read "2" when
-    // both ritual entries land in the current month, so allow ≥1 match.
-    expect(find.text('2'), findsWidgets);
 
-    // First narrative from the mock PalService.
-    expect(find.text('FIRST_REVIEW — a steady month.'), findsOneWidget);
-
-    // Tapping Regenerate swaps to the next mock review.
-    await tester.tap(find.text('Regenerate'));
-    await tester.pumpAndSettle();
-    await _pumpUntil(
-        tester, find.text('SECOND_REVIEW — movement was your anchor.'));
-    expect(find.text('FIRST_REVIEW — a steady month.'), findsNothing);
-    expect(
-        find.text('SECOND_REVIEW — movement was your anchor.'), findsOneWidget);
-
-    // "Patterns Pal found" sits below the fold — scroll it into view.
+    // The reused Pal patterns block (from insightsProvider) renders below the
+    // fold. Wait for the insights future to resolve, then scroll it into view.
+    final patternText = 'Morning rituals lower food spending — '
+        'On days you journal, food costs drop 32%';
+    await _pumpUntil(tester, find.text('Patterns'));
     await tester.scrollUntilVisible(
-      find.text('Patterns Pal found'),
+      find.text(patternText),
       120,
       scrollable: find.byType(Scrollable).first,
     );
-    expect(find.text('Patterns Pal found'), findsOneWidget);
-    expect(find.text('Morning rituals lower food spending'), findsOneWidget);
-    expect(find.text('On days you journal, food costs drop 32%'), findsOneWidget);
+    expect(find.text('Patterns'), findsOneWidget);
+    expect(find.text(patternText), findsOneWidget);
 
     await flushProviderTimers(tester);
   });

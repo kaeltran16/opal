@@ -4,6 +4,7 @@
 /// persistence, JSON, or service logic — that arrives in U02+.
 library;
 
+export 'budget_envelope.dart';
 export 'email_account.dart';
 export 'entry.dart';
 export 'enums.dart';
