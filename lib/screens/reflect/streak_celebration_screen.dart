@@ -209,34 +209,6 @@ class StreakCelebrationScreen extends ConsumerWidget {
                   children: [
                     Expanded(
                       child: PressScale(
-                        onTap: () {},
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              vertical: Spacing.lg, horizontal: Spacing.lg),
-                          decoration: BoxDecoration(
-                            color: c.move,
-                            borderRadius: BorderRadius.circular(Radii.card),
-                          ),
-                          alignment: Alignment.center,
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              AppIcon('square.and.arrow.up',
-                                  size: 16, color: c.onAccent),
-                              const SizedBox(width: Spacing.sm),
-                              Text('Share',
-                                  style: AppType.callout.copyWith(
-                                      fontWeight: FontWeight.w600,
-                                      color: c.onAccent,
-                                      letterSpacing: -0.24)),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: Spacing.md),
-                    Expanded(
-                      child: PressScale(
                         onTap: () => Navigator.of(context).canPop()
                             ? Navigator.of(context).pop()
                             : context.go('/today'),

@@ -48,7 +48,7 @@ Future<AppliedActions> applyPalActions(Ref ref, List<PalAction> actions) async {
           working ??= await goalsRepo.get();
           priorGoals ??= working;
           working = _applyGoal(working, action);
-          await goalsRepo.save(working);
+          await goalsRepo.upsert(working);
         case CreateRoutineAction():
           final catalog = ref.read(exercisesProvider).asData?.value ?? const [];
           final draft =
@@ -69,7 +69,7 @@ Future<AppliedActions> applyPalActions(Ref ref, List<PalAction> actions) async {
     for (final id in routineIds) {
       await routines.deleteById(id);
     }
-    if (priorGoals != null) await goalsRepo.save(priorGoals);
+    if (priorGoals != null) await goalsRepo.upsert(priorGoals);
     rethrow;
   }
   return AppliedActions(

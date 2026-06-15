@@ -7,6 +7,7 @@ import '../../models/models.dart';
 import '../../theme/theme.dart';
 import '../../widgets/app_icon.dart';
 import '../../widgets/nav_bar.dart';
+import '../../widgets/pal_avatar.dart';
 import '../../widgets/press_scale.dart';
 
 /// Screen 25 — Pal Inbox. "A quiet inbox, not an anxious one": a timeline of the
@@ -89,29 +90,7 @@ class _InboxBody extends ConsumerWidget {
               children: [
                 Row(
                   children: [
-                    Container(
-                      width: 36,
-                      height: 36,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [c.accent, c.rituals],
-                        ),
-                        boxShadow: [
-                          // accent glow (not neutral elevation) — kept inline
-                          BoxShadow(
-                            color: c.accent.withValues(alpha: 0.33),
-                            blurRadius: 14,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      alignment: Alignment.center,
-                      child: AppIcon('sparkles',
-                          size: 16, color: c.onAccent),
-                    ),
+                    const PalAvatar(size: 36, glyphSize: 16, glow: true),
                     const SizedBox(width: Spacing.md),
                     Text('Pal noticed',
                         style: AppType.title1.copyWith(

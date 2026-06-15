@@ -239,7 +239,7 @@ class PalComposerController extends _$PalComposerController {
       await routines.deleteById(id);
     }
     if (rec.priorGoals != null) {
-      await ref.read(goalsRepositoryProvider).save(rec.priorGoals!);
+      await ref.read(goalsRepositoryProvider).upsert(rec.priorGoals!);
     }
 
     if (index >= 0 && index < state.messages.length) {

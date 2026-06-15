@@ -51,7 +51,7 @@ void main() {
     expect((await repo.get()).dailyMoveKcal, 500);
 
     // The renamed column persists and reads back through the mapper.
-    await repo.save(const Goals(dailyMoveKcal: 750));
+    await repo.upsert(const Goals(dailyMoveKcal: 750));
     expect((await repo.get()).dailyMoveKcal, 750);
   });
 }

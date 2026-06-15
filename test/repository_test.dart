@@ -298,7 +298,7 @@ void main() {
       final defaults = await repo.watchGoals().first;
       expect(defaults, const Goals()); // model defaults
 
-      await repo.save(const Goals(
+      await repo.upsert(const Goals(
           dailyBudget: 120, dailyMoveKcal: 450, dailyRitualTarget: 3));
       final saved = await repo.get();
       expect(saved.dailyBudget, 120);

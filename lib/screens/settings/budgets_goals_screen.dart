@@ -61,7 +61,7 @@ class _BudgetsGoalsScreenState extends ConsumerState<BudgetsGoalsScreen> {
     if (!_loaded || _saving) return;
     setState(() => _saving = true);
     try {
-      await ref.read(goalsRepositoryProvider).save(Goals(
+      await ref.read(goalsRepositoryProvider).upsert(Goals(
             dailyBudget: _budget,
             dailyMoveKcal: _move,
             dailyRitualTarget: _ritualTarget,

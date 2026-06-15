@@ -6,6 +6,7 @@ import '../../controllers/rituals_controller.dart';
 import '../../models/models.dart';
 import '../../theme/theme.dart';
 import '../../widgets/app_icon.dart';
+import '../../widgets/dashed_border.dart';
 import '../../widgets/press_scale.dart';
 
 /// Screen 14 — Evening Close-Out.
@@ -415,12 +416,11 @@ class _DashedButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return CustomPaint(
-      painter: _DashedBorderPainter(
-        color: EveningCloseOutScreen._white06,
-        borderColor: const Color(0x40FFFFFF),
-        radius: Radii.card,
-      ),
+    return DottedBorderBox(
+      color: const Color(0x40FFFFFF),
+      fillColor: EveningCloseOutScreen._white06,
+      strokeWidth: 0.5,
+      radius: Radii.card,
       child: Padding(
         padding: const EdgeInsets.symmetric(
             horizontal: Spacing.lg, vertical: Spacing.md),
@@ -428,50 +428,4 @@ class _DashedButton extends StatelessWidget {
       ),
     );
   }
-}
-
-/// Paints a rounded rect with a fill + a dashed stroke. Flutter has no built-in
-/// dashed border, so a small painter mirrors the prototype's dashed CSS edge.
-class _DashedBorderPainter extends CustomPainter {
-  _DashedBorderPainter({
-    required this.color,
-    required this.borderColor,
-    required this.radius,
-  });
-
-  final Color color;
-  final Color borderColor;
-  final double radius;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final rrect = RRect.fromRectAndRadius(
-        Offset.zero & size, Radius.circular(radius));
-    canvas.drawRRect(rrect, Paint()..color = color);
-
-    final path = Path()..addRRect(rrect);
-    final dash = Paint()
-      ..color = borderColor
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 0.5;
-
-    const dashWidth = 5.0;
-    const gap = 4.0;
-    for (final metric in path.computeMetrics()) {
-      var distance = 0.0;
-      while (distance < metric.length) {
-        canvas.drawPath(
-          metric.extractPath(distance, distance + dashWidth),
-          dash,
-        );
-        distance += dashWidth + gap;
-      }
-    }
-  }
-
-  @override
-  bool shouldRepaint(_DashedBorderPainter old) =>
-      old.color != color ||
-      old.borderColor != borderColor ||
-      old.radius != radius;
 }

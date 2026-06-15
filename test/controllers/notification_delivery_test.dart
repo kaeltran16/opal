@@ -133,7 +133,7 @@ void main() {
   group('budget alert', () {
     // budget lives in Goals (drift), not prefs
     Future<void> seedBudget(double budget) =>
-        GoalsRepository(db).save(Goals(dailyBudget: budget));
+        GoalsRepository(db).upsert(Goals(dailyBudget: budget));
 
     test('fires once when a spend crosses the daily budget', () async {
       final prefs = await _prefs({'settings.budgetAlerts': true});

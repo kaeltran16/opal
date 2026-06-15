@@ -34,7 +34,7 @@ void main() {
     addTearDown(db.close);
 
     // Fixed goals: $100 budget, 60 move-kcal, 4 rituals.
-    await GoalsRepository(db).save(const Goals(
+    await GoalsRepository(db).upsert(const Goals(
       dailyBudget: 100,
       dailyMoveKcal: 60,
       dailyRitualTarget: 4,
@@ -145,7 +145,7 @@ void main() {
     addTearDown(tester.view.reset);
 
     // Goals exist so TodayState builds, but no entries are inserted.
-    await GoalsRepository(db).save(const Goals(
+    await GoalsRepository(db).upsert(const Goals(
       dailyBudget: 100,
       dailyMoveKcal: 60,
       dailyRitualTarget: 4,

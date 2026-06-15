@@ -9,6 +9,7 @@ import '../../models/models.dart';
 import '../../services/services.dart';
 import '../../theme/theme.dart';
 import '../../widgets/app_icon.dart';
+import '../../widgets/pal_avatar.dart';
 import '../../widgets/press_scale.dart';
 
 /// Screens 03/04 — the Pal composer: the unified FAB input surface that replaces
@@ -164,7 +165,7 @@ class _Header extends StatelessWidget {
           ),
           Row(
             children: [
-              const _PalAvatar(size: 32, glyphSize: 16),
+              const PalAvatar(size: 32, glyphSize: 16),
               const SizedBox(width: Spacing.md),
               Expanded(
                 child: Column(
@@ -493,7 +494,7 @@ class _Bubble extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           if (!isUser) ...[
-            const _PalAvatar(size: 24, glyphSize: 11),
+            const PalAvatar(size: 24, glyphSize: 11),
             const SizedBox(width: Spacing.sm),
           ],
           Flexible(
@@ -602,33 +603,6 @@ class _Dot extends StatelessWidget {
         height: 6,
         decoration: BoxDecoration(color: color, shape: BoxShape.circle),
       ),
-    );
-  }
-}
-
-/// The 135° gradient (accent → rituals) circle with a white sparkles glyph.
-class _PalAvatar extends StatelessWidget {
-  const _PalAvatar({required this.size, required this.glyphSize});
-
-  final double size;
-  final double glyphSize;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.colors;
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [c.accent, c.rituals],
-        ),
-      ),
-      alignment: Alignment.center,
-      child: AppIcon('sparkles', size: glyphSize, color: c.onAccent),
     );
   }
 }

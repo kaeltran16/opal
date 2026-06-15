@@ -31,7 +31,7 @@ class WeeklyPlanRepository {
 
   /// Assigns [routineId] (null = Rest) to [weekday] (1=Mon..7=Sun), upserting
   /// the single row for that weekday.
-  Future<void> setAssignment(int weekday, String? routineId) =>
+  Future<void> upsert(int weekday, String? routineId) =>
       _db.into(_db.weeklyPlanDays).insertOnConflictUpdate(
             WeeklyPlanAssignment(weekday: weekday, routineId: routineId)
                 .toCompanion(),

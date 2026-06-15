@@ -121,7 +121,7 @@ void main() {
     SharedPreferences.setMockInitialValues({});
     final prefs = await SharedPreferences.getInstance();
 
-    await GoalsRepository(db).save(const Goals(dailyBudget: 85));
+    await GoalsRepository(db).upsert(const Goals(dailyBudget: 85));
 
     final entries = EntryRepository(db);
     await entries.insert(Entry(

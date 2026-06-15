@@ -82,7 +82,7 @@ class _BudgetSheetState extends ConsumerState<BudgetSheet> {
     setState(() => _saving = true);
     final repo = ref.read(goalsRepositoryProvider);
     final current = await repo.get();
-    await repo.save(current.copyWith(dailyBudget: _dailyAmount.toDouble()));
+    await repo.upsert(current.copyWith(dailyBudget: _dailyAmount.toDouble()));
     if (!mounted) return;
     Navigator.of(context).pop();
   }

@@ -100,7 +100,7 @@ void main() {
       final db = LoopDatabase.forTesting(NativeDatabase.memory());
       addTearDown(db.close);
       final goals = GoalsRepository(db);
-      await goals.save(const Goals(dailyBudget: 100));
+      await goals.upsert(const Goals(dailyBudget: 100));
       final ref = refWith(db, _FakePal());
 
       final applied = await applyPalActions(ref, [
@@ -162,7 +162,7 @@ void main() {
       final db = LoopDatabase.forTesting(NativeDatabase.memory());
       addTearDown(db.close);
       final goals = GoalsRepository(db);
-      await goals.save(const Goals(dailyBudget: 100, dailyMoveKcal: 500));
+      await goals.upsert(const Goals(dailyBudget: 100, dailyMoveKcal: 500));
       final ref = refWith(db, _FakePal(routineFails: true));
 
       await expectLater(

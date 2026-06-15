@@ -13,6 +13,7 @@ import '../../util/format.dart';
 import '../../widgets/activity_rings.dart';
 import '../../widgets/app_icon.dart';
 import '../../widgets/controls.dart';
+import '../../widgets/dashed_border.dart';
 import '../../widgets/nav_bar.dart';
 import '../../widgets/press_scale.dart';
 import '../../widgets/summary_tile.dart';
@@ -337,8 +338,9 @@ class _TodayBody extends ConsumerWidget {
           child: PressScale(
             semanticLabel: 'Close out your day',
             onTap: () => context.pushNamed(AppRoute.eveningCloseOut.name),
-            child: _DashedBorderBox(
+            child: DottedBorderBox(
               color: c.rituals.withValues(alpha: 0.33),
+              strokeWidth: 0.5,
               radius: Radii.card,
               child: Container(
                 padding: const EdgeInsets.symmetric(
@@ -798,61 +800,3 @@ class _PalReplyChip extends StatelessWidget {
   }
 }
 
-/// Rounded box with a dashed border, painted via [CustomPaint] (Flutter has no
-/// built-in dashed border). Local equivalent of rituals' DottedBorderBox.
-class _DashedBorderBox extends StatelessWidget {
-  const _DashedBorderBox({
-    required this.child,
-    required this.color,
-    this.radius = 12,
-  });
-
-  final Widget child;
-  final Color color;
-  final double radius;
-
-  @override
-  Widget build(BuildContext context) {
-    return CustomPaint(
-      painter: _DashedBorderPainter(color: color, radius: radius),
-      child: child,
-    );
-  }
-}
-
-class _DashedBorderPainter extends CustomPainter {
-  _DashedBorderPainter({required this.color, required this.radius});
-
-  final Color color;
-  final double radius;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..strokeWidth = 0.5
-      ..style = PaintingStyle.stroke;
-    final rrect = RRect.fromRectAndRadius(
-      Offset.zero & size,
-      Radius.circular(radius),
-    );
-    final path = Path()..addRRect(rrect);
-
-    const dash = 5.0;
-    const gap = 4.0;
-    for (final metric in path.computeMetrics()) {
-      var distance = 0.0;
-      while (distance < metric.length) {
-        canvas.drawPath(
-          metric.extractPath(distance, distance + dash),
-          paint,
-        );
-        distance += dash + gap;
-      }
-    }
-  }
-
-  @override
-  bool shouldRepaint(_DashedBorderPainter old) =>
-      old.color != color || old.radius != radius;
-}

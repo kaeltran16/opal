@@ -654,7 +654,7 @@ class _RecentSessions extends StatelessWidget {
                           pathParameters: {'id': sessions.first.workout.id}),
                   behavior: HitTestBehavior.opaque,
                   child: Text(
-                    'See all',
+                    'Latest',
                     style: AppType.footnote.copyWith(
                         fontWeight: FontWeight.w600,
                         color: c.accent,

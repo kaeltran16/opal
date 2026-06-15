@@ -6,6 +6,7 @@ import '../../controllers/rituals_controller.dart';
 import '../../models/models.dart';
 import '../../theme/theme.dart';
 import '../../widgets/app_icon.dart';
+import '../../widgets/dashed_border.dart';
 import '../../widgets/nav_bar.dart';
 import '../../widgets/press_scale.dart';
 
@@ -603,62 +604,3 @@ class _NewRoutineButton extends StatelessWidget {
   }
 }
 
-/// A rounded box with a dashed border, painted via [CustomPaint] (Flutter has
-/// no built-in dashed border).
-class DottedBorderBox extends StatelessWidget {
-  const DottedBorderBox({
-    super.key,
-    required this.child,
-    required this.color,
-    this.radius = Radii.md,
-  });
-
-  final Widget child;
-  final Color color;
-  final double radius;
-
-  @override
-  Widget build(BuildContext context) {
-    return CustomPaint(
-      painter: _DashedBorderPainter(color: color, radius: radius),
-      child: child,
-    );
-  }
-}
-
-class _DashedBorderPainter extends CustomPainter {
-  _DashedBorderPainter({required this.color, required this.radius});
-
-  final Color color;
-  final double radius;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..strokeWidth = 1
-      ..style = PaintingStyle.stroke;
-    final rrect = RRect.fromRectAndRadius(
-      Offset.zero & size,
-      Radius.circular(radius),
-    );
-    final path = Path()..addRRect(rrect);
-
-    const dash = 5.0;
-    const gap = 4.0;
-    for (final metric in path.computeMetrics()) {
-      var distance = 0.0;
-      while (distance < metric.length) {
-        canvas.drawPath(
-          metric.extractPath(distance, distance + dash),
-          paint,
-        );
-        distance += dash + gap;
-      }
-    }
-  }
-
-  @override
-  bool shouldRepaint(_DashedBorderPainter old) =>
-      old.color != color || old.radius != radius;
-}

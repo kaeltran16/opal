@@ -28,6 +28,6 @@ class GoalsRepository {
   }
 
   /// Writes the single goals row (insert or replace).
-  Future<void> save(Goals goals) =>
+  Future<void> upsert(Goals goals) =>
       _db.into(_db.goalsTable).insertOnConflictUpdate(goals.toCompanion());
 }

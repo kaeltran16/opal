@@ -78,7 +78,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     try {
       await settings.setDisplayName(_nameController.text.trim());
 
-      await goals.save(Goals(
+      await goals.upsert(Goals(
         dailyBudget: _budget,
         dailyMoveKcal: _moveKcal,
         dailyRitualTarget: 5,

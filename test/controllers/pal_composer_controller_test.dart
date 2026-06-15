@@ -233,7 +233,7 @@ void main() {
       final db = LoopDatabase.forTesting(NativeDatabase.memory());
       addTearDown(db.close);
       final goals = GoalsRepository(db);
-      await goals.save(const Goals(dailyBudget: 85));
+      await goals.upsert(const Goals(dailyBudget: 85));
       final pal = _FakePal(reply: 'Set to \$60.', actions: const [
         SetGoalAction(target: GoalTarget.dailyBudget, value: 60),
       ]);

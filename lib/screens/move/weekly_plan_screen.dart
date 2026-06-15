@@ -419,26 +419,6 @@ class _TodaySpotlight extends StatelessWidget {
                         ),
                       ),
                     ),
-                    const SizedBox(width: Spacing.sm),
-                    PressScale(
-                      onTap: () => context.go('/move/start'),
-                      semanticLabel: 'Swap workout',
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: Spacing.lg, vertical: Spacing.md),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(Radii.md),
-                          border: Border.all(color: c.hair, width: 0.5),
-                        ),
-                        child: Text(
-                          'Swap',
-                          style: AppType.subhead.copyWith(
-                              fontWeight: FontWeight.w500,
-                              color: c.ink2,
-                              letterSpacing: -0.15),
-                        ),
-                      ),
-                    ),
                   ],
                 ),
               ],

@@ -28,20 +28,20 @@ void main() {
       expect(await repo.getSchedule(), isEmpty);
     });
 
-    test('setAssignment upserts a weekday row and reads it back', () async {
+    test('upsert writes a weekday row and reads it back', () async {
       // FK target.
       await db.into(db.routines).insert(RoutinesCompanion.insert(
           id: 'r1', name: 'Push A', tag: 'upper'));
       final repo = WeeklyPlanRepository(db);
 
-      await repo.setAssignment(1, 'r1');
+      await repo.upsert(1, 'r1');
       var schedule = await repo.getSchedule();
       expect(schedule, hasLength(1));
       expect(schedule.single.weekday, 1);
       expect(schedule.single.routineId, 'r1');
 
       // Re-assigning the same weekday replaces, not duplicates.
-      await repo.setAssignment(1, null);
+      await repo.upsert(1, null);
       schedule = await repo.getSchedule();
       expect(schedule, hasLength(1));
       expect(schedule.single.routineId, isNull);
@@ -56,8 +56,8 @@ void main() {
 
       expect(await stream.first, isEmpty);
 
-      await repo.setAssignment(3, 'r1');
-      await repo.setAssignment(1, 'r1');
+      await repo.upsert(3, 'r1');
+      await repo.upsert(1, 'r1');
 
       final emitted = await stream.firstWhere((s) => s.length == 2);
       expect(emitted.map((a) => a.weekday), [1, 3]);
