@@ -217,5 +217,22 @@ void main() {
       s.logCurrentSet(weightKg: 52, reps: 5);
       expect(s.sets.firstWhere((x) => x.id == added.id).done, isTrue);
     });
+
+    test('derives ids from the max suffix so repeated adds never collide', () {
+      final s = _session();
+      // bench seeds set-0..2; the next add must continue at set-3, not reuse 0.
+      final a = s.addSet();
+      final b = s.addSet();
+      final c = s.addSet();
+
+      expect([a.id, b.id, c.id],
+          ['bench-set-3', 'bench-set-4', 'bench-set-5']);
+
+      final benchIds = s.sets
+          .where((x) => x.exerciseId == 'bench')
+          .map((x) => x.id)
+          .toList();
+      expect(benchIds.toSet().length, benchIds.length); // all unique
+    });
   });
 }
