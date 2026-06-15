@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart' show TimeOfDay;
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/timezone.dart' as tz;
 
@@ -91,6 +92,48 @@ class LocalNotificationService implements NotificationService {
       uiLocalNotificationDateInterpretation:
           UILocalNotificationDateInterpretation.absoluteTime,
     );
+  }
+
+  @override
+  Future<void> scheduleDaily({
+    required int id,
+    required String title,
+    required String body,
+    required TimeOfDay time,
+  }) async {
+    await _ensureInit();
+
+    await _plugin.zonedSchedule(
+      id,
+      title,
+      body,
+      _nextInstanceOf(time),
+      _details,
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      uiLocalNotificationDateInterpretation:
+          UILocalNotificationDateInterpretation.absoluteTime,
+      // recur daily: only the time-of-day components are matched.
+      matchDateTimeComponents: DateTimeComponents.time,
+    );
+  }
+
+  /// The next [tz.TZDateTime] at [time] in the local zone — today if it's still
+  /// ahead, otherwise tomorrow. (With `matchDateTimeComponents: time` the plugin
+  /// recurs daily from this anchor.)
+  static tz.TZDateTime _nextInstanceOf(TimeOfDay time) {
+    final now = tz.TZDateTime.now(tz.local);
+    var scheduled = tz.TZDateTime(
+      tz.local,
+      now.year,
+      now.month,
+      now.day,
+      time.hour,
+      time.minute,
+    );
+    if (!scheduled.isAfter(now)) {
+      scheduled = scheduled.add(const Duration(days: 1));
+    }
+    return scheduled;
   }
 
   @override

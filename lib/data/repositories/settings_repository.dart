@@ -1,6 +1,8 @@
-import 'package:flutter/material.dart' show Brightness;
+import 'package:flutter/material.dart' show Brightness, TimeOfDay;
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../services/notifications/notification_service.dart'
+    show kDefaultReminderTime;
 import '../../theme/app_colors.dart' show AppAccent;
 
 /// How often the email sync runs in the background. Persisted by its [minutes]
@@ -39,7 +41,9 @@ class SettingsRepository {
   static const _kBrightness = 'settings.brightness';
   static const _kOnboardingComplete = 'settings.onboardingComplete';
   static const _kRitualReminders = 'settings.ritualReminders';
+  static const _kReminderTime = 'settings.reminderTimeMinutes';
   static const _kBudgetAlerts = 'settings.budgetAlerts';
+  static const _kBudgetAlertDate = 'settings.budgetAlertDate';
   static const _kDisplayName = 'settings.displayName';
   static const _kSyncCadence = 'settings.email.syncCadenceMinutes';
   static const _kImportNotifications = 'settings.email.importNotifications';
@@ -103,11 +107,31 @@ class SettingsRepository {
   Future<void> setRitualReminders(bool enabled) =>
       _prefs.setBool(_kRitualReminders, enabled);
 
+  /// Time of day for the daily ritual reminder. Stored as minutes-since-
+  /// midnight (matching the int-minutes style used by [syncCadence]); defaults
+  /// to [kDefaultReminderTime] (09:00) when unset.
+  TimeOfDay get reminderTime {
+    final minutes = _prefs.getInt(_kReminderTime);
+    if (minutes == null) return kDefaultReminderTime;
+    return TimeOfDay(hour: minutes ~/ 60, minute: minutes % 60);
+  }
+
+  Future<void> setReminderTime(TimeOfDay time) =>
+      _prefs.setInt(_kReminderTime, time.hour * 60 + time.minute);
+
   /// Over-budget alerts. Defaults on.
   bool get budgetAlerts => _prefs.getBool(_kBudgetAlerts) ?? true;
 
   Future<void> setBudgetAlerts(bool enabled) =>
       _prefs.setBool(_kBudgetAlerts, enabled);
+
+  /// Last calendar day ('YYYY-MM-DD') an over-budget alert fired, or null if
+  /// never. Used to dedup the alert to at most once per day. Stored here (not
+  /// derived from entries) so the dedup survives without scanning notifications.
+  String? get budgetAlertDate => _prefs.getString(_kBudgetAlertDate);
+
+  Future<void> setBudgetAlertDate(String date) =>
+      _prefs.setString(_kBudgetAlertDate, date);
 
   // --- Email sync preferences ---------------------------------------------
 

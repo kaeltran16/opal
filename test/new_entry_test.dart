@@ -11,6 +11,7 @@ import 'package:opal/models/models.dart';
 import 'package:opal/screens/entry/new_entry_sheet.dart';
 import 'package:opal/services/services.dart';
 import 'package:opal/theme/app_colors.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// Pumps the [NewEntrySheet] inside a ProviderScope + GoRouter so that
 /// `context.pop()` resolves and the theme extension is available. An optional
@@ -36,10 +37,16 @@ Future<EntryRepository> _pumpSheet(
     ],
   );
 
+  // The expense-add path now nudges the budget-alert controller, which reads
+  // settings (shared_preferences) — provide a mock instance.
+  SharedPreferences.setMockInitialValues({});
+  final prefs = await SharedPreferences.getInstance();
+
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
         loopDatabaseProvider.overrideWithValue(db),
+        sharedPreferencesProvider.overrideWithValue(prefs),
         if (pal != null) palServiceProvider.overrideWithValue(pal),
       ],
       child: MaterialApp.router(

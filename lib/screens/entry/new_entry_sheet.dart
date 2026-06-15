@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../controllers/budget_alert_controller.dart';
 import '../../controllers/providers.dart';
 import '../../models/models.dart';
 import '../../services/services.dart';
@@ -375,6 +376,11 @@ class _NewEntrySheetState extends ConsumerState<NewEntrySheet> {
     }
 
     await repo.insert(entry);
+    // A new expense may have pushed today over budget — let the controller
+    // decide whether to alert (gated on the toggle, deduped to once/day).
+    if (_kind == _Kind.expense) {
+      await ref.read(budgetAlertControllerProvider.notifier).checkAfterSpend();
+    }
     if (!mounted) return;
     context.pop();
   }

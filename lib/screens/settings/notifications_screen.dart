@@ -1,8 +1,10 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart' show TimeOfDay, showTimePicker;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../controllers/providers.dart';
+import '../../services/notifications/notification_service.dart';
 import '../../theme/theme.dart';
 import '../../widgets/app_icon.dart';
 import '../../widgets/inset_section.dart';
@@ -25,6 +27,7 @@ class NotificationsScreen extends ConsumerStatefulWidget {
 class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
   late bool _ritualReminders;
   late bool _budgetAlerts;
+  late TimeOfDay _reminderTime;
   String? _permStatus;
   bool _requesting = false;
 
@@ -34,6 +37,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
     final repo = ref.read(settingsRepositoryProvider);
     _ritualReminders = repo.ritualReminders;
     _budgetAlerts = repo.budgetAlerts;
+    _reminderTime = repo.reminderTime;
   }
 
   Future<void> _requestPerms() async {
@@ -47,9 +51,52 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
     });
   }
 
-  void _setRitualReminders(bool v) {
+  /// (Re)schedules the daily reminder at the configured time. Requests
+  /// permission first; if denied, surfaces it via the permission row rather than
+  /// silently scheduling against a denied permission.
+  Future<void> _scheduleReminder() async {
+    final notifications = ref.read(notificationServiceProvider);
+    final granted = await notifications.requestPermissions();
+    if (!mounted) return;
+    if (!granted) {
+      setState(() => _permStatus = 'Denied');
+      return;
+    }
+    await notifications.scheduleDaily(
+      id: NotificationIds.ritualReminder,
+      title: kRitualReminderTitle,
+      body: kRitualReminderBody,
+      time: _reminderTime,
+    );
+  }
+
+  Future<void> _setRitualReminders(bool v) async {
     setState(() => _ritualReminders = v);
-    ref.read(settingsRepositoryProvider).setRitualReminders(v);
+    await ref.read(settingsRepositoryProvider).setRitualReminders(v);
+    if (v) {
+      await _scheduleReminder();
+    } else {
+      await ref
+          .read(notificationServiceProvider)
+          .cancel(NotificationIds.ritualReminder);
+    }
+  }
+
+  Future<void> _pickReminderTime() async {
+    final picked =
+        await showTimePicker(context: context, initialTime: _reminderTime);
+    if (picked == null || !mounted) return;
+    setState(() => _reminderTime = picked);
+    await ref.read(settingsRepositoryProvider).setReminderTime(picked);
+    if (_ritualReminders) await _scheduleReminder();
+  }
+
+  /// '9:00 AM'-style label for the reminder-time row.
+  String _formatTime(TimeOfDay t) {
+    final period = t.hour < 12 ? 'AM' : 'PM';
+    final hour12 = t.hourOfPeriod == 0 ? 12 : t.hourOfPeriod;
+    final minute = t.minute.toString().padLeft(2, '0');
+    return '$hour12:$minute $period';
   }
 
   void _setBudgetAlerts(bool v) {
@@ -98,6 +145,15 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                 value: _ritualReminders,
                 onChanged: _setRitualReminders,
               ),
+              if (_ritualReminders)
+                ListRow(
+                  icon: 'clock.fill',
+                  iconBg: c.rituals,
+                  title: 'Reminder time',
+                  value: _formatTime(_reminderTime),
+                  chevron: false,
+                  onTap: _pickReminderTime,
+                ),
               _SwitchRow(
                 icon: 'flame.fill',
                 color: c.money,

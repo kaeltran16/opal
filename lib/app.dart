@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'controllers/health_sync_controller.dart';
+import 'controllers/notification_reconcile_controller.dart';
 import 'controllers/providers.dart';
 import 'controllers/widget_sync_controller.dart';
 import 'router.dart';
@@ -49,6 +50,8 @@ class _LoopAppState extends ConsumerState<LoopApp> {
       ref.read(widgetSyncControllerProvider);
       // Pull today's Apple Watch active energy into a health-sourced move entry.
       ref.read(healthSyncControllerProvider);
+      // Bring scheduled ritual reminders in line with the persisted toggle/time.
+      ref.read(notificationReconcileControllerProvider);
     }
     // Donate the app shortcuts and drain any link buffered natively before we
     // were listening (a cold launch from a Siri/Spotlight tap). Best-effort.

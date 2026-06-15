@@ -1,3 +1,5 @@
+import 'package:flutter/material.dart' show TimeOfDay;
+
 import 'notification_service.dart';
 
 /// No-op [NotificationService] for web/Windows preview + tests.
@@ -13,6 +15,14 @@ class NoopNotificationService implements NotificationService {
 
   @override
   Future<void> schedule(NotificationRequest request) async {}
+
+  @override
+  Future<void> scheduleDaily({
+    required int id,
+    required String title,
+    required String body,
+    required TimeOfDay time,
+  }) async {}
 
   @override
   Future<void> cancel(int id) async {}
