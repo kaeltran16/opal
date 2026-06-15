@@ -40,19 +40,13 @@ class WeeklyReviewScreen extends ConsumerWidget {
     return ListView(
       padding: const EdgeInsets.only(bottom: 40),
       children: [
-        // --- Nav: back to You + share ---------------------------------------
+        // --- Nav: back to You -----------------------------------------------
         Padding(
           padding: const EdgeInsets.fromLTRB(Spacing.lg, 56, Spacing.lg, Spacing.sm),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              NavAction(
-                icon: 'chevron.left',
-                label: 'You',
-                onTap: () => Navigator.of(context).maybePop(),
-              ),
-              const NavIconButton(name: 'square.and.arrow.up', semanticLabel: 'Share'),
-            ],
+          child: NavAction(
+            icon: 'chevron.left',
+            label: 'You',
+            onTap: () => Navigator.of(context).maybePop(),
           ),
         ),
 

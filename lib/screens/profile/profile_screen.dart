@@ -227,7 +227,7 @@ class _ProfileBody extends StatelessWidget {
               iconBg: c.move,
               title: 'Workout goal',
               value: '${goals.dailyMoveKcal} kcal',
-              chevron: false,
+              onTap: () => context.pushNamed(AppRoute.budgetsGoals.name),
             ),
             ListRow(
               icon: 'sparkles',
@@ -257,13 +257,6 @@ class _ProfileBody extends StatelessWidget {
               title: 'Monthly review',
               value: _monthlyLabel(now),
               onTap: () => context.pushNamed(AppRoute.monthlyReview.name),
-            ),
-            ListRow(
-              icon: 'sparkles',
-              iconBg: c.money,
-              title: 'Yearly rewind',
-              value: 'Preview',
-              chevron: false,
               last: true,
             ),
           ],

@@ -80,7 +80,6 @@ class EmailDashboardScreen extends ConsumerWidget {
           onTap: () => context.pop(),
           semanticLabel: 'Back',
         ),
-        trailing: const NavIconButton(name: 'ellipsis', semanticLabel: 'More options'),
         padding: const EdgeInsets.only(bottom: 48),
         children: [
           // --- Sync-job hero -------------------------------------------------

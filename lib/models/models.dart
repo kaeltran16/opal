@@ -1,6 +1,6 @@
 /// Barrel export for the rich domain models (U01).
 ///
-/// Pure, immutable Dart mirroring the ExpensePal SwiftData handoff. No
+/// Pure, immutable Dart mirroring the SwiftData handoff. No
 /// persistence, JSON, or service logic — that arrives in U02+.
 library;
 

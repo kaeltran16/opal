@@ -1,4 +1,4 @@
-/// Domain enums mirroring the ExpensePal SwiftData handoff.
+/// Domain enums mirroring the SwiftData handoff.
 ///
 /// Each enum carries a stable [wire] string so that U02 (drift persistence)
 /// and any future JSON layer can serialize/deserialize without depending on

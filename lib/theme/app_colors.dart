@@ -38,7 +38,7 @@ extension AppAccentInfo on AppAccent {
       };
 }
 
-/// Semantic design tokens from the ExpensePal handoff, exposed as a
+/// Semantic design tokens from the design handoff, exposed as a
 /// [ThemeExtension] so any widget can read them via `Theme.of(context)`.
 @immutable
 class AppColors extends ThemeExtension<AppColors> {
