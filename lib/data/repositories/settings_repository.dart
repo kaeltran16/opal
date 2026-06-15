@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../services/notifications/notification_service.dart'
     show kDefaultReminderTime;
 import '../../theme/app_colors.dart' show AppAccent;
+import '../../util/format.dart' show Currency;
 
 /// How often the email sync runs in the background. Persisted by its [minutes]
 /// so the stored value stays meaningful even if the option set changes.
@@ -39,6 +40,7 @@ class SettingsRepository {
 
   static const _kAccent = 'settings.accent';
   static const _kBrightness = 'settings.brightness';
+  static const _kCurrency = 'settings.currency';
   static const _kOnboardingComplete = 'settings.onboardingComplete';
   static const _kRitualReminders = 'settings.ritualReminders';
   static const _kReminderTime = 'settings.reminderTimeMinutes';
@@ -76,6 +78,14 @@ class SettingsRepository {
         _kBrightness,
         brightness == Brightness.dark ? 'dark' : 'light',
       );
+
+  // --- Currency -----------------------------------------------------------
+
+  /// Persisted display currency, defaulting to [Currency.usd] when unset.
+  Currency get currency => Currency.fromCode(_prefs.getString(_kCurrency));
+
+  Future<void> setCurrency(Currency currency) =>
+      _prefs.setString(_kCurrency, currency.code);
 
   // --- Onboarding gate ----------------------------------------------------
 

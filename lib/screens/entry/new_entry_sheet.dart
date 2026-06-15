@@ -523,7 +523,12 @@ class _NewEntrySheetState extends ConsumerState<NewEntrySheet> {
                       onDigit: _onDigit,
                       onDecimal: _onDecimal,
                       onDelete: _onDelete,
-                      showDecimal: _kind == _Kind.expense,
+                      showDecimal: _kind == _Kind.expense &&
+                          ref
+                                  .read(appSettingsControllerProvider)
+                                  .currency
+                                  .decimals >
+                              0,
                     ),
             ),
           ],
@@ -543,29 +548,36 @@ class _NewEntrySheetState extends ConsumerState<NewEntrySheet> {
         ),
       );
     }
+    final currency = ref.read(appSettingsControllerProvider).currency;
     final empty = _numericValue == null;
     final numberColor = empty ? c.ink4 : c.ink;
-    // Money: 46px ink4 "$" prefix; Move: 20px ink3 "min" suffix (design AddSheet).
+    // Money: 46px ink4 currency glyph; Move: 20px ink3 "min" suffix. VND drops
+    // cents and trails the glyph; USD keeps cents and leads with it.
     final number = _kind == _Kind.expense
-        ? (empty ? '0' : _formatMoney(_numericValue ?? 0))
+        ? (empty
+            ? '0'
+            : (currency.decimals > 0
+                ? _formatMoney(_numericValue ?? 0)
+                : (_numericValue ?? 0).toStringAsFixed(0)))
         : (_numericValue ?? 0).toStringAsFixed(0);
+    final symbol = Text(
+      currency.symbol,
+      style: AppFonts.sfr(
+        size: 46, // no sfr token for 46; keep inline
+        weight: FontWeight.w300,
+        color: c.ink4,
+        letterSpacing: -1,
+      ),
+    );
     return Row(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.baseline,
       textBaseline: TextBaseline.alphabetic,
       children: [
-        if (_kind == _Kind.expense)
+        if (_kind == _Kind.expense && currency.symbolBefore)
           Padding(
             padding: const EdgeInsets.only(right: Spacing.xs),
-            child: Text(
-              '\$',
-              style: AppFonts.sfr(
-                size: 46, // no sfr token for 46; keep inline
-                weight: FontWeight.w300,
-                color: c.ink4,
-                letterSpacing: -1,
-              ),
-            ),
+            child: symbol,
           ),
         Text(
           number,
@@ -577,6 +589,11 @@ class _NewEntrySheetState extends ConsumerState<NewEntrySheet> {
             height: 1,
           ),
         ),
+        if (_kind == _Kind.expense && !currency.symbolBefore)
+          Padding(
+            padding: const EdgeInsets.only(left: Spacing.sm),
+            child: symbol,
+          ),
         if (_kind == _Kind.workout)
           Padding(
             padding: const EdgeInsets.only(left: Spacing.sm),

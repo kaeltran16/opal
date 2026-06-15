@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../controllers/providers.dart';
 import '../theme/theme.dart';
+import '../util/format.dart';
 import 'app_icon.dart';
 import 'press_scale.dart';
 
@@ -30,10 +31,21 @@ class _BudgetSheetState extends ConsumerState<BudgetSheet> {
   late int _amount = widget.dailyBudget.round();
   bool _saving = false;
 
-  static const _dailyPresets = [50, 75, 100, 150];
-  static const _weeklyPresets = [350, 500, 700, 1000];
+  // USD-centric bases; scaled by the active currency's [budgetScale] so a VND
+  // budget editor offers sane magnitudes instead of single-digit dong.
+  static const _dailyPresetsBase = [50, 75, 100, 150];
+  static const _weeklyPresetsBase = [350, 500, 700, 1000];
 
-  int get _step => _period == _Period.daily ? 5 : 25;
+  Currency get _currency => ref.read(appSettingsControllerProvider).currency;
+  int get _scale => _currency.budgetScale;
+
+  List<int> get _dailyPresets => [for (final p in _dailyPresetsBase) p * _scale];
+  List<int> get _weeklyPresets =>
+      [for (final p in _weeklyPresetsBase) p * _scale];
+
+  int get _dailyStep => 5 * _scale;
+  int get _weeklyStep => 25 * _scale;
+  int get _step => _period == _Period.daily ? _dailyStep : _weeklyStep;
 
   void _bump(int delta) {
     setState(() => _amount = (_amount + delta).clamp(_step, 1 << 30));
@@ -42,9 +54,9 @@ class _BudgetSheetState extends ConsumerState<BudgetSheet> {
   /// Rescales a weekly amount to its nearest daily-step equivalent (floored at
   /// the daily step). Single source for the weekly→daily conversion used by both
   /// the period switch and [_dailyAmount].
-  static int _weeklyToDaily(int weekly) {
-    final daily = (weekly / 7 / 5).round() * 5;
-    return daily < 5 ? 5 : daily;
+  int _weeklyToDaily(int weekly) {
+    final daily = (weekly / 7 / _dailyStep).round() * _dailyStep;
+    return daily < _dailyStep ? _dailyStep : daily;
   }
 
   void _switchPeriod(_Period p) {
@@ -52,7 +64,8 @@ class _BudgetSheetState extends ConsumerState<BudgetSheet> {
     setState(() {
       // rescale so the displayed amount stays roughly equivalent across periods
       if (p == _Period.weekly) {
-        _amount = ((_amount * 7 / 25).round() * 25).clamp(25, 1 << 30);
+        _amount = ((_amount * 7 / _weeklyStep).round() * _weeklyStep)
+            .clamp(_weeklyStep, 1 << 30);
       } else {
         _amount = _weeklyToDaily(_amount);
       }
@@ -110,6 +123,7 @@ class _BudgetSheetState extends ConsumerState<BudgetSheet> {
                           const SizedBox(height: Spacing.xxl),
                           _AmountStepper(
                             amount: _amount,
+                            currency: _currency,
                             caption: _period == _Period.daily ? 'PER DAY' : 'PER WEEK',
                             onMinus: () => _bump(-_step),
                             onPlus: () => _bump(_step),
@@ -118,6 +132,7 @@ class _BudgetSheetState extends ConsumerState<BudgetSheet> {
                           _PresetChips(
                             presets: presets,
                             selected: _amount,
+                            currency: _currency,
                             onSelect: (v) => setState(() => _amount = v),
                           ),
                           const SizedBox(height: Spacing.xl),
@@ -228,23 +243,15 @@ class _AmountStepper extends StatelessWidget {
   const _AmountStepper({
     required this.amount,
     required this.caption,
+    required this.currency,
     required this.onMinus,
     required this.onPlus,
   });
   final int amount;
+  final Currency currency;
   final String caption;
   final VoidCallback onMinus;
   final VoidCallback onPlus;
-
-  String _grouped(int n) {
-    final s = n.toString();
-    final buf = StringBuffer();
-    for (var i = 0; i < s.length; i++) {
-      if (i > 0 && (s.length - i) % 3 == 0) buf.write(',');
-      buf.write(s[i]);
-    }
-    return buf.toString();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -258,7 +265,7 @@ class _AmountStepper extends StatelessWidget {
         Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('\$${_grouped(amount)}',
+            Text(formatCurrency(amount, currency),
                 style: AppFonts.sfr(
                     size: 54, weight: FontWeight.w700, color: c.money, letterSpacing: -1.8)),
             Text(caption,
@@ -294,9 +301,15 @@ class _AmountStepper extends StatelessWidget {
 
 /// Preset amount chips; the chip matching the current amount is highlighted.
 class _PresetChips extends StatelessWidget {
-  const _PresetChips({required this.presets, required this.selected, required this.onSelect});
+  const _PresetChips({
+    required this.presets,
+    required this.selected,
+    required this.currency,
+    required this.onSelect,
+  });
   final List<int> presets;
   final int selected;
+  final Currency currency;
   final ValueChanged<int> onSelect;
 
   @override
@@ -318,7 +331,7 @@ class _PresetChips extends StatelessWidget {
                 borderRadius: BorderRadius.circular(Radii.md),
                 border: Border.all(color: p == selected ? c.money : c.hair, width: 1),
               ),
-              child: Text('\$$p',
+              child: Text(formatCurrency(p, currency),
                   style: AppFonts.sfr(
                       size: 15,
                       weight: FontWeight.w600,

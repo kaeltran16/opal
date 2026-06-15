@@ -3,11 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../controllers/insights_controller.dart';
+import '../../controllers/providers.dart';
 import '../../controllers/today_controller.dart';
 import '../../models/models.dart';
 import '../../services/pal/pal_service.dart' show InsightRange;
 import '../../router.dart';
 import '../../theme/theme.dart';
+import '../../util/format.dart';
 import '../../widgets/activity_rings.dart';
 import '../../widgets/app_icon.dart';
 import '../../widgets/controls.dart';
@@ -89,6 +91,7 @@ class _TodayBody extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final c = context.colors;
     final goals = today.goals;
+    final currency = ref.watch(appSettingsControllerProvider).currency;
     final insightAsync = ref.watch(insightsProvider(InsightRange.day));
     final headline = insightAsync.asData?.value?.headline;
     final hasInsight = headline != null && headline.isNotEmpty;
@@ -143,8 +146,11 @@ class _TodayBody extends ConsumerWidget {
                           RingStat(
                               color: c.money,
                               label: 'Spent',
-                              value: '\$${moneySpent.toStringAsFixed(0)}',
-                              goal: '/ \$${goals.dailyBudget.toStringAsFixed(0)}',
+                              // rings show a compact whole-number figure
+                              value: formatCurrency(
+                                  moneySpent.roundToDouble(), currency),
+                              goal:
+                                  '/ ${formatCurrency(goals.dailyBudget.roundToDouble(), currency)}',
                               onTap: () => context
                                   .pushNamed(AppRoute.spendingDetail.name)),
                           const SizedBox(height: 10),
@@ -617,7 +623,7 @@ class _TimelineBucket extends StatelessWidget {
   }
 }
 
-class _TimelineRow extends StatelessWidget {
+class _TimelineRow extends ConsumerWidget {
   const _TimelineRow({required this.entry, required this.last});
   final Entry entry;
   final bool last;
@@ -661,14 +667,13 @@ class _TimelineRow extends StatelessWidget {
     }
   }
 
-  String? get _valueText {
+  String? _valueText(Currency currency) {
     switch (entry.type) {
       case EntryType.money:
         final v = entry.amount;
         if (v == null) return null;
-        return v < 0
-            ? '−\$${v.abs().toStringAsFixed(2)}'
-            : '\$${v.toStringAsFixed(2)}';
+        // keep cents for USD-style currencies; VND drops them via decimals: 0
+        return formatCurrency(v, currency, withSign: true, trimZeroCents: false);
       case EntryType.move:
         // design shows duration in minutes, not calories (no healthkit content)
         if (entry.duration != null) return '${entry.duration} min';
@@ -686,9 +691,10 @@ class _TimelineRow extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final c = context.colors;
-    final value = _valueText;
+    final currency = ref.watch(appSettingsControllerProvider).currency;
+    final value = _valueText(currency);
     final row = Container(
       decoration: BoxDecoration(
         border:

@@ -2,6 +2,7 @@ import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:opal/controllers/providers.dart';
 import 'package:opal/controllers/spending_controller.dart';
@@ -117,6 +118,8 @@ void main() {
       (tester) async {
     final db = LoopDatabase.forTesting(NativeDatabase.memory());
     addTearDown(db.close);
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
 
     await GoalsRepository(db).save(const Goals(dailyBudget: 85));
 
@@ -152,7 +155,10 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [loopDatabaseProvider.overrideWithValue(db)],
+        overrides: [
+          loopDatabaseProvider.overrideWithValue(db),
+          sharedPreferencesProvider.overrideWithValue(prefs),
+        ],
         child: _wrap(const DetailScreen(tracker: DetailTracker.money)),
       ),
     );

@@ -6,7 +6,9 @@ import 'package:go_router/go_router.dart';
 import '../../controllers/providers.dart';
 import '../../models/models.dart';
 import '../../theme/theme.dart';
+import '../../util/format.dart';
 import '../../widgets/app_icon.dart';
+import '../../widgets/controls.dart';
 import '../../widgets/inset_section.dart';
 import '../email/email_nav.dart';
 
@@ -79,6 +81,11 @@ class _BudgetsGoalsScreenState extends ConsumerState<BudgetsGoalsScreen> {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
+    final settings = ref.watch(appSettingsControllerProvider);
+    final currency = settings.currency;
+    // budget steps scale with the currency so VND offers sane magnitudes
+    final budgetStep = (5 * currency.budgetScale).toDouble();
+    final budgetMax = (100000 * currency.budgetScale).toDouble();
     return ColoredBox(
       color: c.bg,
       child: ListView(
@@ -93,6 +100,27 @@ class _BudgetsGoalsScreenState extends ConsumerState<BudgetsGoalsScreen> {
             trailingEnabled: _loaded && !_saving,
           ),
           const SizedBox(height: Spacing.sm),
+          InsetSection(
+            header: 'Currency',
+            footer:
+                'Changes how amounts display across the app. Existing amounts '
+                'are not converted.',
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(Spacing.lg),
+                child: Segmented<Currency>(
+                  options: const [
+                    (Currency.usd, 'USD (\$)'),
+                    (Currency.vnd, 'VND (₫)'),
+                  ],
+                  value: currency,
+                  onChanged: (v) => ref
+                      .read(appSettingsControllerProvider.notifier)
+                      .setCurrency(v),
+                ),
+              ),
+            ],
+          ),
           if (!_loaded)
             Padding(
               padding: const EdgeInsets.all(Spacing.xxl),
@@ -110,10 +138,11 @@ class _BudgetsGoalsScreenState extends ConsumerState<BudgetsGoalsScreen> {
                   icon: 'dollarsign.circle.fill',
                   color: c.money,
                   label: 'Budget',
-                  value: '\$${_budget.round()}',
-                  onMinus: () =>
-                      setState(() => _budget = (_budget - 5).clamp(0, 100000)),
-                  onPlus: () => setState(() => _budget += 5),
+                  value: formatCurrency(_budget, currency),
+                  onMinus: () => setState(
+                      () => _budget = (_budget - budgetStep).clamp(0, budgetMax)),
+                  onPlus: () => setState(
+                      () => _budget = (_budget + budgetStep).clamp(0, budgetMax)),
                 ),
                 _StepperRow(
                   icon: 'figure.run',

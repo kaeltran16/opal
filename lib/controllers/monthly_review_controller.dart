@@ -6,6 +6,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../models/models.dart';
 import '../services/pal/pal_context_builder.dart' show ritualStreakDays;
 import '../services/services.dart' show ReviewRange;
+import '../util/format.dart';
 import 'providers.dart';
 
 part 'monthly_review_controller.g.dart';
@@ -108,9 +109,13 @@ class MonthlyStats {
     required this.current,
     required this.previous,
     required this.longestStreak,
+    this.currency = Currency.usd,
   });
 
   final DateTime month;
+
+  /// Display currency for the "Total spent" row.
+  final Currency currency;
 
   /// This month's aggregates.
   final MonthAggregate current;
@@ -168,7 +173,7 @@ class MonthlyStats {
     return [
       ReviewStat(
         label: 'Total spent',
-        value: '\$${totalSpent.toStringAsFixed(0)}',
+        value: formatCurrency(totalSpent, currency),
         sub: spentDelta,
         colorToken: 'money',
         icon: 'dollarsign.circle.fill',
@@ -210,13 +215,15 @@ MonthlyStats buildMonthlyStats(
   DateTime month,
   List<Entry> entries,
   List<Entry> previousEntries,
-  int ritualStreak,
-) {
+  int ritualStreak, {
+  Currency currency = Currency.usd,
+}) {
   return MonthlyStats(
     month: DateTime(month.year, month.month),
     current: foldMonth(entries),
     previous: foldMonth(previousEntries),
     longestStreak: ritualStreak,
+    currency: currency,
   );
 }
 
@@ -226,6 +233,7 @@ MonthlyStats buildMonthlyStats(
 @riverpod
 Stream<MonthlyStats> monthlyStats(Ref ref) async* {
   final entriesRepo = ref.watch(entryRepositoryProvider);
+  final currency = ref.watch(appSettingsControllerProvider).currency;
 
   final now = DateTime.now();
   final start = DateTime(now.year, now.month);
@@ -245,7 +253,8 @@ Stream<MonthlyStats> monthlyStats(Ref ref) async* {
       today.add(const Duration(days: 1)),
     );
     yield buildMonthlyStats(
-        start, entries, previous, ritualStreakDays(lookback, now: now));
+        start, entries, previous, ritualStreakDays(lookback, now: now),
+        currency: currency);
   }
 }
 

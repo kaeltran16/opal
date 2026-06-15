@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import '../../models/models.dart';
+import '../../util/format.dart';
 import 'pal_service.dart';
 
 /// On-brand canned [PalService] for Windows preview + tests.
@@ -10,12 +11,20 @@ import 'pal_service.dart';
 /// to animate against. No network. The real `HttpPalService` (U23) replaces
 /// this via a provider override.
 class MockPalService implements PalService {
-  MockPalService({this.latency = const Duration(milliseconds: 600), int? seed})
-      : _rng = math.Random(seed);
+  MockPalService({
+    this.latency = const Duration(milliseconds: 600),
+    int? seed,
+    Currency Function()? currency,
+  })  : _rng = math.Random(seed),
+        _currency = currency ?? (() => Currency.usd);
 
   /// Fake round-trip latency applied to every call.
   final Duration latency;
   final math.Random _rng;
+
+  /// Resolves the user's display currency at call time (so acknowledgements
+  /// format money in the active currency without rebuilding the service).
+  final Currency Function() _currency;
 
   int _suggestionIndex = 0;
 
@@ -125,8 +134,8 @@ class MockPalService implements PalService {
   String _ack(LogEntryAction a) {
     switch (a.type) {
       case EntryType.money:
-        final s = formatLoggedAmount((a.amount ?? 0).abs());
-        return 'Logged \$$s for ${a.title}.';
+        final s = formatCurrency((a.amount ?? 0).abs(), _currency());
+        return 'Logged $s for ${a.title}.';
       case EntryType.move:
         return 'Logged ${a.durationMinutes} min of ${a.title}.';
       case EntryType.rituals:

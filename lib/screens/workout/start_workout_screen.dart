@@ -1,3 +1,5 @@
+import 'package:flutter/cupertino.dart'
+    show showCupertinoDialog, CupertinoAlertDialog, CupertinoDialogAction;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -76,6 +78,31 @@ class _Body extends ConsumerWidget {
           pathParameters: {'routineId': routineId},
         );
 
+    // long-press a routine to delete it (swipe doesn't fit the 2-col grid)
+    Future<void> confirmDeleteRoutine(Routine r) async {
+      final ok = await showCupertinoDialog<bool>(
+        context: context,
+        builder: (dialogContext) => CupertinoAlertDialog(
+          title: const Text('Delete routine?'),
+          content: Text('"${r.name}" will be removed. This can’t be undone.'),
+          actions: [
+            CupertinoDialogAction(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('Cancel'),
+            ),
+            CupertinoDialogAction(
+              isDestructiveAction: true,
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('Delete'),
+            ),
+          ],
+        ),
+      );
+      if (ok == true) {
+        await ref.read(routineRepositoryProvider).deleteById(r.id);
+      }
+    }
+
     return LargeTitleScrollView(
       title: 'Start workout',
       subtitle: 'Pick a routine or freestyle',
@@ -116,6 +143,7 @@ class _Body extends ConsumerWidget {
                     exerciseNames: exerciseNames,
                     lastDoneDays: state.daysSinceLastDone(r.id),
                     onTap: () => openSession(r.id),
+                    onLongPress: () => confirmDeleteRoutine(r),
                   ),
               ],
             ),
@@ -135,6 +163,7 @@ class _Body extends ConsumerWidget {
                     routine: r,
                     lastDoneDays: state.daysSinceLastDone(r.id),
                     onTap: () => openSession(r.id),
+                    onLongPress: () => confirmDeleteRoutine(r),
                   ),
                   const SizedBox(height: Spacing.md),
                 ],
@@ -548,11 +577,13 @@ class _RoutineCard extends StatelessWidget {
     required this.exerciseNames,
     required this.lastDoneDays,
     required this.onTap,
+    this.onLongPress,
   });
   final Routine routine;
   final Map<String, String> exerciseNames;
   final int? lastDoneDays;
   final VoidCallback onTap;
+  final VoidCallback? onLongPress;
 
   /// Total planned sets across the routine (the "SETS" stat).
   int get _totalSets =>
@@ -566,6 +597,7 @@ class _RoutineCard extends StatelessWidget {
     final preview = _exercisePreviewLine(routine, exerciseNames);
     return GestureDetector(
       onTap: onTap,
+      onLongPress: onLongPress,
       behavior: HitTestBehavior.opaque,
       child: ClipRRect(
         borderRadius: BorderRadius.circular(Radii.lg),
@@ -688,16 +720,19 @@ class _CardioRow extends StatelessWidget {
     required this.routine,
     required this.lastDoneDays,
     required this.onTap,
+    this.onLongPress,
   });
   final Routine routine;
   final int? lastDoneDays;
   final VoidCallback onTap;
+  final VoidCallback? onLongPress;
 
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
     return GestureDetector(
       onTap: onTap,
+      onLongPress: onLongPress,
       behavior: HitTestBehavior.opaque,
       child: ClipRRect(
         borderRadius: BorderRadius.circular(Radii.lg),

@@ -1,6 +1,7 @@
 import 'package:drift/native.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:opal/controllers/pal_composer_controller.dart';
 import 'package:opal/controllers/providers.dart';
@@ -29,10 +30,18 @@ class _FakePal implements PalService {
 }
 
 void main() {
+  late SharedPreferences prefs;
+
+  setUp(() async {
+    SharedPreferences.setMockInitialValues({});
+    prefs = await SharedPreferences.getInstance();
+  });
+
   ProviderContainer containerWith(LoopDatabase db, PalService pal) {
     final c = ProviderContainer(overrides: [
       loopDatabaseProvider.overrideWithValue(db),
       palServiceProvider.overrideWithValue(pal),
+      sharedPreferencesProvider.overrideWithValue(prefs),
     ]);
     addTearDown(c.dispose);
     return c;

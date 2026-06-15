@@ -10,6 +10,7 @@ import '../../controllers/weekly_review_controller.dart'
 import '../../models/models.dart';
 import '../../router.dart';
 import '../../theme/theme.dart';
+import '../../util/format.dart';
 import '../../widgets/budget_sheet.dart';
 import '../../widgets/inset_section.dart';
 import '../../widgets/nav_bar.dart';
@@ -32,6 +33,7 @@ class ProfileScreen extends ConsumerWidget {
     final stats = ref.watch(profileStatsProvider).asData?.value;
     final memberSince = stats?.memberSince;
     final routineCount = stats?.routineCount ?? 0;
+    final currency = ref.watch(appSettingsControllerProvider).currency;
 
     return async.when(
       loading: () => Center(
@@ -51,6 +53,7 @@ class ProfileScreen extends ConsumerWidget {
         name: name,
         tenure: _tenure(memberSince),
         routineCount: routineCount,
+        currency: currency,
       ),
     );
   }
@@ -79,8 +82,12 @@ class _ProfileBody extends StatelessWidget {
     required this.name,
     required this.tenure,
     required this.routineCount,
+    required this.currency,
   });
   final Goals goals;
+
+  /// Display currency for money values (daily budget).
+  final Currency currency;
 
   /// User's display name from onboarding; empty falls back to "You".
   final String name;
@@ -115,16 +122,6 @@ class _ProfileBody extends StatelessWidget {
   /// Current month name (e.g. "June") — matches the Monthly Review title, which
   /// indexes its month array by `DateTime.now().month`.
   static String _monthlyLabel(DateTime now) => _monthNames[now.month - 1];
-
-  String _grouped(int n) {
-    final s = n.toString();
-    final buf = StringBuffer();
-    for (var i = 0; i < s.length; i++) {
-      if (i > 0 && (s.length - i) % 3 == 0) buf.write(',');
-      buf.write(s[i]);
-    }
-    return buf.toString();
-  }
 
   void _openBudgetSheet(BuildContext context) {
     // present over the whole shell so the sheet's backdrop covers the tab bar
@@ -222,7 +219,7 @@ class _ProfileBody extends StatelessWidget {
               icon: 'dollarsign.circle.fill',
               iconBg: c.money,
               title: 'Daily budget',
-              value: '\$${_grouped(goals.dailyBudget.round())}',
+              value: formatCurrency(goals.dailyBudget, currency),
               onTap: () => _openBudgetSheet(context),
             ),
             ListRow(

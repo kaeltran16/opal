@@ -11,6 +11,7 @@ import '../data/repositories/repositories.dart';
 import '../models/models.dart';
 import '../services/services.dart';
 import '../theme/app_colors.dart';
+import '../util/format.dart' show Currency;
 
 part 'providers.g.dart';
 
@@ -120,7 +121,10 @@ DeviceTokenStore _deviceTokens(http.Client client) {
 
 @Riverpod(keepAlive: true)
 PalService palService(Ref ref) {
-  if (_palBaseUrl.isEmpty) return MockPalService();
+  if (_palBaseUrl.isEmpty) {
+    return MockPalService(
+        currency: () => ref.read(appSettingsControllerProvider).currency);
+  }
 
   final httpClient = _HttpClientHolder.instance;
   final entries = ref.watch(entryRepositoryProvider);
@@ -429,15 +433,25 @@ SiriShortcutsService siriShortcutsService(Ref ref) {
 /// Immutable view of the user's theme preferences.
 @immutable
 class AppSettings {
-  const AppSettings({required this.brightness, required this.accent});
+  const AppSettings({
+    required this.brightness,
+    required this.accent,
+    required this.currency,
+  });
 
   final Brightness brightness;
   final AppAccent accent;
+  final Currency currency;
 
-  AppSettings copyWith({Brightness? brightness, AppAccent? accent}) =>
+  AppSettings copyWith({
+    Brightness? brightness,
+    AppAccent? accent,
+    Currency? currency,
+  }) =>
       AppSettings(
         brightness: brightness ?? this.brightness,
         accent: accent ?? this.accent,
+        currency: currency ?? this.currency,
       );
 
   @override
@@ -445,10 +459,11 @@ class AppSettings {
       identical(this, other) ||
       other is AppSettings &&
           other.brightness == brightness &&
-          other.accent == accent;
+          other.accent == accent &&
+          other.currency == currency;
 
   @override
-  int get hashCode => Object.hash(brightness, accent);
+  int get hashCode => Object.hash(brightness, accent, currency);
 }
 
 /// Holds and persists the theme (brightness + accent). Reads initial values
@@ -459,7 +474,11 @@ class AppSettingsController extends _$AppSettingsController {
   @override
   AppSettings build() {
     final repo = ref.watch(settingsRepositoryProvider);
-    return AppSettings(brightness: repo.brightness, accent: repo.accent);
+    return AppSettings(
+      brightness: repo.brightness,
+      accent: repo.accent,
+      currency: repo.currency,
+    );
   }
 
   Future<void> setBrightness(Brightness brightness) async {
@@ -470,5 +489,10 @@ class AppSettingsController extends _$AppSettingsController {
   Future<void> setAccent(AppAccent accent) async {
     await ref.read(settingsRepositoryProvider).setAccent(accent);
     state = state.copyWith(accent: accent);
+  }
+
+  Future<void> setCurrency(Currency currency) async {
+    await ref.read(settingsRepositoryProvider).setCurrency(currency);
+    state = state.copyWith(currency: currency);
   }
 }

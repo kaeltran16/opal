@@ -2,6 +2,7 @@ import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:opal/controllers/monthly_review_controller.dart';
 import 'package:opal/controllers/providers.dart';
@@ -218,6 +219,8 @@ void main() {
       (tester) async {
     final db = LoopDatabase.forTesting(NativeDatabase.memory());
     addTearDown(db.close);
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
 
     final rituals = RitualRepository(db);
     // seeded streak is intentionally a wrong, never-incremented value: the
@@ -273,6 +276,7 @@ void main() {
         overrides: [
           loopDatabaseProvider.overrideWithValue(db),
           palServiceProvider.overrideWithValue(_SequencedPalService()),
+          sharedPreferencesProvider.overrideWithValue(prefs),
         ],
         child: _wrap(const MonthlyReviewScreen()),
       ),

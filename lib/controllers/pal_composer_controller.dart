@@ -2,6 +2,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../models/models.dart';
 import '../services/services.dart';
+import '../util/format.dart';
 import 'pal_action_executor.dart';
 import 'providers.dart';
 
@@ -191,9 +192,10 @@ class PalComposerController extends _$PalComposerController {
       );
 
   String _offlineConfirmation(StarterEntry payload) {
+    final currency = ref.read(appSettingsControllerProvider).currency;
     final detail = switch (payload.type) {
       EntryType.money when payload.amount != null =>
-        ' · -\$${formatLoggedAmount(payload.amount!.abs())}',
+        ' · −${formatCurrency(payload.amount!.abs(), currency)}',
       EntryType.move when payload.durationMinutes != null =>
         ' · ${payload.durationMinutes} min',
       _ => '',

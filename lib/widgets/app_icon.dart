@@ -43,6 +43,7 @@ const Map<String, IconData> _sfMap = {
   'clock.fill': CupertinoIcons.clock_fill,
   'house.fill': CupertinoIcons.house_fill,
   'delete.left.fill': CupertinoIcons.delete_left,
+  'trash.fill': CupertinoIcons.delete_solid,
   'slider.horizontal.3': CupertinoIcons.slider_horizontal_3,
   'square.and.arrow.up': CupertinoIcons.share,
   // Exercise-catalog glyphs (U11). Closest Material substitutes for preview;

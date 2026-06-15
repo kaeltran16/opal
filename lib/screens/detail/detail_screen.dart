@@ -1,11 +1,14 @@
+import 'package:flutter/cupertino.dart' show showCupertinoDialog, CupertinoAlertDialog, CupertinoDialogAction;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../controllers/providers.dart';
 import '../../controllers/spending_controller.dart';
 import '../../models/models.dart';
 import '../../router.dart';
 import '../../theme/theme.dart';
+import '../../util/format.dart';
 import '../../widgets/app_icon.dart';
 import '../../widgets/controls.dart';
 import '../../widgets/nav_bar.dart';
@@ -72,17 +75,16 @@ class _Error extends StatelessWidget {
   }
 }
 
-class _DetailBody extends StatelessWidget {
+class _DetailBody extends ConsumerWidget {
   const _DetailBody({required this.data});
   final DetailData data;
 
-  /// Formats a magnitude for display per tracker (money -> $, else integer +
-  /// unit). Kept here since it is purely presentational.
-  String _fmt(double v, {bool withSign = false}) {
+  /// Formats a magnitude for display per tracker (money via the user's
+  /// [currency], else integer + unit). Purely presentational.
+  String _fmt(double v, Currency currency, {bool withSign = false}) {
     switch (data.tracker) {
       case DetailTracker.money:
-        final s = '\$${v.abs().toStringAsFixed(v == v.roundToDouble() ? 0 : 2)}';
-        return withSign && v > 0 ? '−$s' : s;
+        return formatCurrency(v, currency, withSign: withSign && v > 0);
       case DetailTracker.move:
         return '${v.round()} kcal';
       case DetailTracker.rituals:
@@ -91,9 +93,14 @@ class _DetailBody extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final c = context.colors;
     final color = c.forType(data.tracker.colorToken);
+    final currency = ref.watch(appSettingsControllerProvider).currency;
+    String fmt(double v, {bool withSign = false}) =>
+        _fmt(v, currency, withSign: withSign);
+    Future<void> deleteEntry(Entry e) =>
+        ref.read(entryRepositoryProvider).deleteById(e.id);
 
     return Stack(
       children: [
@@ -101,15 +108,16 @@ class _DetailBody extends StatelessWidget {
           padding: const EdgeInsets.only(bottom: 96), // bottom-pill clearance; keep literal
           children: [
             _NavBar(title: data.tracker.title, color: color),
-            _HeroCard(data: data, color: color, fmt: _fmt),
+            _HeroCard(data: data, color: color, fmt: fmt),
             if (data.categories.isNotEmpty) ...[
               const _SectionHeader('Breakdown'),
-              _CategoryCard(data: data, color: color, fmt: _fmt),
+              _CategoryCard(data: data, color: color, fmt: fmt),
             ],
             if (data.days.isNotEmpty) ...[
               _SectionHeader(data.tracker.recentHeader),
               for (final group in data.days)
-                _DayGroupCard(group: group, data: data, fmt: _fmt),
+                _DayGroupCard(
+                    group: group, data: data, fmt: fmt, onDelete: deleteEntry),
             ],
             if (data.categories.isEmpty && data.days.isEmpty)
               Padding(
@@ -413,10 +421,14 @@ class _CategoryRow extends StatelessWidget {
 /// One day's group of entries (day header + rows).
 class _DayGroupCard extends StatelessWidget {
   const _DayGroupCard(
-      {required this.group, required this.data, required this.fmt});
+      {required this.group,
+      required this.data,
+      required this.fmt,
+      required this.onDelete});
   final DayGroup group;
   final DetailData data;
   final String Function(double, {bool withSign}) fmt;
+  final Future<void> Function(Entry) onDelete;
 
   static const _months = [
     'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
@@ -461,6 +473,7 @@ class _DayGroupCard extends StatelessWidget {
                     entry: group.entries[i],
                     data: data,
                     fmt: fmt,
+                    onDelete: onDelete,
                     last: i == group.entries.length - 1,
                   ),
               ],
@@ -510,11 +523,13 @@ class _EntryRow extends StatelessWidget {
     required this.entry,
     required this.data,
     required this.fmt,
+    required this.onDelete,
     required this.last,
   });
   final Entry entry;
   final DetailData data;
   final String Function(double, {bool withSign}) fmt;
+  final Future<void> Function(Entry) onDelete;
   final bool last;
 
   String get _time {
@@ -528,14 +543,27 @@ class _EntryRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     final color = c.forType(data.tracker.colorToken);
-    return Container(
-      decoration: BoxDecoration(
-        border:
-            last ? null : Border(bottom: BorderSide(color: c.hair, width: 0.5)),
+    return Dismissible(
+      key: ValueKey(entry.id),
+      direction: DismissDirection.endToStart,
+      confirmDismiss: (_) => _confirmDelete(context, c),
+      onDismissed: (_) => onDelete(entry),
+      background: Container(
+        color: c.red,
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: Spacing.lg),
+        child: AppIcon('trash.fill', size: 20, color: c.onAccent),
       ),
-      padding: const EdgeInsets.symmetric(
-          horizontal: Spacing.lg, vertical: Spacing.md),
-      child: Row(
+      child: Container(
+        decoration: BoxDecoration(
+          color: c.surface,
+          border: last
+              ? null
+              : Border(bottom: BorderSide(color: c.hair, width: 0.5)),
+        ),
+        padding: const EdgeInsets.symmetric(
+            horizontal: Spacing.lg, vertical: Spacing.md),
+        child: Row(
         children: [
           SizedBox(
             width: 38,
@@ -592,8 +620,33 @@ class _EntryRow extends StatelessWidget {
                     fontFeatures: const [FontFeature.tabularFigures()])),
           ),
         ],
+        ),
       ),
     );
+  }
+
+  /// iOS confirm dialog before a swipe actually deletes the entry. Returns true
+  /// only when the user taps Delete.
+  Future<bool> _confirmDelete(BuildContext context, AppColors c) async {
+    final confirmed = await showCupertinoDialog<bool>(
+      context: context,
+      builder: (dialogContext) => CupertinoAlertDialog(
+        title: const Text('Delete entry?'),
+        content: Text('"${entry.title}" will be removed. This can’t be undone.'),
+        actions: [
+          CupertinoDialogAction(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Cancel'),
+          ),
+          CupertinoDialogAction(
+            isDestructiveAction: true,
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    return confirmed ?? false;
   }
 }
 

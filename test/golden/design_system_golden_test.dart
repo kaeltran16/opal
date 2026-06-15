@@ -153,6 +153,8 @@ void main() {
     final db = LoopDatabase.forTesting(NativeDatabase.memory());
     await Seeder(db).seedIfNeeded();
     addTearDown(db.close);
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
 
     final router = GoRouter(
       initialLocation: '/host',
@@ -174,6 +176,7 @@ void main() {
       ProviderScope(
         overrides: [
           loopDatabaseProvider.overrideWithValue(db),
+          sharedPreferencesProvider.overrideWithValue(prefs),
         ],
         child: MaterialApp.router(
           debugShowCheckedModeBanner: false,
