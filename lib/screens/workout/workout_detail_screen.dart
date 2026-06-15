@@ -7,16 +7,12 @@ import '../../controllers/providers.dart';
 import '../../controllers/workout_detail_controller.dart';
 import '../../models/models.dart';
 import '../../theme/theme.dart';
+import '../../util/dates.dart';
 import '../../util/format.dart';
 import '../../widgets/app_icon.dart';
 import '../../widgets/inset_section.dart';
 import '../../widgets/nav_bar.dart';
 import '../../widgets/press_scale.dart';
-
-const _monthAbbr = [
-  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', //
-];
 
 /// Screen 12 — Workout Detail (past session).
 ///
@@ -67,7 +63,7 @@ class _Body extends StatelessWidget {
 
   String get _dateLabel {
     final d = state.workout.startedAt;
-    return '${_monthAbbr[d.month - 1]} ${d.day}, ${d.year}';
+    return '${kMonthsShort[d.month - 1]} ${d.day}, ${d.year}';
   }
 
   @override

@@ -10,6 +10,7 @@ import '../../controllers/weekly_review_controller.dart'
 import '../../models/models.dart';
 import '../../router.dart';
 import '../../theme/theme.dart';
+import '../../util/dates.dart';
 import '../../util/format.dart';
 import '../../widgets/budget_sheet.dart';
 import '../../widgets/inset_section.dart';
@@ -63,14 +64,9 @@ class ProfileScreen extends ConsumerWidget {
   static String _tenure(DateTime? memberSince, {DateTime? now}) {
     if (memberSince == null) return 'Just getting started';
     final today = now ?? DateTime.now();
-    const months = [
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December',
-    ];
-    final month = months[memberSince.month - 1];
-    final start =
-        DateTime(memberSince.year, memberSince.month, memberSince.day);
-    final end = DateTime(today.year, today.month, today.day);
+    final month = kMonths[memberSince.month - 1];
+    final start = startOfDay(memberSince);
+    final end = startOfDay(today);
     final days = end.difference(start).inDays;
     return 'Tracking since $month ${memberSince.year} · $days days';
   }
@@ -100,11 +96,6 @@ class _ProfileBody extends StatelessWidget {
   /// [Goals.dailyRitualTarget]).
   final int routineCount;
 
-  static const _monthNames = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December',
-  ];
-
   /// Current week's date span (e.g. "Jun 15–21") — reuses the weekly review's
   /// [WeeklyStats.rangeLabel] so the Profile row matches the Weekly Review.
   static String _weeklyRangeLabel(DateTime now) {
@@ -121,7 +112,7 @@ class _ProfileBody extends StatelessWidget {
 
   /// Current month name (e.g. "June") — matches the Monthly Review title, which
   /// indexes its month array by `DateTime.now().month`.
-  static String _monthlyLabel(DateTime now) => _monthNames[now.month - 1];
+  static String _monthlyLabel(DateTime now) => kMonths[now.month - 1];
 
   void _openBudgetSheet(BuildContext context) {
     // present over the whole shell so the sheet's backdrop covers the tab bar

@@ -6,6 +6,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../models/models.dart';
 import '../services/pal/pal_context_builder.dart' show ritualStreakDays;
 import '../services/services.dart' show ReviewRange;
+import '../util/dates.dart';
 import '../util/format.dart';
 import 'providers.dart';
 
@@ -131,15 +132,10 @@ class MonthlyStats {
   int get moveKcal => current.moveKcal;
   int get ritualsKept => current.ritualsKept;
 
-  static const _months = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December',
-  ];
-
   /// The previous month's name, e.g. "March".
   String get _previousMonthName {
     final m = DateTime(month.year, month.month - 1);
-    return _months[m.month - 1];
+    return kMonths[m.month - 1];
   }
 
   /// Signed percent change of [now] vs [then], rounded; null when there is no

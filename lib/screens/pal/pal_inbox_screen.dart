@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../controllers/pal_inbox_controller.dart';
 import '../../models/models.dart';
 import '../../theme/theme.dart';
+import '../../util/dates.dart';
 import '../../widgets/app_icon.dart';
 import '../../widgets/nav_bar.dart';
 import '../../widgets/pal_avatar.dart';
@@ -400,12 +401,6 @@ class _NoteCard extends ConsumerWidget {
   }
 }
 
-const _weekdayAbbrev = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-const _monthAbbrev = [
-  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
-];
-
 /// Compact relative time: "2m ago" / "2h ago" / "Yesterday" / weekday within a
 /// week / "Apr 18" beyond that.
 String _relativeTime(DateTime when) {
@@ -417,11 +412,9 @@ String _relativeTime(DateTime when) {
   if (diff.inHours < 24) return '${diff.inHours}h ago';
 
   // day-bucketed comparisons ignore the time-of-day.
-  final today = DateTime(now.year, now.month, now.day);
-  final thatDay = DateTime(when.year, when.month, when.day);
-  final days = today.difference(thatDay).inDays;
+  final days = startOfDay(now).difference(startOfDay(when)).inDays;
 
   if (days == 1) return 'Yesterday';
-  if (days < 7) return _weekdayAbbrev[when.weekday - 1];
-  return '${_monthAbbrev[when.month - 1]} ${when.day}';
+  if (days < 7) return kWeekdaysShort[when.weekday - 1];
+  return '${kMonthsShort[when.month - 1]} ${when.day}';
 }

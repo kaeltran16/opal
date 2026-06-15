@@ -6,6 +6,7 @@ import '../../controllers/insights_controller.dart';
 import '../../controllers/monthly_review_controller.dart';
 import '../../services/pal/pal_service.dart';
 import '../../theme/theme.dart';
+import '../../util/dates.dart';
 import '../../widgets/app_icon.dart';
 import '../../widgets/nav_bar.dart';
 import '../../widgets/pal_avatar.dart';
@@ -24,16 +25,11 @@ import '../../widgets/pal_avatar.dart';
 class MonthlyReviewScreen extends ConsumerWidget {
   const MonthlyReviewScreen({super.key});
 
-  static const _months = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December',
-  ];
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final c = context.colors;
     final now = DateTime.now();
-    final monthName = _months[now.month - 1];
+    final monthName = kMonths[now.month - 1];
 
     final narrative = ref.watch(monthlyReviewControllerProvider);
     final statsAsync = ref.watch(monthlyStatsProvider);

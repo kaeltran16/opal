@@ -5,6 +5,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../models/models.dart';
 import '../services/services.dart' show ReviewRange;
+import '../util/dates.dart';
 import 'providers.dart';
 import 'today_controller.dart' show goalsStreamProvider;
 
@@ -76,30 +77,20 @@ class WeeklyStats {
   /// Next review date — the Sunday that closes this week.
   DateTime get nextReview => weekEnd;
 
-  static const _months = [
-    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
-  ];
-
-  static const _weekdays = [
-    'Monday', 'Tuesday', 'Wednesday', 'Thursday',
-    'Friday', 'Saturday', 'Sunday',
-  ];
-
   /// Eyebrow span, e.g. "Apr 17–23" or "Apr 28–May 4" when the week crosses a
   /// month boundary.
   String get rangeLabel {
-    final start = '${_months[weekStart.month - 1]} ${weekStart.day}';
+    final start = '${kMonthsShort[weekStart.month - 1]} ${weekStart.day}';
     final end = weekStart.month == weekEnd.month
         ? '${weekEnd.day}'
-        : '${_months[weekEnd.month - 1]} ${weekEnd.day}';
+        : '${kMonthsShort[weekEnd.month - 1]} ${weekEnd.day}';
     return '$start–$end';
   }
 
   /// "Next review" footer label, e.g. "Sunday, Apr 23".
   String get nextReviewLabel {
     final d = nextReview;
-    return '${_weekdays[d.weekday - 1]}, ${_months[d.month - 1]} ${d.day}';
+    return '${kWeekdays[d.weekday - 1]}, ${kMonthsShort[d.month - 1]} ${d.day}';
   }
 
   /// The three week tiles, in handoff order (money / move / rituals).
@@ -126,10 +117,7 @@ class WeeklyStats {
 }
 
 /// Monday 00:00 of the week containing [now].
-DateTime weekStartFor(DateTime now) {
-  final today = DateTime(now.year, now.month, now.day);
-  return today.subtract(Duration(days: now.weekday - 1));
-}
+DateTime weekStartFor(DateTime now) => startOfWeek(now);
 
 /// Folds the week's [entries] against [goals] into the [WeeklyStats] tiles.
 /// Pure — extracted from the provider so it can be tested with fixtures.

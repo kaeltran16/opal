@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import '../../controllers/weekly_plan_controller.dart';
 import '../../router.dart';
 import '../../theme/theme.dart';
+import '../../util/dates.dart';
 import '../../widgets/app_icon.dart';
 import '../../widgets/inset_section.dart';
 import '../../widgets/nav_bar.dart';
@@ -27,19 +28,12 @@ class WeeklyPlanScreen extends ConsumerWidget {
   static Color _colorFor(AppColors c, String key) =>
       key == 'rest' ? c.ink3 : c.forType(key);
 
-  static const _months = [
-    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
-  ];
-
   /// Monday of the current week, formatted "WEEK OF MON DD". The plan's day
   /// model only carries day-of-month, so the month comes from the current
   /// week's Monday (the same anchor the controller uses).
   static String _weekOfLabel() {
-    final now = DateTime.now();
-    final monday = DateTime(now.year, now.month, now.day)
-        .subtract(Duration(days: now.weekday - 1));
-    return 'WEEK OF ${_months[monday.month - 1].toUpperCase()} ${monday.day}';
+    final monday = startOfWeek(DateTime.now());
+    return 'WEEK OF ${kMonthsShort[monday.month - 1].toUpperCase()} ${monday.day}';
   }
 
   @override

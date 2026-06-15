@@ -9,6 +9,7 @@ import '../../models/models.dart';
 import '../../services/pal/pal_service.dart' show InsightRange;
 import '../../router.dart';
 import '../../theme/theme.dart';
+import '../../util/dates.dart';
 import '../../util/format.dart';
 import '../../widgets/activity_rings.dart';
 import '../../widgets/app_icon.dart';
@@ -57,31 +58,8 @@ class _TodayBody extends ConsumerWidget {
   final TodayState today;
 
   String get _dateSubtitle {
-    const days = [
-      'Monday',
-      'Tuesday',
-      'Wednesday',
-      'Thursday',
-      'Friday',
-      'Saturday',
-      'Sunday'
-    ];
-    const months = [
-      'January',
-      'February',
-      'March',
-      'April',
-      'May',
-      'June',
-      'July',
-      'August',
-      'September',
-      'October',
-      'November',
-      'December'
-    ];
     final now = DateTime.now();
-    return '${days[now.weekday - 1]}, ${months[now.month - 1]} ${now.day}';
+    return '${kWeekdays[now.weekday - 1]}, ${kMonths[now.month - 1]} ${now.day}';
   }
 
   /// Shown in the "Pal noticed" card when there isn't enough data (or Pal is
@@ -356,23 +334,7 @@ class _TodayBody extends ConsumerWidget {
     );
   }
 
-  String _monthAbbrev() {
-    const m = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec'
-    ];
-    return m[DateTime.now().month - 1];
-  }
+  String _monthAbbrev() => kMonthsShort[DateTime.now().month - 1];
 }
 
 /// Opens the timeline search sheet over [entries] — the entries the Today

@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../models/models.dart';
+import '../util/dates.dart';
 import 'providers.dart';
 
 part 'workout_detail_controller.g.dart';
@@ -53,24 +54,18 @@ class WorkoutDetailState {
   final List<WeekVolume> weeklyVolume;
 }
 
-/// The Monday (00:00) of the ISO week containing [d].
-DateTime _weekStart(DateTime d) {
-  final day = DateTime(d.year, d.month, d.day);
-  return day.subtract(Duration(days: day.weekday - DateTime.monday));
-}
-
 /// Buckets the completed-set volume of [workouts] into the trailing
 /// [_volumeWeeks] ISO weeks ending with the week of [now]. Weeks with no
 /// workout stay at 0. Extracted so it can be tested directly.
 List<WeekVolume> buildWeeklyVolume(List<Workout> workouts, DateTime now) {
-  final thisWeek = _weekStart(now);
+  final thisWeek = startOfWeek(now);
   final weeks = <DateTime, double>{
     for (var i = _volumeWeeks - 1; i >= 0; i--)
       thisWeek.subtract(Duration(days: 7 * i)): 0.0,
   };
   final oldest = thisWeek.subtract(const Duration(days: 7 * (_volumeWeeks - 1)));
   for (final w in workouts) {
-    final ws = _weekStart(w.startedAt);
+    final ws = startOfWeek(w.startedAt);
     if (ws.isBefore(oldest) || ws.isAfter(thisWeek)) continue;
     weeks[ws] = (weeks[ws] ?? 0) + w.totalVolumeKg;
   }

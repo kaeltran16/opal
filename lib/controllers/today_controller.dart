@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../models/models.dart';
+import '../util/dates.dart';
 import 'providers.dart';
 
 part 'today_controller.g.dart';
@@ -130,16 +131,6 @@ class TodayState {
     ];
   }
 
-  static const _weekdays = [
-    'Monday',
-    'Tuesday',
-    'Wednesday',
-    'Thursday',
-    'Friday',
-    'Saturday',
-    'Sunday',
-  ];
-
   /// The week's entries grouped by calendar day, most-recent day first. Rows
   /// within a day stay newest-first (the source stream is already desc).
   List<TimelineBucket> get _weekBuckets {
@@ -152,7 +143,7 @@ class TodayState {
     final days = byDay.keys.toList()..sort((a, b) => b.compareTo(a));
     return [
       for (final day in days)
-        TimelineBucket(_weekdays[day.weekday - 1], byDay[day]!),
+        TimelineBucket(kWeekdays[day.weekday - 1], byDay[day]!),
     ];
   }
 }
@@ -180,7 +171,7 @@ Stream<TodayState> todayState(Ref ref) async* {
   final now = DateTime.now();
   final today = DateTime(now.year, now.month, now.day);
   // Week runs Monday → end of today (half-open upper bound = tomorrow 00:00).
-  final weekStart = today.subtract(Duration(days: now.weekday - 1));
+  final weekStart = startOfWeek(now);
   final tomorrow = today.add(const Duration(days: 1));
 
   if (mode == TimelineMode.week) {

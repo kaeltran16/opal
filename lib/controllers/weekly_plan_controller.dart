@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../models/models.dart';
+import '../util/dates.dart';
 import 'providers.dart';
 
 part 'weekly_plan_controller.g.dart';
@@ -86,8 +87,6 @@ class WeeklyPlan {
   }
 }
 
-const _dayAbbrev = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-
 /// Per-weekday accent token (1=Mon..7=Sun) cycling the three tracker hues plus
 /// the accent, so the strip keeps its visual variety without a stored field.
 const _colorByWeekday = <int, String>{
@@ -117,9 +116,8 @@ WeeklyPlan buildWeeklyPlan({
   required List<Workout> workouts,
   required DateTime now,
 }) {
-  final todayMidnight = DateTime(now.year, now.month, now.day);
-  // Monday of the current week (DateTime.weekday: Mon=1..Sun=7).
-  final monday = todayMidnight.subtract(Duration(days: now.weekday - 1));
+  final todayMidnight = startOfDay(now);
+  final monday = startOfWeek(now);
   final nextMonday = monday.add(const Duration(days: 7));
 
   final routineById = {for (final r in routines) r.id: r};
@@ -147,7 +145,7 @@ WeeklyPlan buildWeeklyPlan({
 
     if (routine == null) {
       days.add(WeekPlanDay(
-        day: _dayAbbrev[offset],
+        day: kWeekdaysShort[offset],
         date: date.day,
         type: 'Rest',
         colorKey: 'rest',
@@ -159,7 +157,7 @@ WeeklyPlan buildWeeklyPlan({
 
     final isCardio = routine.tag == RoutineTag.cardio;
     days.add(WeekPlanDay(
-      day: _dayAbbrev[offset],
+      day: kWeekdaysShort[offset],
       date: date.day,
       type: _typeLabel(routine, exercisesById),
       routine: routine.name,

@@ -3,7 +3,20 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:opal/controllers/providers.dart';
 import 'package:opal/controllers/weekly_review_controller.dart';
+import 'package:opal/models/models.dart';
 import 'package:opal/services/services.dart';
+
+/// Builds a minimal [Entry] of [type]; only the fields read by
+/// `buildWeeklyStats` (amount for money, calories for move) matter.
+Entry _entry(EntryType type, {double? amount, int? calories}) => Entry(
+  id: 'e-${type.wire}-${amount ?? calories ?? 0}',
+  timestamp: DateTime(2026, 4, 22),
+  type: type,
+  title: 'x',
+  amount: amount,
+  calories: calories,
+  source: EntrySource.manual,
+);
 
 /// A PalService whose `review` returns a different canned string per call (so a
 /// regenerate is guaranteed to swap text) and records the range it was asked
@@ -26,9 +39,9 @@ class _SequencedPal implements PalService {
 void main() {
   test('build resolves the week narrative from PalService.review', () async {
     final pal = _SequencedPal();
-    final container = ProviderContainer(overrides: [
-      palServiceProvider.overrideWithValue(pal),
-    ]);
+    final container = ProviderContainer(
+      overrides: [palServiceProvider.overrideWithValue(pal)],
+    );
     addTearDown(container.dispose);
 
     final text = await container.read(weeklyReviewControllerProvider.future);
@@ -40,9 +53,9 @@ void main() {
 
   test('regenerate swaps to the next narrative', () async {
     final pal = _SequencedPal();
-    final container = ProviderContainer(overrides: [
-      palServiceProvider.overrideWithValue(pal),
-    ]);
+    final container = ProviderContainer(
+      overrides: [palServiceProvider.overrideWithValue(pal)],
+    );
     addTearDown(container.dispose);
 
     await container.read(weeklyReviewControllerProvider.future);
@@ -51,5 +64,97 @@ void main() {
     final state = container.read(weeklyReviewControllerProvider);
     expect(state.value, 'SECOND week review.');
     expect(pal.reviewRanges, [ReviewRange.week, ReviewRange.week]);
+  });
+
+  group('weekStartFor', () {
+    test('snaps a mid-week day to that week\'s Monday at 00:00', () {
+      // 2026-04-22 is a Wednesday; its Monday is 2026-04-20.
+      final start = weekStartFor(DateTime(2026, 4, 22, 14, 30));
+      expect(start, DateTime(2026, 4, 20));
+    });
+
+    test('returns the same Monday when given a Monday', () {
+      expect(weekStartFor(DateTime(2026, 4, 20, 9)), DateTime(2026, 4, 20));
+    });
+  });
+
+  group('rangeLabel', () {
+    WeeklyStats statsForWeekOf(DateTime now) =>
+        buildWeeklyStats(const [], const Goals(), now: now);
+
+    test('within a month omits the end month', () {
+      // Week of Wed 2026-04-22 → Mon 20 … Sun 26.
+      expect(statsForWeekOf(DateTime(2026, 4, 22)).rangeLabel, 'Apr 20–26');
+    });
+
+    test('crossing a month boundary shows both month abbreviations', () {
+      // Week of Wed 2026-04-29 → Mon Apr 27 … Sun May 3.
+      final label = statsForWeekOf(DateTime(2026, 4, 29)).rangeLabel;
+      expect(label, 'Apr 27–May 3');
+      expect(label, contains('Apr'));
+      expect(label, contains('May'));
+    });
+  });
+
+  group('nextReviewLabel', () {
+    test('is the closing Sunday formatted "Weekday, Mon D"', () {
+      // Week of Wed 2026-04-22 closes on Sun 2026-04-26.
+      final stats = buildWeeklyStats(
+        const [],
+        const Goals(),
+        now: DateTime(2026, 4, 22),
+      );
+      expect(stats.nextReviewLabel, 'Sunday, Apr 26');
+    });
+  });
+
+  group('buildWeeklyStats', () {
+    final now = DateTime(2026, 4, 22);
+    final entries = [
+      _entry(EntryType.money, amount: -30), // expense
+      _entry(EntryType.money, amount: -12.5), // expense
+      _entry(EntryType.money, amount: 100), // income, ignored by spent
+      _entry(EntryType.move, calories: 200),
+      _entry(EntryType.move, calories: 96),
+      _entry(EntryType.rituals),
+      _entry(EntryType.rituals),
+      _entry(EntryType.rituals),
+    ];
+
+    test('folds entries into spent / moveKcal / ritualsKept', () {
+      final stats = buildWeeklyStats(entries, const Goals(), now: now);
+      expect(stats.spent, 42.5); // only the two expenses, income excluded
+      expect(stats.moveKcal, 296);
+      expect(stats.ritualsKept, 3);
+    });
+
+    test('budget and moveTarget are the daily goals × 7', () {
+      final goals = const Goals(dailyBudget: 85, dailyMoveKcal: 500);
+      final stats = buildWeeklyStats(entries, goals, now: now);
+      expect(stats.budget, 595);
+      expect(stats.moveTarget, 3500);
+    });
+
+    test('ritualsTarget uses routineCount × 7 when routineCount > 0', () {
+      final stats = buildWeeklyStats(
+        entries,
+        const Goals(dailyRitualTarget: 5),
+        routineCount: 3,
+        now: now,
+      );
+      // effectiveDailyRitualTarget(3, goals) == 3 → 3 * 7.
+      expect(stats.ritualsTarget, 21);
+    });
+
+    test('ritualsTarget falls back to goals.dailyRitualTarget × 7 when '
+        'routineCount is 0', () {
+      final stats = buildWeeklyStats(
+        entries,
+        const Goals(dailyRitualTarget: 5),
+        routineCount: 0,
+        now: now,
+      );
+      expect(stats.ritualsTarget, 35);
+    });
   });
 }

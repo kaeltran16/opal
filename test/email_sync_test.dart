@@ -41,7 +41,10 @@ class _StubSyncService implements EmailSyncService {
   bool get isConnected => true;
   @override
   EmailAccount? get account => const EmailAccount(
-      address: 'me@gmail.com', provider: Provider.gmail, appPasswordRef: '');
+    address: 'me@gmail.com',
+    provider: Provider.gmail,
+    appPasswordRef: '',
+  );
   @override
   Future<bool> testConnection(EmailAccount a, String p) async => true;
   @override
@@ -53,6 +56,48 @@ class _StubSyncService implements EmailSyncService {
   @override
   void dispose() => _controller.close();
 }
+
+/// A configurable [EmailSyncService] for the setup controller's test-connection
+/// lifecycle. [testConnection] either returns [result], throws [error] (if set),
+/// or — when [gate] is provided — awaits it first so a second concurrent call
+/// can be issued while the first is still in flight (re-entrancy guard test).
+class _SetupSyncService implements EmailSyncService {
+  _SetupSyncService({this.result = true, this.error, this.gate});
+
+  final bool result;
+  final Object? error;
+  final Future<void>? gate;
+  int testCalls = 0;
+
+  @override
+  Future<bool> testConnection(EmailAccount a, String p) async {
+    testCalls++;
+    if (gate != null) await gate;
+    if (error != null) throw error!;
+    return result;
+  }
+
+  @override
+  Stream<SyncStatus> get status => const Stream.empty();
+  @override
+  bool get isConnected => false;
+  @override
+  EmailAccount? get account => null;
+  @override
+  Future<void> connect(EmailAccount a, String p) async {}
+  @override
+  Future<List<EmailImportItem>> syncNow() async => const [];
+  @override
+  Future<void> disconnect() async {}
+  @override
+  void dispose() {}
+}
+
+const _setupAccount = EmailAccount(
+  address: 'me@gmail.com',
+  provider: Provider.gmail,
+  appPasswordRef: '',
+);
 
 /// Pumps a screen inside a minimal GoRouter + ProviderScope harness with the
 /// standard overrides (db, prefs, the real mock email service). Uses a local
@@ -70,13 +115,15 @@ Future<void> _pump(
       GoRoute(path: '/email', builder: (_, _) => screen),
       // Targets for pushNamed from the Intro CTA; bodies are inert.
       GoRoute(
-          path: '/email/setup',
-          name: 'emailSetup',
-          builder: (_, _) => const SizedBox()),
+        path: '/email/setup',
+        name: 'emailSetup',
+        builder: (_, _) => const SizedBox(),
+      ),
       GoRoute(
-          path: '/email/dashboard',
-          name: 'emailDashboard',
-          builder: (_, _) => const SizedBox()),
+        path: '/email/dashboard',
+        name: 'emailDashboard',
+        builder: (_, _) => const SizedBox(),
+      ),
     ],
   );
   final colors = AppColors.light(AppAccent.blue);
@@ -100,32 +147,42 @@ Future<void> _pump(
 void main() {
   // --- Pure: 16-char app-password auto-formats into 4-char groups -----------
   test('AppPasswordFormatter groups 16 chars into four 4-char blocks', () {
-    expect(AppPasswordFormatter.format('abcdefghijklmnop'),
-        'abcd efgh ijkl mnop');
+    expect(
+      AppPasswordFormatter.format('abcdefghijklmnop'),
+      'abcd efgh ijkl mnop',
+    );
     // Spaces are normalized regardless of where they were typed.
-    expect(AppPasswordFormatter.format('abcd efgh ijkl mnop'),
-        'abcd efgh ijkl mnop');
+    expect(
+      AppPasswordFormatter.format('abcd efgh ijkl mnop'),
+      'abcd efgh ijkl mnop',
+    );
     // Over-length input is capped at 16 chars (four groups).
-    expect(AppPasswordFormatter.format('abcdefghijklmnopqrstuv'),
-        'abcd efgh ijkl mnop');
+    expect(
+      AppPasswordFormatter.format('abcdefghijklmnopqrstuv'),
+      'abcd efgh ijkl mnop',
+    );
     // Partial input groups as far as it can.
     expect(AppPasswordFormatter.format('abcdef'), 'abcd ef');
   });
 
-  test('AppPasswordFormatter formats live edits via the TextInputFormatter', () {
-    const formatter = AppPasswordFormatter();
-    final out = formatter.formatEditUpdate(
-      TextEditingValue.empty,
-      const TextEditingValue(text: 'abcdefghijklmnop'),
-    );
-    expect(out.text, 'abcd efgh ijkl mnop');
-    // Caret sits at the end so subsequent typing appends cleanly.
-    expect(out.selection.baseOffset, out.text.length);
-  });
+  test(
+    'AppPasswordFormatter formats live edits via the TextInputFormatter',
+    () {
+      const formatter = AppPasswordFormatter();
+      final out = formatter.formatEditUpdate(
+        TextEditingValue.empty,
+        const TextEditingValue(text: 'abcdefghijklmnop'),
+      );
+      expect(out.text, 'abcd efgh ijkl mnop');
+      // Caret sits at the end so subsequent typing appends cleanly.
+      expect(out.selection.baseOffset, out.text.length);
+    },
+  );
 
   // --- Widget: Intro renders the value prop + "How it works" list -----------
-  testWidgets('Email Intro renders value prop and provider/how-it-works list',
-      (WidgetTester tester) async {
+  testWidgets('Email Intro renders value prop and provider/how-it-works list', (
+    WidgetTester tester,
+  ) async {
     SharedPreferences.setMockInitialValues({});
     final prefs = await SharedPreferences.getInstance();
     final db = LoopDatabase.forTesting(NativeDatabase.memory());
@@ -146,15 +203,18 @@ void main() {
     await tester.scrollUntilVisible(find.text('Set up Gmail sync'), 200);
     expect(find.text('Set up Gmail sync'), findsOneWidget);
     await tester.scrollUntilVisible(
-        find.text('iCloud, Outlook, any IMAP coming'), 200);
+      find.text('iCloud, Outlook, any IMAP coming'),
+      200,
+    );
     expect(find.text('iCloud, Outlook, any IMAP coming'), findsOneWidget);
   });
 
   // --- Widget: Setup renders its credential form without crashing -----------
   // Regression: the screen's root was a bare ColoredBox, so its TextFields had
   // no Material ancestor and the form threw "No Material widget found".
-  testWidgets('Email Setup renders the credential form under a Material',
-      (WidgetTester tester) async {
+  testWidgets('Email Setup renders the credential form under a Material', (
+    WidgetTester tester,
+  ) async {
     SharedPreferences.setMockInitialValues({});
     final prefs = await SharedPreferences.getInstance();
     final db = LoopDatabase.forTesting(NativeDatabase.memory());
@@ -168,54 +228,60 @@ void main() {
   });
 
   // --- Container: syncNow materialises imports as Entries, deduped by ref -----
-  test('Dashboard syncNow writes imports as Entries and dedupes on re-sync',
-      () async {
-    SharedPreferences.setMockInitialValues({});
-    final prefs = await SharedPreferences.getInstance();
-    final db = LoopDatabase.forTesting(NativeDatabase.memory());
-    addTearDown(db.close);
+  test(
+    'Dashboard syncNow writes imports as Entries and dedupes on re-sync',
+    () async {
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+      final db = LoopDatabase.forTesting(NativeDatabase.memory());
+      addTearDown(db.close);
 
-    final items = [
-      EmailImportItem(
+      final items = [
+        EmailImportItem(
           id: 'msg-1',
           merchant: 'Amazon',
           amount: -42.99,
           receivedAt: DateTime(2026, 6, 9, 10),
-          category: 'Shopping'),
-      EmailImportItem(
+          category: 'Shopping',
+        ),
+        EmailImportItem(
           id: 'msg-2',
           merchant: 'Uber',
           amount: -18.40,
           receivedAt: DateTime(2026, 6, 9, 5),
-          category: 'Transport'),
-    ];
+          category: 'Transport',
+        ),
+      ];
 
-    final container = ProviderContainer(overrides: [
-      sharedPreferencesProvider.overrideWithValue(prefs),
-      loopDatabaseProvider.overrideWithValue(db),
-      emailSyncServiceProvider.overrideWithValue(_StubSyncService(items)),
-      hapticsServiceProvider.overrideWithValue(_NoHaptics()),
-    ]);
-    addTearDown(container.dispose);
-    // pin the autoDispose controller so it survives the awaits below
-    container.listen(emailDashboardControllerProvider, (_, _) {});
+      final container = ProviderContainer(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          loopDatabaseProvider.overrideWithValue(db),
+          emailSyncServiceProvider.overrideWithValue(_StubSyncService(items)),
+          hapticsServiceProvider.overrideWithValue(_NoHaptics()),
+        ],
+      );
+      addTearDown(container.dispose);
+      // pin the autoDispose controller so it survives the awaits below
+      container.listen(emailDashboardControllerProvider, (_, _) {});
 
-    final dash = container.read(emailDashboardControllerProvider.notifier);
-    final entries = EntryRepository(db);
+      final dash = container.read(emailDashboardControllerProvider.notifier);
+      final entries = EntryRepository(db);
 
-    await dash.syncNow();
-    var all = await entries.getAll();
-    expect(all, hasLength(2));
-    final amazon = all.firstWhere((e) => e.title == 'Amazon');
-    expect(amazon.type, EntryType.money);
-    expect(amazon.source, EntrySource.email);
-    expect(amazon.sourceRef, 'msg-1');
+      await dash.syncNow();
+      var all = await entries.getAll();
+      expect(all, hasLength(2));
+      final amazon = all.firstWhere((e) => e.title == 'Amazon');
+      expect(amazon.type, EntryType.money);
+      expect(amazon.source, EntrySource.email);
+      expect(amazon.sourceRef, 'msg-1');
 
-    // Re-syncing the same message-ids must not create duplicate entries.
-    await dash.syncNow();
-    all = await entries.getAll();
-    expect(all, hasLength(2));
-  });
+      // Re-syncing the same message-ids must not create duplicate entries.
+      await dash.syncNow();
+      all = await entries.getAll();
+      expect(all, hasLength(2));
+    },
+  );
 
   // --- Container: import counts come from email-sourced entries -------------
   test('Dashboard counts only email-sourced entries; month vs all-time', () async {
@@ -231,25 +297,58 @@ void main() {
 
     // Two email entries this month, one email entry a prior month, and a manual
     // entry this month that must NOT be counted.
-    await entries.insert(Entry(
-        id: '', timestamp: thisMonth, type: EntryType.money, title: 'A',
-        amount: -1, source: EntrySource.email, sourceRef: 'e1'));
-    await entries.insert(Entry(
-        id: '', timestamp: thisMonth, type: EntryType.money, title: 'B',
-        amount: -2, source: EntrySource.email, sourceRef: 'e2'));
-    await entries.insert(Entry(
-        id: '', timestamp: lastMonth, type: EntryType.money, title: 'C',
-        amount: -3, source: EntrySource.email, sourceRef: 'e3'));
-    await entries.insert(Entry(
-        id: '', timestamp: thisMonth, type: EntryType.money, title: 'manual',
-        amount: -4, source: EntrySource.manual));
+    await entries.insert(
+      Entry(
+        id: '',
+        timestamp: thisMonth,
+        type: EntryType.money,
+        title: 'A',
+        amount: -1,
+        source: EntrySource.email,
+        sourceRef: 'e1',
+      ),
+    );
+    await entries.insert(
+      Entry(
+        id: '',
+        timestamp: thisMonth,
+        type: EntryType.money,
+        title: 'B',
+        amount: -2,
+        source: EntrySource.email,
+        sourceRef: 'e2',
+      ),
+    );
+    await entries.insert(
+      Entry(
+        id: '',
+        timestamp: lastMonth,
+        type: EntryType.money,
+        title: 'C',
+        amount: -3,
+        source: EntrySource.email,
+        sourceRef: 'e3',
+      ),
+    );
+    await entries.insert(
+      Entry(
+        id: '',
+        timestamp: thisMonth,
+        type: EntryType.money,
+        title: 'manual',
+        amount: -4,
+        source: EntrySource.manual,
+      ),
+    );
 
-    final container = ProviderContainer(overrides: [
-      sharedPreferencesProvider.overrideWithValue(prefs),
-      loopDatabaseProvider.overrideWithValue(db),
-      emailSyncServiceProvider.overrideWithValue(_StubSyncService(const [])),
-      hapticsServiceProvider.overrideWithValue(_NoHaptics()),
-    ]);
+    final container = ProviderContainer(
+      overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
+        loopDatabaseProvider.overrideWithValue(db),
+        emailSyncServiceProvider.overrideWithValue(_StubSyncService(const [])),
+        hapticsServiceProvider.overrideWithValue(_NoHaptics()),
+      ],
+    );
     addTearDown(container.dispose);
     container.listen(emailDashboardControllerProvider, (_, _) {});
 
@@ -263,42 +362,173 @@ void main() {
   });
 
   // --- Container: sync prefs read from and write back to SettingsRepository -
-  test('Dashboard sync prefs reflect and persist via SettingsRepository', () async {
-    SharedPreferences.setMockInitialValues({});
-    final prefs = await SharedPreferences.getInstance();
-    final db = LoopDatabase.forTesting(NativeDatabase.memory());
-    addTearDown(db.close);
+  test(
+    'Dashboard sync prefs reflect and persist via SettingsRepository',
+    () async {
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+      final db = LoopDatabase.forTesting(NativeDatabase.memory());
+      addTearDown(db.close);
 
-    final container = ProviderContainer(overrides: [
-      sharedPreferencesProvider.overrideWithValue(prefs),
-      loopDatabaseProvider.overrideWithValue(db),
-      emailSyncServiceProvider.overrideWithValue(_StubSyncService(const [])),
-      hapticsServiceProvider.overrideWithValue(_NoHaptics()),
-    ]);
-    addTearDown(container.dispose);
-    container.listen(emailDashboardControllerProvider, (_, _) {});
+      final container = ProviderContainer(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          loopDatabaseProvider.overrideWithValue(db),
+          emailSyncServiceProvider.overrideWithValue(
+            _StubSyncService(const []),
+          ),
+          hapticsServiceProvider.overrideWithValue(_NoHaptics()),
+        ],
+      );
+      addTearDown(container.dispose);
+      container.listen(emailDashboardControllerProvider, (_, _) {});
 
-    final notifier = container.read(emailDashboardControllerProvider.notifier);
+      final notifier = container.read(
+        emailDashboardControllerProvider.notifier,
+      );
 
-    // Defaults mirror the repository.
-    expect(container.read(emailDashboardControllerProvider).syncCadence,
-        SyncCadence.every15min);
-    expect(container.read(emailDashboardControllerProvider).autoCategorize,
-        isTrue);
+      // Defaults mirror the repository.
+      expect(
+        container.read(emailDashboardControllerProvider).syncCadence,
+        SyncCadence.every15min,
+      );
+      expect(
+        container.read(emailDashboardControllerProvider).autoCategorize,
+        isTrue,
+      );
 
-    await notifier.setSyncCadence(SyncCadence.hourly);
-    await notifier.setImportNotifications(true);
-    await notifier.setAutoCategorize(false);
+      await notifier.setSyncCadence(SyncCadence.hourly);
+      await notifier.setImportNotifications(true);
+      await notifier.setAutoCategorize(false);
 
-    final state = container.read(emailDashboardControllerProvider);
-    expect(state.syncCadence, SyncCadence.hourly);
-    expect(state.importNotifications, isTrue);
-    expect(state.autoCategorize, isFalse);
+      final state = container.read(emailDashboardControllerProvider);
+      expect(state.syncCadence, SyncCadence.hourly);
+      expect(state.importNotifications, isTrue);
+      expect(state.autoCategorize, isFalse);
 
-    // Persisted: a fresh repository over the same prefs sees the new values.
-    final settings = SettingsRepository(prefs);
-    expect(settings.syncCadence, SyncCadence.hourly);
-    expect(settings.importNotifications, isTrue);
-    expect(settings.autoCategorize, isFalse);
+      // Persisted: a fresh repository over the same prefs sees the new values.
+      final settings = SettingsRepository(prefs);
+      expect(settings.syncCadence, SyncCadence.hourly);
+      expect(settings.importNotifications, isTrue);
+      expect(settings.autoCategorize, isFalse);
+    },
+  );
+
+  // --- Setup controller: the Test-connection lifecycle + Save gating --------
+  group('EmailSetupController', () {
+    ProviderContainer makeContainer(EmailSyncService service) {
+      final container = ProviderContainer(
+        overrides: [emailSyncServiceProvider.overrideWithValue(service)],
+      );
+      addTearDown(container.dispose);
+      return container;
+    }
+
+    test(
+      'testConnection flips idle→testing→success and unlocks canSave',
+      () async {
+        // Gate the service so we can observe the in-flight "testing" state.
+        final gate = Completer<void>();
+        final container = makeContainer(_SetupSyncService(gate: gate.future));
+        final setup = container.read(emailSetupControllerProvider.notifier);
+
+        expect(
+          container.read(emailSetupControllerProvider).test,
+          TestState.idle,
+        );
+        expect(container.read(emailSetupControllerProvider).canSave, isFalse);
+
+        final pending = setup.testConnection(
+          _setupAccount,
+          'abcd efgh ijkl mnop',
+        );
+        expect(
+          container.read(emailSetupControllerProvider).test,
+          TestState.testing,
+        );
+        expect(container.read(emailSetupControllerProvider).canSave, isFalse);
+
+        gate.complete();
+        await pending;
+
+        expect(
+          container.read(emailSetupControllerProvider).test,
+          TestState.success,
+        );
+        expect(container.read(emailSetupControllerProvider).canSave, isTrue);
+      },
+    );
+
+    test('a thrown testConnection lands on error, not stuck testing', () async {
+      final container = makeContainer(
+        _SetupSyncService(error: Exception('imap down')),
+      );
+      final setup = container.read(emailSetupControllerProvider.notifier);
+
+      await setup.testConnection(_setupAccount, 'abcd efgh ijkl mnop');
+
+      expect(
+        container.read(emailSetupControllerProvider).test,
+        TestState.error,
+      );
+      expect(container.read(emailSetupControllerProvider).canSave, isFalse);
+    });
+
+    test('a false testConnection result lands on error', () async {
+      final container = makeContainer(_SetupSyncService(result: false));
+      final setup = container.read(emailSetupControllerProvider.notifier);
+
+      await setup.testConnection(_setupAccount, 'short');
+
+      expect(
+        container.read(emailSetupControllerProvider).test,
+        TestState.error,
+      );
+      expect(container.read(emailSetupControllerProvider).canSave, isFalse);
+    });
+
+    test(
+      'the re-entrancy guard ignores a second concurrent testConnection',
+      () async {
+        final gate = Completer<void>();
+        final service = _SetupSyncService(gate: gate.future);
+        final container = makeContainer(service);
+        final setup = container.read(emailSetupControllerProvider.notifier);
+
+        final first = setup.testConnection(
+          _setupAccount,
+          'abcd efgh ijkl mnop',
+        );
+        expect(
+          container.read(emailSetupControllerProvider).test,
+          TestState.testing,
+        );
+
+        // Second call while the first is in flight must short-circuit, not start
+        // another service call.
+        await setup.testConnection(_setupAccount, 'abcd efgh ijkl mnop');
+        expect(service.testCalls, 1);
+
+        gate.complete();
+        await first;
+        expect(service.testCalls, 1);
+        expect(
+          container.read(emailSetupControllerProvider).test,
+          TestState.success,
+        );
+      },
+    );
+
+    test('markDirty re-locks Save after a successful test', () async {
+      final container = makeContainer(_SetupSyncService());
+      final setup = container.read(emailSetupControllerProvider.notifier);
+
+      await setup.testConnection(_setupAccount, 'abcd efgh ijkl mnop');
+      expect(container.read(emailSetupControllerProvider).canSave, isTrue);
+
+      setup.markDirty();
+      expect(container.read(emailSetupControllerProvider).test, TestState.idle);
+      expect(container.read(emailSetupControllerProvider).canSave, isFalse);
+    });
   });
 }

@@ -8,6 +8,7 @@ import '../../controllers/spending_controller.dart';
 import '../../models/models.dart';
 import '../../router.dart';
 import '../../theme/theme.dart';
+import '../../util/dates.dart';
 import '../../util/format.dart';
 import '../../widgets/app_icon.dart';
 import '../../widgets/controls.dart';
@@ -430,18 +431,12 @@ class _DayGroupCard extends StatelessWidget {
   final String Function(double, {bool withSign}) fmt;
   final Future<void> Function(Entry) onDelete;
 
-  static const _months = [
-    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec' //
-  ];
-
   String get _dayLabel {
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
+    final today = startOfDay(DateTime.now());
     final diff = today.difference(group.day).inDays;
     if (diff == 0) return 'Today';
     if (diff == 1) return 'Yesterday';
-    return '${_months[group.day.month - 1]} ${group.day.day}';
+    return '${kMonthsShort[group.day.month - 1]} ${group.day.day}';
   }
 
   @override

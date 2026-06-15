@@ -9,6 +9,7 @@ import '../../controllers/providers.dart';
 import '../../models/models.dart';
 import '../../services/pal/pal_context_builder.dart';
 import '../../theme/theme.dart';
+import '../../util/dates.dart';
 import '../../widgets/app_icon.dart';
 import '../../widgets/press_scale.dart';
 
@@ -35,12 +36,6 @@ class StreakCelebrationScreen extends ConsumerWidget {
 
   static const _milestoneDots = 16;
 
-  static const _weekdayAbbrev = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-  static const _monthAbbrev = [
-    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
-  ];
-
   /// Stat pills derived from real profile data; only includes a pill when its
   /// value can actually be computed (no fabricated stats).
   static List<(String, String)> _statsFor(ProfileStats? stats, int streak) {
@@ -51,7 +46,7 @@ class StreakCelebrationScreen extends ConsumerWidget {
     }
     final bestDay = stats.bestMoveDay;
     if (bestDay != null && stats.bestMoveDayKcal > 0) {
-      final wd = _weekdayAbbrev[bestDay.weekday - 1];
+      final wd = kWeekdaysShort[bestDay.weekday - 1];
       pills.add(('Best day', '$wd · ${stats.bestMoveDayKcal} kcal'));
     }
     final next = nextStreakMilestone(streak);
@@ -81,7 +76,7 @@ class StreakCelebrationScreen extends ConsumerWidget {
         : start == null
             ? 'Your longest streak this year.'
             : "You haven't missed a day since "
-                '${_monthAbbrev[start.month - 1]} ${start.day}.\n'
+                '${kMonthsShort[start.month - 1]} ${start.day}.\n'
                 'Your longest streak this year.';
 
     return DecoratedBox(

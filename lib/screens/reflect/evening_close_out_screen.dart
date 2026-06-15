@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../controllers/rituals_controller.dart';
 import '../../models/models.dart';
 import '../../theme/theme.dart';
+import '../../util/dates.dart';
 import '../../widgets/app_icon.dart';
 import '../../widgets/dashed_border.dart';
 import '../../widgets/press_scale.dart';
@@ -41,11 +42,6 @@ class EveningCloseOutScreen extends ConsumerWidget {
   static const _accent22 = Color(0x38BF5AF2);
   static const _accent50 = Color(0x80BF5AF2);
 
-  static const _days = [
-    'Monday', 'Tuesday', 'Wednesday', 'Thursday',
-    'Friday', 'Saturday', 'Sunday',
-  ];
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final async = ref.watch(ritualsControllerProvider);
@@ -54,7 +50,7 @@ class EveningCloseOutScreen extends ConsumerWidget {
     final now = DateTime.now();
     final clock =
         '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
-    final dayLabel = '$clock · ${_days[now.weekday - 1]}';
+    final dayLabel = '$clock · ${kWeekdays[now.weekday - 1]}';
 
     // Drive the checklist from the Evening wind-down routine only.
     RitualRoutine? evening;

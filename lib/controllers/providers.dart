@@ -11,6 +11,7 @@ import '../data/repositories/repositories.dart';
 import '../models/models.dart';
 import '../services/services.dart';
 import '../theme/app_colors.dart';
+import '../util/dates.dart';
 import '../util/format.dart' show Currency;
 
 part 'providers.g.dart';
@@ -179,11 +180,10 @@ PalService palService(Ref ref) {
     chat: () async {
       final now = DateTime.now();
       final today = await entries.watchToday(now).first;
-      final weekStart = now.subtract(Duration(days: now.weekday - 1));
       final week = await entries
           .watchEntriesInRange(
-            DateTime(weekStart.year, weekStart.month, weekStart.day),
-            DateTime(now.year, now.month, now.day).add(const Duration(days: 1)),
+            startOfWeek(now),
+            startOfDay(now).add(const Duration(days: 1)),
           )
           .first;
       return buildChatContext(
@@ -275,8 +275,8 @@ PalService palService(Ref ref) {
     },
     insights: (range) async {
       final now = DateTime.now();
-      final today = DateTime(now.year, now.month, now.day);
-      final weekStart = today.subtract(Duration(days: now.weekday - 1));
+      final today = startOfDay(now);
+      final weekStart = startOfWeek(now);
       final (DateTime start, DateTime end, int periodDays) = switch (range) {
         InsightRange.day => (today, today.add(const Duration(days: 1)), 1),
         InsightRange.week => (weekStart, weekStart.add(const Duration(days: 7)), 7),
@@ -311,10 +311,9 @@ PalService palService(Ref ref) {
       final candidates = excludeRoutineId == null
           ? all
           : all.where((r) => r.id != excludeRoutineId).toList();
-      const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
       return buildSuggestContext(
         recentWorkouts: recent.take(5).toList(),
-        dayOfWeek: days[DateTime.now().weekday - 1],
+        dayOfWeek: kWeekdays[DateTime.now().weekday - 1],
         availableRoutines: candidates.isEmpty ? all : candidates,
         exercisesById: {for (final e in catalog) e.id: e},
       );

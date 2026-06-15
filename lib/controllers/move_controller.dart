@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../models/models.dart';
+import '../util/dates.dart';
 import 'providers.dart';
 
 part 'move_controller.g.dart';
@@ -118,9 +119,8 @@ String relativeDateLabel(DateTime startedAt, DateTime now) {
 /// A day reads "done" when at least one workout was completed on it; "today"
 /// follows [now]. Pure so it is unit-testable.
 List<WeekDay> buildWeekDays(List<Workout> workouts, DateTime now) {
-  const letters = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
-  final today = DateTime(now.year, now.month, now.day);
-  final monday = today.subtract(Duration(days: today.weekday - DateTime.monday));
+  final today = startOfDay(now);
+  final monday = startOfWeek(now);
   final doneDays = <int>{
     for (final w in workouts)
       if (w.isComplete)
@@ -131,7 +131,7 @@ List<WeekDay> buildWeekDays(List<Workout> workouts, DateTime now) {
   return [
     for (var i = 0; i < 7; i++)
       WeekDay(
-        letter: letters[i],
+        letter: kWeekdayLetters[i],
         done: doneDays.contains(i),
         today: monday.add(Duration(days: i)) == today,
       ),
@@ -171,7 +171,7 @@ Stream<MoveState> moveState(Ref ref) async* {
         .where((e) => e.type == EntryType.move && e.workoutId == null)
         .toList();
 
-    final today = DateTime(now.year, now.month, now.day);
+    final today = startOfDay(now);
     final moveKcal = entries
         .where((e) =>
             e.type == EntryType.move &&
@@ -180,8 +180,7 @@ Stream<MoveState> moveState(Ref ref) async* {
         .fold<int>(0, (sum, e) => sum + (e.calories ?? 0));
 
     // this-week aggregates (Mon 00:00 → now) drive the hero ring/strip/stats.
-    final monday =
-        today.subtract(Duration(days: today.weekday - DateTime.monday));
+    final monday = startOfWeek(now);
     final weekWorkouts = workouts
         .where((w) =>
             w.isComplete &&

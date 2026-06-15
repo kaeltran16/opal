@@ -1,6 +1,7 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../services/pal/pal_service.dart';
+import '../util/dates.dart';
 import 'providers.dart';
 
 part 'insights_controller.g.dart';
@@ -38,7 +39,7 @@ Future<PalInsights?> insights(Ref ref, InsightRange range) async {
         today.add(const Duration(days: 1)),
       ),
     InsightRange.week => (
-        today.subtract(Duration(days: now.weekday - 1)),
+        startOfWeek(now),
         today.add(const Duration(days: 1)),
       ),
     InsightRange.month => (
