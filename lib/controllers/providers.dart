@@ -131,6 +131,7 @@ PalService palService(Ref ref) {
   final goals = ref.watch(goalsRepositoryProvider);
   final workouts = ref.watch(workoutRepositoryProvider);
   final routines = ref.watch(routineRepositoryProvider);
+  final ritualRoutines = ref.watch(ritualRepositoryProvider);
   final settings = ref.watch(settingsRepositoryProvider);
 
   final tokens = TokenProvider(
@@ -166,6 +167,7 @@ PalService palService(Ref ref) {
         todayEntries: today,
         weekEntries: week,
         moveStreakDays: await moveStreak(now),
+        routineCount: (await ritualRoutines.getAll()).length,
       );
     },
     review: (anchor, range) async {
@@ -231,6 +233,7 @@ PalService palService(Ref ref) {
       final hasPrev = prevEntries.isNotEmpty;
 
       final g = await goals.get();
+      final routineCount = (await ritualRoutines.getAll()).length;
       return buildReviewContext(
         range: range,
         spent: spent,
@@ -239,7 +242,7 @@ PalService palService(Ref ref) {
         movedDeltaPct: hasPrev ? pctChange(movedKcal, prevMovedKcal) : null,
         activeDays: periodEntries.map((e) => e.timestamp.day).toSet().length,
         ritualsKept: kept,
-        ritualsTarget: g.dailyRitualTarget * periodDays,
+        ritualsTarget: effectiveDailyRitualTarget(routineCount, g) * periodDays,
         streakDays: await moveStreak(now),
         topCategory: topCat,
         topCategoryPct: topPct,
@@ -270,6 +273,7 @@ PalService palService(Ref ref) {
         goals: await goals.get(),
         periodDays: periodDays,
         streakDays: moveStreakDays(lookback, now: now),
+        routineCount: (await ritualRoutines.getAll()).length,
       );
     },
     suggest: (another, excludeRoutineId) async {

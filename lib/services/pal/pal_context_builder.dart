@@ -33,13 +33,15 @@ Map<String, Object?> buildChatContext({
   required List<Entry> todayEntries,
   required List<Entry> weekEntries,
   required int moveStreakDays,
+  int routineCount = 0,
 }) {
+  final ritualTarget = effectiveDailyRitualTarget(routineCount, goals);
   return {
     'userName': userName,
     'todayEntries': todayEntries.map(formatEntryLine).toList(),
     'dailyBudget': goals.dailyBudget,
     'moveGoalKcal': goals.dailyMoveKcal,
-    'ritualGoal': goals.dailyRitualTarget,
+    'ritualGoal': ritualTarget,
     'spentToday': _spent(todayEntries),
     'movedTodayKcal': _movedKcal(todayEntries),
     'ritualsDoneToday': _rituals(todayEntries),
@@ -47,7 +49,7 @@ Map<String, Object?> buildChatContext({
     'weekBudget': goals.dailyBudget * 7,
     'weekMovedKcal': _movedKcal(weekEntries),
     'weekRitualsDone': _rituals(weekEntries),
-    'weekRitualGoal': goals.dailyRitualTarget * 7,
+    'weekRitualGoal': ritualTarget * 7,
     'moveStreakDays': moveStreakDays,
   };
 }
@@ -147,6 +149,7 @@ Map<String, Object?> buildInsightsContext({
   required Goals goals,
   required int periodDays,
   required int streakDays,
+  int routineCount = 0,
 }) {
   final spendByWeekday = List<double>.filled(7, 0);
   final activeMoveDays = <int>{};
@@ -184,7 +187,7 @@ Map<String, Object?> buildInsightsContext({
     'moveKcal': _movedKcal(entries),
     'moveTargetKcal': goals.dailyMoveKcal * periodDays,
     'ritualsKept': _rituals(entries),
-    'ritualsTarget': goals.dailyRitualTarget * periodDays,
+    'ritualsTarget': effectiveDailyRitualTarget(routineCount, goals) * periodDays,
     'activeDays': activeMoveDays.length,
     'streakDays': streakDays,
     'topCategory': topCategory,

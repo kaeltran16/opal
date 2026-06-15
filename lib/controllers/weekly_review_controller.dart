@@ -137,6 +137,7 @@ DateTime weekStartFor(DateTime now) {
 WeeklyStats buildWeeklyStats(
   List<Entry> entries,
   Goals goals, {
+  int routineCount = 0,
   DateTime? now,
 }) {
   final weekStart = weekStartFor(now ?? DateTime.now());
@@ -160,7 +161,7 @@ WeeklyStats buildWeeklyStats(
     moveKcal: moveKcal,
     moveTarget: goals.dailyMoveKcal * 7,
     ritualsKept: ritualsKept,
-    ritualsTarget: goals.dailyRitualTarget * 7,
+    ritualsTarget: effectiveDailyRitualTarget(routineCount, goals) * 7,
   );
 }
 
@@ -169,6 +170,7 @@ WeeklyStats buildWeeklyStats(
 @riverpod
 Stream<WeeklyStats> weeklyStats(Ref ref) async* {
   final entriesRepo = ref.watch(entryRepositoryProvider);
+  final ritualRepo = ref.watch(ritualRepositoryProvider);
   final goals = ref.watch(goalsStreamProvider).asData?.value ?? const Goals();
 
   final now = DateTime.now();
@@ -176,7 +178,8 @@ Stream<WeeklyStats> weeklyStats(Ref ref) async* {
   final end = start.add(const Duration(days: 7));
 
   await for (final entries in entriesRepo.watchEntriesInRange(start, end)) {
-    yield buildWeeklyStats(entries, goals, now: now);
+    final routineCount = (await ritualRepo.getAll()).length;
+    yield buildWeeklyStats(entries, goals, routineCount: routineCount, now: now);
   }
 }
 

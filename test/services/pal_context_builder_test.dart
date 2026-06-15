@@ -39,6 +39,30 @@ void main() {
     expect((ctx['todayEntries'] as List).length, 5);
   });
 
+  test('ritual goals derive from routineCount when provided, else fall back', () {
+    // routineCount > 0 → targets track the routines (3, 3*7); fallback otherwise.
+    final derived = buildChatContext(
+      userName: 'Kael',
+      goals: goals, // dailyRitualTarget: 5
+      todayEntries: const [],
+      weekEntries: const [],
+      moveStreakDays: 0,
+      routineCount: 3,
+    );
+    expect(derived['ritualGoal'], 3);
+    expect(derived['weekRitualGoal'], 21);
+
+    final insights = buildInsightsContext(
+      range: InsightRange.week,
+      entries: const [],
+      goals: goals,
+      periodDays: 7,
+      streakDays: 0,
+      routineCount: 3,
+    );
+    expect(insights['ritualsTarget'], 21);
+  });
+
   test('buildInsightsContext folds totals, top category, and spend-by-weekday', () {
     // Jun 12 2026 is a Friday (weekday 5); Jun 8 is a Monday (weekday 1).
     final ctx = buildInsightsContext(

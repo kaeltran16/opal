@@ -42,3 +42,11 @@ class Goals {
   String toString() =>
       'Goals(budget: $dailyBudget, move: ${dailyMoveKcal}kcal, rituals: $dailyRitualTarget)';
 }
+
+/// Effective daily ritual target: the count of active ritual routines when the
+/// user has any, else the stored [Goals.dailyRitualTarget] fallback. The daily
+/// ring, detail hero, period reviews, and Pal context all size the ritual goal
+/// this way so targets track the routines that actually exist (a fixed 5 was
+/// unreachable when only 3 routines are seeded).
+int effectiveDailyRitualTarget(int routineCount, Goals goals) =>
+    routineCount > 0 ? routineCount : goals.dailyRitualTarget;

@@ -86,6 +86,22 @@ void main() {
     expect(s.tiles[2].sub, 'of 35');
   });
 
+  test('buildWeeklyStats derives the rituals target from the routine count', () {
+    const goals = Goals(dailyRitualTarget: 5);
+    final entries = [_ritual(DateTime(2026, 4, 21, 6))];
+
+    // With 3 active routines the weekly target tracks them (3 * 7), not the
+    // stored fallback (5 * 7) — so it stays reachable.
+    final s = buildWeeklyStats(entries, goals,
+        routineCount: 3, now: DateTime(2026, 4, 22, 12));
+    expect(s.ritualsTarget, 21);
+
+    // No routines → fall back to the stored daily target.
+    final fallback = buildWeeklyStats(entries, goals,
+        routineCount: 0, now: DateTime(2026, 4, 22, 12));
+    expect(fallback.ritualsTarget, 35);
+  });
+
   // ---------------------------------------------------------------------------
   // Date labels — same-month and month-crossing weeks.
   // ---------------------------------------------------------------------------

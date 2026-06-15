@@ -89,8 +89,7 @@ class TodayState {
 
   /// The "Routines" denominator: the number of routines when known, else the
   /// legacy [Goals.dailyRitualTarget].
-  int get ritualsTarget =>
-      _hasRoutines ? routines.length : goals.dailyRitualTarget;
+  int get ritualsTarget => effectiveDailyRitualTarget(routines.length, goals);
 
   /// The "Routines" numerator: completed *routines* when routine data is
   /// known, else the legacy count of completed ritual *steps*.
