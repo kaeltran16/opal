@@ -660,7 +660,7 @@ class _AskPalPill extends StatelessWidget {
     final c = context.colors;
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: () => context.pushNamed(AppRoute.askPal.name),
+      onTap: () => context.pushNamed(AppRoute.palComposer.name),
       child: Container(
         height: 52,
         decoration: BoxDecoration(

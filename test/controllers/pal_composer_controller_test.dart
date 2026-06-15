@@ -13,16 +13,17 @@ import 'package:opal/services/services.dart';
 /// A PalService whose `chat` returns a scripted reply (or throws to simulate the
 /// proxy being unreachable). Only `chat` is exercised; the rest are no-ops.
 class _FakePal implements PalService {
-  _FakePal({this.reply = 'Got it.', this.fails = false});
+  _FakePal({this.reply = 'Got it.', this.fails = false, this.actions = const []});
   final String reply;
   final bool fails;
+  final List<PalAction> actions;
   final List<({List<PalMessage> history, String message})> chatCalls = [];
 
   @override
   Future<PalChatResult> chat(List<PalMessage> history, String message) async {
     chatCalls.add((history: history, message: message));
     if (fails) throw const PalException('unreachable');
-    return PalChatResult(reply: reply);
+    return PalChatResult(reply: reply, actions: actions);
   }
 
   @override
@@ -205,6 +206,59 @@ void main() {
       final reply =
           container.read(palComposerControllerProvider()).messages.last;
       expect(reply.text, contains("couldn't reach the server"));
+    });
+  });
+
+  group('undo', () {
+    test('an action turn logs an entry and undo deletes it', () async {
+      final db = LoopDatabase.forTesting(NativeDatabase.memory());
+      addTearDown(db.close);
+      final pal = _FakePal(reply: 'Logged it.', actions: const [
+        LogEntryAction(type: EntryType.move, durationMinutes: 30, title: 'Run'),
+      ]);
+      final container = containerWith(db, pal);
+      final notifier = container.read(palComposerControllerProvider().notifier);
+
+      await notifier.send('ran 30 min');
+      expect(await EntryRepository(db).getAll(), hasLength(1));
+
+      final idx = container.read(palComposerControllerProvider()).messages.length - 1;
+      await notifier.undo(idx);
+
+      expect(await EntryRepository(db).getAll(), isEmpty);
+      expect(container.read(palComposerControllerProvider()).messages[idx].undone, isTrue);
+    });
+
+    test('set_daily_budget applies; undo restores the prior value', () async {
+      final db = LoopDatabase.forTesting(NativeDatabase.memory());
+      addTearDown(db.close);
+      final goals = GoalsRepository(db);
+      await goals.save(const Goals(dailyBudget: 85));
+      final pal = _FakePal(reply: 'Set to \$60.', actions: const [
+        SetGoalAction(target: GoalTarget.dailyBudget, value: 60),
+      ]);
+      final container = containerWith(db, pal);
+      final notifier = container.read(palComposerControllerProvider().notifier);
+
+      await notifier.send('set my budget to 60');
+      expect((await goals.get()).dailyBudget, 60);
+
+      final idx = container.read(palComposerControllerProvider()).messages.length - 1;
+      await notifier.undo(idx);
+      expect((await goals.get()).dailyBudget, 85);
+    });
+
+    test('a non-action turn records no undo (undo is a no-op)', () async {
+      final db = LoopDatabase.forTesting(NativeDatabase.memory());
+      addTearDown(db.close);
+      final container = containerWith(db, _FakePal(reply: 'Just chatting.'));
+      final notifier = container.read(palComposerControllerProvider().notifier);
+
+      await notifier.send('how am I doing?');
+      final idx = container.read(palComposerControllerProvider()).messages.length - 1;
+      await notifier.undo(idx);
+
+      expect(container.read(palComposerControllerProvider()).messages[idx].undone, isFalse);
     });
   });
 }

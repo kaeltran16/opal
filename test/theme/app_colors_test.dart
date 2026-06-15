@@ -23,7 +23,7 @@ void main() {
   test('lerp interpolates the new tokens', () {
     final a = AppColors.light(AppAccent.blue);
     final b = AppColors.dark(AppAccent.blue);
-    final mid = a.lerp(b, 0.5) as AppColors;
+    final mid = a.lerp(b, 0.5);
     expect(mid.shadow, Color.lerp(a.shadow, b.shadow, 0.5));
     expect(mid.scrim, Color.lerp(a.scrim, b.scrim, 0.5));
   });

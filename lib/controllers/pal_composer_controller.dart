@@ -74,6 +74,9 @@ class PalComposerState {
 /// Owns the Pal-composer conversation and the [PalService.chat] round-trip.
 @riverpod
 class PalComposerController extends _$PalComposerController {
+  /// Reversal data per assistant message index (only for turns that mutated).
+  final Map<int, AppliedActions> _undo = {};
+
   @override
   PalComposerState build({String? seed}) {
     final trimmedSeed = seed?.trim() ?? '';
@@ -153,7 +156,9 @@ class PalComposerController extends _$PalComposerController {
     try {
       final result = await ref.read(palServiceProvider).chat(history, message);
       // apply any logging / goal / routine changes the reply carried, same as Ask-Pal
-      await applyPalActions(ref, result.actions);
+      final applied = await applyPalActions(ref, result.actions);
+      final index = state.messages.length; // index the assistant message will occupy
+      if (!applied.isEmpty) _undo[index] = applied;
       _appendAssistant(result.reply, actions: result.actions);
     } on PalException {
       await _handleOffline(payload);
@@ -216,5 +221,31 @@ class PalComposerController extends _$PalComposerController {
       ],
       isLoading: false,
     );
+  }
+
+  /// Reverses the actions applied by the assistant message at [index]: deletes
+  /// the entries/routines it created and restores the prior goals. Marks the
+  /// message [PalMessage.undone] so the UI can reflect it.
+  Future<void> undo(int index) async {
+    final rec = _undo.remove(index);
+    if (rec == null) return;
+
+    final entries = ref.read(entryRepositoryProvider);
+    for (final id in rec.entryIds) {
+      await entries.deleteById(id);
+    }
+    final routines = ref.read(routineRepositoryProvider);
+    for (final id in rec.routineIds) {
+      await routines.deleteById(id);
+    }
+    if (rec.priorGoals != null) {
+      await ref.read(goalsRepositoryProvider).save(rec.priorGoals!);
+    }
+
+    if (index >= 0 && index < state.messages.length) {
+      final messages = [...state.messages];
+      messages[index] = messages[index].copyWith(undone: true);
+      state = state.copyWith(messages: messages);
+    }
   }
 }

@@ -58,7 +58,7 @@ void main() {
 
     // Explicit listener keeps the auto-dispose stream provider alive while it
     // emits; the controller's own listener then drives the sync call.
-    final sub = container.listen(todayStateProvider, (_, __) {});
+    final sub = container.listen(todayStateProvider, (_, _) {});
     addTearDown(sub.close);
     container.read(widgetSyncControllerProvider); // instantiate -> sets listener
     await Future<void>.delayed(const Duration(milliseconds: 50));

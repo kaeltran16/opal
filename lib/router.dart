@@ -12,7 +12,6 @@ import 'screens/library/exercise_library_screen.dart';
 import 'screens/move/move_screen.dart';
 import 'screens/move/weekly_plan_screen.dart';
 import 'screens/onboarding/onboarding_screen.dart';
-import 'screens/pal/ask_pal_screen.dart';
 import 'screens/pal/pal_composer_screen.dart';
 import 'screens/pal/pal_inbox_screen.dart';
 import 'screens/profile/profile_screen.dart';
@@ -76,7 +75,6 @@ enum AppRoute {
 
   // Modal sheets / focus routes (stubbed; built in later units).
   newEntry('newEntry', '/entry/new'), //            U07
-  askPal('askPal', '/pal'), //                      U16
   exerciseLibrary('exerciseLibrary', '/library'), // U11
   monthlyReview('monthlyReview', '/monthly-review'), // U18
   emailSync('emailSync', '/email'), //              U20 Intro
@@ -288,13 +286,6 @@ GoRouter createRouter({
         pageBuilder: (context, state) => _sheetPage(
             state.pageKey,
             NewEntrySheet(initialKind: state.uri.queryParameters['kind'])),
-      ),
-      GoRoute(
-        path: AppRoute.askPal.path,
-        name: AppRoute.askPal.name,
-        parentNavigatorKey: _rootNavigatorKey,
-        pageBuilder: (context, state) =>
-            _sheetPage(state.pageKey, const AskPalScreen()),
       ),
       GoRoute(
         path: AppRoute.exerciseLibrary.path,

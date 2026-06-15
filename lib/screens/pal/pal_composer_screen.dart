@@ -120,6 +120,7 @@ class _PalComposerSheetState extends ConsumerState<PalComposerSheet> {
                     controller: _scrollCtrl,
                     messages: state.messages,
                     isLoading: state.isLoading,
+                    onUndo: (i) => _controller.undo(i),
                   ),
                 )
               else
@@ -406,11 +407,13 @@ class _MessageList extends StatelessWidget {
     required this.controller,
     required this.messages,
     required this.isLoading,
+    required this.onUndo,
   });
 
   final ScrollController controller;
   final List<PalMessage> messages;
   final bool isLoading;
+  final void Function(int index) onUndo;
 
   @override
   Widget build(BuildContext context) {
@@ -423,7 +426,7 @@ class _MessageList extends StatelessWidget {
         if (isLoading && i == itemCount - 1) {
           return const _Bubble.typing();
         }
-        return _Bubble(message: messages[i]);
+        return _Bubble(message: messages[i], onUndo: () => onUndo(i));
       },
     );
   }
@@ -433,12 +436,17 @@ class _MessageList extends StatelessWidget {
 /// right). Assistant → left, fill bg, ink (radius 18 / 5 bottom-left) preceded
 /// by a 24×24 gradient avatar. The [_Bubble.typing] variant shows pulsing dots.
 class _Bubble extends StatelessWidget {
-  const _Bubble({required this.message}) : isTyping = false;
+  const _Bubble({required this.message, this.onUndo}) : isTyping = false;
   const _Bubble.typing()
       : message = null,
+        onUndo = null,
         isTyping = true;
 
   final PalMessage? message;
+
+  /// Reverses this turn's auto-applied actions. Shown only on assistant
+  /// messages that applied something and haven't been undone.
+  final VoidCallback? onUndo;
   final bool isTyping;
 
   @override
@@ -453,6 +461,8 @@ class _Bubble extends StatelessWidget {
       bottomLeft: isUser ? radius : tail,
       bottomRight: isUser ? tail : radius,
     );
+    final showUndo =
+        !isTyping && message!.actions.isNotEmpty && !message!.undone;
 
     final bubble = Container(
       constraints: BoxConstraints(
@@ -486,7 +496,49 @@ class _Bubble extends StatelessWidget {
             const _PalAvatar(size: 24, glyphSize: 11),
             const SizedBox(width: Spacing.sm),
           ],
-          Flexible(child: bubble),
+          Flexible(
+            child: Column(
+              crossAxisAlignment:
+                  isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+              children: [
+                bubble,
+                if (showUndo)
+                  GestureDetector(
+                    onTap: onUndo,
+                    behavior: HitTestBehavior.opaque,
+                    child: Padding(
+                      padding: const EdgeInsets.only(top: Spacing.xs, left: Spacing.sm),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          AppIcon('arrow.uturn.backward', size: 12, color: c.accent),
+                          const SizedBox(width: Spacing.xs),
+                          Text(
+                            'Undo',
+                            style: AppType.footnote.copyWith(
+                              fontWeight: FontWeight.w600,
+                              color: c.accent,
+                              letterSpacing: -0.08,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                if (!isTyping && message!.undone)
+                  Padding(
+                    padding: const EdgeInsets.only(top: Spacing.xs, left: Spacing.sm),
+                    child: Text(
+                      'Undone',
+                      style: AppType.footnote.copyWith(
+                        color: c.ink3,
+                        letterSpacing: -0.08,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
         ],
       ),
     );
