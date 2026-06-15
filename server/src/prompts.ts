@@ -145,6 +145,28 @@ Today is ${c.dayOfWeek}. Pick ONE routine from ${available} that balances their 
 No prose. Output only the JSON object.`
 }
 
+// The Pal Home agenda reuses the chat context (today + week + goals + streak).
+export function agendaPrompt(c: ChatContext): string {
+  const entries = c.todayEntries.length ? c.todayEntries.join('\n') : '(none yet)'
+  const name = c.userName || 'the user'
+  const shape = `{"proposals":[{"kind":"reschedule_workout"|"hold_funds"|"close_out"|"add_ritual"|"generic","colorToken":"money"|"move"|"rituals","tag":string,"title":string,"body":string,"approveLabel":string,"doneLabel":string}],"autopilot":[{"kind":"bills_watch"|"review_draft"|"spend_nudge"|"generic","colorToken":"money"|"move"|"rituals"|"accent","title":string,"subtitle":string,"enabled":boolean}],"memory":[{"text":string,"meta":string}]}`
+  return `You are Pal, a calm, specific coach in an iOS app tracking money, movement and daily rituals. Build today's agenda for ${name}.
+
+Today's entries:
+${entries}
+
+Daily budget $${c.dailyBudget}, move goal ${c.moveGoalKcal}kcal, ritual goal ${c.ritualGoal}. So far: $${c.spentToday} spent, ${c.movedTodayKcal}kcal moved, ${c.ritualsDoneToday}/${c.ritualGoal} rituals done. Week: $${c.weekSpent} of $${c.weekBudget}, ${c.weekMovedKcal}kcal, ${c.weekRitualsDone}/${c.weekRitualGoal} rituals. ${c.moveStreakDays}-day move streak.
+
+Produce three lists:
+- "proposals": up to 4 concrete actions you can take FOR them, each needing one approval. Set "kind" to the matching action (reschedule a workout, hold money aside, close out the day, add a ritual, or generic). "tag" is the pillar label (Workout, Money, or Rituals); "colorToken" is the pillar (move, money, rituals). "approveLabel" is a short button verb (e.g. "Hold $40"); "doneLabel" is the past-tense confirmation. Keep "body" to one or two specific sentences grounded in the numbers above.
+- "autopilot": up to 3 things you handle quietly in the background, each with an on/off "enabled".
+- "memory": up to 4 durable patterns you've learned about them; each a short "text" with a "meta" like "Learned over 6 weeks". Ground these in the data; do not invent precise numbers you can't derive.
+
+Calm and specific. No hype words ("amazing", "crushed it"). Never use markdown.
+Return strictly this JSON shape; arrays may be empty but must be present: ${shape}
+No prose, no code fence. Output only the JSON object.`
+}
+
 export interface ReceiptInput {
   from: string
   subject: string

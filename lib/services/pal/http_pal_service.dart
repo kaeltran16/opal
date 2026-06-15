@@ -342,8 +342,9 @@ class HttpPalService implements PalService {
 
   @override
   Future<PalAgenda> agenda() async {
-    // No client context — the proxy reads the user's current state server-side.
-    final json = await _post('/v1/agenda', const {});
+    // Reuses the chat context (today + week + goals + streak) — the agenda is
+    // generated from the same signals, so there's no separate context seam.
+    final json = await _post('/v1/agenda', {'context': await context.chat()});
     List<T> mapList<T>(String key, T Function(Map<String, dynamic>) f) =>
         ((json[key] as List?) ?? const [])
             .cast<Map<String, dynamic>>()

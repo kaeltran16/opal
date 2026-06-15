@@ -21,6 +21,47 @@ function fakeToolClient(result: CompletionResult): CompletionClient {
 
 const toolCall = (name: string, args: unknown): ToolCall => ({ name, arguments: JSON.stringify(args) })
 
+describe('Pal.agenda', () => {
+  const ctx = {
+    userName: 'Mira', todayEntries: [], dailyBudget: 85, moveGoalKcal: 60, ritualGoal: 5,
+    spentToday: 60, movedTodayKcal: 66, ritualsDoneToday: 4,
+    weekSpent: 435, weekBudget: 595, weekMovedKcal: 296, weekRitualsDone: 26, weekRitualGoal: 35,
+    moveStreakDays: 11,
+  }
+
+  it('derives icons/approveIcon/action from kind and echoes the streak', async () => {
+    const model = JSON.stringify({
+      proposals: [{
+        kind: 'close_out', colorToken: 'rituals', tag: 'Rituals', title: 'Close out tonight',
+        body: 'A 5-min wind-down closes your ring.', approveLabel: 'Start close-out', doneLabel: 'Close-out queued',
+      }],
+      autopilot: [{ kind: 'bills_watch', colorToken: 'money', title: 'Rent watch', subtitle: 'Alerts if low', enabled: true }],
+      memory: [{ text: 'Fridays cost the most', meta: 'Ongoing pattern' }],
+    })
+    const res = await new Pal(fakeClient(model)).agenda(ctx)
+
+    expect(res.proposals[0]).toMatchObject({
+      icon: 'moon.stars.fill', approveIcon: 'play.fill', action: 'close_out', colorToken: 'rituals',
+    })
+    expect(res.proposals[0].id).toBe('close_out-0')
+    expect(res.autopilot[0].icon).toBe('house.fill')
+    expect(res.memory[0].text).toBe('Fridays cost the most')
+    expect(res.streakDays).toBe(11)
+  })
+
+  it('coerces an unknown proposal kind to the generic (non-navigating) presentation', async () => {
+    const model = JSON.stringify({
+      proposals: [{
+        kind: 'teleport', colorToken: 'move', tag: 'Workout', title: 'x', body: 'y',
+        approveLabel: 'Do it', doneLabel: 'Done',
+      }],
+      autopilot: [], memory: [],
+    })
+    const res = await new Pal(fakeClient(model)).agenda(ctx)
+    expect(res.proposals[0]).toMatchObject({ icon: 'sparkles', approveIcon: 'checkmark', action: null })
+  })
+})
+
 describe('extractJson', () => {
   it('parses a bare JSON object', () => {
     expect(extractJson('{"a":1}')).toEqual({ a: 1 })

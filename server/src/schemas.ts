@@ -62,6 +62,9 @@ export const postWorkoutContext = z.object({
 })
 export const postWorkoutBody = z.object({ context: postWorkoutContext })
 
+// The Pal Home agenda reuses the chat context (today + week + goals + streak).
+export const agendaBody = z.object({ context: chatContext })
+
 export const routineBody = z.object({
   goal: z.string().min(1),
   exercises: z.array(z.object({

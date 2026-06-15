@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import {
-  chatSystemPrompt, reviewPrompt, insightsPrompt, parsePrompt, suggestPrompt, postWorkoutPrompt, routinePrompt,
+  chatSystemPrompt, reviewPrompt, insightsPrompt, parsePrompt, suggestPrompt, postWorkoutPrompt, routinePrompt, agendaPrompt,
   type ChatContext, type ReviewContext, type InsightsContext, type SuggestContext, type PostWorkoutContext, type RoutineExercise,
 } from './prompts.js'
 
@@ -178,6 +178,56 @@ export const insightsSchema = z.object({
   patterns: z.array(z.object({ colorToken, title: z.string(), detail: z.string() })).default([]),
 })
 export type Insights = z.infer<typeof insightsSchema>
+
+// --- Pal Home agenda (/v1/agenda) -------------------------------------------
+// The model picks each item's `kind` (and the copy); the server derives the
+// SF-symbol icons, approve icon, and navigation action from that kind, so the
+// model can never name a bad icon or a navigation it shouldn't (mirrors how
+// insights derives its icon from colorToken). off-list kinds coerce to generic.
+const agendaProposalKinds = ['reschedule_workout', 'hold_funds', 'close_out', 'add_ritual', 'generic'] as const
+const agendaAutopilotKinds = ['bills_watch', 'review_draft', 'spend_nudge', 'generic'] as const
+
+const PROPOSAL_PRESENTATION: Record<(typeof agendaProposalKinds)[number], { icon: string; approveIcon: string; action: string | null }> = {
+  reschedule_workout: { icon: 'figure.run', approveIcon: 'arrow.triangle.2.circlepath', action: null },
+  hold_funds: { icon: 'dollarsign.circle.fill', approveIcon: 'checkmark', action: null },
+  close_out: { icon: 'moon.stars.fill', approveIcon: 'play.fill', action: 'close_out' },
+  add_ritual: { icon: 'sparkles', approveIcon: 'plus', action: null },
+  generic: { icon: 'sparkles', approveIcon: 'checkmark', action: null },
+}
+const AUTOPILOT_ICON: Record<(typeof agendaAutopilotKinds)[number], string> = {
+  bills_watch: 'house.fill',
+  review_draft: 'chart.bar.fill',
+  spend_nudge: 'cup.and.saucer.fill',
+  generic: 'sparkles',
+}
+
+export const agendaModelSchema = z.object({
+  proposals: z.array(z.object({
+    kind: z.enum(agendaProposalKinds).catch('generic'),
+    colorToken,
+    tag: z.string(),
+    title: z.string(),
+    body: z.string(),
+    approveLabel: z.string(),
+    doneLabel: z.string(),
+  })).default([]),
+  autopilot: z.array(z.object({
+    kind: z.enum(agendaAutopilotKinds).catch('generic'),
+    colorToken: z.enum(['money', 'move', 'rituals', 'accent']).catch('accent'),
+    title: z.string(),
+    subtitle: z.string(),
+    enabled: z.boolean(),
+  })).default([]),
+  memory: z.array(z.object({ text: z.string(), meta: z.string() })).default([]),
+})
+
+// The wire shape the client decodes (icons/action resolved, streak echoed).
+export interface AgendaResult {
+  proposals: Array<{ id: string; tag: string; colorToken: string; icon: string; title: string; body: string; approveLabel: string; approveIcon: string; doneLabel: string; action: string | null }>
+  autopilot: Array<{ id: string; colorToken: string; icon: string; title: string; subtitle: string; enabled: boolean }>
+  memory: Array<{ text: string; meta: string }>
+  streakDays: number
+}
 
 const routineSetSchema = z.object({
   reps: z.number().nullable().optional(),
@@ -363,6 +413,41 @@ export class Pal {
     const nudge = another ? '\n\nPick a DIFFERENT routine than you would normally default to.' : ''
     const raw = await this.client.complete([{ role: 'user', content: suggestPrompt(ctx) + nudge }], { json: true })
     return suggestSchema.parse(extractJson(raw))
+  }
+
+  async agenda(ctx: ChatContext): Promise<AgendaResult> {
+    const raw = await this.client.complete(
+      [{ role: 'user', content: agendaPrompt(ctx) }],
+      { json: true, maxTokens: INSIGHTS_MAX_TOKENS, temperature: 0 },
+    )
+    const parsed = agendaModelSchema.parse(extractJson(raw))
+    return {
+      proposals: parsed.proposals.map((p, i) => {
+        const pres = PROPOSAL_PRESENTATION[p.kind]
+        return {
+          id: `${p.kind}-${i}`,
+          tag: p.tag,
+          colorToken: p.colorToken,
+          icon: pres.icon,
+          title: p.title,
+          body: p.body,
+          approveLabel: p.approveLabel,
+          approveIcon: pres.approveIcon,
+          doneLabel: p.doneLabel,
+          action: pres.action,
+        }
+      }),
+      autopilot: parsed.autopilot.map((a, i) => ({
+        id: `${a.kind}-${i}`,
+        colorToken: a.colorToken,
+        icon: AUTOPILOT_ICON[a.kind],
+        title: a.title,
+        subtitle: a.subtitle,
+        enabled: a.enabled,
+      })),
+      memory: parsed.memory,
+      streakDays: ctx.moveStreakDays,
+    }
   }
 
   async generateRoutine(goal: string, exercises: RoutineExercise[]): Promise<GeneratedRoutine> {

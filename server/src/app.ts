@@ -8,7 +8,7 @@ import type { EmailWorker } from './email.js'
 import type { TokenStore } from './store.js'
 import type { HealthStore } from './health.js'
 import type { WidgetSnapshotStore } from './widget.js'
-import { registerBody, chatBody, parseBody, reviewBody, insightsBody, suggestBody, postWorkoutBody, routineBody, emailTestBody, emailSyncBody, healthIngestBody, healthDayQuery, widgetSnapshotBody } from './schemas.js'
+import { registerBody, chatBody, parseBody, reviewBody, insightsBody, suggestBody, postWorkoutBody, routineBody, agendaBody, emailTestBody, emailSyncBody, healthIngestBody, healthDayQuery, widgetSnapshotBody } from './schemas.js'
 
 export interface AppDeps {
   pal: Pal
@@ -93,6 +93,7 @@ export function buildApp(deps: AppDeps): FastifyInstance {
   app.post('/v1/suggest-workout', guard(suggestBody, async (b) => deps.pal.suggestWorkout(b.another, b.context)))
   app.post('/v1/post-workout-note', guard(postWorkoutBody, async (b) => ({ note: await deps.pal.postWorkoutNote(b.context) })))
   app.post('/v1/routine', guard(routineBody, async (b) => deps.pal.generateRoutine(b.goal, b.exercises)))
+  app.post('/v1/agenda', guard(agendaBody, async (b) => deps.pal.agenda(b.context)))
 
   app.post('/v1/health/ingest', guard(healthIngestBody, async (b) =>
     ({ upserted: deps.healthStore.upsert(b.date, b.metrics, b.capturedAt) })))
