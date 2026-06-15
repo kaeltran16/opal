@@ -11,8 +11,6 @@ import '../../widgets/inset_section.dart';
 import '../../widgets/nav_bar.dart';
 import '../../widgets/press_scale.dart';
 
-const _white = Color(0xFFFFFFFF);
-
 /// One quick-pick goal button (label + tinted SF Symbol). Tapping fills the
 /// prompt and immediately generates.
 class _QuickGoal {
@@ -188,13 +186,13 @@ class _HeroCard extends StatelessWidget {
                       decoration: BoxDecoration(
                           shape: BoxShape.circle, color: c.move),
                       alignment: Alignment.center,
-                      child: const AppIcon('sparkles', size: 12, color: _white),
+                      child: AppIcon('sparkles', size: 12, color: c.onAccent),
                     ),
                     const SizedBox(width: Spacing.sm),
                     Text('PAL BUILDS YOUR ROUTINE',
                         style: AppType.caption2.copyWith(
                             fontWeight: FontWeight.w700,
-                            color: _white.withValues(alpha: 0.85),
+                            color: c.onAccent.withValues(alpha: 0.85),
                             letterSpacing: 1.2)),
                   ],
                 ),
@@ -203,14 +201,14 @@ class _HeroCard extends StatelessWidget {
                     style: AppFonts.sfr(
                         size: 22,
                         weight: FontWeight.w700,
-                        color: _white,
+                        color: c.onAccent,
                         letterSpacing: -0.4,
                         height: 1.15)),
                 const SizedBox(height: Spacing.sm),
                 Text('"A 30-min pull day I can do at the gym" or '
                     '"legs at home with dumbbells."',
                     style: AppType.footnote.copyWith(
-                        color: _white.withValues(alpha: 0.75),
+                        color: c.onAccent.withValues(alpha: 0.75),
                         letterSpacing: -0.1,
                         height: 1.45)),
               ],
@@ -328,7 +326,7 @@ class _GenerateButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    final fg = enabled ? _white : c.ink4;
+    final fg = enabled ? c.onAccent : c.ink4;
     return PressScale(
       onTap: onTap,
       semanticLabel: 'Generate',
@@ -557,18 +555,18 @@ class _ResultHeader extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: Spacing.sm, vertical: Spacing.xs),
             decoration: BoxDecoration(
-              color: _white.withValues(alpha: 0.2),
+              color: c.onAccent.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(Radii.pill),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const AppIcon('sparkles', size: 9, color: _white),
+                AppIcon('sparkles', size: 9, color: c.onAccent),
                 const SizedBox(width: Spacing.xs),
                 Text('GENERATED',
                     style: AppType.caption2.copyWith(
                         fontWeight: FontWeight.w700,
-                        color: _white,
+                        color: c.onAccent,
                         letterSpacing: 1)),
               ],
             ),
@@ -578,7 +576,7 @@ class _ResultHeader extends StatelessWidget {
               style: AppFonts.sfr(
                   size: 24,
                   weight: FontWeight.w700,
-                  color: _white,
+                  color: c.onAccent,
                   letterSpacing: -0.5,
                   height: 1.1)),
           const SizedBox(height: Spacing.sm),
@@ -587,31 +585,31 @@ class _ResultHeader extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: Spacing.sm, vertical: Spacing.xxs),
                 decoration: BoxDecoration(
-                  color: _white.withValues(alpha: 0.2),
+                  color: c.onAccent.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(Radii.pill),
                 ),
                 child: Text(_tagLabel,
                     style: AppType.caption2.copyWith(
                         fontWeight: FontWeight.w600,
-                        color: _white,
+                        color: c.onAccent,
                         letterSpacing: -0.08)),
               ),
               const SizedBox(width: Spacing.sm),
               Flexible(
                 child: Text(_meta,
                     style: AppType.caption.copyWith(
-                        color: _white.withValues(alpha: 0.85),
+                        color: c.onAccent.withValues(alpha: 0.85),
                         letterSpacing: -0.08)),
               ),
             ],
           ),
           if (draft.rationale != null && draft.rationale!.isNotEmpty) ...[
             const SizedBox(height: Spacing.md),
-            Container(height: 0.5, color: _white.withValues(alpha: 0.2)),
+            Container(height: 0.5, color: c.onAccent.withValues(alpha: 0.2)),
             const SizedBox(height: Spacing.md),
             Text(draft.rationale!,
                 style: AppType.footnote.copyWith(
-                    color: _white.withValues(alpha: 0.9),
+                    color: c.onAccent.withValues(alpha: 0.9),
                     letterSpacing: -0.1,
                     height: 1.45)),
           ],
@@ -819,7 +817,7 @@ class _ResultActions extends StatelessWidget {
               child: Text('Save routine',
                   style: AppType.subhead.copyWith(
                       fontWeight: FontWeight.w700,
-                      color: _white,
+                      color: c.onAccent,
                       letterSpacing: -0.24)),
             ),
           ),

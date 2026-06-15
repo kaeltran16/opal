@@ -10,8 +10,6 @@ import '../../theme/theme.dart';
 import '../../util/format.dart';
 import '../../widgets/app_icon.dart';
 
-const _white = Color(0xFFFFFFFF);
-
 /// Screen 10 — Post-Workout Summary (focus route, no tab bar).
 ///
 /// Celebrates a just-finished session: a gradient hero (Time / Volume / PRs),
@@ -126,7 +124,8 @@ class _Hero extends StatelessWidget {
             child: _Blob(size: 180, alpha: 0.06),
           ),
           // diagonal hairline stripe overlay.
-          Positioned.fill(child: CustomPaint(painter: _StripePainter())),
+          Positioned.fill(
+              child: CustomPaint(painter: _StripePainter(onAccent: c.onAccent))),
           Padding(
             padding: const EdgeInsets.fromLTRB(
                 Spacing.xl, 56, Spacing.xl, Spacing.xxxl),
@@ -148,10 +147,10 @@ class _Hero extends StatelessWidget {
                             width: 32,
                             height: 32,
                             decoration: BoxDecoration(
-                              color: _white.withValues(alpha: 0.2),
+                              color: c.onAccent.withValues(alpha: 0.2),
                               shape: BoxShape.circle,
                             ),
-                            child: AppIcon('xmark', size: 13, color: _white),
+                            child: AppIcon('xmark', size: 13, color: c.onAccent),
                           ),
                         ),
                       ),
@@ -162,13 +161,13 @@ class _Hero extends StatelessWidget {
                 Text(
                   'Nice session.',
                   style: AppType.amount.copyWith(
-                      color: _white, letterSpacing: -0.7, height: 1.05),
+                      color: c.onAccent, letterSpacing: -0.7, height: 1.05),
                 ),
                 const SizedBox(height: Spacing.xs),
                 Row(
                   children: [
                     if (pr != null) ...[
-                      AppIcon('star.fill', size: 12, color: _white),
+                      AppIcon('star.fill', size: 12, color: c.onAccent),
                       const SizedBox(width: Spacing.sm),
                     ],
                     Flexible(
@@ -180,7 +179,7 @@ class _Hero extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         style: AppType.subhead.copyWith(
                           fontWeight: FontWeight.w500,
-                          color: _white.withValues(alpha: 0.9),
+                          color: c.onAccent.withValues(alpha: 0.9),
                           letterSpacing: -0.24,
                         ),
                       ),
@@ -190,7 +189,7 @@ class _Hero extends StatelessWidget {
                 const SizedBox(height: Spacing.xxl),
                 DecoratedBox(
                   decoration: BoxDecoration(
-                    color: _white.withValues(alpha: 0.18),
+                    color: c.onAccent.withValues(alpha: 0.18),
                     borderRadius: BorderRadius.circular(Radii.card),
                   ),
                   child: ClipRRect(
@@ -236,12 +235,13 @@ class _Blob extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     return Container(
       width: size,
       height: size,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: _white.withValues(alpha: alpha),
+        color: c.onAccent.withValues(alpha: alpha),
       ),
     );
   }
@@ -249,10 +249,13 @@ class _Blob extends StatelessWidget {
 
 /// Diagonal hairline stripe texture for the hero (~125°, 25px spacing).
 class _StripePainter extends CustomPainter {
+  _StripePainter({required this.onAccent});
+  final Color onAccent;
+
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = _white.withValues(alpha: 0.04)
+      ..color = onAccent.withValues(alpha: 0.04)
       ..strokeWidth = 1;
     const spacing = 25.0;
     for (var d = -size.height; d < size.width + size.height; d += spacing) {
@@ -271,22 +274,23 @@ class _StripePainter extends CustomPainter {
 class _Pill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     return Container(
       padding: const EdgeInsets.symmetric(
           horizontal: Spacing.md, vertical: Spacing.xs),
       decoration: BoxDecoration(
-        color: _white.withValues(alpha: 0.18),
+        color: c.onAccent.withValues(alpha: 0.18),
         borderRadius: BorderRadius.circular(Radii.pill),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          AppIcon('checkmark', size: 10, color: _white),
+          AppIcon('checkmark', size: 10, color: c.onAccent),
           const SizedBox(width: Spacing.xs),
           Text('COMPLETE',
               style: AppType.caption2.copyWith(
                   fontWeight: FontWeight.w700,
-                  color: _white,
+                  color: c.onAccent,
                   letterSpacing: 1)),
         ],
       ),
@@ -303,6 +307,7 @@ class _HeroStat extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     return Expanded(
       child: Container(
         color: const Color(0x24000000),
@@ -313,14 +318,14 @@ class _HeroStat extends StatelessWidget {
             Text(
               value,
               style: AppFonts.sfr(
-                  size: 24, color: _white, letterSpacing: -0.4, height: 1),
+                  size: 24, color: c.onAccent, letterSpacing: -0.4, height: 1),
             ),
             const SizedBox(height: Spacing.xs),
             Text(
               label.toUpperCase(),
               style: AppType.caption2.copyWith(
                 fontWeight: FontWeight.w700,
-                color: _white.withValues(alpha: 0.85),
+                color: c.onAccent.withValues(alpha: 0.85),
                 letterSpacing: 0.5,
               ),
             ),
@@ -328,7 +333,7 @@ class _HeroStat extends StatelessWidget {
             Text(
               unit,
               style: AppType.caption2.copyWith(
-                color: _white.withValues(alpha: 0.7),
+                color: c.onAccent.withValues(alpha: 0.7),
                 letterSpacing: -0.08,
               ),
             ),
@@ -382,7 +387,7 @@ class _PrCard extends StatelessWidget {
                 ),
               ],
             ),
-            child: AppIcon('star.fill', size: 22, color: _white),
+            child: AppIcon('star.fill', size: 22, color: c.onAccent),
           ),
           const SizedBox(width: Spacing.lg),
           Expanded(
@@ -601,7 +606,7 @@ class _ExerciseRow extends StatelessWidget {
                   height: 18,
                   decoration:
                       BoxDecoration(color: c.money, shape: BoxShape.circle),
-                  child: AppIcon('star.fill', size: 8, color: _white),
+                  child: AppIcon('star.fill', size: 8, color: c.onAccent),
                 ),
                 const SizedBox(width: Spacing.sm),
               ],
@@ -673,9 +678,7 @@ class _SetBar extends StatelessWidget {
     final c = context.colors;
     final pr = set.isPR;
     final frac = maxVol > 0 ? (set.volumeKg / maxVol) : 0.0;
-    final weight = set.weightKg == set.weightKg.roundToDouble()
-        ? '${set.weightKg.round()}'
-        : '${set.weightKg}';
+    final weight = formatWeight(set.weightKg);
     return Column(
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
@@ -820,18 +823,18 @@ class _ActionBar extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     if (saving) ...[
-                      const SizedBox(
+                      SizedBox(
                         width: 14,
                         height: 14,
                         child: CircularProgressIndicator(
-                            strokeWidth: 2, color: _white),
+                            strokeWidth: 2, color: c.onAccent),
                       ),
                       const SizedBox(width: Spacing.sm),
                     ],
                     Text(saving ? 'Saving…' : 'Save to timeline',
                         style: AppType.subhead.copyWith(
                             fontWeight: FontWeight.w700,
-                            color: _white,
+                            color: c.onAccent,
                             letterSpacing: -0.2)),
                   ],
                 ),
@@ -932,7 +935,7 @@ class _NoSession extends StatelessWidget {
                     child: Text('Back to Workout',
                         style: AppType.subhead.copyWith(
                             fontWeight: FontWeight.w700,
-                            color: _white,
+                            color: c.onAccent,
                             letterSpacing: -0.1)),
                   ),
                 ),

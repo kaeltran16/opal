@@ -12,8 +12,6 @@ import '../../util/format.dart';
 import '../../widgets/app_icon.dart';
 import '../../widgets/press_scale.dart';
 
-const _white = Color(0xFFFFFFFF);
-
 /// Screen 09 — the live workout (focus route, no tab bar).
 ///
 /// Reads [WorkoutSessionController] (keyed by [routineId]) and renders the
@@ -200,7 +198,7 @@ class _Header extends StatelessWidget {
               _CircleButton(
                 icon: 'chevron.down',
                 onTap: onBack,
-                background: _white.withValues(alpha: 0.2),
+                background: c.onAccent.withValues(alpha: 0.2),
               ),
               Expanded(
                 child: Column(
@@ -210,7 +208,7 @@ class _Header extends StatelessWidget {
                       style: AppFonts.mono(
                         size: 10,
                         weight: FontWeight.w700,
-                        color: _white.withValues(alpha: 0.75),
+                        color: c.onAccent.withValues(alpha: 0.75),
                         letterSpacing: 1.8,
                       ),
                     ),
@@ -219,7 +217,7 @@ class _Header extends StatelessWidget {
                       _elapsed(state.activeWorkout.startedAt),
                       style: AppFonts.sfr(
                         size: 32,
-                        color: _white,
+                        color: c.onAccent,
                         letterSpacing: -0.6,
                       ),
                     ),
@@ -231,7 +229,7 @@ class _Header extends StatelessWidget {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: Spacing.lg, vertical: 9), // 9: keep pill height
                   decoration: BoxDecoration(
-                    color: _white,
+                    color: c.onAccent,
                     borderRadius: BorderRadius.circular(Radii.pill),
                   ),
                   child: Text(
@@ -275,6 +273,7 @@ class _ProgressDots extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
@@ -286,8 +285,8 @@ class _ProgressDots extends StatelessWidget {
               height: 4,
               decoration: BoxDecoration(
                 color: i <= current
-                    ? _white
-                    : _white.withValues(alpha: 0.3),
+                    ? c.onAccent
+                    : c.onAccent.withValues(alpha: 0.3),
                 borderRadius: BorderRadius.circular(Radii.pill),
               ),
             ),
@@ -309,6 +308,7 @@ class _HeaderStats extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     Widget cell(String value, String label) => Expanded(
           child: Container(
             color: const Color(0x1F000000),
@@ -318,14 +318,14 @@ class _HeaderStats extends StatelessWidget {
                 Text(
                   value,
                   style: AppFonts.sfr(
-                      size: 16, color: _white, letterSpacing: -0.2, height: 1),
+                      size: 16, color: c.onAccent, letterSpacing: -0.2, height: 1),
                 ),
                 const SizedBox(height: Spacing.xxs),
                 Text(
                   label.toUpperCase(),
                   style: AppType.caption2.copyWith(
                     fontWeight: FontWeight.w600,
-                    color: _white.withValues(alpha: 0.75),
+                    color: c.onAccent.withValues(alpha: 0.75),
                     letterSpacing: 0.6,
                   ),
                 ),
@@ -336,7 +336,7 @@ class _HeaderStats extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: _white.withValues(alpha: 0.18),
+        color: c.onAccent.withValues(alpha: 0.18),
         borderRadius: BorderRadius.circular(Radii.md),
       ),
       clipBehavior: Clip.antiAlias,
@@ -417,7 +417,7 @@ class _RestBannerState extends State<_RestBanner>
               alignment: Alignment.centerLeft,
               child: FractionallySizedBox(
                 widthFactor: elapsedFrac,
-                child: ColoredBox(color: _white.withValues(alpha: 0.12)),
+                child: ColoredBox(color: c.onAccent.withValues(alpha: 0.12)),
               ),
             ),
           ),
@@ -430,7 +430,7 @@ class _RestBannerState extends State<_RestBanner>
                   turns: _spin,
                   child: CustomPaint(
                     painter: _RestSpinnerPainter(
-                        color: _white.withValues(alpha: 0.3)),
+                        color: c.onAccent.withValues(alpha: 0.3)),
                   ),
                 ),
               ),
@@ -442,14 +442,14 @@ class _RestBannerState extends State<_RestBanner>
                     'REST',
                     style: AppType.caption2.copyWith(
                       fontWeight: FontWeight.w700,
-                      color: _white.withValues(alpha: 0.85),
+                      color: c.onAccent.withValues(alpha: 0.85),
                       letterSpacing: 1,
                     ),
                   ),
                   Text(
                     '$m:$s',
                     style: AppFonts.sfr(
-                        size: 22, color: _white, letterSpacing: -0.3),
+                        size: 22, color: c.onAccent, letterSpacing: -0.3),
                   ),
                 ],
               ),
@@ -461,13 +461,13 @@ class _RestBannerState extends State<_RestBanner>
                   padding:
                       const EdgeInsets.symmetric(horizontal: Spacing.md, vertical: Spacing.sm),
                   decoration: BoxDecoration(
-                    color: _white.withValues(alpha: 0.22),
+                    color: c.onAccent.withValues(alpha: 0.22),
                     borderRadius: BorderRadius.circular(Radii.pill),
                   ),
                   child: Text('+30s',
                       style: AppType.caption.copyWith(
                           fontWeight: FontWeight.w600,
-                          color: _white,
+                          color: c.onAccent,
                           letterSpacing: -0.08)),
                 ),
               ),
@@ -479,7 +479,7 @@ class _RestBannerState extends State<_RestBanner>
                   padding:
                       const EdgeInsets.symmetric(horizontal: Spacing.lg, vertical: Spacing.sm),
                   decoration: BoxDecoration(
-                    color: _white,
+                    color: c.onAccent,
                     borderRadius: BorderRadius.circular(Radii.pill),
                   ),
                   child: Text('Skip',
@@ -569,7 +569,7 @@ class _CurrentExerciseCard extends StatelessWidget {
                 ),
                 child: Center(
                   child: AppIcon(exercise?.icon ?? 'dumbbell.fill',
-                      size: 26, color: _white),
+                      size: 26, color: c.onAccent),
                 ),
               ),
               const SizedBox(width: Spacing.md),
@@ -600,15 +600,6 @@ class _CurrentExerciseCard extends StatelessWidget {
                     ),
                   ],
                 ),
-              ),
-              const SizedBox(width: Spacing.md),
-              // decorative menu trigger; no-op like the app's other ellipsis buttons
-              Container(
-                width: 32,
-                height: 32,
-                decoration: BoxDecoration(color: c.fill, shape: BoxShape.circle),
-                alignment: Alignment.center,
-                child: AppIcon('ellipsis', size: 13, color: c.ink2),
               ),
             ],
           ),
@@ -706,7 +697,7 @@ class _SetRow extends StatelessWidget {
               width: 28,
               height: 28,
               decoration: BoxDecoration(color: c.move, shape: BoxShape.circle),
-              child: AppIcon('checkmark', size: 12, color: _white),
+              child: AppIcon('checkmark', size: 12, color: c.onAccent),
             ),
             const SizedBox(width: Spacing.md),
             Text('SET $number',
@@ -754,7 +745,7 @@ class _SetRow extends StatelessWidget {
                   child: Text('SET $number',
                       style: AppType.caption2.copyWith(
                           fontWeight: FontWeight.w700,
-                          color: _white,
+                          color: c.onAccent,
                           letterSpacing: 0.5)),
                 ),
                 const SizedBox(width: Spacing.md),
@@ -793,12 +784,12 @@ class _SetRow extends StatelessWidget {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    AppIcon('checkmark', size: 13, color: _white),
+                    AppIcon('checkmark', size: 13, color: c.onAccent),
                     const SizedBox(width: Spacing.sm),
                     Text('Complete set',
                         style: AppType.subhead.copyWith(
                             fontWeight: FontWeight.w700,
-                            color: _white,
+                            color: c.onAccent,
                             letterSpacing: -0.1)),
                   ],
                 ),
@@ -1036,6 +1027,7 @@ class _CircleButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     return PressScale(
       onTap: onTap,
       child: SizedBox(
@@ -1046,7 +1038,7 @@ class _CircleButton extends StatelessWidget {
             width: 32,
             height: 32,
             decoration: BoxDecoration(color: background, shape: BoxShape.circle),
-            child: AppIcon(icon, size: 14, color: _white),
+            child: AppIcon(icon, size: 14, color: c.onAccent),
           ),
         ),
       ),

@@ -14,8 +14,6 @@ import '../../widgets/app_icon.dart';
 import '../../widgets/inset_section.dart';
 import '../../widgets/nav_bar.dart';
 
-const _white = Color(0xFFFFFFFF);
-
 /// Screen 08 — Start workout (pre-session picker).
 ///
 /// A "Pal's pick" gradient card (suggestion title + rationale + est. min/focus,
@@ -296,7 +294,7 @@ class _PalPickCard extends ConsumerWidget {
                 height: 150,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: _white.withValues(alpha: 0.1),
+                  color: c.onAccent.withValues(alpha: 0.1),
                 ),
               ),
             ),
@@ -308,7 +306,7 @@ class _PalPickCard extends ConsumerWidget {
                 height: 130,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: _white.withValues(alpha: 0.06),
+                  color: c.onAccent.withValues(alpha: 0.06),
                 ),
               ),
             ),
@@ -326,13 +324,13 @@ class _PalPickCard extends ConsumerWidget {
                 decoration: const BoxDecoration(
                     shape: BoxShape.circle, color: Color(0x33FFFFFF)),
                 alignment: Alignment.center,
-                child: const AppIcon('sparkles', size: 11, color: _white),
+                child: AppIcon('sparkles', size: 11, color: c.onAccent),
               ),
               const SizedBox(width: Spacing.sm),
               Text("PAL'S PICK FOR TODAY",
                   style: AppType.caption2.copyWith(
                       fontWeight: FontWeight.w700,
-                      color: _white.withValues(alpha: 0.85),
+                      color: c.onAccent.withValues(alpha: 0.85),
                       letterSpacing: 1.2)),
             ],
           ),
@@ -346,7 +344,7 @@ class _PalPickCard extends ConsumerWidget {
             style: AppFonts.sfr(
                 size: 26,
                 weight: FontWeight.w700,
-                color: _white,
+                color: c.onAccent,
                 letterSpacing: -0.5,
                 height: 1.1), // sfr 26: no token
           ),
@@ -363,7 +361,7 @@ class _PalPickCard extends ConsumerWidget {
               padding: const EdgeInsets.only(top: Spacing.xs),
               child: Text(meta,
                   style: AppType.footnote.copyWith(
-                      color: _white.withValues(alpha: 0.7),
+                      color: c.onAccent.withValues(alpha: 0.7),
                       letterSpacing: -0.08)),
             );
           }),
@@ -376,7 +374,7 @@ class _PalPickCard extends ConsumerWidget {
                 : suggestion?.rationale ??
                     "Pal couldn't pick one just now — go freestyle.",
             style: AppType.subhead.copyWith(
-                color: _white.withValues(alpha: loading ? 0.3 : 0.88),
+                color: c.onAccent.withValues(alpha: loading ? 0.3 : 0.88),
                 letterSpacing: -0.2,
                 height: 1.45),
           ),
@@ -464,7 +462,7 @@ class _StartButton extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: Spacing.md),
           decoration: BoxDecoration(
-              color: _white, borderRadius: BorderRadius.circular(Radii.pill)),
+              color: c.onAccent, borderRadius: BorderRadius.circular(Radii.pill)),
           alignment: Alignment.center,
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -496,6 +494,7 @@ class _AnotherButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
@@ -510,11 +509,11 @@ class _AnotherButton extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const AppIcon('sparkles', size: 11, color: _white),
+            AppIcon('sparkles', size: 11, color: c.onAccent),
             const SizedBox(width: Spacing.xs),
             Text(loading ? 'Thinking…' : 'Other',
                 style: AppType.footnote
-                    .copyWith(fontWeight: FontWeight.w500, color: _white)),
+                    .copyWith(fontWeight: FontWeight.w500, color: c.onAccent)),
           ],
         ),
       ),
@@ -536,6 +535,7 @@ class _ExercisePreviewChips extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     final ordered = routine.orderedExercises;
     final names = [
       for (final ex in ordered.take(_maxChips))
@@ -547,13 +547,13 @@ class _ExercisePreviewChips extends StatelessWidget {
       spacing: Spacing.sm,
       runSpacing: Spacing.sm,
       children: [
-        for (final name in names) _chip(name),
-        if (remaining > 0) _chip('+$remaining more'),
+        for (final name in names) _chip(name, c.onAccent),
+        if (remaining > 0) _chip('+$remaining more', c.onAccent),
       ],
     );
   }
 
-  Widget _chip(String label) => Container(
+  Widget _chip(String label, Color onAccent) => Container(
         padding: const EdgeInsets.symmetric(
             horizontal: Spacing.md, vertical: Spacing.xs),
         decoration: BoxDecoration(
@@ -564,7 +564,7 @@ class _ExercisePreviewChips extends StatelessWidget {
         child: Text(label,
             style: AppType.caption.copyWith(
                 fontWeight: FontWeight.w500,
-                color: _white.withValues(alpha: 0.92),
+                color: onAccent.withValues(alpha: 0.92),
                 letterSpacing: -0.1)),
       );
 }
@@ -618,7 +618,8 @@ class _RoutineCard extends StatelessWidget {
                 child: Stack(
                   children: [
                     Positioned.fill(
-                      child: CustomPaint(painter: _BandStripePainter()),
+                      child: CustomPaint(
+                          painter: _BandStripePainter(onAccent: c.onAccent)),
                     ),
                     Padding(
                       padding: const EdgeInsets.fromLTRB(
@@ -633,7 +634,7 @@ class _RoutineCard extends StatelessWidget {
                           Text(routine.tag.wire.toUpperCase(),
                               style: AppType.caption2.copyWith(
                                   fontWeight: FontWeight.w700,
-                                  color: _white.withValues(alpha: 0.8),
+                                  color: c.onAccent.withValues(alpha: 0.8),
                                   letterSpacing: 0.8)),
                           const SizedBox(height: Spacing.xs),
                           Text(routine.name,
@@ -641,7 +642,7 @@ class _RoutineCard extends StatelessWidget {
                               overflow: TextOverflow.ellipsis,
                               style: AppType.subhead.copyWith(
                                   fontWeight: FontWeight.w700,
-                                  color: _white,
+                                  color: c.onAccent,
                                   letterSpacing: -0.3,
                                   height: 1.15)),
                         ],
@@ -653,7 +654,7 @@ class _RoutineCard extends StatelessWidget {
                       decoration: const BoxDecoration(
                           shape: BoxShape.circle, color: Color(0x38FFFFFF)),
                       alignment: Alignment.center,
-                      child: const AppIcon('play.fill', size: 11, color: _white),
+                      child: AppIcon('play.fill', size: 11, color: c.onAccent),
                     ),
                         ],
                       ),
@@ -752,7 +753,7 @@ class _CardioRow extends StatelessWidget {
                     ),
                   ),
                   alignment: Alignment.center,
-                  child: const AppIcon('figure.run', size: 28, color: _white),
+                  child: AppIcon('figure.run', size: 28, color: c.onAccent),
                 ),
                 Expanded(
                   child: Padding(
@@ -833,10 +834,14 @@ class _CardioRow extends StatelessWidget {
 
 /// Diagonal hairline stripe texture for the routine-card header band (~45°).
 class _BandStripePainter extends CustomPainter {
+  const _BandStripePainter({required this.onAccent});
+
+  final Color onAccent;
+
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = _white.withValues(alpha: 0.07)
+      ..color = onAccent.withValues(alpha: 0.07)
       ..strokeWidth = 1;
     const spacing = 14.0;
     for (var d = -size.height; d < size.width + size.height; d += spacing) {
