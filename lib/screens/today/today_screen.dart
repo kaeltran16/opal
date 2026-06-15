@@ -182,35 +182,14 @@ class _TodayBody extends ConsumerWidget {
                   decoration: BoxDecoration(
                       border: Border(
                           top: BorderSide(color: c.hair, width: 0.5))),
-                  child: Column(
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Text('DAY · 21:30',
-                              style: AppType.caption.copyWith(
-                                  fontWeight: FontWeight.w600,
-                                  color: c.ink3,
-                                  letterSpacing: 0.3)),
-                          Text(
-                              ritualsRemaining == 0
-                                  ? 'On pace · day closed'
-                                  : 'On pace · $closePrompt',
-                              style: AppType.caption.copyWith(
-                                  fontWeight: FontWeight.w500,
-                                  color: c.ink2,
-                                  letterSpacing: -0.08)),
-                        ],
-                      ),
-                      const SizedBox(height: Spacing.sm),
-                      ProgressBar(
-                        value: _dayProgress,
-                        gradient:
-                            LinearGradient(colors: [c.money, c.move, c.rituals]),
-                      ),
-                    ],
-                  ),
+                  child: Text(
+                      ritualsRemaining == 0
+                          ? 'On pace · day closed'
+                          : 'On pace · $closePrompt',
+                      style: AppType.caption.copyWith(
+                          fontWeight: FontWeight.w500,
+                          color: c.ink2,
+                          letterSpacing: -0.08)),
                 ),
               ],
             ),
@@ -389,8 +368,6 @@ class _TodayBody extends ConsumerWidget {
       ],
     );
   }
-
-  static const _dayProgress = 0.88;
 
   String _monthAbbrev() {
     const m = [
