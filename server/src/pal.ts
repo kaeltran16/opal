@@ -357,13 +357,18 @@ const money = (n: number) => (n % 1 === 0 ? `$${n}` : `$${n.toFixed(2)}`)
 /// A concise acknowledgement built deterministically from the applied actions —
 /// used only when the model returned tool calls but no prose of its own.
 export function synthReply(actions: PalAction[]): string {
-  if (actions.length === 0) return ''
-  const parts = actions.map((a) => {
+  // Logged entries get a confirmation card on the client, so they need no prose
+  // here — only goal/routine changes fall back to a deterministic line.
+  const ackable = actions.filter(
+    (a) =>
+      a.kind !== 'log_expense' &&
+      a.kind !== 'log_income' &&
+      a.kind !== 'log_movement' &&
+      a.kind !== 'log_ritual',
+  )
+  if (ackable.length === 0) return ''
+  const parts = ackable.map((a) => {
     switch (a.kind) {
-      case 'log_expense': return `logged ${money(a.amount)} for ${a.title}`
-      case 'log_income': return `logged ${money(a.amount)} income`
-      case 'log_movement': return `logged ${a.durationMinutes} min / ${a.calories ?? 0} kcal of ${a.title}`
-      case 'log_ritual': return `logged "${a.title}"`
       case 'set_daily_budget': return `set your daily budget to ${money(a.dailyBudget)}`
       case 'set_move_goal': return `set your move goal to ${a.dailyMoveKcal} kcal`
       case 'set_ritual_goal': return `set your ritual target to ${a.dailyRitualTarget}`

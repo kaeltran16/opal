@@ -265,4 +265,59 @@ void main() {
       expect(container.read(palComposerControllerProvider()).messages[idx].undone, isFalse);
     });
   });
+
+  group('editLog', () {
+    test('reverses the entry, removes the turn, and returns the original text',
+        () async {
+      final db = LoopDatabase.forTesting(NativeDatabase.memory());
+      addTearDown(db.close);
+      // reply '' → the card stands alone, no insight bubble.
+      final pal = _FakePal(reply: '', actions: const [
+        LogEntryAction(
+            type: EntryType.money, amount: -25, title: 'Coffee', category: 'Coffee'),
+      ]);
+      final container = containerWith(db, pal);
+      final notifier = container.read(palComposerControllerProvider().notifier);
+
+      await notifier.send('coffee \$25');
+      expect(await EntryRepository(db).getAll(), hasLength(1));
+      final msgs = container.read(palComposerControllerProvider()).messages;
+      // the assistant turn carries the log action the card renders from.
+      expect(msgs.last.actions.whereType<LogEntryAction>(), hasLength(1));
+      final idx = msgs.length - 1;
+
+      final text = await notifier.editLog(idx);
+
+      expect(text, 'coffee \$25');
+      expect(await EntryRepository(db).getAll(), isEmpty);
+      expect(container.read(palComposerControllerProvider()).messages, isEmpty);
+    });
+
+    test('re-keys undo so a later log still reverses after editing an earlier one',
+        () async {
+      final db = LoopDatabase.forTesting(NativeDatabase.memory());
+      addTearDown(db.close);
+      final pal = _FakePal(reply: '', actions: const [
+        LogEntryAction(
+            type: EntryType.money, amount: -5, title: 'Coffee', category: 'Coffee'),
+      ]);
+      final container = containerWith(db, pal);
+      final notifier = container.read(palComposerControllerProvider().notifier);
+
+      await notifier.send('first coffee');
+      await notifier.send('second coffee');
+      expect(await EntryRepository(db).getAll(), hasLength(2));
+
+      // edit the first turn (user@0, assistant@1): one entry reversed, one left.
+      await notifier.editLog(1);
+      expect(await EntryRepository(db).getAll(), hasLength(1));
+
+      // the surviving turn shifted to index 1 — its undo data must follow it.
+      final msgs = container.read(palComposerControllerProvider()).messages;
+      expect(msgs, hasLength(2));
+      await notifier.undo(1);
+      expect(await EntryRepository(db).getAll(), isEmpty);
+      expect(container.read(palComposerControllerProvider()).messages[1].undone, isTrue);
+    });
+  });
 }

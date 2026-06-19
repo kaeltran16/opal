@@ -5,6 +5,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../models/models.dart';
 import '../services/pal/pal_service.dart' show InsightRange;
+import '../util/format.dart';
 import 'providers.dart';
 import 'today_controller.dart' show goalsStreamProvider;
 import 'weekly_review_controller.dart' show weekStartFor;
@@ -112,11 +113,11 @@ class RecapData {
 
   /// The three Recap tiles, in order (money / move / rituals). Matches the
   /// Weekly Review's tile label / value / sub formatting and color tokens.
-  List<RecapStat> get tiles => [
+  List<RecapStat> tiles(Currency currency) => [
         RecapStat(
           label: 'Spent',
-          value: '\$${spent.toStringAsFixed(0)}',
-          sub: 'of \$${budget.toStringAsFixed(0)}',
+          value: formatCurrency(spent, currency),
+          sub: 'of ${formatCurrency(budget, currency)}',
           colorToken: 'money',
         ),
         RecapStat(

@@ -5,9 +5,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../controllers/pal_composer_controller.dart';
+import '../../controllers/providers.dart';
+import '../../controllers/today_controller.dart';
 import '../../models/models.dart';
 import '../../services/services.dart';
 import '../../theme/theme.dart';
+import '../../util/entry_glyph.dart';
+import '../../util/format.dart';
 import '../../widgets/app_icon.dart';
 import '../../widgets/pal_avatar.dart';
 import '../../widgets/press_scale.dart';
@@ -37,6 +41,7 @@ class PalComposerSheet extends ConsumerStatefulWidget {
 class _PalComposerSheetState extends ConsumerState<PalComposerSheet> {
   final TextEditingController _inputCtrl = TextEditingController();
   final ScrollController _scrollCtrl = ScrollController();
+  final FocusNode _inputFocus = FocusNode();
 
   @override
   void initState() {
@@ -48,6 +53,7 @@ class _PalComposerSheetState extends ConsumerState<PalComposerSheet> {
   void dispose() {
     _inputCtrl.dispose();
     _scrollCtrl.dispose();
+    _inputFocus.dispose();
     super.dispose();
   }
 
@@ -65,6 +71,17 @@ class _PalComposerSheetState extends ConsumerState<PalComposerSheet> {
   void _sendStarter(_Starter starter) {
     _controller.sendStarter(starter.label, starter.payload);
     _scrollToBottomSoon();
+  }
+
+  /// Edit a logged turn: reverse it, drop it from the transcript, and drop the
+  /// original text back into the composer (focused, caret at the end) to fix.
+  Future<void> _editLog(int index) async {
+    final text = await _controller.editLog(index);
+    _inputCtrl.value = TextEditingValue(
+      text: text,
+      selection: TextSelection.collapsed(offset: text.length),
+    );
+    _inputFocus.requestFocus();
   }
 
   void _close() => context.pop();
@@ -122,12 +139,14 @@ class _PalComposerSheetState extends ConsumerState<PalComposerSheet> {
                     messages: state.messages,
                     isLoading: state.isLoading,
                     onUndo: (i) => _controller.undo(i),
+                    onEdit: _editLog,
                   ),
                 )
               else
                 _CompactBody(onSendStarter: _sendStarter),
               _Composer(
                 controller: _inputCtrl,
+                focusNode: _inputFocus,
                 expanded: expanded,
                 hasText: _inputCtrl.text.trim().isNotEmpty,
                 enabled: !state.isLoading,
@@ -409,12 +428,14 @@ class _MessageList extends StatelessWidget {
     required this.messages,
     required this.isLoading,
     required this.onUndo,
+    required this.onEdit,
   });
 
   final ScrollController controller;
   final List<PalMessage> messages;
   final bool isLoading;
   final void Function(int index) onUndo;
+  final void Function(int index) onEdit;
 
   @override
   Widget build(BuildContext context) {
@@ -427,88 +448,156 @@ class _MessageList extends StatelessWidget {
         if (isLoading && i == itemCount - 1) {
           return const _Bubble.typing();
         }
-        return _Bubble(message: messages[i], onUndo: () => onUndo(i));
+        return _Bubble(
+          message: messages[i],
+          onUndo: () => onUndo(i),
+          onEdit: () => onEdit(i),
+        );
       },
     );
   }
 }
 
-/// A chat bubble. User → right, accent fill, white ink (radius 18 / 5 bottom-
-/// right). Assistant → left, fill bg, ink (radius 18 / 5 bottom-left) preceded
-/// by a 24×24 gradient avatar. The [_Bubble.typing] variant shows pulsing dots.
+/// A chat turn. User → right accent bubble. Assistant → left fill bubble behind
+/// a 24×24 gradient avatar. A turn that logged an entry renders one [_LogCard]
+/// per [LogEntryAction] (each with its own Undo/Edit) followed by the optional
+/// insight bubble; the text-link Undo stays for non-log action turns (goal /
+/// routine changes). The [_Bubble.typing] variant shows pulsing dots.
 class _Bubble extends StatelessWidget {
-  const _Bubble({required this.message, this.onUndo}) : isTyping = false;
+  const _Bubble({required this.message, this.onUndo, this.onEdit})
+      : isTyping = false;
   const _Bubble.typing()
       : message = null,
         onUndo = null,
+        onEdit = null,
         isTyping = true;
 
   final PalMessage? message;
 
-  /// Reverses this turn's auto-applied actions. Shown only on assistant
-  /// messages that applied something and haven't been undone.
+  /// Reverses this turn's auto-applied actions (keeps the message, flags it
+  /// undone). Bound to the message index by [_MessageList].
   final VoidCallback? onUndo;
+
+  /// Reverses + removes a logged turn and refills the composer to fix it.
+  final VoidCallback? onEdit;
   final bool isTyping;
 
   @override
   Widget build(BuildContext context) {
+    if (isTyping) {
+      return _assistantRow(
+          context, _styledBubble(context, const _TypingDots(), isUser: false));
+    }
+
+    final m = message!;
+    if (m.role == PalRole.user) return _userRow(context, m.text);
+
+    final logActions = m.actions.whereType<LogEntryAction>().toList();
+    if (logActions.isNotEmpty) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          for (final action in logActions)
+            _LogCard(
+              action: action,
+              undone: m.undone,
+              onUndo: onUndo,
+              onEdit: onEdit,
+            ),
+          if (m.text.trim().isNotEmpty)
+            _assistantRow(
+                context, _textBubble(context, m.text, isUser: false)),
+        ],
+      );
+    }
+
+    return _assistantRowWithUndo(context, m);
+  }
+
+  /// The rounded message container (no avatar). [isUser] flips fill + tail side.
+  Widget _styledBubble(BuildContext context, Widget child,
+      {required bool isUser}) {
     final c = context.colors;
-    final isUser = !isTyping && message!.role == PalRole.user;
     const radius = Radius.circular(Radii.lg);
     const tail = Radius.circular(Radii.xs);
-    final shape = BorderRadius.only(
-      topLeft: radius,
-      topRight: radius,
-      bottomLeft: isUser ? radius : tail,
-      bottomRight: isUser ? tail : radius,
-    );
-    final showUndo =
-        !isTyping && message!.actions.isNotEmpty && !message!.undone;
-
-    final bubble = Container(
-      constraints: BoxConstraints(
-        maxWidth: MediaQuery.sizeOf(context).width * 0.76,
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: Spacing.md, vertical: Spacing.sm),
+    return Container(
+      constraints:
+          BoxConstraints(maxWidth: MediaQuery.sizeOf(context).width * 0.76),
+      padding: const EdgeInsets.symmetric(
+          horizontal: Spacing.md, vertical: Spacing.sm),
       decoration: BoxDecoration(
         color: isUser ? c.accent : c.fill,
-        borderRadius: shape,
+        borderRadius: BorderRadius.only(
+          topLeft: radius,
+          topRight: radius,
+          bottomLeft: isUser ? radius : tail,
+          bottomRight: isUser ? tail : radius,
+        ),
       ),
-      child: isTyping
-          ? const _TypingDots()
-          : Text(
-              message!.text,
-              style: AppType.subhead.copyWith(
-                color: isUser ? c.onAccent : c.ink,
-                letterSpacing: -0.24,
-                height: 1.4,
-              ),
-            ),
+      child: child,
     );
+  }
 
+  Widget _textBubble(BuildContext context, String text, {required bool isUser}) {
+    final c = context.colors;
+    return _styledBubble(
+      context,
+      Text(
+        text,
+        style: AppType.subhead.copyWith(
+          color: isUser ? c.onAccent : c.ink,
+          letterSpacing: -0.24,
+          height: 1.4,
+        ),
+      ),
+      isUser: isUser,
+    );
+  }
+
+  Widget _userRow(BuildContext context, String text) => Padding(
+        padding: const EdgeInsets.only(bottom: Spacing.sm),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [Flexible(child: _textBubble(context, text, isUser: true))],
+        ),
+      );
+
+  Widget _assistantRow(BuildContext context, Widget bubble) => Padding(
+        padding: const EdgeInsets.only(bottom: Spacing.sm),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            const PalAvatar(size: 24, glyphSize: 11),
+            const SizedBox(width: Spacing.sm),
+            Flexible(child: bubble),
+          ],
+        ),
+      );
+
+  /// A plain assistant reply that may carry a text-link Undo (goal/routine
+  /// turns) or an "Undone" marker.
+  Widget _assistantRowWithUndo(BuildContext context, PalMessage m) {
+    final c = context.colors;
+    final showUndo = m.actions.isNotEmpty && !m.undone;
     return Padding(
       padding: const EdgeInsets.only(bottom: Spacing.sm),
       child: Row(
-        mainAxisAlignment:
-            isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          if (!isUser) ...[
-            const PalAvatar(size: 24, glyphSize: 11),
-            const SizedBox(width: Spacing.sm),
-          ],
+          const PalAvatar(size: 24, glyphSize: 11),
+          const SizedBox(width: Spacing.sm),
           Flexible(
             child: Column(
-              crossAxisAlignment:
-                  isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                bubble,
+                _textBubble(context, m.text, isUser: false),
                 if (showUndo)
                   GestureDetector(
                     onTap: onUndo,
                     behavior: HitTestBehavior.opaque,
                     child: Padding(
-                      padding: const EdgeInsets.only(top: Spacing.xs, left: Spacing.sm),
+                      padding:
+                          const EdgeInsets.only(top: Spacing.xs, left: Spacing.sm),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
@@ -526,9 +615,10 @@ class _Bubble extends StatelessWidget {
                       ),
                     ),
                   ),
-                if (!isTyping && message!.undone)
+                if (m.undone)
                   Padding(
-                    padding: const EdgeInsets.only(top: Spacing.xs, left: Spacing.sm),
+                    padding:
+                        const EdgeInsets.only(top: Spacing.xs, left: Spacing.sm),
                     child: Text(
                       'Undone',
                       style: AppType.footnote.copyWith(
@@ -541,6 +631,309 @@ class _Bubble extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// The confirmation card shown when a Pal turn logged an entry: a green LOGGED
+/// header, the parsed entry on a category-tinted icon tile, a live progress bar
+/// for the affected tracker (red + "over by" when a spend pushes past budget),
+/// and Undo / Edit. The ring reads live post-log totals from [todayStateProvider]
+/// — the entry is already persisted by the time this builds — so it stays
+/// truthful to the app's own metrics (money $/budget, move kcal, rituals done).
+class _LogCard extends ConsumerWidget {
+  const _LogCard({
+    required this.action,
+    required this.undone,
+    this.onUndo,
+    this.onEdit,
+  });
+
+  final LogEntryAction action;
+  final bool undone;
+  final VoidCallback? onUndo;
+  final VoidCallback? onEdit;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final c = context.colors;
+    final currency = ref.watch(appSettingsControllerProvider).currency;
+    final today = ref.watch(todayStateProvider).asData?.value;
+
+    final color = c.forType(action.type.wire);
+    final tint = switch (action.type) {
+      EntryType.money => c.moneyTint,
+      EntryType.move => c.moveTint,
+      EntryType.rituals => c.ritualsTint,
+    };
+
+    final subtitle = switch (action.type) {
+      EntryType.money => '${action.category ?? 'Expense'} · Just now',
+      EntryType.move => 'Movement · Just now',
+      EntryType.rituals => 'Ritual · Just now',
+    };
+    final trailing = switch (action.type) {
+      EntryType.money =>
+        formatCurrency(action.amount ?? 0, currency, withSign: true, trimZeroCents: false),
+      EntryType.move =>
+        action.durationMinutes != null ? '${action.durationMinutes} min' : null,
+      EntryType.rituals => 'Done',
+    };
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: Spacing.sm),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          const PalAvatar(size: 24, glyphSize: 11),
+          const SizedBox(width: Spacing.sm),
+          Flexible(
+            child: Container(
+              constraints: BoxConstraints(
+                  maxWidth: MediaQuery.sizeOf(context).width * 0.84),
+              decoration: BoxDecoration(
+                color: c.surface,
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(Radii.lg),
+                  topRight: Radius.circular(Radii.lg),
+                  bottomRight: Radius.circular(Radii.lg),
+                  bottomLeft: Radius.circular(Radii.xs),
+                ),
+                border: Border.all(color: c.hair, width: 0.5),
+                boxShadow: [
+                  BoxShadow(color: c.shadow, blurRadius: 10, offset: const Offset(0, 2)),
+                ],
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // LOGGED header
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(
+                        Spacing.md, Spacing.md, Spacing.md, 0),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 15,
+                          height: 15,
+                          decoration:
+                              BoxDecoration(color: c.move, shape: BoxShape.circle),
+                          alignment: Alignment.center,
+                          child: AppIcon('checkmark', size: 9, color: c.onAccent),
+                        ),
+                        const SizedBox(width: Spacing.xs),
+                        Text(
+                          'LOGGED',
+                          style: AppType.caption2.copyWith(
+                            fontWeight: FontWeight.w700,
+                            color: c.move,
+                            letterSpacing: 0.4,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  // Entry row
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(
+                        Spacing.md, Spacing.sm, Spacing.md, Spacing.md),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 38,
+                          height: 38,
+                          decoration: BoxDecoration(
+                              color: tint, borderRadius: BorderRadius.circular(Radii.md)),
+                          alignment: Alignment.center,
+                          child: AppIcon(
+                              entryGlyph(action.type, category: action.category),
+                              size: 18,
+                              color: color),
+                        ),
+                        const SizedBox(width: Spacing.md),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                action.title,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: AppType.subhead.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                  color: c.ink,
+                                  letterSpacing: -0.24,
+                                ),
+                              ),
+                              const SizedBox(height: 1),
+                              Text(
+                                subtitle,
+                                style: AppType.caption.copyWith(
+                                    color: c.ink3, letterSpacing: -0.08),
+                              ),
+                            ],
+                          ),
+                        ),
+                        if (trailing != null) ...[
+                          const SizedBox(width: Spacing.sm),
+                          Text(
+                            trailing,
+                            style: AppType.body.copyWith(
+                              fontWeight: FontWeight.w700,
+                              color:
+                                  action.type == EntryType.money ? c.money : color,
+                              letterSpacing: -0.3,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  // Live ring for the affected tracker
+                  if (today != null) _ring(context, today, currency),
+                  // Undo / Edit (or the undone marker)
+                  DecoratedBox(
+                    decoration: BoxDecoration(
+                      border: Border(top: BorderSide(color: c.hair, width: 0.5)),
+                    ),
+                    child: undone
+                        ? Padding(
+                            padding:
+                                const EdgeInsets.symmetric(vertical: Spacing.md),
+                            child: Center(
+                              child: Text(
+                                'Undone',
+                                style: AppType.footnote.copyWith(
+                                    color: c.ink3, letterSpacing: -0.08),
+                              ),
+                            ),
+                          )
+                        : Row(
+                            children: [
+                              Expanded(
+                                child: _CardAction(
+                                    label: 'Undo', color: c.red, onTap: onUndo),
+                              ),
+                              Container(width: 0.5, height: 38, color: c.hair),
+                              Expanded(
+                                child: _CardAction(
+                                    label: 'Edit', color: c.accent, onTap: onEdit),
+                              ),
+                            ],
+                          ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// The updated progress bar for [action]'s tracker, read from live [today]
+  /// totals (which already include the just-logged entry).
+  Widget _ring(BuildContext context, TodayState today, Currency currency) {
+    final c = context.colors;
+    final String label;
+    final String right;
+    final double pct;
+    final Color bar;
+    var over = false;
+    switch (action.type) {
+      case EntryType.money:
+        final now = today.moneySpent;
+        final goal = today.goals.dailyBudget;
+        over = goal > 0 && now > goal;
+        label = 'Spending today';
+        right = over
+            ? '${formatCurrency(now, currency)} · over by ${formatCurrency(now - goal, currency)}'
+            : '${formatCurrency(now, currency)} / ${formatCurrency(goal, currency)}';
+        pct = goal > 0 ? (now / goal).clamp(0.0, 1.0) : 0.0;
+        bar = over ? c.red : c.money;
+      case EntryType.move:
+        final now = today.moveKcal;
+        final goal = today.goals.dailyMoveKcal;
+        label = 'Movement today';
+        right = '$now / $goal kcal';
+        pct = goal > 0 ? (now / goal).clamp(0.0, 1.0) : 0.0;
+        bar = c.move;
+      case EntryType.rituals:
+        final now = today.ritualsDone;
+        final goal = today.ritualsTarget;
+        label = 'Rituals today';
+        right = '$now / $goal';
+        pct = goal > 0 ? (now / goal).clamp(0.0, 1.0) : 0.0;
+        bar = c.rituals;
+    }
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(Spacing.md, 0, Spacing.md, Spacing.md),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                label,
+                style: AppType.caption2.copyWith(
+                    fontWeight: FontWeight.w600, color: c.ink3, letterSpacing: -0.06),
+              ),
+              Text(
+                right,
+                style: AppType.caption2.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: over ? c.red : c.ink2,
+                  letterSpacing: -0.06,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: Spacing.xs),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(Radii.xs),
+            child: LinearProgressIndicator(
+              value: pct,
+              minHeight: 5,
+              backgroundColor: c.fill,
+              valueColor: AlwaysStoppedAnimation<Color>(bar),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// One half of the LogCard footer — a flat, full-height text button.
+class _CardAction extends StatelessWidget {
+  const _CardAction({required this.label, required this.color, this.onTap});
+
+  final String label;
+  final Color color;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: Spacing.md),
+        child: Center(
+          child: Text(
+            label,
+            style: AppType.footnote.copyWith(
+              fontWeight: FontWeight.w600,
+              color: color,
+              letterSpacing: -0.15,
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -612,6 +1005,7 @@ class _Dot extends StatelessWidget {
 class _Composer extends StatelessWidget {
   const _Composer({
     required this.controller,
+    required this.focusNode,
     required this.expanded,
     required this.hasText,
     required this.enabled,
@@ -619,6 +1013,7 @@ class _Composer extends StatelessWidget {
   });
 
   final TextEditingController controller;
+  final FocusNode focusNode;
   final bool expanded;
   final bool hasText;
   final bool enabled;
@@ -655,6 +1050,7 @@ class _Composer extends StatelessWidget {
               // expand to the 100px maxHeight and inflate the pill.
               child: TextField(
                 controller: controller,
+                focusNode: focusNode,
                 enabled: enabled,
                 autofocus: true,
                 minLines: 1,

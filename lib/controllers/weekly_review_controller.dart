@@ -6,6 +6,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../models/models.dart';
 import '../services/services.dart' show ReviewRange;
 import '../util/dates.dart';
+import '../util/format.dart';
 import 'providers.dart';
 import 'today_controller.dart' show goalsStreamProvider;
 
@@ -94,11 +95,11 @@ class WeeklyStats {
   }
 
   /// The three week tiles, in handoff order (money / move / rituals).
-  List<WeekStat> get tiles => [
+  List<WeekStat> tiles(Currency currency) => [
         WeekStat(
           label: 'Spent',
-          value: '\$${spent.toStringAsFixed(0)}',
-          sub: 'of \$${budget.toStringAsFixed(0)}',
+          value: formatCurrency(spent, currency),
+          sub: 'of ${formatCurrency(budget, currency)}',
           colorToken: 'money',
         ),
         WeekStat(

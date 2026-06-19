@@ -10,6 +10,7 @@ import '../../services/pal/pal_service.dart' show InsightRange;
 import '../../router.dart';
 import '../../theme/theme.dart';
 import '../../util/dates.dart';
+import '../../util/entry_glyph.dart';
 import '../../util/format.dart';
 import '../../widgets/activity_rings.dart';
 import '../../widgets/app_icon.dart';
@@ -591,21 +592,8 @@ class _TimelineRow extends ConsumerWidget {
       (entry.type == EntryType.move && entry.workoutId != null);
 
   /// SF Symbol for the row icon, derived from entry type/category.
-  String get _icon {
-    switch (entry.type) {
-      case EntryType.money:
-        final cat = entry.category?.toLowerCase() ?? '';
-        if (cat.contains('coffee')) return 'cup.and.saucer.fill';
-        if (cat.contains('dining')) return 'fork.knife';
-        if (cat.contains('grocer')) return 'basket.fill';
-        return 'creditcard.fill';
-      case EntryType.move:
-        if (entry.workoutId != null) return 'dumbbell.fill';
-        return 'figure.run';
-      case EntryType.rituals:
-        return 'sparkles';
-    }
-  }
+  String get _icon => entryGlyph(entry.type,
+      category: entry.category, isWorkout: entry.workoutId != null);
 
   String? _valueText(Currency currency) {
     switch (entry.type) {

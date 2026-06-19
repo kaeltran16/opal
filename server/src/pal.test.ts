@@ -308,7 +308,7 @@ describe('Pal', () => {
     expect(sent.at(-1)?.content).toBe('newest')
   })
 
-  it('chat surfaces a tool call as an action and synthesizes a reply when content is empty', async () => {
+  it('chat surfaces a logged tool call but does not synthesize a restatement', async () => {
     const client = fakeToolClient({
       content: '',
       toolCalls: [toolCall('log_expense', { amount: 5, category: 'Coffee', title: 'coffee' })],
@@ -318,7 +318,20 @@ describe('Pal', () => {
     expect(result.actions).toEqual([
       { kind: 'log_expense', amount: 5, category: 'Coffee', title: 'coffee', note: null },
     ])
-    expect(result.reply.length).toBeGreaterThan(0)
+    // the client renders a confirmation card for the log, so an empty model
+    // reply stays empty — synthReply no longer restates logged entries.
+    expect(result.reply).toBe('')
+  })
+
+  it('chat synthesizes a reply for a goal change when content is empty', async () => {
+    const client = fakeToolClient({
+      content: '',
+      toolCalls: [toolCall('set_daily_budget', { dailyBudget: 60 })],
+    })
+    const pal = new Pal(client)
+    const result = await pal.chat([], 'set my budget to 60', baseChatCtx())
+    expect(result.actions).toEqual([{ kind: 'set_daily_budget', dailyBudget: 60 }])
+    expect(result.reply).toContain('daily budget')
   })
 
   it('chat prefers the model reply text over the synthesized one when both are present', async () => {

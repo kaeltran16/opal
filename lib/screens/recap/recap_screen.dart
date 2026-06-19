@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../controllers/insights_controller.dart';
+import '../../controllers/providers.dart';
 import '../../controllers/recap_controller.dart';
 import '../../services/pal/pal_service.dart';
 import '../../theme/theme.dart';
@@ -38,6 +39,7 @@ class _RecapScreenState extends ConsumerState<RecapScreen> {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
+    final currency = ref.watch(appSettingsControllerProvider).currency;
     final recapAsync = ref.watch(recapDataProvider(_range));
     final recap = recapAsync.asData?.value;
     final insightsAsync = ref.watch(insightsProvider(_range));
@@ -83,14 +85,17 @@ class _RecapScreenState extends ConsumerState<RecapScreen> {
                 loading: () => const _TilesPlaceholder(),
                 error: (e, _) => Text("Couldn't load this recap.",
                     style: AppType.subhead.copyWith(color: c.ink3)),
-                data: (r) => Row(
-                  children: [
-                    for (var i = 0; i < r.tiles.length; i++) ...[
-                      if (i > 0) const SizedBox(width: Spacing.md),
-                      Expanded(child: _StatTile(stat: r.tiles[i])),
+                data: (r) {
+                  final tiles = r.tiles(currency);
+                  return Row(
+                    children: [
+                      for (var i = 0; i < tiles.length; i++) ...[
+                        if (i > 0) const SizedBox(width: Spacing.md),
+                        Expanded(child: _StatTile(stat: tiles[i])),
+                      ],
                     ],
-                  ],
-                ),
+                  );
+                },
               ),
             ),
           ),
@@ -249,16 +254,26 @@ class _StatTile extends StatelessWidget {
                   color: color,
                   letterSpacing: 0.3)),
           const SizedBox(height: Spacing.xxs),
-          Text(stat.value,
-              style: AppFonts.sfr(
-                  size: 22,
-                  weight: FontWeight.w700,
-                  color: c.ink,
-                  letterSpacing: -0.3)),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(stat.value,
+                maxLines: 1,
+                style: AppFonts.sfr(
+                    size: 22,
+                    weight: FontWeight.w700,
+                    color: c.ink,
+                    letterSpacing: -0.3)),
+          ),
           const SizedBox(height: Spacing.xxs),
-          Text(stat.sub,
-              style: AppType.caption2
-                  .copyWith(color: c.ink3, letterSpacing: -0.08)),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(stat.sub,
+                maxLines: 1,
+                style: AppType.caption2
+                    .copyWith(color: c.ink3, letterSpacing: -0.08)),
+          ),
         ],
       ),
     );

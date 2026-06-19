@@ -229,7 +229,59 @@ class PalComposerController extends _$PalComposerController {
   Future<void> undo(int index) async {
     final rec = _undo.remove(index);
     if (rec == null) return;
+    await _reverse(rec);
 
+    if (index >= 0 && index < state.messages.length) {
+      final messages = [...state.messages];
+      messages[index] = messages[index].copyWith(undone: true);
+      state = state.copyWith(messages: messages);
+    }
+  }
+
+  /// Edits a logged turn: reverses the assistant message at [index]'s mutation,
+  /// removes that turn (its user line + this assistant card) from the transcript,
+  /// and returns the original user text so the composer can refill it for a fix.
+  /// Returns '' when there's nothing to recover. Unlike [undo] (which keeps the
+  /// card and flags it undone), Edit takes the entry off-screen entirely.
+  Future<String> editLog(int index) async {
+    final rec = _undo.remove(index);
+    if (rec != null) await _reverse(rec);
+
+    final messages = state.messages;
+    if (index < 0 || index >= messages.length) return '';
+
+    // The turn spans the preceding user message (if any) and this assistant one.
+    var start = index, count = 1;
+    var refill = '';
+    if (index - 1 >= 0 && messages[index - 1].role == PalRole.user) {
+      start = index - 1;
+      count = 2;
+      refill = messages[index - 1].text;
+    }
+
+    final next = [...messages]..removeRange(start, start + count);
+    // Splicing shifts every later message down by [count]; re-key the undo map
+    // so the surviving turns' reversal data still points at the right index.
+    final rebuilt = <int, AppliedActions>{};
+    _undo.forEach((k, v) {
+      if (k < start) {
+        rebuilt[k] = v;
+      } else if (k >= start + count) {
+        rebuilt[k - count] = v;
+      }
+    });
+    _undo
+      ..clear()
+      ..addAll(rebuilt);
+
+    state = state.copyWith(messages: next);
+    return refill;
+  }
+
+  /// Reverses one turn's auto-applied mutations: deletes the entries/routines it
+  /// created and restores the goals snapshot it changed. Shared by [undo] and
+  /// [editLog].
+  Future<void> _reverse(AppliedActions rec) async {
     final entries = ref.read(entryRepositoryProvider);
     for (final id in rec.entryIds) {
       await entries.deleteById(id);
@@ -240,12 +292,6 @@ class PalComposerController extends _$PalComposerController {
     }
     if (rec.priorGoals != null) {
       await ref.read(goalsRepositoryProvider).upsert(rec.priorGoals!);
-    }
-
-    if (index >= 0 && index < state.messages.length) {
-      final messages = [...state.messages];
-      messages[index] = messages[index].copyWith(undone: true);
-      state = state.copyWith(messages: messages);
     }
   }
 }

@@ -152,8 +152,7 @@ DeviceTokenStore _deviceTokens(http.Client client) {
 @Riverpod(keepAlive: true)
 PalService palService(Ref ref) {
   if (_palBaseUrl.isEmpty) {
-    return MockPalService(
-        currency: () => ref.read(appSettingsControllerProvider).currency);
+    return MockPalService();
   }
 
   final httpClient = _HttpClientHolder.instance;

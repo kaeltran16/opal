@@ -7,6 +7,7 @@ import '../../controllers/providers.dart';
 import '../../models/models.dart';
 import '../../services/services.dart';
 import '../../theme/theme.dart';
+import '../../util/format.dart';
 import '../../widgets/app_icon.dart';
 import '../../widgets/controls.dart';
 import '../../widgets/keypad.dart';
@@ -375,14 +376,20 @@ class _NewEntrySheetState extends ConsumerState<NewEntrySheet> {
         );
     }
 
-    await repo.insert(entry);
-    // A new expense may have pushed today over budget — let the controller
-    // decide whether to alert (gated on the toggle, deduped to once/day).
-    if (_kind == _Kind.expense) {
-      await ref.read(budgetAlertControllerProvider.notifier).checkAfterSpend();
+    try {
+      await repo.insert(entry);
+      // A new expense may have pushed today over budget — let the controller
+      // decide whether to alert (gated on the toggle, deduped to once/day).
+      if (_kind == _Kind.expense) {
+        await ref.read(budgetAlertControllerProvider.notifier).checkAfterSpend();
+      }
+      if (!mounted) return;
+      context.pop();
+    } finally {
+      // pop() unmounts on a normal push; the guard handles the deep-link case
+      // (nothing to pop) so the sheet re-enables instead of locking up.
+      if (mounted) setState(() => _saving = false);
     }
-    if (!mounted) return;
-    context.pop();
   }
 
   // --- build -----------------------------------------------------------------
@@ -452,8 +459,17 @@ class _NewEntrySheetState extends ConsumerState<NewEntrySheet> {
             ),
             const SizedBox(height: Spacing.xl),
 
-            // Fixed big display.
-            Center(child: _buildDisplay(c, typeColor)),
+            // Fixed big display. Scaled down so long amounts (e.g. large VND
+            // values) shrink to fit instead of overflowing the row.
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: Spacing.lg),
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: _buildDisplay(c, typeColor),
+                ),
+              ),
+            ),
             const SizedBox(height: Spacing.lg),
 
             // Scrollable middle: Log with Pal + quick picks + optional fields.
@@ -467,6 +483,7 @@ class _NewEntrySheetState extends ConsumerState<NewEntrySheet> {
                   _LogWithPalBox(
                     controller: _nlCtrl,
                     accent: c.accent,
+                    currency: ref.read(appSettingsControllerProvider).currency,
                     parsing: _parsing,
                     onParse: _parseNl,
                   ),
@@ -558,7 +575,8 @@ class _NewEntrySheetState extends ConsumerState<NewEntrySheet> {
             ? '0'
             : (currency.decimals > 0
                 ? _formatMoney(_numericValue ?? 0)
-                : (_numericValue ?? 0).toStringAsFixed(0)))
+                : groupThousands((_numericValue ?? 0).toStringAsFixed(0),
+                    currency.groupSeparator)))
         : (_numericValue ?? 0).toStringAsFixed(0);
     final symbol = Text(
       currency.symbol,
@@ -614,6 +632,7 @@ class _NewEntrySheetState extends ConsumerState<NewEntrySheet> {
         for (final p in _picks.where((p) => p.kind == _kind))
           _QuickPickTile(
             pick: p,
+            currency: ref.read(appSettingsControllerProvider).currency,
             color: c.forType(p.kind.entryType.wire),
             onTap: () => _applyPick(p),
           ),
@@ -625,11 +644,13 @@ class _NewEntrySheetState extends ConsumerState<NewEntrySheet> {
 class _QuickPickTile extends StatelessWidget {
   const _QuickPickTile({
     required this.pick,
+    required this.currency,
     required this.color,
     required this.onTap,
   });
 
   final _QuickPick pick;
+  final Currency currency;
   final Color color;
   final VoidCallback onTap;
 
@@ -674,7 +695,9 @@ class _QuickPickTile extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  pick.label,
+                  pick.kind == _Kind.expense && pick.amount != null
+                      ? formatCurrency(pick.amount!, currency)
+                      : pick.label,
                   style: AppType.caption.copyWith(
                     color: c.ink3,
                     letterSpacing: -0.08,
@@ -780,12 +803,14 @@ class _LogWithPalBox extends StatelessWidget {
   const _LogWithPalBox({
     required this.controller,
     required this.accent,
+    required this.currency,
     required this.parsing,
     required this.onParse,
   });
 
   final TextEditingController controller;
   final Color accent;
+  final Currency currency;
   final bool parsing;
   final VoidCallback onParse;
 
@@ -838,7 +863,9 @@ class _LogWithPalBox extends StatelessWidget {
                     decoration: InputDecoration(
                       isDense: true,
                       border: InputBorder.none,
-                      hintText: 'spent \$14 on ramen',
+                      hintText: currency == Currency.usd
+                          ? 'spent \$14 on ramen'
+                          : 'spent 50k on ramen',
                       hintStyle: AppType.subhead
                           .copyWith(color: c.ink4, letterSpacing: -0.24),
                     ),

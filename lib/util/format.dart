@@ -90,7 +90,7 @@ String formatCurrency(
   final fixed = abs.toStringAsFixed(decimals);
 
   final dotSplit = fixed.split('.');
-  final whole = _groupThousands(dotSplit[0], currency.groupSeparator);
+  final whole = groupThousands(dotSplit[0], currency.groupSeparator);
   final number = dotSplit.length > 1
       ? '$whole${currency.decimalSeparator}${dotSplit[1]}'
       : whole;
@@ -102,7 +102,8 @@ String formatCurrency(
   return withSign && negative ? '−$body' : body;
 }
 
-String _groupThousands(String digits, String sep) {
+/// Inserts [sep] every three digits from the right ("2500000" -> "2.500.000").
+String groupThousands(String digits, String sep) {
   final buf = StringBuffer();
   for (var i = 0; i < digits.length; i++) {
     if (i > 0 && (digits.length - i) % 3 == 0) buf.write(sep);

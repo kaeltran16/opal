@@ -27,33 +27,36 @@ class BudgetsScreen extends ConsumerWidget {
     final async = ref.watch(budgetsDataProvider);
     final currency = ref.watch(appSettingsControllerProvider).currency;
 
-    return LargeTitleScrollView(
-      title: 'Budgets',
-      leading: NavAction(
-        icon: 'chevron.left',
-        label: 'You',
-        onTap: () => Navigator.of(context).maybePop(),
-      ),
-      trailing: const NavIconButton(
-        name: 'slider.horizontal.3',
-        semanticLabel: 'Budget options',
-      ),
-      padding: const EdgeInsets.only(bottom: 110),
-      children: [
-        async.when(
-          loading: () => _centered(
-            Text('…', style: AppType.body.copyWith(color: c.ink3)),
-          ),
-          error: (e, _) => _centered(
-            Text(
-              "Couldn't load your budgets.",
-              textAlign: TextAlign.center,
-              style: AppType.subhead.copyWith(color: c.ink3, letterSpacing: -0.24),
-            ),
-          ),
-          data: (data) => _Body(data: data, currency: currency),
+    return ColoredBox(
+      color: c.bg,
+      child: LargeTitleScrollView(
+        title: 'Budgets',
+        leading: NavAction(
+          icon: 'chevron.left',
+          label: 'You',
+          onTap: () => Navigator.of(context).maybePop(),
         ),
-      ],
+        trailing: const NavIconButton(
+          name: 'slider.horizontal.3',
+          semanticLabel: 'Budget options',
+        ),
+        padding: const EdgeInsets.only(bottom: 110),
+        children: [
+          async.when(
+            loading: () => _centered(
+              Text('…', style: AppType.body.copyWith(color: c.ink3)),
+            ),
+            error: (e, _) => _centered(
+              Text(
+                "Couldn't load your budgets.",
+                textAlign: TextAlign.center,
+                style: AppType.subhead.copyWith(color: c.ink3, letterSpacing: -0.24),
+              ),
+            ),
+            data: (data) => _Body(data: data, currency: currency),
+          ),
+        ],
+      ),
     );
   }
 

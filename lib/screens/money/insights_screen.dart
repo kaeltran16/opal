@@ -370,12 +370,21 @@ class _CategoriesTab extends StatelessWidget {
                   center: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(formatCurrency(data.currentTotal, currency),
-                          style: AppFonts.sfr(
-                              size: 22,
-                              weight: FontWeight.w700,
-                              color: c.ink,
-                              letterSpacing: -0.5)),
+                      // donut hole is ~96px (132 − 2×18); scale long totals down
+                      SizedBox(
+                        width: 92,
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                              formatCurrency(data.currentTotal, currency),
+                              maxLines: 1,
+                              style: AppFonts.sfr(
+                                  size: 22,
+                                  weight: FontWeight.w700,
+                                  color: c.ink,
+                                  letterSpacing: -0.5)),
+                        ),
+                      ),
                       const SizedBox(height: 1),
                       Text('$monthLabel TOTAL',
                           style: AppType.caption2.copyWith(

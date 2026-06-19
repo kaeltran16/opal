@@ -228,13 +228,18 @@ class _HeroCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(fmt(data.total),
-                      style: AppFonts.sfr(
-                          size: 40, // no sfr token for 40; keep inline
-                          weight: FontWeight.w700,
-                          color: c.ink,
-                          letterSpacing: -1,
-                          height: 1)),
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(fmt(data.total),
+                        maxLines: 1,
+                        style: AppFonts.sfr(
+                            size: 40, // no sfr token for 40; keep inline
+                            weight: FontWeight.w700,
+                            color: c.ink,
+                            letterSpacing: -1,
+                            height: 1)),
+                  ),
                   const SizedBox(height: Spacing.xs),
                   Text(data.tracker.heroSub,
                       style: AppType.subhead.copyWith(

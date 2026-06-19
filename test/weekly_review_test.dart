@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:opal/controllers/weekly_review_controller.dart';
 import 'package:opal/models/models.dart';
+import 'package:opal/util/format.dart';
 
 Entry _money(DateTime t, double amount) => Entry(
       id: 't',
@@ -76,14 +77,20 @@ void main() {
     expect(s.ritualsTarget, 35); // 5 * 7
 
     // Tiles render in handoff order with the "of <target>" subs.
-    expect(s.tiles.map((t) => t.label).toList(),
+    final tiles = s.tiles(Currency.usd);
+    expect(tiles.map((t) => t.label).toList(),
         ['Spent', 'Workout', 'Routines']);
-    expect(s.tiles[0].value, '\$42');
-    expect(s.tiles[0].sub, 'of \$595');
-    expect(s.tiles[1].value, '95');
-    expect(s.tiles[1].sub, 'of 420 kcal');
-    expect(s.tiles[2].value, '3');
-    expect(s.tiles[2].sub, 'of 35');
+    expect(tiles[0].value, '\$42');
+    expect(tiles[0].sub, 'of \$595');
+    expect(tiles[1].value, '95');
+    expect(tiles[1].sub, 'of 420 kcal');
+    expect(tiles[2].value, '3');
+    expect(tiles[2].sub, 'of 35');
+
+    // Money tile honours the display currency (regression: was hardcoded '$').
+    final vnd = s.tiles(Currency.vnd);
+    expect(vnd[0].value, formatCurrency(42, Currency.vnd));
+    expect(vnd[0].sub, 'of ${formatCurrency(595, Currency.vnd)}');
   });
 
   test('buildWeeklyStats derives the rituals target from the routine count', () {

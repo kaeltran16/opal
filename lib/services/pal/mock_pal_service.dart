@@ -1,7 +1,6 @@
 import 'dart:math' as math;
 
 import '../../models/models.dart';
-import '../../util/format.dart';
 import 'pal_service.dart';
 
 /// On-brand canned [PalService] for Windows preview + tests.
@@ -14,17 +13,11 @@ class MockPalService implements PalService {
   MockPalService({
     this.latency = const Duration(milliseconds: 600),
     int? seed,
-    Currency Function()? currency,
-  })  : _rng = math.Random(seed),
-        _currency = currency ?? (() => Currency.usd);
+  }) : _rng = math.Random(seed);
 
   /// Fake round-trip latency applied to every call.
   final Duration latency;
   final math.Random _rng;
-
-  /// Resolves the user's display currency at call time (so acknowledgements
-  /// format money in the active currency without rebuilding the service).
-  final Currency Function() _currency;
 
   int _suggestionIndex = 0;
 
@@ -80,7 +73,7 @@ class MockPalService implements PalService {
     }
     final action = _maybeAction(message);
     if (action != null) {
-      return PalChatResult(reply: _ack(action), actions: [action]);
+      return PalChatResult(reply: _logInsight(action), actions: [action]);
     }
     return PalChatResult(
       reply: _chatReplies[_rng.nextInt(_chatReplies.length)],
@@ -101,45 +94,78 @@ class MockPalService implements PalService {
   }
 
   /// A light command heuristic so the backend-less preview can demo logging.
-  /// Questions stay conversational; anything that looks like "spent/ran/log …"
-  /// with a number becomes a money or move action.
+  /// Questions stay conversational; a number logs money, move keywords log a
+  /// workout (minutes default to 30), and a completion phrase with no amount
+  /// ("finished morning pages") logs a ritual — so money, movement and rituals
+  /// all surface a confirmation card in the preview.
   LogEntryAction? _maybeAction(String message) {
     final lower = message.toLowerCase();
     final isQuestion = lower.contains('?') ||
         RegExp(r'^(why|how|what|when|who|which|suggest|should|can|does|is|am)\b')
             .hasMatch(lower);
+    if (isQuestion) return null;
+
     final amountMatch = RegExp(r'(\d+(?:\.\d{1,2})?)').firstMatch(message);
-    if (isQuestion || amountMatch == null) return null;
+    final amount =
+        amountMatch != null ? double.tryParse(amountMatch.group(1)!) : null;
 
-    final amount = double.tryParse(amountMatch.group(1)!);
-    if (amount == null) return null;
-
-    final isMove = RegExp(r'\b(ran|run|walk|walked|jog|gym|workout|lift|cardio|min)\b')
+    final isMove = RegExp(
+            r'\b(ran|run|walk|walked|jog|gym|workout|lift|cardio|min|yoga|swim|bike|cycle)\b')
         .hasMatch(lower);
     if (isMove) {
+      final minutes = amount?.round() ?? 30;
       return LogEntryAction(
         type: EntryType.move,
-        durationMinutes: amount.round(),
-        title: lower.contains('walk') ? 'Walk' : 'Run',
+        durationMinutes: minutes,
+        // rough kcal estimate so the card's live Movement ring visibly advances
+        calories: minutes * 9,
+        title: lower.contains('walk')
+            ? 'Walk'
+            : lower.contains('yoga')
+                ? 'Yoga'
+                : 'Run',
       );
     }
-    return LogEntryAction(
-      type: EntryType.money,
-      amount: -amount,
-      title: lower.contains('coffee') ? 'Coffee' : 'Expense',
-      category: lower.contains('coffee') ? 'Coffee' : null,
-    );
+
+    if (amount != null) {
+      final isCoffee = lower.contains('coffee');
+      return LogEntryAction(
+        type: EntryType.money,
+        amount: -amount,
+        title: isCoffee ? 'Coffee' : 'Expense',
+        category: isCoffee ? 'Coffee' : null,
+      );
+    }
+
+    // No amount: a completion phrase logs a ritual.
+    final isRitual = RegExp(
+            r'\b(finish|finished|did|done|complete|completed|journal|journaled|pages|read|meditat|practiced?)\b')
+        .hasMatch(lower);
+    if (isRitual) {
+      return LogEntryAction(type: EntryType.rituals, title: _ritualTitle(lower));
+    }
+    return null;
   }
 
-  String _ack(LogEntryAction a) {
+  String _ritualTitle(String lower) {
+    if (lower.contains('pages') || lower.contains('journal')) {
+      return 'Morning pages';
+    }
+    if (lower.contains('meditat')) return 'Meditation';
+    if (lower.contains('read')) return 'Reading';
+    return 'Ritual';
+  }
+
+  /// A short, non-restating note for a logged entry: the card already shows the
+  /// amount and details, so the reply adds a warm observation, never a recap.
+  String _logInsight(LogEntryAction a) {
     switch (a.type) {
       case EntryType.money:
-        final s = formatCurrency((a.amount ?? 0).abs(), _currency());
-        return 'Logged $s for ${a.title}.';
+        return 'Noted. You tend to log spends in the morning — steady as ever.';
       case EntryType.move:
-        return 'Logged ${a.durationMinutes} min of ${a.title}.';
+        return 'In the bank. Your streak likes days that open with movement.';
       case EntryType.rituals:
-        return 'Logged "${a.title}".';
+        return 'Done. The days you keep this one tend to run a little calmer.';
     }
   }
 

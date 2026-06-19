@@ -30,7 +30,9 @@ class MonthlyBarChart extends StatelessWidget {
     final fadedFill = color.withValues(alpha: dark ? 0.33 : 0.2);
 
     return SizedBox(
-      height: _barsHeight + 40,
+      // headroom for the value + month labels so the tallest bar (full
+      // _barsHeight) doesn't push the column past the box and overflow.
+      height: _barsHeight + 52,
       child: Stack(
         children: [
           // Dashed average reference line, positioned over the bars band.
