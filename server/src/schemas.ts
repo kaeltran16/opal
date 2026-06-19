@@ -49,6 +49,10 @@ export const insightsContext = z.object({
 })
 export const insightsBody = z.object({ context: insightsContext })
 
+// the client posts the insights-shaped aggregates it already assembles; the
+// server pairs them with stored memory to re-derive patterns.
+export const memoryRefreshBody = z.object({ context: insightsContext })
+
 export const suggestContext = z.object({
   recentWorkouts: z.array(z.object({ routineName: z.string(), date: z.string(), muscles: z.string() })),
   dayOfWeek: z.string(),

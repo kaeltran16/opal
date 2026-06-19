@@ -72,6 +72,15 @@ class _SequencedPalService implements PalService {
           String goal, List<Exercise> available) async =>
       const GeneratedRoutineDraft(
           name: '', tag: RoutineTag.custom, exercises: []);
+
+  @override
+  Future<PalMemoryDigest> memory() async => const PalMemoryDigest();
+  @override
+  Future<PalMemoryDigest> refreshMemory() async => const PalMemoryDigest();
+  @override
+  Future<PalMemoryDigest> deleteFact(String id) async => const PalMemoryDigest();
+  @override
+  Future<PalMemoryDigest> clearMemory() async => const PalMemoryDigest();
 }
 
 Widget _wrap(Widget child) {

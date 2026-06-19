@@ -495,41 +495,50 @@ class PalAutopilotItem {
       Object.hash(id, colorToken, icon, title, subtitle, enabled);
 }
 
-/// One thing Pal has learned about the user, shown in "What Pal remembers".
-class PalMemory {
-  const PalMemory({required this.text, required this.meta});
+/// One durable fact the user told Pal (the `/v1/memory` facts list). Deletable
+/// per item in "What Pal remembers".
+class PalFact {
+  const PalFact({required this.id, required this.text});
 
+  final String id;
   final String text;
-  final String meta;
 
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is PalMemory && other.text == text && other.meta == meta;
+      other is PalFact && other.id == id && other.text == text;
 
   @override
-  int get hashCode => Object.hash(text, meta);
+  int get hashCode => Object.hash(id, text);
+}
+
+/// Pal's persistent memory: user-authored [facts] + derived [patterns]
+/// (the `/v1/memory` payload). Patterns reuse [InsightPattern].
+class PalMemoryDigest {
+  const PalMemoryDigest({this.facts = const [], this.patterns = const []});
+
+  final List<PalFact> facts;
+  final List<InsightPattern> patterns;
+
+  bool get isEmpty => facts.isEmpty && patterns.isEmpty;
 }
 
 /// The Pal Home hub payload (the `/agenda` seam): the proposals to approve, the
-/// autopilot delegation list, Pal's persistent memory, and the current workout
-/// [streakDays] shown in the hero. Fields default empty so a partial/older
-/// server payload degrades to empty sections rather than an error.
+/// autopilot delegation list, and the current workout [streakDays] shown in the
+/// hero. Fields default empty so a partial/older server payload degrades to
+/// empty sections rather than an error.
 class PalAgenda {
   const PalAgenda({
     this.proposals = const [],
     this.autopilot = const [],
-    this.memory = const [],
     this.streakDays = 0,
   });
 
   final List<PalProposal> proposals;
   final List<PalAutopilotItem> autopilot;
-  final List<PalMemory> memory;
   final int streakDays;
 
-  bool get isEmpty =>
-      proposals.isEmpty && autopilot.isEmpty && memory.isEmpty;
+  bool get isEmpty => proposals.isEmpty && autopilot.isEmpty;
 }
 
 /// The Pal AI interface. All methods are async to model network latency.
@@ -568,7 +577,20 @@ abstract interface class PalService {
   );
 
   /// `/agenda`: the Pal Home hub payload — cross-pillar [PalProposal]s to
-  /// approve, the autopilot delegation list, persistent memory, and the workout
-  /// streak. Drives the agentic Pal Home screen.
+  /// approve, the autopilot delegation list, and the workout streak. Drives the
+  /// agentic Pal Home screen.
   Future<PalAgenda> agenda();
+
+  /// `/v1/memory`: Pal's current persistent memory for this device.
+  Future<PalMemoryDigest> memory();
+
+  /// `POST /v1/memory/refresh`: re-derive patterns from recent data; returns the
+  /// updated digest.
+  Future<PalMemoryDigest> refreshMemory();
+
+  /// `DELETE /v1/memory/facts/:id`: forget one fact; returns the updated digest.
+  Future<PalMemoryDigest> deleteFact(String id);
+
+  /// `DELETE /v1/memory`: wipe all memory; returns the (empty) digest.
+  Future<PalMemoryDigest> clearMemory();
 }

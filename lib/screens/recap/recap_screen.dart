@@ -37,6 +37,14 @@ class _RecapScreenState extends ConsumerState<RecapScreen> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    // opening the recap is the client-chosen cadence to re-derive Pal's learned
+    // patterns from the data shown here. fire-and-forget and best-effort.
+    ref.read(recapMemoryRefreshProvider);
+  }
+
+  @override
   Widget build(BuildContext context) {
     final c = context.colors;
     final currency = ref.watch(appSettingsControllerProvider).currency;

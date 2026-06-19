@@ -92,27 +92,31 @@ class HttpPalService implements PalService {
     return json;
   }
 
-  Future<Map<String, dynamic>> _post(String path, Map<String, Object?> body) async {
-    Future<http.Response> send() async {
+  Future<Map<String, dynamic>> _post(String path, Map<String, Object?> body) =>
+      _send('POST', path, body: body);
+
+  /// One authenticated request with the shared 401-clear-and-retry and error
+  /// mapping. GET/DELETE carry no body; POST encodes [body].
+  Future<Map<String, dynamic>> _send(String method, String path, {Map<String, Object?>? body}) async {
+    Future<http.Response> go() async {
       final token = await tokens.token();
-      return _http
-          .post(
-            _base.replace(path: path),
-            headers: {
-              'content-type': 'application/json',
-              'authorization': 'Bearer $token',
-            },
-            body: jsonEncode(body),
-          )
+      final uri = _base.replace(path: path);
+      final headers = {'content-type': 'application/json', 'authorization': 'Bearer $token'};
+      final encoded = body == null ? null : jsonEncode(body);
+      return switch (method) {
+        'GET' => _http.get(uri, headers: headers),
+        'DELETE' => _http.delete(uri, headers: headers),
+        _ => _http.post(uri, headers: headers, body: encoded),
+      }
           .timeout(timeout);
     }
 
     http.Response res;
     try {
-      res = await send();
+      res = await go();
       if (res.statusCode == 401) {
         await tokens.clear();
-        res = await send();
+        res = await go();
       }
     } on TimeoutException {
       throw const PalException('request timed out');
@@ -379,14 +383,39 @@ class HttpPalService implements PalService {
           enabled: a['enabled'] as bool? ?? false,
         ),
       ),
-      memory: mapList(
-        'memory',
-        (m) => PalMemory(
-          text: m['text'] as String? ?? '',
-          meta: m['meta'] as String? ?? '',
-        ),
-      ),
     );
+  }
+
+  PalMemoryDigest _digestFromWire(Map<String, dynamic> json) => PalMemoryDigest(
+        facts: ((json['facts'] as List?) ?? const [])
+            .cast<Map<String, dynamic>>()
+            .map((f) => PalFact(id: f['id'] as String? ?? '', text: f['text'] as String? ?? ''))
+            .toList(),
+        patterns: ((json['patterns'] as List?) ?? const [])
+            .cast<Map<String, dynamic>>()
+            .map((p) => InsightPattern(
+                  colorToken: _colorToken(p['colorToken']),
+                  title: p['title'] as String? ?? '',
+                  detail: p['detail'] as String? ?? '',
+                ))
+            .toList(),
+      );
+
+  @override
+  Future<PalMemoryDigest> memory() async => _digestFromWire(await _send('GET', '/v1/memory'));
+
+  @override
+  Future<PalMemoryDigest> refreshMemory() async => _digestFromWire(
+      await _send('POST', '/v1/memory/refresh', body: {'context': await context.insights(InsightRange.month)}));
+
+  @override
+  Future<PalMemoryDigest> deleteFact(String id) async =>
+      _digestFromWire(await _send('DELETE', '/v1/memory/facts/$id'));
+
+  @override
+  Future<PalMemoryDigest> clearMemory() async {
+    await _send('DELETE', '/v1/memory');
+    return const PalMemoryDigest();
   }
 
   EntryType _entryTypeFromWire(String token) => switch (token) {

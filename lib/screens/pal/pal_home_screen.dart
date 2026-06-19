@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../controllers/pal_agenda_controller.dart';
+import '../../controllers/pal_memory_controller.dart';
 import '../../controllers/providers.dart';
 import '../../router.dart';
 import '../../services/pal/pal_service.dart';
@@ -76,12 +77,23 @@ class _PalHomeScreenState extends ConsumerState<PalHomeScreen> {
     setState(() => _statusById[p.id] = _CardStatus.done);
   }
 
+  Future<void> _deleteFact(String id) async {
+    await ref.read(palServiceProvider).deleteFact(id);
+    ref.invalidate(palMemoryProvider);
+  }
+
+  Future<void> _wipeMemory() async {
+    await ref.read(palServiceProvider).clearMemory();
+    ref.invalidate(palMemoryProvider);
+  }
+
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
     final name = ref.watch(settingsRepositoryProvider).displayNameOrDefault;
     final agendaAsync = ref.watch(palAgendaProvider);
     final agenda = agendaAsync.asData?.value ?? const PalAgenda();
+    final memory = ref.watch(palMemoryProvider).asData?.value ?? const PalMemoryDigest();
 
     final visibleProposals = agenda.proposals
         .where((p) => _statusOf(p.id) != _CardStatus.dismissed)
@@ -206,7 +218,7 @@ class _PalHomeScreenState extends ConsumerState<PalHomeScreen> {
             ),
 
           // --- What Pal remembers ---
-          if (agenda.memory.isNotEmpty) ...[
+          if (!memory.isEmpty) ...[
             Padding(
               padding: const EdgeInsets.fromLTRB(Spacing.xl, 0, Spacing.xl, 10),
               child: Text('What Pal remembers',
@@ -215,7 +227,11 @@ class _PalHomeScreenState extends ConsumerState<PalHomeScreen> {
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(Spacing.lg, 0, Spacing.lg, 22),
-              child: _MemoryCard(items: agenda.memory),
+              child: _MemoryCard(
+                memory: memory,
+                onDeleteFact: _deleteFact,
+                onWipe: _wipeMemory,
+              ),
             ),
           ],
 
@@ -837,9 +853,19 @@ class _Toggle extends StatelessWidget {
   }
 }
 
+/// "What Pal remembers": user-authored [PalMemoryDigest.facts] (each deletable)
+/// and Pal-derived [PalMemoryDigest.patterns] (read-only). The footer row wipes
+/// all stored memory.
 class _MemoryCard extends StatelessWidget {
-  const _MemoryCard({required this.items});
-  final List<PalMemory> items;
+  const _MemoryCard({
+    required this.memory,
+    required this.onDeleteFact,
+    required this.onWipe,
+  });
+
+  final PalMemoryDigest memory;
+  final Future<void> Function(String id) onDeleteFact;
+  final Future<void> Function() onWipe;
 
   @override
   Widget build(BuildContext context) {
@@ -853,60 +879,80 @@ class _MemoryCard extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: Column(
         children: [
-          for (final m in items)
-            Container(
-              decoration: BoxDecoration(
-                border: Border(bottom: BorderSide(color: c.hair, width: 0.5)),
-              ),
+          for (final f in memory.facts)
+            _row(c, text: f.text, onDelete: () => onDeleteFact(f.id)),
+          for (final p in memory.patterns)
+            _row(c, text: p.title, meta: p.detail),
+          // Wipe-all footer.
+          PressScale(
+            onTap: onWipe,
+            child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
               child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    margin: const EdgeInsets.only(top: 1),
-                    width: 26,
-                    height: 26,
-                    decoration: BoxDecoration(
-                        color: c.accentTint,
-                        borderRadius: BorderRadius.circular(Radii.sm)),
-                    alignment: Alignment.center,
-                    child: AppIcon('sparkles', size: 13, color: c.accent),
-                  ),
-                  const SizedBox(width: Spacing.md),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(m.text,
-                            style: AppType.footnote.copyWith(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w500,
-                                color: c.ink,
-                                letterSpacing: -0.15,
-                                height: 1.35)),
-                        const SizedBox(height: 2),
-                        Text(m.meta,
-                            style: AppType.caption2
-                                .copyWith(color: c.ink4, letterSpacing: -0.08)),
-                      ],
-                    ),
-                  ),
+                  AppIcon('trash.fill', size: 13, color: c.accent),
+                  const SizedBox(width: Spacing.sm),
+                  Text('Clear what Pal remembers',
+                      style: AppType.footnote
+                          .copyWith(color: c.accent, letterSpacing: -0.08)),
                 ],
               ),
             ),
-          // Manage row — inert until a "manage memory" surface exists.
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            child: Row(
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _row(AppColors c, {required String text, String? meta, VoidCallback? onDelete}) {
+    return Container(
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: c.hair, width: 0.5)),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            margin: const EdgeInsets.only(top: 1),
+            width: 26,
+            height: 26,
+            decoration: BoxDecoration(
+                color: c.accentTint,
+                borderRadius: BorderRadius.circular(Radii.sm)),
+            alignment: Alignment.center,
+            child: AppIcon('sparkles', size: 13, color: c.accent),
+          ),
+          const SizedBox(width: Spacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                AppIcon('gearshape.fill', size: 13, color: c.accent),
-                const SizedBox(width: Spacing.sm),
-                Text('Manage what Pal remembers',
-                    style: AppType.footnote
-                        .copyWith(color: c.accent, letterSpacing: -0.08)),
+                Text(text,
+                    style: AppType.footnote.copyWith(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: c.ink,
+                        letterSpacing: -0.15,
+                        height: 1.35)),
+                if (meta != null) ...[
+                  const SizedBox(height: 2),
+                  Text(meta,
+                      style: AppType.caption2
+                          .copyWith(color: c.ink4, letterSpacing: -0.08)),
+                ],
               ],
             ),
           ),
+          // facts are user-authored and deletable; patterns are read-only.
+          if (onDelete != null)
+            PressScale(
+              onTap: onDelete,
+              child: Padding(
+                padding: const EdgeInsets.only(left: Spacing.sm, top: 2),
+                child: AppIcon('xmark', size: 13, color: c.ink4),
+              ),
+            ),
         ],
       ),
     );

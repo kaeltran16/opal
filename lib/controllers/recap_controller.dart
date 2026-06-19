@@ -6,6 +6,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../models/models.dart';
 import '../services/pal/pal_service.dart' show InsightRange;
 import '../util/format.dart';
+import 'pal_memory_controller.dart';
 import 'providers.dart';
 import 'today_controller.dart' show goalsStreamProvider;
 import 'weekly_review_controller.dart' show weekStartFor;
@@ -207,5 +208,18 @@ Stream<RecapData> recapData(Ref ref, InsightRange range) async* {
     final routineCount = (await ritualRepo.getAll()).length;
     yield buildRecapData(range, entries, goals,
         routineCount: routineCount, now: now);
+  }
+}
+
+/// Re-derives Pal's learned patterns from the data the recap already surfaces.
+/// Read once when the Recap opens (the client-chosen cadence). Best-effort: a
+/// model hiccup is swallowed so memory never blocks the recap.
+@riverpod
+Future<void> recapMemoryRefresh(Ref ref) async {
+  try {
+    await ref.read(palServiceProvider).refreshMemory();
+    ref.invalidate(palMemoryProvider);
+  } catch (_) {
+    // memory refresh is best-effort
   }
 }

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { chatSystemPrompt, reviewPrompt, insightsPrompt, parsePrompt, suggestPrompt, postWorkoutPrompt, routinePrompt, receiptsBatchPrompt } from './prompts.js'
+import { chatSystemPrompt, reviewPrompt, insightsPrompt, parsePrompt, suggestPrompt, postWorkoutPrompt, routinePrompt, receiptsBatchPrompt, memoryBlock, agendaPrompt, memoryPatternsPrompt } from './prompts.js'
 
 describe('prompts', () => {
   it('chat system prompt substitutes user data', () => {
@@ -165,5 +165,72 @@ describe('prompts', () => {
     const p = receiptsBatchPrompt([{ from: 'a@b.com', subject: 's', text: long }])
     expect(p).not.toContain('x'.repeat(4001))
     expect(p).toContain('x'.repeat(4000))
+  })
+})
+
+describe('memoryBlock', () => {
+  const digest = {
+    facts: [{ id: 'f-1', text: 'marathon in October' }, { id: 'f-2', text: 'vegetarian' }],
+    patterns: [{ colorToken: 'money', title: 'Fridays cost most', detail: 'dining out' }],
+  }
+
+  it('returns empty string for absent or empty memory', () => {
+    expect(memoryBlock(undefined)).toBe('')
+    expect(memoryBlock({ facts: [], patterns: [] })).toBe('')
+  })
+
+  it('renders facts and patterns without ids by default', () => {
+    const out = memoryBlock(digest)
+    expect(out).toContain('marathon in October')
+    expect(out).toContain('Fridays cost most')
+    expect(out).not.toContain('f-1') // no ids unless asked
+  })
+
+  it('includes fact ids when withIds is set (for forget)', () => {
+    const out = memoryBlock(digest, { withIds: true })
+    expect(out).toContain('[f-1]')
+    expect(out).toContain('[f-2]')
+  })
+})
+
+const mem = {
+  facts: [{ id: 'f-1', text: 'training for a marathon in October' }],
+  patterns: [{ colorToken: 'move', title: 'Trains mornings', detail: 'most sessions before noon' }],
+}
+const chatCtx = {
+  userName: 'Sam', todayEntries: [], dailyBudget: 80, moveGoalKcal: 500, ritualGoal: 5,
+  spentToday: 0, movedTodayKcal: 0, ritualsDoneToday: 0, weekSpent: 0, weekBudget: 560,
+  weekMovedKcal: 0, weekRitualsDone: 0, weekRitualGoal: 35, moveStreakDays: 3,
+}
+const insightsCtx = {
+  range: 'week' as const, spent: 0, budget: 0, moveKcal: 0, moveTargetKcal: 0,
+  ritualsKept: 0, ritualsTarget: 0, activeDays: 0, streakDays: 0, topCategory: 'Dining',
+  topCategoryPct: 0, spendByWeekday: [], entries: [],
+}
+
+describe('memory injection', () => {
+  it('chat includes facts with ids (so forget can target them)', () => {
+    expect(chatSystemPrompt(chatCtx, mem)).toContain('[f-1]')
+  })
+  it('insights includes memory without ids', () => {
+    const out = insightsPrompt(insightsCtx, mem)
+    expect(out).toContain('training for a marathon')
+    expect(out).not.toContain('[f-1]')
+  })
+  it('omits the block entirely when no memory is given', () => {
+    expect(chatSystemPrompt(chatCtx)).not.toContain('already know about this user')
+    expect(insightsPrompt(insightsCtx)).not.toContain('already know about this user')
+  })
+  it('never injects memory into parse or post-workout (no memory param)', () => {
+    // these signatures take no memory arg; calling with one is a type error.
+    expect(parsePrompt('add $5 coffee')).not.toContain('already know about this user')
+  })
+  it('agenda injects memory into the prompt', () => {
+    expect(agendaPrompt(chatCtx, mem)).toContain('training for a marathon')
+  })
+  it('memoryPatternsPrompt frames current patterns as prior knowledge to revise', () => {
+    const out = memoryPatternsPrompt(insightsCtx, mem)
+    expect(out).toContain('Trains mornings')           // current patterns shown
+    expect(out.toLowerCase()).toContain('revise')      // framed as revision, not fresh
   })
 })

@@ -8,12 +8,14 @@ import type { EmailWorker } from './email.js'
 import type { TokenStore } from './store.js'
 import type { HealthStore } from './health.js'
 import type { WidgetSnapshotStore } from './widget.js'
-import { registerBody, chatBody, parseBody, reviewBody, insightsBody, suggestBody, postWorkoutBody, routineBody, agendaBody, emailTestBody, emailSyncBody, healthIngestBody, healthDayQuery, widgetSnapshotBody } from './schemas.js'
+import type { MemoryStore } from './memory.js'
+import { registerBody, chatBody, parseBody, reviewBody, insightsBody, suggestBody, postWorkoutBody, routineBody, agendaBody, emailTestBody, emailSyncBody, healthIngestBody, healthDayQuery, widgetSnapshotBody, memoryRefreshBody } from './schemas.js'
 
 export interface AppDeps {
   pal: Pal
   worker: EmailWorker
   store: TokenStore
+  memory: MemoryStore
   healthStore: HealthStore
   widgetStore: WidgetSnapshotStore
   provisioningKey: string
@@ -86,14 +88,57 @@ export function buildApp(deps: AppDeps): FastifyInstance {
       }
     }
 
-  app.post('/v1/chat', guard(chatBody, async (b) => deps.pal.chat(b.history, b.message, b.context)))
+  // like `guard`, but hands the validated bearer token to the handler (memory is
+  // partitioned by token). preHandler has already proven the token is valid.
+  const guardTok = <T>(schema: z.ZodType<T>, handler: (body: T, token: string) => Promise<unknown>) =>
+    async (req: FastifyRequest, reply: FastifyReply) => {
+      const parsed = schema.safeParse(req.body)
+      if (!parsed.success) return reply.code(400).send({ error: { code: 'bad_request', message: 'invalid body' } })
+      const token = extractBearer(req.headers.authorization)!
+      try {
+        return await handler(parsed.data, token)
+      } catch (err) {
+        const status = err instanceof OpenRouterError ? 502 : 500
+        req.log?.error?.(err)
+        return reply.code(status).send({ error: { code: 'upstream', message: 'pal request failed' } })
+      }
+    }
+
+  app.post('/v1/chat', guardTok(chatBody, async (b, token) => {
+    const res = await deps.pal.chat(b.history, b.message, b.context, deps.memory.digest(token))
+    deps.memory.applyOps(token, res.memoryOps) // server-side; not part of the wire response
+    return { reply: res.reply, actions: res.actions }
+  }))
   app.post('/v1/parse', guard(parseBody, async (b) => deps.pal.parse(b.text)))
-  app.post('/v1/review', guard(reviewBody, async (b) => ({ text: await deps.pal.review(b.context) })))
-  app.post('/v1/insights', guard(insightsBody, async (b) => deps.pal.insights(b.context)))
+  app.post('/v1/review', guardTok(reviewBody, async (b, token) => ({ text: await deps.pal.review(b.context, deps.memory.digest(token)) })))
+  app.post('/v1/insights', guardTok(insightsBody, async (b, token) => deps.pal.insights(b.context, deps.memory.digest(token))))
   app.post('/v1/suggest-workout', guard(suggestBody, async (b) => deps.pal.suggestWorkout(b.another, b.context)))
   app.post('/v1/post-workout-note', guard(postWorkoutBody, async (b) => ({ note: await deps.pal.postWorkoutNote(b.context) })))
-  app.post('/v1/routine', guard(routineBody, async (b) => deps.pal.generateRoutine(b.goal, b.exercises)))
-  app.post('/v1/agenda', guard(agendaBody, async (b) => deps.pal.agenda(b.context)))
+  app.post('/v1/routine', guardTok(routineBody, async (b, token) => deps.pal.generateRoutine(b.goal, b.exercises, deps.memory.digest(token))))
+  app.post('/v1/agenda', guardTok(agendaBody, async (b, token) => deps.pal.agenda(b.context, deps.memory.digest(token))))
+
+  app.get('/v1/memory', async (req) => {
+    const token = extractBearer(req.headers.authorization)!
+    return deps.memory.digest(token)
+  })
+
+  app.post('/v1/memory/refresh', guardTok(memoryRefreshBody, async (b, token) => {
+    const patterns = await deps.pal.refreshPatterns(b.context, deps.memory.digest(token))
+    deps.memory.setPatterns(token, patterns)
+    return deps.memory.digest(token)
+  }))
+
+  app.delete('/v1/memory/facts/:id', async (req) => {
+    const token = extractBearer(req.headers.authorization)!
+    deps.memory.forgetFact(token, (req.params as { id: string }).id)
+    return deps.memory.digest(token)
+  })
+
+  app.delete('/v1/memory', async (req) => {
+    const token = extractBearer(req.headers.authorization)!
+    deps.memory.wipe(token)
+    return { ok: true }
+  })
 
   app.post('/v1/health/ingest', guard(healthIngestBody, async (b) =>
     ({ upserted: deps.healthStore.upsert(b.date, b.metrics, b.capturedAt) })))

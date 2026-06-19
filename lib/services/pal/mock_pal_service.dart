@@ -459,21 +459,46 @@ class MockPalService implements PalService {
           enabled: false,
         ),
       ],
-      memory: [
-        PalMemory(
-            text: 'Mornings with journaling → 32% less food spend',
-            meta: 'Learned over 6 weeks'),
-        PalMemory(
-            text: 'You move 40% more after 7+ hours of sleep',
-            meta: 'Learned over 2 months'),
-        PalMemory(
-            text: 'Fridays are your spendiest day, about \$94',
-            meta: 'Ongoing pattern'),
-        PalMemory(
-            text: 'Evening rituals slip when you work past 8pm',
-            meta: 'Learned over 4 weeks'),
-      ],
     );
+  }
+
+  // in-memory persistent memory for the preview: facts are user-authored (none
+  // until a future chat-driven remember), patterns seed on refresh.
+  final List<PalFact> _facts = [];
+  List<InsightPattern> _patterns = const [];
+
+  static const _cannedPatterns = <InsightPattern>[
+    InsightPattern(colorToken: 'money', title: 'Fridays cost the most', detail: 'Dining out drives the spike.'),
+    InsightPattern(colorToken: 'move', title: 'Trains in the morning', detail: 'Most sessions land before noon.'),
+    InsightPattern(colorToken: 'rituals', title: 'Evenings slip when working late', detail: 'Wind-down skipped past 8pm.'),
+  ];
+
+  @override
+  Future<PalMemoryDigest> memory() async {
+    await Future<void>.delayed(latency);
+    return PalMemoryDigest(facts: List.of(_facts), patterns: List.of(_patterns));
+  }
+
+  @override
+  Future<PalMemoryDigest> refreshMemory() async {
+    await Future<void>.delayed(latency);
+    _patterns = _cannedPatterns;
+    return PalMemoryDigest(facts: List.of(_facts), patterns: List.of(_patterns));
+  }
+
+  @override
+  Future<PalMemoryDigest> deleteFact(String id) async {
+    await Future<void>.delayed(latency);
+    _facts.removeWhere((f) => f.id == id);
+    return PalMemoryDigest(facts: List.of(_facts), patterns: List.of(_patterns));
+  }
+
+  @override
+  Future<PalMemoryDigest> clearMemory() async {
+    await Future<void>.delayed(latency);
+    _facts.clear();
+    _patterns = const [];
+    return const PalMemoryDigest();
   }
 
   @override

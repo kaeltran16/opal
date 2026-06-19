@@ -91,3 +91,48 @@ final class RecapDataFamily extends $Family
   @override
   String toString() => r'recapDataProvider';
 }
+
+/// Re-derives Pal's learned patterns from the data the recap already surfaces.
+/// Read once when the Recap opens (the client-chosen cadence). Best-effort: a
+/// model hiccup is swallowed so memory never blocks the recap.
+
+@ProviderFor(recapMemoryRefresh)
+const recapMemoryRefreshProvider = RecapMemoryRefreshProvider._();
+
+/// Re-derives Pal's learned patterns from the data the recap already surfaces.
+/// Read once when the Recap opens (the client-chosen cadence). Best-effort: a
+/// model hiccup is swallowed so memory never blocks the recap.
+
+final class RecapMemoryRefreshProvider
+    extends $FunctionalProvider<AsyncValue<void>, void, FutureOr<void>>
+    with $FutureModifier<void>, $FutureProvider<void> {
+  /// Re-derives Pal's learned patterns from the data the recap already surfaces.
+  /// Read once when the Recap opens (the client-chosen cadence). Best-effort: a
+  /// model hiccup is swallowed so memory never blocks the recap.
+  const RecapMemoryRefreshProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'recapMemoryRefreshProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$recapMemoryRefreshHash();
+
+  @$internal
+  @override
+  $FutureProviderElement<void> $createElement($ProviderPointer pointer) =>
+      $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<void> create(Ref ref) {
+    return recapMemoryRefresh(ref);
+  }
+}
+
+String _$recapMemoryRefreshHash() =>
+    r'c966636811ae4d23a488bbd01abf7c966d23c6fb';

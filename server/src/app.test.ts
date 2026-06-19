@@ -4,10 +4,11 @@ import { ImapAuthError } from './imap.js'
 import { TokenStore } from './store.js'
 import { HealthStore } from './health.js'
 import { WidgetSnapshotStore } from './widget.js'
+import { MemoryStore } from './memory.js'
 
 function fakePal() {
   return {
-    chat: async () => ({ reply: 'reply text', actions: [{ kind: 'log_expense', amount: 5, category: 'Coffee', title: 'coffee', note: null }] }),
+    chat: async () => ({ reply: 'reply text', actions: [{ kind: 'log_expense', amount: 5, category: 'Coffee', title: 'coffee', note: null }], memoryOps: [] }),
     parse: async () => ({ type: 'money', amount: 5, duration: null, category: 'Coffee', title: 'Coffee', note: null }),
     review: async () => 'review text',
     insights: async () => ({ headline: 'Spending eased mid-week.', lede: null, suggestion: null, wins: [], patterns: [] }),
@@ -17,6 +18,8 @@ function fakePal() {
       name: 'Push Day', tag: 'upper', estMin: 45, rationale: 'compound first',
       exercises: [{ exerciseId: 'e1', sets: [{ reps: 8, weight: 40, duration: null }] }],
     }),
+    agenda: async () => ({ proposals: [], autopilot: [], streakDays: 0 }),
+    refreshPatterns: async () => [{ colorToken: 'money', title: 't', detail: 'd' }],
   }
 }
 
@@ -34,13 +37,99 @@ function fakeWorker(overrides: Partial<{ test: () => Promise<void>; sync: () => 
   }
 }
 
+// builds an app wired with a fresh MemoryStore and an already-issued token, for
+// the memory routes. palOverrides swaps in a fake Pal method per test.
+function buildTestApp(palOverrides: Record<string, unknown> = {}) {
+  const store = new TokenStore(':memory:')
+  const memory = new MemoryStore(':memory:')
+  const app = buildApp({
+    pal: { ...fakePal(), ...palOverrides } as never,
+    worker: fakeWorker() as never,
+    store, memory,
+    healthStore: new HealthStore(':memory:'),
+    widgetStore: new WidgetSnapshotStore(':memory:'),
+    provisioningKey: 'secret', corsOrigins: [],
+  })
+  const token = store.issue('d1')
+  return { app, memory, token }
+}
+
+const insightsCtxFixture = {
+  range: 'week', spent: 200, budget: 420, moveKcal: 1400, moveTargetKcal: 2100,
+  ritualsKept: 18, ritualsTarget: 35, activeDays: 5, streakDays: 11,
+  topCategory: 'Food', topCategoryPct: 34, spendByWeekday: [10, 20, 30, 40, 50, 25, 25], entries: [],
+}
+
+describe('memory endpoints', () => {
+  it('GET /v1/memory returns the stored digest for the token', async () => {
+    const { app, memory, token } = buildTestApp()
+    memory.addFact(token, 'rent due on the 1st')
+    const res = await app.inject({ method: 'GET', url: '/v1/memory', headers: { authorization: `Bearer ${token}` } })
+    expect(res.statusCode).toBe(200)
+    expect(res.json().facts[0].text).toBe('rent due on the 1st')
+  })
+
+  it('DELETE /v1/memory/facts/:id forgets one fact', async () => {
+    const { app, memory, token } = buildTestApp()
+    const f = memory.addFact(token, 'vegetarian')
+    const res = await app.inject({ method: 'DELETE', url: `/v1/memory/facts/${f.id}`, headers: { authorization: `Bearer ${token}` } })
+    expect(res.statusCode).toBe(200)
+    expect(memory.listFacts(token)).toEqual([])
+  })
+
+  it('DELETE /v1/memory wipes all memory', async () => {
+    const { app, memory, token } = buildTestApp()
+    memory.addFact(token, 'a'); memory.setPatterns(token, [{ colorToken: 'money', title: 't', detail: 'd' }])
+    await app.inject({ method: 'DELETE', url: '/v1/memory', headers: { authorization: `Bearer ${token}` } })
+    expect(memory.digest(token)).toEqual({ facts: [], patterns: [] })
+  })
+
+  it('POST /v1/memory/refresh rewrites patterns and returns the digest', async () => {
+    const { app, memory, token } = buildTestApp() // fake Pal.refreshPatterns returns one pattern
+    const res = await app.inject({
+      method: 'POST', url: '/v1/memory/refresh',
+      headers: { authorization: `Bearer ${token}` },
+      payload: { context: insightsCtxFixture },
+    })
+    expect(res.statusCode).toBe(200)
+    expect(res.json().patterns).toHaveLength(1)
+    expect(memory.getPatterns(token)).toHaveLength(1)
+  })
+
+  it('rejects memory routes without a valid token', async () => {
+    const { app } = buildTestApp()
+    expect((await app.inject({ method: 'GET', url: '/v1/memory' })).statusCode).toBe(401)
+  })
+
+  it('chat applies memoryOps to the store and never returns them as actions', async () => {
+    const { app, memory, token } = buildTestApp({
+      chat: async () => ({ reply: 'ok', actions: [], memoryOps: [{ op: 'remember', text: 'likes oat milk' }] }),
+    })
+    const res = await app.inject({
+      method: 'POST', url: '/v1/chat',
+      headers: { authorization: `Bearer ${token}` },
+      payload: {
+        history: [], message: 'i like oat milk',
+        context: {
+          userName: 'Kael', todayEntries: [], dailyBudget: 60, moveGoalKcal: 400, ritualGoal: 5,
+          spentToday: 0, movedTodayKcal: 0, ritualsDoneToday: 0,
+          weekSpent: 0, weekBudget: 420, weekMovedKcal: 0, weekRitualsDone: 0, weekRitualGoal: 35, moveStreakDays: 0,
+        },
+      },
+    })
+    expect(res.statusCode).toBe(200)
+    expect(res.json()).not.toHaveProperty('memoryOps')
+    expect(memory.listFacts(token).map((f) => f.text)).toContain('likes oat milk')
+  })
+})
+
 describe('app', () => {
   let app: ReturnType<typeof buildApp>
   let store: TokenStore
 
   function build(worker = fakeWorker()) {
     store = new TokenStore(':memory:')
-    return buildApp({ pal: fakePal() as never, worker: worker as never, store, healthStore: new HealthStore(':memory:'), widgetStore: new WidgetSnapshotStore(':memory:'), provisioningKey: 'secret', corsOrigins: [] })
+    return buildApp({ pal: fakePal() as never, worker: worker as never, store, memory: new MemoryStore(':memory:'), healthStore: new HealthStore(':memory:'), widgetStore: new WidgetSnapshotStore(':memory:'), provisioningKey: 'secret', corsOrigins: [] })
   }
 
   beforeEach(async () => {
@@ -340,7 +429,7 @@ describe('rate limit keying', () => {
 
   beforeEach(async () => {
     store = new TokenStore(':memory:')
-    app = buildApp({ pal: fakePal() as never, worker: fakeWorker() as never, store, healthStore: new HealthStore(':memory:'), widgetStore: new WidgetSnapshotStore(':memory:'), provisioningKey: 'secret', corsOrigins: [] })
+    app = buildApp({ pal: fakePal() as never, worker: fakeWorker() as never, store, memory: new MemoryStore(':memory:'), healthStore: new HealthStore(':memory:'), widgetStore: new WidgetSnapshotStore(':memory:'), provisioningKey: 'secret', corsOrigins: [] })
     await app.ready()
   })
 
@@ -368,7 +457,7 @@ describe('cors', () => {
 
   function buildCors() {
     const store = new TokenStore(':memory:')
-    return buildApp({ pal: fakePal() as never, worker: fakeWorker() as never, store, healthStore: new HealthStore(':memory:'), widgetStore: new WidgetSnapshotStore(':memory:'), provisioningKey: 'secret', corsOrigins: [allowed] })
+    return buildApp({ pal: fakePal() as never, worker: fakeWorker() as never, store, memory: new MemoryStore(':memory:'), healthStore: new HealthStore(':memory:'), widgetStore: new WidgetSnapshotStore(':memory:'), provisioningKey: 'secret', corsOrigins: [allowed] })
   }
 
   let app: ReturnType<typeof buildApp>

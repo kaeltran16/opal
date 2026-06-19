@@ -1,8 +1,9 @@
 import { z } from 'zod'
 import {
-  chatSystemPrompt, reviewPrompt, insightsPrompt, parsePrompt, suggestPrompt, postWorkoutPrompt, routinePrompt, agendaPrompt,
+  chatSystemPrompt, reviewPrompt, insightsPrompt, parsePrompt, suggestPrompt, postWorkoutPrompt, routinePrompt, agendaPrompt, memoryPatternsPrompt,
   type ChatContext, type ReviewContext, type InsightsContext, type SuggestContext, type PostWorkoutContext, type RoutineExercise,
 } from './prompts.js'
+import { MAX_PATTERNS, type MemoryOp, type MemoryDigest, type MemoryPattern } from './memory.js'
 
 const MAX_TOKENS = 1024
 // insights and routine JSON run long; a 1024 cut-off truncates the object.
@@ -179,6 +180,14 @@ export const insightsSchema = z.object({
 })
 export type Insights = z.infer<typeof insightsSchema>
 
+export const memoryPatternsSchema = z.object({
+  patterns: z.array(z.object({
+    colorToken: z.enum(['money', 'move', 'rituals']).catch('money'),
+    title: z.string(),
+    detail: z.string(),
+  })).default([]),
+})
+
 // --- Pal Home agenda (/v1/agenda) -------------------------------------------
 // The model picks each item's `kind` (and the copy); the server derives the
 // SF-symbol icons, approve icon, and navigation action from that kind, so the
@@ -218,14 +227,12 @@ export const agendaModelSchema = z.object({
     subtitle: z.string(),
     enabled: z.boolean(),
   })).default([]),
-  memory: z.array(z.object({ text: z.string(), meta: z.string() })).default([]),
 })
 
 // The wire shape the client decodes (icons/action resolved, streak echoed).
 export interface AgendaResult {
   proposals: Array<{ id: string; tag: string; colorToken: string; icon: string; title: string; body: string; approveLabel: string; approveIcon: string; doneLabel: string; action: string | null }>
   autopilot: Array<{ id: string; colorToken: string; icon: string; title: string; subtitle: string; enabled: boolean }>
-  memory: Array<{ text: string; meta: string }>
   streakDays: number
 }
 
@@ -276,6 +283,7 @@ export type PalAction =
 export interface ChatResult {
   reply: string
   actions: PalAction[]
+  memoryOps: MemoryOp[]
 }
 
 // money amounts arrive as a magnitude; coerce sign/zero defensively.
@@ -334,6 +342,10 @@ export const CHAT_TOOLS = [
     obj({ dailyRitualTarget: numProp('new daily ritual target') }, ['dailyRitualTarget'])),
   tool('create_routine', 'Build and save a new workout routine from a free-text goal. Use when the user asks to create, make, build, or design a routine or workout plan.',
     obj({ goal: strProp('what the routine targets, e.g. "push day" or "20-minute cardio"'), name: strProp('optional name for the routine') }, ['goal'])),
+  tool('remember', 'Persist a durable fact the user states about themselves (e.g. a goal, a constraint, a preference, a recurring date). Use only for lasting facts, not one-off logs.',
+    obj({ fact: strProp('the durable fact, one short sentence') }, ['fact'])),
+  tool('forget', 'Drop a previously remembered fact that is now wrong or obsolete. Use the id shown in brackets next to the fact.',
+    obj({ id: strProp('the id of the fact to forget, e.g. f-1a2b') }, ['id'])),
 ]
 
 /// Validate the model's tool calls into PalActions, dropping any that are unknown
@@ -350,6 +362,26 @@ export function toolCallsToActions(calls: ToolCall[]): PalAction[] {
     }
   }
   return actions
+}
+
+// Memory tool calls are applied server-side; they never become client PalActions.
+export function toolCallsToMemoryOps(calls: ToolCall[]): MemoryOp[] {
+  const ops: MemoryOp[] = []
+  for (const call of calls) {
+    try {
+      const args = JSON.parse(call.arguments)
+      if (call.name === 'remember') {
+        const fact = z.string().trim().min(1).parse(args.fact)
+        ops.push({ op: 'remember', text: fact })
+      } else if (call.name === 'forget') {
+        const id = z.string().trim().min(1).parse(args.id)
+        ops.push({ op: 'forget', id })
+      }
+    } catch {
+      // malformed args or non-JSON — skip this op
+    }
+  }
+  return ops
 }
 
 const money = (n: number) => (n % 1 === 0 ? `$${n}` : `$${n.toFixed(2)}`)
@@ -382,27 +414,36 @@ export function synthReply(actions: PalAction[]): string {
 export class Pal {
   constructor(private readonly client: CompletionClient) {}
 
-  async chat(history: Array<{ role: 'user' | 'assistant'; text: string }>, message: string, ctx: ChatContext): Promise<ChatResult> {
+  async chat(history: Array<{ role: 'user' | 'assistant'; text: string }>, message: string, ctx: ChatContext, memory?: MemoryDigest): Promise<ChatResult> {
     // keep only the most recent turns; system + new user message are always included and don't count.
     const recent = history.slice(-MAX_HISTORY_MESSAGES)
     const messages: ChatMessage[] = [
-      { role: 'system', content: chatSystemPrompt(ctx) },
+      { role: 'system', content: chatSystemPrompt(ctx, memory) },
       ...recent.map((m) => ({ role: m.role, content: m.text })),
       { role: 'user', content: message },
     ]
     const res = await this.client.completeWithTools(messages, CHAT_TOOLS)
     const actions = toolCallsToActions(res.toolCalls)
+    const memoryOps = toolCallsToMemoryOps(res.toolCalls)
     const reply = res.content || synthReply(actions)
-    return { reply, actions }
+    return { reply, actions, memoryOps }
   }
 
-  async review(ctx: ReviewContext): Promise<string> {
-    return this.client.complete([{ role: 'user', content: reviewPrompt(ctx) }])
+  async review(ctx: ReviewContext, memory?: MemoryDigest): Promise<string> {
+    return this.client.complete([{ role: 'user', content: reviewPrompt(ctx, memory) }])
   }
 
-  async insights(ctx: InsightsContext): Promise<Insights> {
-    const raw = await this.client.complete([{ role: 'user', content: insightsPrompt(ctx) }], { json: true, maxTokens: INSIGHTS_MAX_TOKENS, temperature: 0 })
+  async insights(ctx: InsightsContext, memory?: MemoryDigest): Promise<Insights> {
+    const raw = await this.client.complete([{ role: 'user', content: insightsPrompt(ctx, memory) }], { json: true, maxTokens: INSIGHTS_MAX_TOKENS, temperature: 0 })
     return insightsSchema.parse(extractJson(raw))
+  }
+
+  async refreshPatterns(ctx: InsightsContext, digest: MemoryDigest): Promise<MemoryPattern[]> {
+    const raw = await this.client.complete(
+      [{ role: 'user', content: memoryPatternsPrompt(ctx, digest) }],
+      { json: true, maxTokens: INSIGHTS_MAX_TOKENS, temperature: 0 },
+    )
+    return memoryPatternsSchema.parse(extractJson(raw)).patterns.slice(0, MAX_PATTERNS)
   }
 
   async postWorkoutNote(ctx: PostWorkoutContext): Promise<string> {
@@ -420,9 +461,9 @@ export class Pal {
     return suggestSchema.parse(extractJson(raw))
   }
 
-  async agenda(ctx: ChatContext): Promise<AgendaResult> {
+  async agenda(ctx: ChatContext, memory?: MemoryDigest): Promise<AgendaResult> {
     const raw = await this.client.complete(
-      [{ role: 'user', content: agendaPrompt(ctx) }],
+      [{ role: 'user', content: agendaPrompt(ctx, memory) }],
       { json: true, maxTokens: INSIGHTS_MAX_TOKENS, temperature: 0 },
     )
     const parsed = agendaModelSchema.parse(extractJson(raw))
@@ -450,16 +491,15 @@ export class Pal {
         subtitle: a.subtitle,
         enabled: a.enabled,
       })),
-      memory: parsed.memory,
       streakDays: ctx.moveStreakDays,
     }
   }
 
-  async generateRoutine(goal: string, exercises: RoutineExercise[]): Promise<GeneratedRoutine> {
+  async generateRoutine(goal: string, exercises: RoutineExercise[], memory?: MemoryDigest): Promise<GeneratedRoutine> {
     // drop any exercise the model invented — the client can only resolve catalog ids.
     const known = new Set(exercises.map((e) => e.id))
     const draw = async (): Promise<GeneratedRoutine> => {
-      const raw = await this.client.complete([{ role: 'user', content: routinePrompt(goal, exercises) }], { json: true, maxTokens: ROUTINE_MAX_TOKENS })
+      const raw = await this.client.complete([{ role: 'user', content: routinePrompt(goal, exercises, memory) }], { json: true, maxTokens: ROUTINE_MAX_TOKENS })
       const parsed = routineSchema.parse(extractJson(raw))
       return { ...parsed, exercises: parsed.exercises.filter((e) => known.has(e.exerciseId)) }
     }

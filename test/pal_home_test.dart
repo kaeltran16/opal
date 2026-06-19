@@ -3,11 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:opal/controllers/pal_memory_controller.dart';
 import 'package:opal/controllers/providers.dart';
 import 'package:opal/data/db/database.dart';
 import 'package:opal/data/seed/seeder.dart';
 import 'package:opal/router.dart';
 import 'package:opal/services/pal/mock_pal_service.dart';
+import 'package:opal/services/pal/pal_service.dart';
 import 'package:opal/theme/app_colors.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -15,7 +17,8 @@ import 'support/flush_provider_timers.dart';
 
 /// Boots the full app (router + theme) at [location] with an in-memory db and a
 /// zero-latency [MockPalService], so the Pal-brief Refresh resolves instantly.
-Future<void> _pumpApp(WidgetTester tester, {required String location}) async {
+Future<void> _pumpApp(WidgetTester tester,
+    {required String location, PalMemoryDigest? memory}) async {
   // Tall surface so the long Pal Home / tab list renders fully — the default
   // ~800×600 test window lazy-builds the list and leaves lower sections (Ask Pal
   // CTA, autopilot, memory) off-screen and unhittable.
@@ -40,6 +43,7 @@ Future<void> _pumpApp(WidgetTester tester, {required String location}) async {
         loopDatabaseProvider.overrideWithValue(db),
         palServiceProvider
             .overrideWithValue(MockPalService(latency: Duration.zero)),
+        if (memory != null) palMemoryProvider.overrideWith((ref) async => memory),
       ],
       child: MaterialApp.router(
         debugShowCheckedModeBanner: false,
@@ -55,7 +59,11 @@ void main() {
   group('Pal Home', () {
     testWidgets('renders the brief, needs-you actions, and all sections',
         (tester) async {
-      await _pumpApp(tester, location: '/pal-home');
+      await _pumpApp(tester, location: '/pal-home', memory: const PalMemoryDigest(
+        facts: [PalFact(id: 'f-1', text: 'Training for a marathon in October')],
+        patterns: [InsightPattern(
+            colorToken: 'money', title: 'Fridays cost the most', detail: 'Dining out drives the spike.')],
+      ));
 
       // Brief card + its default copy.
       expect(find.text("TODAY'S BRIEF"), findsOneWidget);
@@ -71,8 +79,8 @@ void main() {
       // On autopilot section (its header + an autopilot row title).
       expect(find.text('Rent auto-pay watch'), findsOneWidget);
       expect(find.text('What Pal remembers'), findsOneWidget);
-      expect(find.text('Mornings with journaling → 32% less food spend'),
-          findsOneWidget);
+      expect(find.text('Training for a marathon in October'), findsOneWidget);
+      expect(find.text('Fridays cost the most'), findsOneWidget);
       expect(find.text('Ask Pal anything'), findsOneWidget);
 
       await flushProviderTimers(tester);

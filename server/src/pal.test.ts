@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import {
-  Pal, OpenRouterClient, OpenRouterError, extractJson, toolCallsToActions, parseSchema, synthReply,
+  Pal, OpenRouterClient, OpenRouterError, extractJson, toolCallsToActions, toolCallsToMemoryOps, parseSchema, synthReply,
   type CompletionClient, type CompletionResult, type ToolCall, type ChatMessage,
 } from './pal.js'
 
@@ -36,7 +36,6 @@ describe('Pal.agenda', () => {
         body: 'A 5-min wind-down closes your ring.', approveLabel: 'Start close-out', doneLabel: 'Close-out queued',
       }],
       autopilot: [{ kind: 'bills_watch', colorToken: 'money', title: 'Rent watch', subtitle: 'Alerts if low', enabled: true }],
-      memory: [{ text: 'Fridays cost the most', meta: 'Ongoing pattern' }],
     })
     const res = await new Pal(fakeClient(model)).agenda(ctx)
 
@@ -45,7 +44,6 @@ describe('Pal.agenda', () => {
     })
     expect(res.proposals[0].id).toBe('close_out-0')
     expect(res.autopilot[0].icon).toBe('house.fill')
-    expect(res.memory[0].text).toBe('Fridays cost the most')
     expect(res.streakDays).toBe(11)
   })
 
@@ -55,7 +53,7 @@ describe('Pal.agenda', () => {
         kind: 'teleport', colorToken: 'move', tag: 'Workout', title: 'x', body: 'y',
         approveLabel: 'Do it', doneLabel: 'Done',
       }],
-      autopilot: [], memory: [],
+      autopilot: [],
     })
     const res = await new Pal(fakeClient(model)).agenda(ctx)
     expect(res.proposals[0]).toMatchObject({ icon: 'sparkles', approveIcon: 'checkmark', action: null })
@@ -504,6 +502,77 @@ function baseInsightsCtx() {
     topCategory: 'Food', topCategoryPct: 34, spendByWeekday: [10, 20, 30, 40, 50, 25, 25], entries: [],
   }
 }
+
+const insightsCtxFixture = {
+  range: 'week' as const, spent: 200, budget: 420, moveKcal: 1400, moveTargetKcal: 2100,
+  ritualsKept: 18, ritualsTarget: 35, activeDays: 5, streakDays: 11,
+  topCategory: 'Food', topCategoryPct: 34, spendByWeekday: [10, 20, 30, 40, 50, 25, 25], entries: ['08:00 Coffee'],
+}
+
+describe('refreshPatterns', () => {
+  it('parses and caps patterns from the model', async () => {
+    const many = Array.from({ length: 8 }, (_, i) => ({ colorToken: 'money', title: `t${i}`, detail: 'd' }))
+    const client: CompletionClient = {
+      complete: async () => JSON.stringify({ patterns: many }),
+      completeWithTools: async () => ({ content: '', toolCalls: [] }),
+    }
+    const pal = new Pal(client)
+    const out = await pal.refreshPatterns(insightsCtxFixture, { facts: [], patterns: [] })
+    expect(out).toHaveLength(5) // MAX_PATTERNS
+    expect(out[0]).toEqual({ colorToken: 'money', title: 't0', detail: 'd' })
+  })
+
+  it('coerces an off-list colorToken', async () => {
+    const client: CompletionClient = {
+      complete: async () => JSON.stringify({ patterns: [{ colorToken: 'bogus', title: 't', detail: 'd' }] }),
+      completeWithTools: async () => ({ content: '', toolCalls: [] }),
+    }
+    const out = await new Pal(client).refreshPatterns(insightsCtxFixture, { facts: [], patterns: [] })
+    expect(['money', 'move', 'rituals']).toContain(out[0].colorToken)
+  })
+})
+
+describe('agenda no longer fabricates memory', () => {
+  it('omits a memory field from the result', async () => {
+    const client: CompletionClient = {
+      complete: async () => JSON.stringify({ proposals: [], autopilot: [] }),
+      completeWithTools: async () => ({ content: '', toolCalls: [] }),
+    }
+    const res = await new Pal(client).agenda(baseChatCtx(), { facts: [], patterns: [] })
+    expect('memory' in res).toBe(false)
+    expect(res.proposals).toEqual([])
+  })
+})
+
+describe('chat memory ops', () => {
+  it('extracts remember/forget as memoryOps, not client actions', async () => {
+    const client = fakeToolClient({
+      content: '',
+      toolCalls: [
+        toolCall('remember', { fact: 'training for a marathon' }),
+        toolCall('forget', { id: 'f-9' }),
+        toolCall('log_expense', { amount: 5, category: 'Coffee', title: 'coffee' }),
+      ],
+    })
+    const res = await new Pal(client).chat([], 'hi', baseChatCtx())
+    expect(res.memoryOps).toEqual([
+      { op: 'remember', text: 'training for a marathon' },
+      { op: 'forget', id: 'f-9' },
+    ])
+    // the expense is still a client action; memory tools are not.
+    expect(res.actions).toHaveLength(1)
+    expect(res.actions[0]).toMatchObject({ kind: 'log_expense' })
+  })
+
+  it('drops malformed memory tool calls', () => {
+    const ops = toolCallsToMemoryOps([
+      { name: 'remember', arguments: '{bad json' },
+      { name: 'remember', arguments: JSON.stringify({ fact: '' }) }, // empty -> dropped
+      { name: 'forget', arguments: JSON.stringify({}) },             // no id -> dropped
+    ])
+    expect(ops).toEqual([])
+  })
+})
 
 function baseChatCtx() {
   return {

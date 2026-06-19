@@ -1,3 +1,5 @@
+import type { MemoryDigest } from './memory.js'
+
 export interface ChatContext {
   userName: string
   todayEntries: string[]
@@ -62,12 +64,27 @@ export interface PostWorkoutContext {
   daysAgoLastSession: number | null
 }
 
-export function chatSystemPrompt(c: ChatContext): string {
+// renders Pal's stored memory as a compact block for prompt injection. returns
+// '' when there is nothing to inject so callers can prepend unconditionally.
+// withIds exposes fact ids so the chat model can target them with forget.
+export function memoryBlock(digest: MemoryDigest | undefined, opts?: { withIds?: boolean }): string {
+  if (!digest || (digest.facts.length === 0 && digest.patterns.length === 0)) return ''
+  const facts = digest.facts.map((f) => (opts?.withIds ? `[${f.id}] ${f.text}` : `- ${f.text}`))
+  const patterns = digest.patterns.map((p) => `- ${p.title}: ${p.detail}`)
+  const parts: string[] = ['What you already know about this user:']
+  if (facts.length) parts.push('Facts they told you:', ...facts)
+  if (patterns.length) parts.push('Patterns you have observed:', ...patterns)
+  return parts.join('\n')
+}
+
+export function chatSystemPrompt(c: ChatContext, memory?: MemoryDigest): string {
   const entries = c.todayEntries.length ? c.todayEntries.join('\n') : '(none yet)'
   const heading = c.userName ? `Today's entries for ${c.userName}:` : "Today's entries:"
+  const mem = memoryBlock(memory, { withIds: true })
+  const memSection = mem ? `${mem}\nWhen the user states a durable fact about themselves, call remember. When a remembered fact is wrong or obsolete, call forget with its id.\n\n` : ''
   return `You are Pal, a gentle, concise coach in an iOS app that tracks money, movement and daily rituals.
 
-${heading}
+${memSection}${heading}
 ${entries}
 
 Daily budget $${c.dailyBudget}, move goal ${c.moveGoalKcal}kcal, ritual goal ${c.ritualGoal}.
@@ -82,20 +99,22 @@ When you log an entry (expense, income, movement or ritual), the app already sho
 Reply in 1-3 short sentences. Friendly, specific, no filler. Never say "amazing" or "great job" — be observational and warm instead.`
 }
 
-export function reviewPrompt(c: ReviewContext): string {
+export function reviewPrompt(c: ReviewContext, memory?: MemoryDigest): string {
   const period = c.range === 'week' ? 'week' : 'month'
   // delta phrases only render when there's a comparable prior period
   const deltaPhrase = (pct: number | null) =>
     pct === null ? '' : ` (${pct < 0 ? 'down' : 'up'} ${Math.abs(pct)}% vs last ${period})`
-  return `Write a 2-3 sentence warm, specific, editorial reflection on this ${period}'s tracking data. Avoid hype words like "amazing" or "crushed it". Be specific and observational.
+  const mem = memoryBlock(memory)
+  return `${mem ? mem + '\n\n' : ''}Write a 2-3 sentence warm, specific, editorial reflection on this ${period}'s tracking data. Avoid hype words like "amazing" or "crushed it". Be specific and observational.
 
 Data: $${c.spent} spent${deltaPhrase(c.spentDeltaPct)}, ${c.kcalMoved}kcal moved${deltaPhrase(c.movedDeltaPct)}, ${c.activeDays} active days, ${c.ritualsKept}/${c.ritualsTarget} rituals kept (${c.ritualsPct}%). Current ${c.streakDays}-day move streak. Top category: ${c.topCategory} ${c.topCategoryPct}%.`
 }
 
-export function insightsPrompt(c: InsightsContext): string {
+export function insightsPrompt(c: InsightsContext, memory?: MemoryDigest): string {
   const weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
   const byDay = weekdays.map((d, i) => `${d} $${c.spendByWeekday[i] ?? 0}`).join(', ')
   const entries = c.entries.length ? c.entries.join('\n') : '(none)'
+  const mem = memoryBlock(memory)
   const shape = `{"headline": string|null, "lede": string|null, "suggestion": string|null, "wins": [{"colorToken": "money"|"move"|"rituals", "title": string, "sub": string}], "patterns": [{"colorToken": "money"|"move"|"rituals", "title": string, "detail": string}]}`
 
   const byRange: Record<InsightsContext['range'], string> = {
@@ -104,7 +123,7 @@ export function insightsPrompt(c: InsightsContext): string {
     month: 'Range is "month": fill up to 3 "patterns". "headline", "lede" and "suggestion" may be null; leave "wins" empty.',
   }
 
-  return `Reflect on this ${c.range}'s tracking data. Be specific and observational. Avoid hype words like "amazing", "crushed it", or "great job".
+  return `${mem ? mem + '\n\n' : ''}Reflect on this ${c.range}'s tracking data. Be specific and observational. Avoid hype words like "amazing", "crushed it", or "great job".
 
 Data: $${c.spent} of $${c.budget} budget, ${c.moveKcal} of ${c.moveTargetKcal} move kcal, ${c.ritualsKept}/${c.ritualsTarget} rituals kept, ${c.activeDays} active days, ${c.streakDays}-day move streak. Top category: ${c.topCategory} ${c.topCategoryPct}%.
 Spend by weekday: ${byDay}.
@@ -148,21 +167,21 @@ No prose. Output only the JSON object.`
 }
 
 // The Pal Home agenda reuses the chat context (today + week + goals + streak).
-export function agendaPrompt(c: ChatContext): string {
+export function agendaPrompt(c: ChatContext, memory?: MemoryDigest): string {
   const entries = c.todayEntries.length ? c.todayEntries.join('\n') : '(none yet)'
   const name = c.userName || 'the user'
-  const shape = `{"proposals":[{"kind":"reschedule_workout"|"hold_funds"|"close_out"|"add_ritual"|"generic","colorToken":"money"|"move"|"rituals","tag":string,"title":string,"body":string,"approveLabel":string,"doneLabel":string}],"autopilot":[{"kind":"bills_watch"|"review_draft"|"spend_nudge"|"generic","colorToken":"money"|"move"|"rituals"|"accent","title":string,"subtitle":string,"enabled":boolean}],"memory":[{"text":string,"meta":string}]}`
+  const mem = memoryBlock(memory)
+  const shape = `{"proposals":[{"kind":"reschedule_workout"|"hold_funds"|"close_out"|"add_ritual"|"generic","colorToken":"money"|"move"|"rituals","tag":string,"title":string,"body":string,"approveLabel":string,"doneLabel":string}],"autopilot":[{"kind":"bills_watch"|"review_draft"|"spend_nudge"|"generic","colorToken":"money"|"move"|"rituals"|"accent","title":string,"subtitle":string,"enabled":boolean}]}`
   return `You are Pal, a calm, specific coach in an iOS app tracking money, movement and daily rituals. Build today's agenda for ${name}.
 
-Today's entries:
+${mem ? mem + '\n\n' : ''}Today's entries:
 ${entries}
 
 Daily budget $${c.dailyBudget}, move goal ${c.moveGoalKcal}kcal, ritual goal ${c.ritualGoal}. So far: $${c.spentToday} spent, ${c.movedTodayKcal}kcal moved, ${c.ritualsDoneToday}/${c.ritualGoal} rituals done. Week: $${c.weekSpent} of $${c.weekBudget}, ${c.weekMovedKcal}kcal, ${c.weekRitualsDone}/${c.weekRitualGoal} rituals. ${c.moveStreakDays}-day move streak.
 
-Produce three lists:
+Produce two lists:
 - "proposals": up to 4 concrete actions you can take FOR them, each needing one approval. Set "kind" to the matching action (reschedule a workout, hold money aside, close out the day, add a ritual, or generic). "tag" is the pillar label (Workout, Money, or Rituals); "colorToken" is the pillar (move, money, rituals). "approveLabel" is a short button verb (e.g. "Hold $40"); "doneLabel" is the past-tense confirmation. Keep "body" to one or two specific sentences grounded in the numbers above.
 - "autopilot": up to 3 things you handle quietly in the background, each with an on/off "enabled".
-- "memory": up to 4 durable patterns you've learned about them; each a short "text" with a "meta" like "Learned over 6 weeks". Ground these in the data; do not invent precise numbers you can't derive.
 
 Calm and specific. No hype words ("amazing", "crushed it"). Never use markdown.
 Return strictly this JSON shape; arrays may be empty but must be present: ${shape}
@@ -222,13 +241,14 @@ export interface RoutineExercise {
   equipment: string | null
 }
 
-export function routinePrompt(goal: string, exercises: RoutineExercise[]): string {
+export function routinePrompt(goal: string, exercises: RoutineExercise[], memory?: MemoryDigest): string {
   const list = exercises
     .map((e) => `${e.id}: ${e.name} (${e.group}${e.equipment ? `, ${e.equipment}` : ''})`)
     .join('\n')
+  const mem = memoryBlock(memory)
   return `Design a workout routine for this goal: "${goal}".
 
-Choose from ONLY these exercises (use the exact id):
+${mem ? mem + '\n\n' : ''}Choose from ONLY these exercises (use the exact id):
 ${list}
 
 Decide which exercises fit, how many, and the sets — reps and weight (kg) for strength, or duration (minutes) for cardio/timed work. Omit fields that don't apply to a set.
@@ -238,4 +258,28 @@ Return strictly this JSON, no prose:
 - exerciseId MUST be one of the ids listed above.
 - tag: pick the closest of upper, lower, full, cardio, custom.
 - Output only the JSON object.`
+}
+
+// rewrites Pal's learned patterns from the latest data. the current facts +
+// patterns are handed in as prior knowledge to REVISE, not to restate fresh, so
+// the model doesn't echo the same observations every refresh.
+export function memoryPatternsPrompt(c: InsightsContext, digest: MemoryDigest): string {
+  const weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+  const byDay = weekdays.map((d, i) => `${d} $${c.spendByWeekday[i] ?? 0}`).join(', ')
+  const entries = c.entries.length ? c.entries.join('\n') : '(none)'
+  const prior = memoryBlock(digest) || '(nothing learned yet)'
+  const shape = `{"patterns":[{"colorToken":"money"|"move"|"rituals","title":string,"detail":string}]}`
+  return `You maintain a small set of durable patterns Pal has learned about this user.
+
+${prior}
+
+Revise that set against the latest data below. Keep what still holds, drop what no longer does, add at most a few genuinely new ones. Return at most 5 patterns total. Ground every pattern in the data; do not invent numbers you cannot derive.
+
+Data: $${c.spent} of $${c.budget} budget, ${c.moveKcal} of ${c.moveTargetKcal} move kcal, ${c.ritualsKept}/${c.ritualsTarget} rituals kept, ${c.activeDays} active days, ${c.streakDays}-day move streak. Top category: ${c.topCategory} ${c.topCategoryPct}%.
+Spend by weekday: ${byDay}.
+Entries:
+${entries}
+
+Return strictly this JSON shape; "patterns" must be present (use [] when nothing holds): ${shape}
+No prose, no code fence. Output only the JSON object.`
 }

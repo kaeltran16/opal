@@ -57,4 +57,13 @@ void main() {
       expect(r.actions, isEmpty);
     });
   });
+
+  test('mock memory: refresh seeds patterns, delete/clear mutate facts', () async {
+    final pal = MockPalService(latency: Duration.zero);
+    final seeded = await pal.refreshMemory();
+    expect(seeded.patterns, isNotEmpty);
+
+    final afterClear = await pal.clearMemory();
+    expect(afterClear.isEmpty, isTrue);
+  });
 }
