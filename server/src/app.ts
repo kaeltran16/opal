@@ -75,10 +75,22 @@ export function buildApp(deps: AppDeps): FastifyInstance {
     }
   })
 
+  // surface which field failed so a malformed client (e.g. the Health Shortcut)
+  // can self-diagnose instead of getting an opaque "invalid body". additive: the
+  // code/message are unchanged, only `details` is new.
+  const badRequest = (reply: FastifyReply, error: z.ZodError) =>
+    reply.code(400).send({
+      error: {
+        code: 'bad_request',
+        message: 'invalid body',
+        details: error.issues.map((i) => `${i.path.join('.') || '(root)'}: ${i.message}`),
+      },
+    })
+
   const guard = <T>(schema: z.ZodType<T>, handler: (body: T) => Promise<unknown>) =>
     async (req: FastifyRequest, reply: FastifyReply) => {
       const parsed = schema.safeParse(req.body)
-      if (!parsed.success) return reply.code(400).send({ error: { code: 'bad_request', message: 'invalid body' } })
+      if (!parsed.success) return badRequest(reply, parsed.error)
       try {
         return await handler(parsed.data)
       } catch (err) {
@@ -93,7 +105,7 @@ export function buildApp(deps: AppDeps): FastifyInstance {
   const guardTok = <T>(schema: z.ZodType<T>, handler: (body: T, token: string) => Promise<unknown>) =>
     async (req: FastifyRequest, reply: FastifyReply) => {
       const parsed = schema.safeParse(req.body)
-      if (!parsed.success) return reply.code(400).send({ error: { code: 'bad_request', message: 'invalid body' } })
+      if (!parsed.success) return badRequest(reply, parsed.error)
       const token = extractBearer(req.headers.authorization)!
       try {
         return await handler(parsed.data, token)
