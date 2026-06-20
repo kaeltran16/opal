@@ -6,6 +6,7 @@ import '../../controllers/pal_agenda_controller.dart';
 import '../../controllers/pal_memory_controller.dart';
 import '../../controllers/providers.dart';
 import '../../router.dart';
+import '../../services/pal/pal_context_builder.dart' show moveStreakDays;
 import '../../services/pal/pal_service.dart';
 import '../../theme/theme.dart';
 import '../../widgets/app_icon.dart';
@@ -118,6 +119,12 @@ class _PalHomeScreenState extends ConsumerState<PalHomeScreen> {
     final agendaAsync = ref.watch(palAgendaProvider);
     final agenda = agendaAsync.asData?.value ?? const PalAgenda();
     final memory = ref.watch(palMemoryProvider).asData?.value ?? const PalMemoryDigest();
+    // The hero's "Streak held" is the live workout streak, computed from real
+    // entries — the same source the Move week strip and streak celebration use.
+    // The agenda payload's streakDays isn't displayed (it would drift from the
+    // real data, as the hardcoded mock showed "11d" against a 2-workout week).
+    final entries = ref.watch(allEntriesStreamProvider).asData?.value;
+    final streakDays = entries == null ? 0 : moveStreakDays(entries);
 
     final visibleProposals = agenda.proposals
         .where((p) => _statusOf(p.id) != _CardStatus.dismissed)
@@ -153,7 +160,7 @@ class _PalHomeScreenState extends ConsumerState<PalHomeScreen> {
               name: name,
               needsYou: needsYou,
               onAutopilot: onAutopilot,
-              streakDays: agenda.streakDays,
+              streakDays: streakDays,
               loading: !agendaAsync.hasValue,
             ),
           ),
