@@ -94,9 +94,25 @@ class _Hero extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    final minutes = workout.duration?.inMinutes ?? 0;
     final doneSets = workout.sets.where((s) => s.done).toList();
     final totalReps = doneSets.fold<int>(0, (s, x) => s + x.reps);
+
+    // Time: show seconds for a sub-minute session so it doesn't read "0 min".
+    final dur = workout.duration;
+    final subMinute = dur != null && dur.inMinutes < 1;
+    final timeValue = subMinute ? '${dur.inSeconds}' : '${dur?.inMinutes ?? 0}';
+    final timeUnit = subMinute ? 'sec' : 'min';
+
+    // Volume: kg below a tonne (matches the per-muscle/per-exercise rows), only
+    // switching to tonnes once it's large enough to read cleanly.
+    final volKg = workout.totalVolumeKg;
+    final inTonnes = volKg >= 1000;
+    final volValue =
+        inTonnes ? (volKg / 1000).toStringAsFixed(1) : '${volKg.round()}';
+    final volUnit = inTonnes ? 'tonnes' : 'kg';
+
+    final setCount = doneSets.length;
+    final prs = workout.prCount;
 
     return ClipRect(
       child: Stack(
@@ -196,24 +212,24 @@ class _Hero extends StatelessWidget {
                     borderRadius: BorderRadius.circular(Radii.card),
                     child: Row(
                       children: [
-                        _HeroStat(value: '$minutes', label: 'Time', unit: 'min'),
+                        _HeroStat(
+                            value: timeValue, label: 'Time', unit: timeUnit),
                         const SizedBox(width: 1),
                         _HeroStat(
-                          value:
-                              (workout.totalVolumeKg / 1000).toStringAsFixed(1),
+                          value: volValue,
                           label: 'Volume',
-                          unit: 'tonnes',
+                          unit: volUnit,
                         ),
                         const SizedBox(width: 1),
                         _HeroStat(
-                          value: '${doneSets.length}',
-                          label: 'Sets',
+                          value: '$setCount',
+                          label: setCount == 1 ? 'Set' : 'Sets',
                           unit: '$totalReps reps',
                         ),
                         const SizedBox(width: 1),
                         _HeroStat(
-                            value: '${workout.prCount}',
-                            label: 'PRs',
+                            value: '$prs',
+                            label: prs == 1 ? 'PR' : 'PRs',
                             unit: 'records'),
                       ],
                     ),

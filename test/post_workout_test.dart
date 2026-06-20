@@ -10,6 +10,7 @@ import 'package:opal/data/db/database.dart';
 import 'package:opal/data/seed/seeder.dart';
 import 'package:opal/models/models.dart';
 import 'package:opal/screens/workout/post_workout_screen.dart';
+import 'package:opal/services/pal/mock_pal_service.dart';
 import 'package:opal/theme/app_colors.dart';
 
 void main() {
@@ -39,6 +40,23 @@ void main() {
     expect(m.first.volumeKg, 1000); // two bench sets
     expect(m[1].volumeKg, 250);
     expect(m.last.muscle, 'Other'); // exercise absent from catalog
+  });
+
+  test('postWorkoutNote pluralizes the set count', () async {
+    final pal = MockPalService(latency: Duration.zero);
+    Workout w(List<SetLog> sets) =>
+        Workout(id: 'w', name: 'x', startedAt: DateTime(2026, 6, 10), sets: sets);
+
+    final one = await pal.postWorkoutNote(w(const [
+      SetLog(id: '1', exerciseId: 'bench', weightKg: 60, reps: 8, done: true),
+    ]));
+    expect(one, contains('1 set in the bank'));
+
+    final two = await pal.postWorkoutNote(w(const [
+      SetLog(id: '1', exerciseId: 'bench', weightKg: 60, reps: 8, done: true),
+      SetLog(id: '2', exerciseId: 'bench', weightKg: 60, reps: 8, done: true),
+    ]));
+    expect(two, contains('2 sets in the bank'));
   });
 
   // ---------------------------------------------------------------------------
@@ -169,6 +187,12 @@ void main() {
     expect(find.text('Save to timeline'), findsOneWidget);
     expect(find.text('Share'), findsOneWidget);
 
+    // Hero stats: singular labels for a 1-set / 1-PR session, and volume in kg
+    // (400 < 1 tonne) so it matches the per-muscle/per-exercise row units.
+    expect(find.text('SET'), findsOneWidget);
+    expect(find.text('PR'), findsOneWidget);
+    expect(find.text('400'), findsOneWidget);
+
     // The per-exercise set bar chart sits below the fold — scroll it in.
     await tester.scrollUntilVisible(find.text('80×5'), 200,
         scrollable: find.byType(Scrollable).first);
@@ -176,6 +200,52 @@ void main() {
 
     // unmount, then drain the autoDispose drift stream provider's cleanup timer
     // (and any in-flight Pal-note latency timer) before the teardown invariant.
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump(const Duration(seconds: 1));
+  });
+
+  testWidgets('PostWorkoutScreen hero shows seconds for a sub-minute session',
+      (tester) async {
+    final db = LoopDatabase.forTesting(NativeDatabase.memory());
+    await Seeder(db).seedIfNeeded();
+    addTearDown(db.close);
+
+    final workout = Workout(
+      id: 'active',
+      name: 'Quick set',
+      startedAt: DateTime(2026, 6, 10, 9, 0, 0),
+      endedAt: DateTime(2026, 6, 10, 9, 0, 40), // 40 seconds
+      sets: const [
+        SetLog(id: 'a', exerciseId: 'bench', weightKg: 80, reps: 5, done: true),
+      ],
+    );
+
+    final colors = AppColors.light(AppAccent.blue);
+    final router = GoRouter(
+      initialLocation: '/',
+      routes: [
+        GoRoute(path: '/', builder: (c, s) => PostWorkoutScreen(workout: workout)),
+        GoRoute(path: '/move', builder: (c, s) => const SizedBox()),
+      ],
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [loopDatabaseProvider.overrideWithValue(db)],
+        child: MaterialApp.router(
+          debugShowCheckedModeBanner: false,
+          theme: ThemeData(useMaterial3: true, extensions: [colors]),
+          routerConfig: router,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // 40s reads as "40 sec", never "0 min".
+    expect(find.text('40'), findsOneWidget);
+    expect(find.text('sec'), findsOneWidget);
+    expect(find.text('min'), findsNothing);
+
     await tester.pumpWidget(const SizedBox());
     await tester.pump(const Duration(seconds: 1));
   });

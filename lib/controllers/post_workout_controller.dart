@@ -79,7 +79,8 @@ Entry moveEntryForWorkout(Workout workout, String workoutId) => Entry(
       timestamp: workout.endedAt ?? workout.startedAt,
       type: EntryType.move,
       title: workout.name,
-      detail: '${workout.completedSetCount} sets · '
+      detail: '${workout.completedSetCount} '
+          'set${workout.completedSetCount == 1 ? '' : 's'} · '
           '${workout.totalVolumeKg.round()} kg',
       duration: workout.duration?.inMinutes,
       source: EntrySource.manual,

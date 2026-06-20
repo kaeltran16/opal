@@ -597,7 +597,8 @@ class MockPalService implements PalService {
       return "Big day — $prs new PR${prs == 1 ? '' : 's'}. Your bench is "
           "trending up; the consistency is paying off.";
     }
-    return "Solid session. ${workout.completedSetCount} sets in the bank — "
+    final sets = workout.completedSetCount;
+    return "Solid session. $sets set${sets == 1 ? '' : 's'} in the bank — "
         "right on plan.";
   }
 
