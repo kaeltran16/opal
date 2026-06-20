@@ -25,6 +25,7 @@ part 'database.g.dart';
     SeedMarkers,
     WeeklyPlanDays,
     BudgetEnvelopes,
+    NutritionMeals,
   ],
 )
 class LoopDatabase extends _$LoopDatabase {
@@ -35,7 +36,7 @@ class LoopDatabase extends _$LoopDatabase {
   LoopDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 7;
+  int get schemaVersion => 8;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -71,6 +72,9 @@ class LoopDatabase extends _$LoopDatabase {
         // budgets. Brand-new table, so creating it leaves existing tables and
         // rows untouched; the seeder (marker bump) populates default envelopes
         // on next launch.
+        //
+        // v7 -> v8: new nutrition_meals table backs the Nutrition tracker. Brand-new table;
+        // creating it leaves existing data untouched; the seeder (marker bump) populates demo meals.
         onUpgrade: (m, from, to) async {
           if (from < 2) {
             await customStatement('DROP TABLE IF EXISTS rituals');
@@ -97,6 +101,9 @@ class LoopDatabase extends _$LoopDatabase {
           }
           if (from < 7) {
             await m.createTable(budgetEnvelopes);
+          }
+          if (from < 8) {
+            await m.createTable(nutritionMeals);
           }
         },
         beforeOpen: (details) async {

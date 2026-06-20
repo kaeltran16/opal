@@ -27,4 +27,17 @@ void main() {
     expect(mid.shadow, Color.lerp(a.shadow, b.shadow, 0.5));
     expect(mid.scrim, Color.lerp(a.scrim, b.scrim, 0.5));
   });
+
+  test('light/dark expose terracotta nutrition token', () {
+    expect(AppColors.light(AppAccent.indigo).nutrition, const Color(0xFFE2553D));
+    expect(AppColors.dark(AppAccent.indigo).nutrition, const Color(0xFFF06A4D));
+  });
+
+  test('forType routes nutrition + copyWith/lerp keep the token', () {
+    final c = AppColors.light(AppAccent.indigo);
+    expect(c.forType('nutrition'), c.nutrition);
+    expect(c.copyWith(accent: const Color(0xFF000000)).nutrition, c.nutrition);
+    final mixed = c.lerp(AppColors.dark(AppAccent.indigo), 1.0);
+    expect(mixed.nutrition, const Color(0xFFF06A4D));
+  });
 }

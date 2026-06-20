@@ -125,3 +125,33 @@ enum SyncStatus {
   static SyncStatus fromWire(String wire) =>
       values.firstWhere((e) => e.wire == wire);
 }
+
+/// Where a [NutritionMeal] came from. `takeout` meals are born from an expense.
+enum NutritionSource {
+  home('home', 'home', 'leaf.fill'),
+  takeout('takeout', 'takeout', 'bag.fill'),
+  manual('manual', 'by hand', 'pencil');
+
+  const NutritionSource(this.wire, this.label, this.icon);
+  final String wire;
+  final String label;
+  final String icon;
+
+  static NutritionSource fromWire(String wire) =>
+      values.firstWhere((e) => e.wire == wire);
+}
+
+/// How sure Pal is about a nutrition estimate. Drives the confidence chip.
+enum NutritionConfidence {
+  low('low', 'rough guess', 1),
+  med('med', 'fair estimate', 2),
+  high('high', 'pretty sure', 3);
+
+  const NutritionConfidence(this.wire, this.label, this.bars);
+  final String wire;
+  final String label;
+  final int bars;
+
+  static NutritionConfidence fromWire(String wire) =>
+      values.firstWhere((e) => e.wire == wire);
+}

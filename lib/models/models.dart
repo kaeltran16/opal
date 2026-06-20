@@ -10,6 +10,7 @@ export 'entry.dart';
 export 'enums.dart';
 export 'exercise.dart';
 export 'goals.dart';
+export 'nutrition_meal.dart';
 export 'pal_note.dart';
 export 'ritual_routine.dart';
 export 'routine.dart';

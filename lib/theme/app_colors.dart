@@ -60,6 +60,8 @@ class AppColors extends ThemeExtension<AppColors> {
     required this.moveTint,
     required this.rituals,
     required this.ritualsTint,
+    required this.nutrition,
+    required this.nutritionTint,
     required this.accent,
     required this.accentTint,
     required this.red,
@@ -75,17 +77,19 @@ class AppColors extends ThemeExtension<AppColors> {
   final Color money, moneyTint;
   final Color move, moveTint;
   final Color rituals, ritualsTint;
+  final Color nutrition, nutritionTint;
   final Color accent, accentTint;
   final Color red;
   final Color onAccent;
   final Color scrim;
   final Color shadow;
 
-  /// Color for a tracker type token: 'money' | 'move' | 'rituals'.
+  /// Color for a tracker type token: 'money' | 'move' | 'rituals' | 'nutrition'.
   Color forType(String type) => switch (type) {
         'money' => money,
         'move' => move,
         'rituals' => rituals,
+        'nutrition' => nutrition,
         _ => accent,
       };
 
@@ -109,6 +113,8 @@ class AppColors extends ThemeExtension<AppColors> {
       moveTint: const Color.fromRGBO(52, 199, 89, 0.14),
       rituals: const Color(0xFFAF52DE),
       ritualsTint: const Color.fromRGBO(175, 82, 222, 0.14),
+      nutrition: const Color(0xFFE2553D),
+      nutritionTint: const Color.fromRGBO(226, 85, 61, 0.14),
       accent: a,
       accentTint: a.withValues(alpha: 0.14),
       red: const Color(0xFFFF3B30),
@@ -138,6 +144,8 @@ class AppColors extends ThemeExtension<AppColors> {
       moveTint: const Color.fromRGBO(48, 209, 88, 0.18),
       rituals: const Color(0xFFBF5AF2),
       ritualsTint: const Color.fromRGBO(191, 90, 242, 0.18),
+      nutrition: const Color(0xFFF06A4D),
+      nutritionTint: const Color.fromRGBO(240, 106, 77, 0.18),
       accent: a,
       accentTint: a.withValues(alpha: 0.18),
       red: const Color(0xFFFF453A),
@@ -165,6 +173,7 @@ class AppColors extends ThemeExtension<AppColors> {
       money: base.money, moneyTint: base.moneyTint,
       move: base.move, moveTint: base.moveTint,
       rituals: base.rituals, ritualsTint: base.ritualsTint,
+      nutrition: base.nutrition, nutritionTint: base.nutritionTint,
       accent: a,
       accentTint: a.withValues(alpha: dark ? 0.18 : 0.14),
       red: base.red,
@@ -196,6 +205,8 @@ class AppColors extends ThemeExtension<AppColors> {
       moveTint: c(moveTint, other.moveTint),
       rituals: c(rituals, other.rituals),
       ritualsTint: c(ritualsTint, other.ritualsTint),
+      nutrition: c(nutrition, other.nutrition),
+      nutritionTint: c(nutritionTint, other.nutritionTint),
       accent: c(accent, other.accent),
       accentTint: c(accentTint, other.accentTint),
       red: c(red, other.red),

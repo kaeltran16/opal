@@ -5,6 +5,7 @@
 library;
 
 export 'budget_envelope_repository.dart';
+export 'nutrition_repository.dart';
 export 'entry_repository.dart';
 export 'goals_repository.dart';
 export 'pal_note_repository.dart';

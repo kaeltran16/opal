@@ -870,6 +870,76 @@ class SeedData {
           category: 'Groceries',
           source: EntrySource.email,
         ),
+        // pending nutrition card: a food expense with no linked meal yet.
+        Entry(
+          id: 'seed-nutrition-pending',
+          timestamp: _todayAt(20, 15),
+          type: EntryType.money,
+          title: 'Thai Basil',
+          detail: 'DoorDash',
+          amount: -24.80,
+          category: 'Food & Drink',
+          source: EntrySource.email,
+        ),
+      ];
+
+  /// Four demo nutrition meals (design's m1–m4), anchored to today so the
+  /// Nutrition landing always has content on first run.
+  ///
+  /// m2 links to the seeded Verve coffee expense; m3 links to the Tartine lunch
+  /// expense — both already in [entries]. m1/m4 are home meals with no link.
+  static List<NutritionMeal> nutritionMeals() => [
+        NutritionMeal(
+          id: 'seed-meal-m1',
+          timestamp: _todayAt(7, 50),
+          slot: 'Breakfast',
+          name: 'Oats & banana',
+          source: NutritionSource.home,
+          icon: 'leaf.fill',
+          confidence: NutritionConfidence.med,
+          cal: const IntRange(290, 400),
+          macros: macrosFromCal(const IntRange(290, 400)),
+          tags: const ['fiber-rich'],
+        ),
+        NutritionMeal(
+          id: 'seed-meal-m2',
+          timestamp: _todayAt(8, 30),
+          slot: 'Drink',
+          name: 'Verve cortado',
+          source: NutritionSource.takeout,
+          icon: 'cup.and.saucer.fill',
+          confidence: NutritionConfidence.low,
+          cal: const IntRange(60, 120),
+          macros: macrosFromCal(const IntRange(60, 120)),
+          linkedEntryId: 'seed-entry-coffee',
+        ),
+        NutritionMeal(
+          id: 'seed-meal-m3',
+          timestamp: _todayAt(12, 40),
+          slot: 'Lunch',
+          name: 'Tartine sandwich',
+          source: NutritionSource.takeout,
+          icon: 'fork.knife',
+          confidence: NutritionConfidence.med,
+          cal: const IntRange(560, 820),
+          macros: macrosFromCal(const IntRange(560, 820)),
+          note: 'estimated from Tartine order',
+          tags: const ['from expense', 'high-carb'],
+          linkedEntryId: 'seed-entry-lunch',
+        ),
+        NutritionMeal(
+          id: 'seed-meal-m4',
+          timestamp: _todayAt(19, 10),
+          slot: 'Dinner',
+          name: 'Whole Foods bowl',
+          source: NutritionSource.home,
+          icon: 'basket.fill',
+          confidence: NutritionConfidence.med,
+          cal: const IntRange(480, 680),
+          macros: macrosFromCal(const IntRange(480, 680)),
+          tags: const ['groceries'],
+          linkedEntryId: 'seed-entry-groceries',
+        ),
       ];
 
   /// The seven default per-category budget envelopes, position-ordered. Their

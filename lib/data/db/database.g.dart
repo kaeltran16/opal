@@ -5840,6 +5840,994 @@ class BudgetEnvelopesCompanion extends UpdateCompanion<BudgetEnvelopeRow> {
   }
 }
 
+class $NutritionMealsTable extends NutritionMeals
+    with TableInfo<$NutritionMealsTable, NutritionMealRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $NutritionMealsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _timestampMeta = const VerificationMeta(
+    'timestamp',
+  );
+  @override
+  late final GeneratedColumn<DateTime> timestamp = GeneratedColumn<DateTime>(
+    'timestamp',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _slotMeta = const VerificationMeta('slot');
+  @override
+  late final GeneratedColumn<String> slot = GeneratedColumn<String>(
+    'slot',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _sourceMeta = const VerificationMeta('source');
+  @override
+  late final GeneratedColumn<String> source = GeneratedColumn<String>(
+    'source',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _iconMeta = const VerificationMeta('icon');
+  @override
+  late final GeneratedColumn<String> icon = GeneratedColumn<String>(
+    'icon',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _confidenceMeta = const VerificationMeta(
+    'confidence',
+  );
+  @override
+  late final GeneratedColumn<String> confidence = GeneratedColumn<String>(
+    'confidence',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _calLoMeta = const VerificationMeta('calLo');
+  @override
+  late final GeneratedColumn<int> calLo = GeneratedColumn<int>(
+    'cal_lo',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _calHiMeta = const VerificationMeta('calHi');
+  @override
+  late final GeneratedColumn<int> calHi = GeneratedColumn<int>(
+    'cal_hi',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _proteinLoMeta = const VerificationMeta(
+    'proteinLo',
+  );
+  @override
+  late final GeneratedColumn<int> proteinLo = GeneratedColumn<int>(
+    'protein_lo',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _proteinHiMeta = const VerificationMeta(
+    'proteinHi',
+  );
+  @override
+  late final GeneratedColumn<int> proteinHi = GeneratedColumn<int>(
+    'protein_hi',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _carbsLoMeta = const VerificationMeta(
+    'carbsLo',
+  );
+  @override
+  late final GeneratedColumn<int> carbsLo = GeneratedColumn<int>(
+    'carbs_lo',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _carbsHiMeta = const VerificationMeta(
+    'carbsHi',
+  );
+  @override
+  late final GeneratedColumn<int> carbsHi = GeneratedColumn<int>(
+    'carbs_hi',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _fatLoMeta = const VerificationMeta('fatLo');
+  @override
+  late final GeneratedColumn<int> fatLo = GeneratedColumn<int>(
+    'fat_lo',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _fatHiMeta = const VerificationMeta('fatHi');
+  @override
+  late final GeneratedColumn<int> fatHi = GeneratedColumn<int>(
+    'fat_hi',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _noteMeta = const VerificationMeta('note');
+  @override
+  late final GeneratedColumn<String> note = GeneratedColumn<String>(
+    'note',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _tagsMeta = const VerificationMeta('tags');
+  @override
+  late final GeneratedColumn<String> tags = GeneratedColumn<String>(
+    'tags',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _linkedEntryIdMeta = const VerificationMeta(
+    'linkedEntryId',
+  );
+  @override
+  late final GeneratedColumn<String> linkedEntryId = GeneratedColumn<String>(
+    'linked_entry_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    timestamp,
+    slot,
+    name,
+    source,
+    icon,
+    confidence,
+    calLo,
+    calHi,
+    proteinLo,
+    proteinHi,
+    carbsLo,
+    carbsHi,
+    fatLo,
+    fatHi,
+    note,
+    tags,
+    linkedEntryId,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'nutrition_meals';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<NutritionMealRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('timestamp')) {
+      context.handle(
+        _timestampMeta,
+        timestamp.isAcceptableOrUnknown(data['timestamp']!, _timestampMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_timestampMeta);
+    }
+    if (data.containsKey('slot')) {
+      context.handle(
+        _slotMeta,
+        slot.isAcceptableOrUnknown(data['slot']!, _slotMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_slotMeta);
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('source')) {
+      context.handle(
+        _sourceMeta,
+        source.isAcceptableOrUnknown(data['source']!, _sourceMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_sourceMeta);
+    }
+    if (data.containsKey('icon')) {
+      context.handle(
+        _iconMeta,
+        icon.isAcceptableOrUnknown(data['icon']!, _iconMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_iconMeta);
+    }
+    if (data.containsKey('confidence')) {
+      context.handle(
+        _confidenceMeta,
+        confidence.isAcceptableOrUnknown(data['confidence']!, _confidenceMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_confidenceMeta);
+    }
+    if (data.containsKey('cal_lo')) {
+      context.handle(
+        _calLoMeta,
+        calLo.isAcceptableOrUnknown(data['cal_lo']!, _calLoMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_calLoMeta);
+    }
+    if (data.containsKey('cal_hi')) {
+      context.handle(
+        _calHiMeta,
+        calHi.isAcceptableOrUnknown(data['cal_hi']!, _calHiMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_calHiMeta);
+    }
+    if (data.containsKey('protein_lo')) {
+      context.handle(
+        _proteinLoMeta,
+        proteinLo.isAcceptableOrUnknown(data['protein_lo']!, _proteinLoMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_proteinLoMeta);
+    }
+    if (data.containsKey('protein_hi')) {
+      context.handle(
+        _proteinHiMeta,
+        proteinHi.isAcceptableOrUnknown(data['protein_hi']!, _proteinHiMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_proteinHiMeta);
+    }
+    if (data.containsKey('carbs_lo')) {
+      context.handle(
+        _carbsLoMeta,
+        carbsLo.isAcceptableOrUnknown(data['carbs_lo']!, _carbsLoMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_carbsLoMeta);
+    }
+    if (data.containsKey('carbs_hi')) {
+      context.handle(
+        _carbsHiMeta,
+        carbsHi.isAcceptableOrUnknown(data['carbs_hi']!, _carbsHiMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_carbsHiMeta);
+    }
+    if (data.containsKey('fat_lo')) {
+      context.handle(
+        _fatLoMeta,
+        fatLo.isAcceptableOrUnknown(data['fat_lo']!, _fatLoMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_fatLoMeta);
+    }
+    if (data.containsKey('fat_hi')) {
+      context.handle(
+        _fatHiMeta,
+        fatHi.isAcceptableOrUnknown(data['fat_hi']!, _fatHiMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_fatHiMeta);
+    }
+    if (data.containsKey('note')) {
+      context.handle(
+        _noteMeta,
+        note.isAcceptableOrUnknown(data['note']!, _noteMeta),
+      );
+    }
+    if (data.containsKey('tags')) {
+      context.handle(
+        _tagsMeta,
+        tags.isAcceptableOrUnknown(data['tags']!, _tagsMeta),
+      );
+    }
+    if (data.containsKey('linked_entry_id')) {
+      context.handle(
+        _linkedEntryIdMeta,
+        linkedEntryId.isAcceptableOrUnknown(
+          data['linked_entry_id']!,
+          _linkedEntryIdMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  NutritionMealRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return NutritionMealRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      timestamp: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}timestamp'],
+      )!,
+      slot: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}slot'],
+      )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      source: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}source'],
+      )!,
+      icon: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}icon'],
+      )!,
+      confidence: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}confidence'],
+      )!,
+      calLo: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}cal_lo'],
+      )!,
+      calHi: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}cal_hi'],
+      )!,
+      proteinLo: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}protein_lo'],
+      )!,
+      proteinHi: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}protein_hi'],
+      )!,
+      carbsLo: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}carbs_lo'],
+      )!,
+      carbsHi: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}carbs_hi'],
+      )!,
+      fatLo: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}fat_lo'],
+      )!,
+      fatHi: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}fat_hi'],
+      )!,
+      note: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}note'],
+      ),
+      tags: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}tags'],
+      )!,
+      linkedEntryId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}linked_entry_id'],
+      ),
+    );
+  }
+
+  @override
+  $NutritionMealsTable createAlias(String alias) {
+    return $NutritionMealsTable(attachedDatabase, alias);
+  }
+}
+
+class NutritionMealRow extends DataClass
+    implements Insertable<NutritionMealRow> {
+  final String id;
+  final DateTime timestamp;
+  final String slot;
+  final String name;
+
+  /// [NutritionSource.wire].
+  final String source;
+  final String icon;
+
+  /// [NutritionConfidence.wire].
+  final String confidence;
+  final int calLo;
+  final int calHi;
+  final int proteinLo;
+  final int proteinHi;
+  final int carbsLo;
+  final int carbsHi;
+  final int fatLo;
+  final int fatHi;
+  final String? note;
+
+  /// Newline-joined tag list ('' when none).
+  final String tags;
+
+  /// FK to [Entries.id] for takeout meals (null otherwise).
+  final String? linkedEntryId;
+  const NutritionMealRow({
+    required this.id,
+    required this.timestamp,
+    required this.slot,
+    required this.name,
+    required this.source,
+    required this.icon,
+    required this.confidence,
+    required this.calLo,
+    required this.calHi,
+    required this.proteinLo,
+    required this.proteinHi,
+    required this.carbsLo,
+    required this.carbsHi,
+    required this.fatLo,
+    required this.fatHi,
+    this.note,
+    required this.tags,
+    this.linkedEntryId,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['timestamp'] = Variable<DateTime>(timestamp);
+    map['slot'] = Variable<String>(slot);
+    map['name'] = Variable<String>(name);
+    map['source'] = Variable<String>(source);
+    map['icon'] = Variable<String>(icon);
+    map['confidence'] = Variable<String>(confidence);
+    map['cal_lo'] = Variable<int>(calLo);
+    map['cal_hi'] = Variable<int>(calHi);
+    map['protein_lo'] = Variable<int>(proteinLo);
+    map['protein_hi'] = Variable<int>(proteinHi);
+    map['carbs_lo'] = Variable<int>(carbsLo);
+    map['carbs_hi'] = Variable<int>(carbsHi);
+    map['fat_lo'] = Variable<int>(fatLo);
+    map['fat_hi'] = Variable<int>(fatHi);
+    if (!nullToAbsent || note != null) {
+      map['note'] = Variable<String>(note);
+    }
+    map['tags'] = Variable<String>(tags);
+    if (!nullToAbsent || linkedEntryId != null) {
+      map['linked_entry_id'] = Variable<String>(linkedEntryId);
+    }
+    return map;
+  }
+
+  NutritionMealsCompanion toCompanion(bool nullToAbsent) {
+    return NutritionMealsCompanion(
+      id: Value(id),
+      timestamp: Value(timestamp),
+      slot: Value(slot),
+      name: Value(name),
+      source: Value(source),
+      icon: Value(icon),
+      confidence: Value(confidence),
+      calLo: Value(calLo),
+      calHi: Value(calHi),
+      proteinLo: Value(proteinLo),
+      proteinHi: Value(proteinHi),
+      carbsLo: Value(carbsLo),
+      carbsHi: Value(carbsHi),
+      fatLo: Value(fatLo),
+      fatHi: Value(fatHi),
+      note: note == null && nullToAbsent ? const Value.absent() : Value(note),
+      tags: Value(tags),
+      linkedEntryId: linkedEntryId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(linkedEntryId),
+    );
+  }
+
+  factory NutritionMealRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return NutritionMealRow(
+      id: serializer.fromJson<String>(json['id']),
+      timestamp: serializer.fromJson<DateTime>(json['timestamp']),
+      slot: serializer.fromJson<String>(json['slot']),
+      name: serializer.fromJson<String>(json['name']),
+      source: serializer.fromJson<String>(json['source']),
+      icon: serializer.fromJson<String>(json['icon']),
+      confidence: serializer.fromJson<String>(json['confidence']),
+      calLo: serializer.fromJson<int>(json['calLo']),
+      calHi: serializer.fromJson<int>(json['calHi']),
+      proteinLo: serializer.fromJson<int>(json['proteinLo']),
+      proteinHi: serializer.fromJson<int>(json['proteinHi']),
+      carbsLo: serializer.fromJson<int>(json['carbsLo']),
+      carbsHi: serializer.fromJson<int>(json['carbsHi']),
+      fatLo: serializer.fromJson<int>(json['fatLo']),
+      fatHi: serializer.fromJson<int>(json['fatHi']),
+      note: serializer.fromJson<String?>(json['note']),
+      tags: serializer.fromJson<String>(json['tags']),
+      linkedEntryId: serializer.fromJson<String?>(json['linkedEntryId']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'timestamp': serializer.toJson<DateTime>(timestamp),
+      'slot': serializer.toJson<String>(slot),
+      'name': serializer.toJson<String>(name),
+      'source': serializer.toJson<String>(source),
+      'icon': serializer.toJson<String>(icon),
+      'confidence': serializer.toJson<String>(confidence),
+      'calLo': serializer.toJson<int>(calLo),
+      'calHi': serializer.toJson<int>(calHi),
+      'proteinLo': serializer.toJson<int>(proteinLo),
+      'proteinHi': serializer.toJson<int>(proteinHi),
+      'carbsLo': serializer.toJson<int>(carbsLo),
+      'carbsHi': serializer.toJson<int>(carbsHi),
+      'fatLo': serializer.toJson<int>(fatLo),
+      'fatHi': serializer.toJson<int>(fatHi),
+      'note': serializer.toJson<String?>(note),
+      'tags': serializer.toJson<String>(tags),
+      'linkedEntryId': serializer.toJson<String?>(linkedEntryId),
+    };
+  }
+
+  NutritionMealRow copyWith({
+    String? id,
+    DateTime? timestamp,
+    String? slot,
+    String? name,
+    String? source,
+    String? icon,
+    String? confidence,
+    int? calLo,
+    int? calHi,
+    int? proteinLo,
+    int? proteinHi,
+    int? carbsLo,
+    int? carbsHi,
+    int? fatLo,
+    int? fatHi,
+    Value<String?> note = const Value.absent(),
+    String? tags,
+    Value<String?> linkedEntryId = const Value.absent(),
+  }) => NutritionMealRow(
+    id: id ?? this.id,
+    timestamp: timestamp ?? this.timestamp,
+    slot: slot ?? this.slot,
+    name: name ?? this.name,
+    source: source ?? this.source,
+    icon: icon ?? this.icon,
+    confidence: confidence ?? this.confidence,
+    calLo: calLo ?? this.calLo,
+    calHi: calHi ?? this.calHi,
+    proteinLo: proteinLo ?? this.proteinLo,
+    proteinHi: proteinHi ?? this.proteinHi,
+    carbsLo: carbsLo ?? this.carbsLo,
+    carbsHi: carbsHi ?? this.carbsHi,
+    fatLo: fatLo ?? this.fatLo,
+    fatHi: fatHi ?? this.fatHi,
+    note: note.present ? note.value : this.note,
+    tags: tags ?? this.tags,
+    linkedEntryId: linkedEntryId.present
+        ? linkedEntryId.value
+        : this.linkedEntryId,
+  );
+  NutritionMealRow copyWithCompanion(NutritionMealsCompanion data) {
+    return NutritionMealRow(
+      id: data.id.present ? data.id.value : this.id,
+      timestamp: data.timestamp.present ? data.timestamp.value : this.timestamp,
+      slot: data.slot.present ? data.slot.value : this.slot,
+      name: data.name.present ? data.name.value : this.name,
+      source: data.source.present ? data.source.value : this.source,
+      icon: data.icon.present ? data.icon.value : this.icon,
+      confidence: data.confidence.present
+          ? data.confidence.value
+          : this.confidence,
+      calLo: data.calLo.present ? data.calLo.value : this.calLo,
+      calHi: data.calHi.present ? data.calHi.value : this.calHi,
+      proteinLo: data.proteinLo.present ? data.proteinLo.value : this.proteinLo,
+      proteinHi: data.proteinHi.present ? data.proteinHi.value : this.proteinHi,
+      carbsLo: data.carbsLo.present ? data.carbsLo.value : this.carbsLo,
+      carbsHi: data.carbsHi.present ? data.carbsHi.value : this.carbsHi,
+      fatLo: data.fatLo.present ? data.fatLo.value : this.fatLo,
+      fatHi: data.fatHi.present ? data.fatHi.value : this.fatHi,
+      note: data.note.present ? data.note.value : this.note,
+      tags: data.tags.present ? data.tags.value : this.tags,
+      linkedEntryId: data.linkedEntryId.present
+          ? data.linkedEntryId.value
+          : this.linkedEntryId,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('NutritionMealRow(')
+          ..write('id: $id, ')
+          ..write('timestamp: $timestamp, ')
+          ..write('slot: $slot, ')
+          ..write('name: $name, ')
+          ..write('source: $source, ')
+          ..write('icon: $icon, ')
+          ..write('confidence: $confidence, ')
+          ..write('calLo: $calLo, ')
+          ..write('calHi: $calHi, ')
+          ..write('proteinLo: $proteinLo, ')
+          ..write('proteinHi: $proteinHi, ')
+          ..write('carbsLo: $carbsLo, ')
+          ..write('carbsHi: $carbsHi, ')
+          ..write('fatLo: $fatLo, ')
+          ..write('fatHi: $fatHi, ')
+          ..write('note: $note, ')
+          ..write('tags: $tags, ')
+          ..write('linkedEntryId: $linkedEntryId')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    timestamp,
+    slot,
+    name,
+    source,
+    icon,
+    confidence,
+    calLo,
+    calHi,
+    proteinLo,
+    proteinHi,
+    carbsLo,
+    carbsHi,
+    fatLo,
+    fatHi,
+    note,
+    tags,
+    linkedEntryId,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is NutritionMealRow &&
+          other.id == this.id &&
+          other.timestamp == this.timestamp &&
+          other.slot == this.slot &&
+          other.name == this.name &&
+          other.source == this.source &&
+          other.icon == this.icon &&
+          other.confidence == this.confidence &&
+          other.calLo == this.calLo &&
+          other.calHi == this.calHi &&
+          other.proteinLo == this.proteinLo &&
+          other.proteinHi == this.proteinHi &&
+          other.carbsLo == this.carbsLo &&
+          other.carbsHi == this.carbsHi &&
+          other.fatLo == this.fatLo &&
+          other.fatHi == this.fatHi &&
+          other.note == this.note &&
+          other.tags == this.tags &&
+          other.linkedEntryId == this.linkedEntryId);
+}
+
+class NutritionMealsCompanion extends UpdateCompanion<NutritionMealRow> {
+  final Value<String> id;
+  final Value<DateTime> timestamp;
+  final Value<String> slot;
+  final Value<String> name;
+  final Value<String> source;
+  final Value<String> icon;
+  final Value<String> confidence;
+  final Value<int> calLo;
+  final Value<int> calHi;
+  final Value<int> proteinLo;
+  final Value<int> proteinHi;
+  final Value<int> carbsLo;
+  final Value<int> carbsHi;
+  final Value<int> fatLo;
+  final Value<int> fatHi;
+  final Value<String?> note;
+  final Value<String> tags;
+  final Value<String?> linkedEntryId;
+  final Value<int> rowid;
+  const NutritionMealsCompanion({
+    this.id = const Value.absent(),
+    this.timestamp = const Value.absent(),
+    this.slot = const Value.absent(),
+    this.name = const Value.absent(),
+    this.source = const Value.absent(),
+    this.icon = const Value.absent(),
+    this.confidence = const Value.absent(),
+    this.calLo = const Value.absent(),
+    this.calHi = const Value.absent(),
+    this.proteinLo = const Value.absent(),
+    this.proteinHi = const Value.absent(),
+    this.carbsLo = const Value.absent(),
+    this.carbsHi = const Value.absent(),
+    this.fatLo = const Value.absent(),
+    this.fatHi = const Value.absent(),
+    this.note = const Value.absent(),
+    this.tags = const Value.absent(),
+    this.linkedEntryId = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  NutritionMealsCompanion.insert({
+    required String id,
+    required DateTime timestamp,
+    required String slot,
+    required String name,
+    required String source,
+    required String icon,
+    required String confidence,
+    required int calLo,
+    required int calHi,
+    required int proteinLo,
+    required int proteinHi,
+    required int carbsLo,
+    required int carbsHi,
+    required int fatLo,
+    required int fatHi,
+    this.note = const Value.absent(),
+    this.tags = const Value.absent(),
+    this.linkedEntryId = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       timestamp = Value(timestamp),
+       slot = Value(slot),
+       name = Value(name),
+       source = Value(source),
+       icon = Value(icon),
+       confidence = Value(confidence),
+       calLo = Value(calLo),
+       calHi = Value(calHi),
+       proteinLo = Value(proteinLo),
+       proteinHi = Value(proteinHi),
+       carbsLo = Value(carbsLo),
+       carbsHi = Value(carbsHi),
+       fatLo = Value(fatLo),
+       fatHi = Value(fatHi);
+  static Insertable<NutritionMealRow> custom({
+    Expression<String>? id,
+    Expression<DateTime>? timestamp,
+    Expression<String>? slot,
+    Expression<String>? name,
+    Expression<String>? source,
+    Expression<String>? icon,
+    Expression<String>? confidence,
+    Expression<int>? calLo,
+    Expression<int>? calHi,
+    Expression<int>? proteinLo,
+    Expression<int>? proteinHi,
+    Expression<int>? carbsLo,
+    Expression<int>? carbsHi,
+    Expression<int>? fatLo,
+    Expression<int>? fatHi,
+    Expression<String>? note,
+    Expression<String>? tags,
+    Expression<String>? linkedEntryId,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (timestamp != null) 'timestamp': timestamp,
+      if (slot != null) 'slot': slot,
+      if (name != null) 'name': name,
+      if (source != null) 'source': source,
+      if (icon != null) 'icon': icon,
+      if (confidence != null) 'confidence': confidence,
+      if (calLo != null) 'cal_lo': calLo,
+      if (calHi != null) 'cal_hi': calHi,
+      if (proteinLo != null) 'protein_lo': proteinLo,
+      if (proteinHi != null) 'protein_hi': proteinHi,
+      if (carbsLo != null) 'carbs_lo': carbsLo,
+      if (carbsHi != null) 'carbs_hi': carbsHi,
+      if (fatLo != null) 'fat_lo': fatLo,
+      if (fatHi != null) 'fat_hi': fatHi,
+      if (note != null) 'note': note,
+      if (tags != null) 'tags': tags,
+      if (linkedEntryId != null) 'linked_entry_id': linkedEntryId,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  NutritionMealsCompanion copyWith({
+    Value<String>? id,
+    Value<DateTime>? timestamp,
+    Value<String>? slot,
+    Value<String>? name,
+    Value<String>? source,
+    Value<String>? icon,
+    Value<String>? confidence,
+    Value<int>? calLo,
+    Value<int>? calHi,
+    Value<int>? proteinLo,
+    Value<int>? proteinHi,
+    Value<int>? carbsLo,
+    Value<int>? carbsHi,
+    Value<int>? fatLo,
+    Value<int>? fatHi,
+    Value<String?>? note,
+    Value<String>? tags,
+    Value<String?>? linkedEntryId,
+    Value<int>? rowid,
+  }) {
+    return NutritionMealsCompanion(
+      id: id ?? this.id,
+      timestamp: timestamp ?? this.timestamp,
+      slot: slot ?? this.slot,
+      name: name ?? this.name,
+      source: source ?? this.source,
+      icon: icon ?? this.icon,
+      confidence: confidence ?? this.confidence,
+      calLo: calLo ?? this.calLo,
+      calHi: calHi ?? this.calHi,
+      proteinLo: proteinLo ?? this.proteinLo,
+      proteinHi: proteinHi ?? this.proteinHi,
+      carbsLo: carbsLo ?? this.carbsLo,
+      carbsHi: carbsHi ?? this.carbsHi,
+      fatLo: fatLo ?? this.fatLo,
+      fatHi: fatHi ?? this.fatHi,
+      note: note ?? this.note,
+      tags: tags ?? this.tags,
+      linkedEntryId: linkedEntryId ?? this.linkedEntryId,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (timestamp.present) {
+      map['timestamp'] = Variable<DateTime>(timestamp.value);
+    }
+    if (slot.present) {
+      map['slot'] = Variable<String>(slot.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (source.present) {
+      map['source'] = Variable<String>(source.value);
+    }
+    if (icon.present) {
+      map['icon'] = Variable<String>(icon.value);
+    }
+    if (confidence.present) {
+      map['confidence'] = Variable<String>(confidence.value);
+    }
+    if (calLo.present) {
+      map['cal_lo'] = Variable<int>(calLo.value);
+    }
+    if (calHi.present) {
+      map['cal_hi'] = Variable<int>(calHi.value);
+    }
+    if (proteinLo.present) {
+      map['protein_lo'] = Variable<int>(proteinLo.value);
+    }
+    if (proteinHi.present) {
+      map['protein_hi'] = Variable<int>(proteinHi.value);
+    }
+    if (carbsLo.present) {
+      map['carbs_lo'] = Variable<int>(carbsLo.value);
+    }
+    if (carbsHi.present) {
+      map['carbs_hi'] = Variable<int>(carbsHi.value);
+    }
+    if (fatLo.present) {
+      map['fat_lo'] = Variable<int>(fatLo.value);
+    }
+    if (fatHi.present) {
+      map['fat_hi'] = Variable<int>(fatHi.value);
+    }
+    if (note.present) {
+      map['note'] = Variable<String>(note.value);
+    }
+    if (tags.present) {
+      map['tags'] = Variable<String>(tags.value);
+    }
+    if (linkedEntryId.present) {
+      map['linked_entry_id'] = Variable<String>(linkedEntryId.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('NutritionMealsCompanion(')
+          ..write('id: $id, ')
+          ..write('timestamp: $timestamp, ')
+          ..write('slot: $slot, ')
+          ..write('name: $name, ')
+          ..write('source: $source, ')
+          ..write('icon: $icon, ')
+          ..write('confidence: $confidence, ')
+          ..write('calLo: $calLo, ')
+          ..write('calHi: $calHi, ')
+          ..write('proteinLo: $proteinLo, ')
+          ..write('proteinHi: $proteinHi, ')
+          ..write('carbsLo: $carbsLo, ')
+          ..write('carbsHi: $carbsHi, ')
+          ..write('fatLo: $fatLo, ')
+          ..write('fatHi: $fatHi, ')
+          ..write('note: $note, ')
+          ..write('tags: $tags, ')
+          ..write('linkedEntryId: $linkedEntryId, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$LoopDatabase extends GeneratedDatabase {
   _$LoopDatabase(QueryExecutor e) : super(e);
   $LoopDatabaseManager get managers => $LoopDatabaseManager(this);
@@ -5860,6 +6848,7 @@ abstract class _$LoopDatabase extends GeneratedDatabase {
   late final $BudgetEnvelopesTable budgetEnvelopes = $BudgetEnvelopesTable(
     this,
   );
+  late final $NutritionMealsTable nutritionMeals = $NutritionMealsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -5878,6 +6867,7 @@ abstract class _$LoopDatabase extends GeneratedDatabase {
     seedMarkers,
     weeklyPlanDays,
     budgetEnvelopes,
+    nutritionMeals,
   ];
 }
 
@@ -8938,6 +9928,463 @@ typedef $$BudgetEnvelopesTableProcessedTableManager =
       BudgetEnvelopeRow,
       PrefetchHooks Function()
     >;
+typedef $$NutritionMealsTableCreateCompanionBuilder =
+    NutritionMealsCompanion Function({
+      required String id,
+      required DateTime timestamp,
+      required String slot,
+      required String name,
+      required String source,
+      required String icon,
+      required String confidence,
+      required int calLo,
+      required int calHi,
+      required int proteinLo,
+      required int proteinHi,
+      required int carbsLo,
+      required int carbsHi,
+      required int fatLo,
+      required int fatHi,
+      Value<String?> note,
+      Value<String> tags,
+      Value<String?> linkedEntryId,
+      Value<int> rowid,
+    });
+typedef $$NutritionMealsTableUpdateCompanionBuilder =
+    NutritionMealsCompanion Function({
+      Value<String> id,
+      Value<DateTime> timestamp,
+      Value<String> slot,
+      Value<String> name,
+      Value<String> source,
+      Value<String> icon,
+      Value<String> confidence,
+      Value<int> calLo,
+      Value<int> calHi,
+      Value<int> proteinLo,
+      Value<int> proteinHi,
+      Value<int> carbsLo,
+      Value<int> carbsHi,
+      Value<int> fatLo,
+      Value<int> fatHi,
+      Value<String?> note,
+      Value<String> tags,
+      Value<String?> linkedEntryId,
+      Value<int> rowid,
+    });
+
+class $$NutritionMealsTableFilterComposer
+    extends Composer<_$LoopDatabase, $NutritionMealsTable> {
+  $$NutritionMealsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get timestamp => $composableBuilder(
+    column: $table.timestamp,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get slot => $composableBuilder(
+    column: $table.slot,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get source => $composableBuilder(
+    column: $table.source,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get icon => $composableBuilder(
+    column: $table.icon,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get confidence => $composableBuilder(
+    column: $table.confidence,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get calLo => $composableBuilder(
+    column: $table.calLo,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get calHi => $composableBuilder(
+    column: $table.calHi,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get proteinLo => $composableBuilder(
+    column: $table.proteinLo,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get proteinHi => $composableBuilder(
+    column: $table.proteinHi,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get carbsLo => $composableBuilder(
+    column: $table.carbsLo,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get carbsHi => $composableBuilder(
+    column: $table.carbsHi,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get fatLo => $composableBuilder(
+    column: $table.fatLo,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get fatHi => $composableBuilder(
+    column: $table.fatHi,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get note => $composableBuilder(
+    column: $table.note,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get tags => $composableBuilder(
+    column: $table.tags,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get linkedEntryId => $composableBuilder(
+    column: $table.linkedEntryId,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$NutritionMealsTableOrderingComposer
+    extends Composer<_$LoopDatabase, $NutritionMealsTable> {
+  $$NutritionMealsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get timestamp => $composableBuilder(
+    column: $table.timestamp,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get slot => $composableBuilder(
+    column: $table.slot,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get source => $composableBuilder(
+    column: $table.source,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get icon => $composableBuilder(
+    column: $table.icon,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get confidence => $composableBuilder(
+    column: $table.confidence,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get calLo => $composableBuilder(
+    column: $table.calLo,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get calHi => $composableBuilder(
+    column: $table.calHi,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get proteinLo => $composableBuilder(
+    column: $table.proteinLo,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get proteinHi => $composableBuilder(
+    column: $table.proteinHi,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get carbsLo => $composableBuilder(
+    column: $table.carbsLo,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get carbsHi => $composableBuilder(
+    column: $table.carbsHi,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get fatLo => $composableBuilder(
+    column: $table.fatLo,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get fatHi => $composableBuilder(
+    column: $table.fatHi,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get note => $composableBuilder(
+    column: $table.note,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get tags => $composableBuilder(
+    column: $table.tags,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get linkedEntryId => $composableBuilder(
+    column: $table.linkedEntryId,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$NutritionMealsTableAnnotationComposer
+    extends Composer<_$LoopDatabase, $NutritionMealsTable> {
+  $$NutritionMealsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get timestamp =>
+      $composableBuilder(column: $table.timestamp, builder: (column) => column);
+
+  GeneratedColumn<String> get slot =>
+      $composableBuilder(column: $table.slot, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<String> get source =>
+      $composableBuilder(column: $table.source, builder: (column) => column);
+
+  GeneratedColumn<String> get icon =>
+      $composableBuilder(column: $table.icon, builder: (column) => column);
+
+  GeneratedColumn<String> get confidence => $composableBuilder(
+    column: $table.confidence,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get calLo =>
+      $composableBuilder(column: $table.calLo, builder: (column) => column);
+
+  GeneratedColumn<int> get calHi =>
+      $composableBuilder(column: $table.calHi, builder: (column) => column);
+
+  GeneratedColumn<int> get proteinLo =>
+      $composableBuilder(column: $table.proteinLo, builder: (column) => column);
+
+  GeneratedColumn<int> get proteinHi =>
+      $composableBuilder(column: $table.proteinHi, builder: (column) => column);
+
+  GeneratedColumn<int> get carbsLo =>
+      $composableBuilder(column: $table.carbsLo, builder: (column) => column);
+
+  GeneratedColumn<int> get carbsHi =>
+      $composableBuilder(column: $table.carbsHi, builder: (column) => column);
+
+  GeneratedColumn<int> get fatLo =>
+      $composableBuilder(column: $table.fatLo, builder: (column) => column);
+
+  GeneratedColumn<int> get fatHi =>
+      $composableBuilder(column: $table.fatHi, builder: (column) => column);
+
+  GeneratedColumn<String> get note =>
+      $composableBuilder(column: $table.note, builder: (column) => column);
+
+  GeneratedColumn<String> get tags =>
+      $composableBuilder(column: $table.tags, builder: (column) => column);
+
+  GeneratedColumn<String> get linkedEntryId => $composableBuilder(
+    column: $table.linkedEntryId,
+    builder: (column) => column,
+  );
+}
+
+class $$NutritionMealsTableTableManager
+    extends
+        RootTableManager<
+          _$LoopDatabase,
+          $NutritionMealsTable,
+          NutritionMealRow,
+          $$NutritionMealsTableFilterComposer,
+          $$NutritionMealsTableOrderingComposer,
+          $$NutritionMealsTableAnnotationComposer,
+          $$NutritionMealsTableCreateCompanionBuilder,
+          $$NutritionMealsTableUpdateCompanionBuilder,
+          (
+            NutritionMealRow,
+            BaseReferences<
+              _$LoopDatabase,
+              $NutritionMealsTable,
+              NutritionMealRow
+            >,
+          ),
+          NutritionMealRow,
+          PrefetchHooks Function()
+        > {
+  $$NutritionMealsTableTableManager(
+    _$LoopDatabase db,
+    $NutritionMealsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$NutritionMealsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$NutritionMealsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$NutritionMealsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<DateTime> timestamp = const Value.absent(),
+                Value<String> slot = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<String> source = const Value.absent(),
+                Value<String> icon = const Value.absent(),
+                Value<String> confidence = const Value.absent(),
+                Value<int> calLo = const Value.absent(),
+                Value<int> calHi = const Value.absent(),
+                Value<int> proteinLo = const Value.absent(),
+                Value<int> proteinHi = const Value.absent(),
+                Value<int> carbsLo = const Value.absent(),
+                Value<int> carbsHi = const Value.absent(),
+                Value<int> fatLo = const Value.absent(),
+                Value<int> fatHi = const Value.absent(),
+                Value<String?> note = const Value.absent(),
+                Value<String> tags = const Value.absent(),
+                Value<String?> linkedEntryId = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => NutritionMealsCompanion(
+                id: id,
+                timestamp: timestamp,
+                slot: slot,
+                name: name,
+                source: source,
+                icon: icon,
+                confidence: confidence,
+                calLo: calLo,
+                calHi: calHi,
+                proteinLo: proteinLo,
+                proteinHi: proteinHi,
+                carbsLo: carbsLo,
+                carbsHi: carbsHi,
+                fatLo: fatLo,
+                fatHi: fatHi,
+                note: note,
+                tags: tags,
+                linkedEntryId: linkedEntryId,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required DateTime timestamp,
+                required String slot,
+                required String name,
+                required String source,
+                required String icon,
+                required String confidence,
+                required int calLo,
+                required int calHi,
+                required int proteinLo,
+                required int proteinHi,
+                required int carbsLo,
+                required int carbsHi,
+                required int fatLo,
+                required int fatHi,
+                Value<String?> note = const Value.absent(),
+                Value<String> tags = const Value.absent(),
+                Value<String?> linkedEntryId = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => NutritionMealsCompanion.insert(
+                id: id,
+                timestamp: timestamp,
+                slot: slot,
+                name: name,
+                source: source,
+                icon: icon,
+                confidence: confidence,
+                calLo: calLo,
+                calHi: calHi,
+                proteinLo: proteinLo,
+                proteinHi: proteinHi,
+                carbsLo: carbsLo,
+                carbsHi: carbsHi,
+                fatLo: fatLo,
+                fatHi: fatHi,
+                note: note,
+                tags: tags,
+                linkedEntryId: linkedEntryId,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$NutritionMealsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$LoopDatabase,
+      $NutritionMealsTable,
+      NutritionMealRow,
+      $$NutritionMealsTableFilterComposer,
+      $$NutritionMealsTableOrderingComposer,
+      $$NutritionMealsTableAnnotationComposer,
+      $$NutritionMealsTableCreateCompanionBuilder,
+      $$NutritionMealsTableUpdateCompanionBuilder,
+      (
+        NutritionMealRow,
+        BaseReferences<_$LoopDatabase, $NutritionMealsTable, NutritionMealRow>,
+      ),
+      NutritionMealRow,
+      PrefetchHooks Function()
+    >;
 
 class $LoopDatabaseManager {
   final _$LoopDatabase _db;
@@ -8968,4 +10415,6 @@ class $LoopDatabaseManager {
       $$WeeklyPlanDaysTableTableManager(_db, _db.weeklyPlanDays);
   $$BudgetEnvelopesTableTableManager get budgetEnvelopes =>
       $$BudgetEnvelopesTableTableManager(_db, _db.budgetEnvelopes);
+  $$NutritionMealsTableTableManager get nutritionMeals =>
+      $$NutritionMealsTableTableManager(_db, _db.nutritionMeals);
 }

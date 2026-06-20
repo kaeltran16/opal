@@ -263,6 +263,42 @@ class WeeklyPlanDays extends Table {
       ];
 }
 
+/// AI-estimated meals/drinks for the Nutrition tracker. All amounts are ranges.
+@DataClassName('NutritionMealRow')
+class NutritionMeals extends Table {
+  TextColumn get id => text()();
+  DateTimeColumn get timestamp => dateTime()();
+  TextColumn get slot => text()();
+  TextColumn get name => text()();
+
+  /// [NutritionSource.wire].
+  TextColumn get source => text()();
+  TextColumn get icon => text()();
+
+  /// [NutritionConfidence.wire].
+  TextColumn get confidence => text()();
+
+  IntColumn get calLo => integer()();
+  IntColumn get calHi => integer()();
+  IntColumn get proteinLo => integer()();
+  IntColumn get proteinHi => integer()();
+  IntColumn get carbsLo => integer()();
+  IntColumn get carbsHi => integer()();
+  IntColumn get fatLo => integer()();
+  IntColumn get fatHi => integer()();
+
+  TextColumn get note => text().nullable()();
+
+  /// Newline-joined tag list ('' when none).
+  TextColumn get tags => text().withDefault(const Constant(''))();
+
+  /// FK to [Entries.id] for takeout meals (null otherwise).
+  TextColumn get linkedEntryId => text().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 /// Per-category monthly budget envelopes, ordered by [position].
 ///
 /// Each row caps one spending category; expense entries are matched to an

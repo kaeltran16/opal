@@ -482,6 +482,54 @@ final class BudgetEnvelopeRepositoryProvider
 String _$budgetEnvelopeRepositoryHash() =>
     r'2d265a0c9798af46ccbf1fb5f3be25c882b6737a';
 
+@ProviderFor(nutritionRepository)
+const nutritionRepositoryProvider = NutritionRepositoryProvider._();
+
+final class NutritionRepositoryProvider
+    extends
+        $FunctionalProvider<
+          NutritionRepository,
+          NutritionRepository,
+          NutritionRepository
+        >
+    with $Provider<NutritionRepository> {
+  const NutritionRepositoryProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'nutritionRepositoryProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$nutritionRepositoryHash();
+
+  @$internal
+  @override
+  $ProviderElement<NutritionRepository> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  NutritionRepository create(Ref ref) {
+    return nutritionRepository(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(NutritionRepository value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<NutritionRepository>(value),
+    );
+  }
+}
+
+String _$nutritionRepositoryHash() =>
+    r'f71278edbae596e5fb4e5c4a5eac763392ea2b9e';
+
 /// The exercise catalog (name-ascending), streamed from [RoutineRepository].
 /// Powers the Exercise Library (U11); U12/U13 reuse the same source.
 
@@ -796,7 +844,7 @@ final class PalServiceProvider
   }
 }
 
-String _$palServiceHash() => r'bd1eab82f413d45628e1c4a79683c31078b3c18d';
+String _$palServiceHash() => r'5dd86710708e8cd79543a876675af631e99dfa47';
 
 /// Real [HttpHealthService] when `PAL_BASE_URL` is set; [MockHealthService]
 /// otherwise (tests, backend-less preview). Shares the proxy's http client +

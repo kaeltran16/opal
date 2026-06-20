@@ -320,6 +320,54 @@ extension BudgetEnvelopeModelMapper on BudgetEnvelope {
 }
 
 // ---------------------------------------------------------------------------
+// NutritionMeal
+// ---------------------------------------------------------------------------
+
+extension NutritionMealRowMapper on NutritionMealRow {
+  NutritionMeal toModel() => NutritionMeal(
+        id: id,
+        timestamp: timestamp,
+        slot: slot,
+        name: name,
+        source: NutritionSource.fromWire(source),
+        icon: icon,
+        confidence: NutritionConfidence.fromWire(confidence),
+        cal: IntRange(calLo, calHi),
+        macros: Macros(
+          protein: IntRange(proteinLo, proteinHi),
+          carbs: IntRange(carbsLo, carbsHi),
+          fat: IntRange(fatLo, fatHi),
+        ),
+        note: note,
+        tags: tags.isEmpty ? const [] : tags.split('\n'),
+        linkedEntryId: linkedEntryId,
+      );
+}
+
+extension NutritionMealModelMapper on NutritionMeal {
+  NutritionMealsCompanion toCompanion() => NutritionMealsCompanion(
+        id: Value(id),
+        timestamp: Value(timestamp),
+        slot: Value(slot),
+        name: Value(name),
+        source: Value(source.wire),
+        icon: Value(icon),
+        confidence: Value(confidence.wire),
+        calLo: Value(cal.lo),
+        calHi: Value(cal.hi),
+        proteinLo: Value(macros.protein.lo),
+        proteinHi: Value(macros.protein.hi),
+        carbsLo: Value(macros.carbs.lo),
+        carbsHi: Value(macros.carbs.hi),
+        fatLo: Value(macros.fat.lo),
+        fatHi: Value(macros.fat.hi),
+        note: Value(note),
+        tags: Value(tags.join('\n')),
+        linkedEntryId: Value(linkedEntryId),
+      );
+}
+
+// ---------------------------------------------------------------------------
 // Goals (single row)
 // ---------------------------------------------------------------------------
 

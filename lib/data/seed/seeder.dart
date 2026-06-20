@@ -16,10 +16,10 @@ class Seeder {
 
   /// Marker key written once the initial seed completes.
   ///
-  /// Bumped to `v6`: default per-category budget envelopes (`budget_envelopes`)
-  /// are seeded, so DBs seeded under `initial_seed_v5` re-run (insertOrReplace)
-  /// and backfill the default envelopes.
-  static const String _markerKey = 'initial_seed_v6';
+  /// Bumped to `v7`: demo nutrition meals + a pending Thai Basil expense are
+  /// seeded, so DBs seeded under `initial_seed_v6` re-run (insertOrReplace)
+  /// and backfill the nutrition content.
+  static const String _markerKey = 'initial_seed_v7';
 
   /// Seeds the DB if it hasn't been seeded yet. Safe to call on every launch.
   Future<void> seedIfNeeded() async {
@@ -108,6 +108,11 @@ class Seeder {
         await _db
             .into(_db.budgetEnvelopes)
             .insert(envelope.toCompanion(), mode: replace);
+      }
+
+      // Nutrition meals (no FK; standalone).
+      for (final meal in SeedData.nutritionMeals()) {
+        await _db.into(_db.nutritionMeals).insert(meal.toCompanion(), mode: replace);
       }
 
       // Mark done. Drop stale older `initial_seed_*` markers so version bumps
