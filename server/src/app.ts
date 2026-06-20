@@ -75,22 +75,28 @@ export function buildApp(deps: AppDeps): FastifyInstance {
     }
   })
 
-  // surface which field failed so a malformed client (e.g. the Health Shortcut)
-  // can self-diagnose instead of getting an opaque "invalid body". additive: the
-  // code/message are unchanged, only `details` is new.
-  const badRequest = (reply: FastifyReply, error: z.ZodError) =>
+  // surface which field failed AND the value received so a malformed client (e.g.
+  // the Health Shortcut) can self-diagnose instead of getting an opaque "invalid
+  // body". additive: code/message are unchanged, only `details` is new.
+  const valueAtPath = (obj: unknown, path: (string | number)[]): unknown =>
+    path.reduce<unknown>((o, k) => (o == null ? o : (o as Record<string, unknown>)[k]), obj)
+  const badRequest = (reply: FastifyReply, error: z.ZodError, body: unknown) =>
     reply.code(400).send({
       error: {
         code: 'bad_request',
         message: 'invalid body',
-        details: error.issues.map((i) => `${i.path.join('.') || '(root)'}: ${i.message}`),
+        details: error.issues.map((i) => {
+          const v = valueAtPath(body, i.path)
+          const received = v === undefined ? 'undefined' : JSON.stringify(v).slice(0, 80)
+          return `${i.path.join('.') || '(root)'}: ${i.message} (received: ${received})`
+        }),
       },
     })
 
   const guard = <T>(schema: z.ZodType<T>, handler: (body: T) => Promise<unknown>) =>
     async (req: FastifyRequest, reply: FastifyReply) => {
       const parsed = schema.safeParse(req.body)
-      if (!parsed.success) return badRequest(reply, parsed.error)
+      if (!parsed.success) return badRequest(reply, parsed.error, req.body)
       try {
         return await handler(parsed.data)
       } catch (err) {
@@ -105,7 +111,7 @@ export function buildApp(deps: AppDeps): FastifyInstance {
   const guardTok = <T>(schema: z.ZodType<T>, handler: (body: T, token: string) => Promise<unknown>) =>
     async (req: FastifyRequest, reply: FastifyReply) => {
       const parsed = schema.safeParse(req.body)
-      if (!parsed.success) return badRequest(reply, parsed.error)
+      if (!parsed.success) return badRequest(reply, parsed.error, req.body)
       const token = extractBearer(req.headers.authorization)!
       try {
         return await handler(parsed.data, token)
