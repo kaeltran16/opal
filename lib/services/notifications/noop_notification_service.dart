@@ -10,6 +10,12 @@ import 'notification_service.dart';
 class NoopNotificationService implements NotificationService {
   const NoopNotificationService();
 
+  // web/Windows have no notification permission to grant, and this service
+  // delivers nothing, so report not-granted: the settings screen then honestly
+  // surfaces the gap instead of implying reminders will fire.
+  @override
+  Future<bool> hasPermission() async => false;
+
   @override
   Future<bool> requestPermissions() async => true;
 

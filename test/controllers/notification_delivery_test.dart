@@ -23,6 +23,9 @@ class _RecordingNotificationService implements NotificationService {
   final List<int> cancels = [];
 
   @override
+  Future<bool> hasPermission() async => true;
+
+  @override
   Future<bool> requestPermissions() async => true;
 
   @override

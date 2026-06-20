@@ -43,6 +43,11 @@ class NotificationRequest {
 }
 
 abstract interface class NotificationService {
+  /// Whether the OS currently authorizes notification delivery, queried without
+  /// prompting. Lets the settings screen show a truthful permission state on
+  /// load rather than assuming the toggles' persisted preference is honored.
+  Future<bool> hasPermission();
+
   /// Request OS permission (mock: returns true).
   Future<bool> requestPermissions();
 

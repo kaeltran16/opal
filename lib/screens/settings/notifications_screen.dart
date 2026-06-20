@@ -38,17 +38,41 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
     _ritualReminders = repo.ritualReminders;
     _budgetAlerts = repo.budgetAlerts;
     _reminderTime = repo.reminderTime;
+    _loadPermStatus();
   }
+
+  /// Reads the real OS permission state (without prompting) so the row reflects
+  /// what the system actually allows, not the toggles' persisted preference.
+  Future<void> _loadPermStatus() async {
+    final granted = await ref.read(notificationServiceProvider).hasPermission();
+    if (!mounted) return;
+    setState(() => _permStatus = granted ? 'Allowed' : 'Not set');
+  }
+
+  /// True once permission is confirmed granted; until then a toggled-on reminder
+  /// can't actually be delivered.
+  bool get _permissionGranted => _permStatus == 'Allowed';
 
   Future<void> _requestPerms() async {
     if (_requesting) return;
     setState(() => _requesting = true);
-    final ok = await ref.read(notificationServiceProvider).requestPermissions();
+    final notifications = ref.read(notificationServiceProvider);
+    final ok = await notifications.requestPermissions();
     if (!mounted) return;
     setState(() {
       _requesting = false;
       _permStatus = ok ? 'Allowed' : 'Denied';
     });
+    // granting here also fixes an already-on-but-unpermitted reminder, so wire
+    // up the daily schedule now rather than waiting for the next launch reconcile.
+    if (ok && _ritualReminders) {
+      await notifications.scheduleDaily(
+        id: NotificationIds.ritualReminder,
+        title: kRitualReminderTitle,
+        body: kRitualReminderBody,
+        time: _reminderTime,
+      );
+    }
   }
 
   /// (Re)schedules the daily reminder at the configured time. Requests
@@ -107,6 +131,10 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
+    // a toggle promising delivery while the OS hasn't granted permission is the
+    // gap to surface (defaults are on, so this is the fresh-install state).
+    final permissionGap =
+        (_ritualReminders || _budgetAlerts) && !_permissionGranted;
     return ColoredBox(
       color: c.bg,
       child: ListView(
@@ -128,6 +156,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                 iconBg: c.red,
                 title: 'Allow notifications',
                 value: _requesting ? '…' : (_permStatus ?? 'Not set'),
+                valueColor: permissionGap ? c.red : null,
                 chevron: false,
                 last: true,
                 onTap: _requestPerms,
@@ -138,6 +167,14 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
             header: 'Reminders',
             footer: 'Reminders are scheduled and delivered on your device only.',
             children: [
+              if (permissionGap)
+                ListRow(
+                  icon: 'lock.fill',
+                  iconBg: c.red,
+                  title: 'Not allowed yet',
+                  subtitle: 'Tap to let iOS deliver these reminders.',
+                  onTap: _requestPerms,
+                ),
               _SwitchRow(
                 icon: 'sparkles',
                 color: c.rituals,
