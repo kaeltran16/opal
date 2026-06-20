@@ -150,7 +150,6 @@ class _ProfileBody extends StatelessWidget {
     return LargeTitleScrollView(
       title: 'You',
       subtitle: 'Reviews, patterns, settings',
-      trailing: const NavIconButton(name: 'gearshape.fill', semanticLabel: 'Settings'),
       padding: const EdgeInsets.only(bottom: 110),
       children: [
         // --- Profile card ---
