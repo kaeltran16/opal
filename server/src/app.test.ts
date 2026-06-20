@@ -287,6 +287,19 @@ describe('app', () => {
     expect(res.statusCode).toBe(400)
   })
 
+  it('names the failing field in the 400 (e.g. a string value)', async () => {
+    const token = store.issue('d1')
+    const res = await app.inject({
+      method: 'POST', url: '/v1/health/ingest',
+      headers: { authorization: `Bearer ${token}` },
+      // a Shortcut typing the dictionary value as Text sends "450" not 450
+      payload: { ...health, metrics: { activeEnergy: { value: '450', unit: 'kcal' } } },
+    })
+    expect(res.statusCode).toBe(400)
+    const details = res.json().error.details as string[]
+    expect(details.some((d) => d.includes('metrics.activeEnergy.value'))).toBe(true)
+  })
+
   it('reads back an ingested day', async () => {
     const token = store.issue('d1')
     await app.inject({ method: 'POST', url: '/v1/health/ingest', headers: { authorization: `Bearer ${token}` }, payload: health })
