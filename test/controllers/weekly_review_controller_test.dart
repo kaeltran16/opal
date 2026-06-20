@@ -8,15 +8,27 @@ import 'package:opal/services/services.dart';
 
 /// Builds a minimal [Entry] of [type]; only the fields read by
 /// `buildWeeklyStats` (amount for money, calories for move) matter.
-Entry _entry(EntryType type, {double? amount, int? calories}) => Entry(
-  id: 'e-${type.wire}-${amount ?? calories ?? 0}',
+Entry _entry(EntryType type, {double? amount, int? calories, String? ritualId}) =>
+    Entry(
+  id: 'e-${type.wire}-${amount ?? calories ?? ritualId ?? 0}',
   timestamp: DateTime(2026, 4, 22),
   type: type,
   title: 'x',
   amount: amount,
   calories: calories,
+  ritualId: ritualId,
   source: EntrySource.manual,
 );
+
+/// A routine whose steps are [stepIds]; completing all of them on one day
+/// counts as one completed routine.
+RitualRoutine _routine(String id, List<String> stepIds) => RitualRoutine(
+      id: id, name: id, time: '7:00 AM', tone: RitualTone.morning,
+      icon: 'x', blurb: '',
+      steps: [
+        for (final s in stepIds) RitualStep(id: s, title: s, note: '', icon: 'x'),
+      ],
+    );
 
 /// A PalService whose `review` returns a different canned string per call (so a
 /// regenerate is guaranteed to swap text) and records the range it was asked
@@ -119,16 +131,18 @@ void main() {
       _entry(EntryType.money, amount: 100), // income, ignored by spent
       _entry(EntryType.move, calories: 200),
       _entry(EntryType.move, calories: 96),
-      _entry(EntryType.rituals),
-      _entry(EntryType.rituals),
-      _entry(EntryType.rituals),
+      _entry(EntryType.rituals, ritualId: 's1'),
+      _entry(EntryType.rituals, ritualId: 's2'),
+      _entry(EntryType.rituals, ritualId: 's3'),
     ];
 
-    test('folds entries into spent / moveKcal / ritualsKept', () {
-      final stats = buildWeeklyStats(entries, const Goals(), now: now);
+    test('folds entries into spent / moveKcal / completed routines', () {
+      // one routine of 3 steps, all done on the day → one completed routine.
+      final stats = buildWeeklyStats(entries, const Goals(),
+          routines: [_routine('r', ['s1', 's2', 's3'])], now: now);
       expect(stats.spent, 42.5); // only the two expenses, income excluded
       expect(stats.moveKcal, 296);
-      expect(stats.ritualsKept, 3);
+      expect(stats.ritualsKept, 1);
     });
 
     test('budget and moveTarget are the daily goals × 7', () {
@@ -138,11 +152,11 @@ void main() {
       expect(stats.moveTarget, 3500);
     });
 
-    test('ritualsTarget uses routineCount × 7 when routineCount > 0', () {
+    test('ritualsTarget uses the routine count × 7 when there are routines', () {
       final stats = buildWeeklyStats(
         entries,
         const Goals(dailyRitualTarget: 5),
-        routineCount: 3,
+        routines: [_routine('a', ['a0']), _routine('b', ['b0']), _routine('c', ['c0'])],
         now: now,
       );
       // effectiveDailyRitualTarget(3, goals) == 3 → 3 * 7.
@@ -150,11 +164,11 @@ void main() {
     });
 
     test('ritualsTarget falls back to goals.dailyRitualTarget × 7 when '
-        'routineCount is 0', () {
+        'there are no routines', () {
       final stats = buildWeeklyStats(
         entries,
         const Goals(dailyRitualTarget: 5),
-        routineCount: 0,
+        routines: const [],
         now: now,
       );
       expect(stats.ritualsTarget, 35);

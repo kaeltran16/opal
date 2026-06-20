@@ -156,7 +156,16 @@ void main() {
         timestamp: DateTime(2026, 4, 7, 6),
         type: EntryType.rituals,
         title: 'Meditate',
+        ritualId: 's1',
         source: EntrySource.manual,
+      ),
+    ];
+    // one single-step routine, completed on Apr 7 → one completed routine.
+    final routines = [
+      RitualRoutine(
+        id: 'r', name: 'r', time: '7:00 AM', tone: RitualTone.morning,
+        icon: 'x', blurb: '',
+        steps: const [RitualStep(id: 's1', title: 's1', note: '', icon: 'x')],
       ),
     ];
     // Previous month: $60 spent, 50 move kcal over 1 day, 0 rituals.
@@ -184,10 +193,11 @@ void main() {
     // with `now` on Apr 7 → a 1-day streak) and passed in, not derived from
     // seeded RitualRoutine.streak values.
     final ritualStreak = ritualStreakDays(entries, now: DateTime(2026, 4, 7, 12));
-    final s = buildMonthlyStats(month, entries, previousEntries, ritualStreak);
+    final s = buildMonthlyStats(month, entries, previousEntries, ritualStreak,
+        routines: routines);
     expect(s.totalSpent, 36); // 6 + 30 (income excluded)
     expect(s.moveKcal, 75); // 30 + 45
-    expect(s.ritualsKept, 1);
+    expect(s.ritualsKept, 1); // routine completed Apr 7
     expect(s.longestStreak, 1);
 
     // Active move days this month: Apr 5 and Apr 6 → 2 distinct days.

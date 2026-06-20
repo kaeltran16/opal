@@ -23,12 +23,21 @@ Entry _move(DateTime t, int kcal) => Entry(
       source: EntrySource.health,
     );
 
-Entry _ritual(DateTime t) => Entry(
+Entry _ritual(DateTime t, {String? ritualId}) => Entry(
       id: 't',
       timestamp: t,
       type: EntryType.rituals,
       title: 'x',
+      ritualId: ritualId,
       source: EntrySource.manual,
+    );
+
+RitualRoutine _routine(String id, List<String> stepIds) => RitualRoutine(
+      id: id, name: id, time: '7:00 AM', tone: RitualTone.morning,
+      icon: 'x', blurb: '',
+      steps: [
+        for (final s in stepIds) RitualStep(id: s, title: s, note: '', icon: 'x'),
+      ],
     );
 
 void main() {
@@ -54,6 +63,9 @@ void main() {
       dailyMoveKcal: 60,
       dailyRitualTarget: 5,
     );
+    // one single-step routine, completed on three distinct days this week →
+    // three per-day completions summed (target tracks the 1 routine × 7).
+    final routines = [_routine('r', ['s1'])];
     final entries = [
       _money(DateTime(2026, 4, 20, 8), -30),
       _money(DateTime(2026, 4, 21, 9), -12),
@@ -61,20 +73,21 @@ void main() {
       _money(DateTime(2026, 4, 22, 9), 200),
       _move(DateTime(2026, 4, 20, 7), 40),
       _move(DateTime(2026, 4, 23, 18), 55),
-      _ritual(DateTime(2026, 4, 21, 6)),
-      _ritual(DateTime(2026, 4, 22, 6)),
-      _ritual(DateTime(2026, 4, 24, 6)),
+      _ritual(DateTime(2026, 4, 21, 6), ritualId: 's1'),
+      _ritual(DateTime(2026, 4, 22, 6), ritualId: 's1'),
+      _ritual(DateTime(2026, 4, 24, 6), ritualId: 's1'),
     ];
 
-    final s = buildWeeklyStats(entries, goals, now: DateTime(2026, 4, 22, 12));
+    final s = buildWeeklyStats(entries, goals,
+        routines: routines, now: DateTime(2026, 4, 22, 12));
 
     expect(s.weekStart, DateTime(2026, 4, 20));
     expect(s.spent, 42); // 30 + 12 (income excluded)
     expect(s.budget, 595); // 85 * 7
     expect(s.moveKcal, 95); // 40 + 55
     expect(s.moveTarget, 420); // 60 * 7
-    expect(s.ritualsKept, 3);
-    expect(s.ritualsTarget, 35); // 5 * 7
+    expect(s.ritualsKept, 3); // completed on Apr 21, 22, 24
+    expect(s.ritualsTarget, 7); // 1 routine * 7
 
     // Tiles render in handoff order with the "of <target>" subs.
     final tiles = s.tiles(Currency.usd);
@@ -85,7 +98,7 @@ void main() {
     expect(tiles[1].value, '95');
     expect(tiles[1].sub, 'of 420 kcal');
     expect(tiles[2].value, '3');
-    expect(tiles[2].sub, 'of 35');
+    expect(tiles[2].sub, 'of 7');
 
     // Money tile honours the display currency (regression: was hardcoded '$').
     final vnd = s.tiles(Currency.vnd);
@@ -100,12 +113,13 @@ void main() {
     // With 3 active routines the weekly target tracks them (3 * 7), not the
     // stored fallback (5 * 7) — so it stays reachable.
     final s = buildWeeklyStats(entries, goals,
-        routineCount: 3, now: DateTime(2026, 4, 22, 12));
+        routines: [_routine('a', ['a0']), _routine('b', ['b0']), _routine('c', ['c0'])],
+        now: DateTime(2026, 4, 22, 12));
     expect(s.ritualsTarget, 21);
 
     // No routines → fall back to the stored daily target.
     final fallback = buildWeeklyStats(entries, goals,
-        routineCount: 0, now: DateTime(2026, 4, 22, 12));
+        routines: const [], now: DateTime(2026, 4, 22, 12));
     expect(fallback.ritualsTarget, 35);
   });
 

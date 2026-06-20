@@ -71,7 +71,8 @@ class RecapData {
   /// Period move target = dailyMoveKcal * days-in-period.
   final int moveTarget;
 
-  /// Count of ritual entries logged in the period.
+  /// Completed routines in the period (per-day completions summed), against the
+  /// `daily target * days` target — the same definition the Today ring uses.
   final int ritualsKept;
 
   /// Period rituals target = effective daily target * days-in-period.
@@ -158,14 +159,14 @@ RecapData buildRecapData(
   InsightRange range,
   List<Entry> periodEntries,
   Goals goals, {
-  int routineCount = 0,
+  List<RitualRoutine> routines = const [],
   DateTime? now,
 }) {
   final n = now ?? DateTime.now();
   final days = _periodDays(range, n);
+  final periodStart = _periodStart(range, n);
   var spent = 0.0;
   var moveKcal = 0;
-  var ritualsKept = 0;
   for (final e in periodEntries) {
     switch (e.type) {
       case EntryType.money:
@@ -173,18 +174,19 @@ RecapData buildRecapData(
       case EntryType.move:
         moveKcal += e.calories ?? 0;
       case EntryType.rituals:
-        ritualsKept += 1;
+        break; // rituals are counted as completed routines, not step entries
     }
   }
   return RecapData(
     range: range,
-    periodStart: _periodStart(range, n),
+    periodStart: periodStart,
     spent: spent,
     budget: goals.dailyBudget * days,
     moveKcal: moveKcal,
     moveTarget: goals.dailyMoveKcal * days,
-    ritualsKept: ritualsKept,
-    ritualsTarget: effectiveDailyRitualTarget(routineCount, goals) * days,
+    ritualsKept: completedRoutinesInPeriod(periodEntries, routines,
+        start: periodStart, days: days),
+    ritualsTarget: effectiveDailyRitualTarget(routines.length, goals) * days,
   );
 }
 
@@ -205,9 +207,8 @@ Stream<RecapData> recapData(Ref ref, InsightRange range) async* {
   };
 
   await for (final entries in entriesRepo.watchEntriesInRange(start, end)) {
-    final routineCount = (await ritualRepo.getAll()).length;
-    yield buildRecapData(range, entries, goals,
-        routineCount: routineCount, now: now);
+    final routines = await ritualRepo.getAll();
+    yield buildRecapData(range, entries, goals, routines: routines, now: now);
   }
 }
 

@@ -195,7 +195,7 @@ PalService palService(Ref ref) {
         todayEntries: today,
         weekEntries: week,
         moveStreakDays: await moveStreak(now),
-        routineCount: (await ritualRoutines.getAll()).length,
+        routines: await ritualRoutines.getAll(),
       );
     },
     review: (anchor, range) async {
@@ -220,7 +220,6 @@ PalService palService(Ref ref) {
 
       var spent = 0.0;
       var movedKcal = 0;
-      var kept = 0;
       String topCat = '—';
       final byCat = <String, double>{};
       for (final e in periodEntries) {
@@ -234,7 +233,7 @@ PalService palService(Ref ref) {
           case EntryType.move:
             movedKcal += e.calories ?? 0;
           case EntryType.rituals:
-            kept += 1;
+            break; // counted as completed routines below
         }
       }
       var topVal = 0.0;
@@ -261,7 +260,9 @@ PalService palService(Ref ref) {
       final hasPrev = prevEntries.isNotEmpty;
 
       final g = await goals.get();
-      final routineCount = (await ritualRoutines.getAll()).length;
+      final routines = await ritualRoutines.getAll();
+      final kept = completedRoutinesInPeriod(periodEntries, routines,
+          start: start, days: periodDays);
       return buildReviewContext(
         range: range,
         spent: spent,
@@ -270,7 +271,7 @@ PalService palService(Ref ref) {
         movedDeltaPct: hasPrev ? pctChange(movedKcal, prevMovedKcal) : null,
         activeDays: periodEntries.map((e) => e.timestamp.day).toSet().length,
         ritualsKept: kept,
-        ritualsTarget: effectiveDailyRitualTarget(routineCount, g) * periodDays,
+        ritualsTarget: effectiveDailyRitualTarget(routines.length, g) * periodDays,
         streakDays: await moveStreak(now),
         topCategory: topCat,
         topCategoryPct: topPct,
@@ -301,7 +302,8 @@ PalService palService(Ref ref) {
         goals: await goals.get(),
         periodDays: periodDays,
         streakDays: moveStreakDays(lookback, now: now),
-        routineCount: (await ritualRoutines.getAll()).length,
+        routines: await ritualRoutines.getAll(),
+        periodStart: start,
       );
     },
     suggest: (another, excludeRoutineId) async {

@@ -66,10 +66,10 @@ class WeeklyStats {
   /// Weekly move target = dailyMoveKcal * 7.
   final int moveTarget;
 
-  /// Count of ritual entries logged this week.
+  /// Completed routines this week (per-day completions summed).
   final int ritualsKept;
 
-  /// Weekly rituals target = dailyRitualTarget * 7.
+  /// Weekly rituals target = effective daily target * 7.
   final int ritualsTarget;
 
   /// Sunday (week end, inclusive) — Monday + 6 days.
@@ -126,13 +126,12 @@ DateTime weekStartFor(DateTime now) => startOfWeek(now);
 WeeklyStats buildWeeklyStats(
   List<Entry> entries,
   Goals goals, {
-  int routineCount = 0,
+  List<RitualRoutine> routines = const [],
   DateTime? now,
 }) {
   final weekStart = weekStartFor(now ?? DateTime.now());
   var spent = 0.0;
   var moveKcal = 0;
-  var ritualsKept = 0;
   for (final e in entries) {
     switch (e.type) {
       case EntryType.money:
@@ -140,7 +139,7 @@ WeeklyStats buildWeeklyStats(
       case EntryType.move:
         moveKcal += e.calories ?? 0;
       case EntryType.rituals:
-        ritualsKept += 1;
+        break; // counted as completed routines below, not step entries
     }
   }
   return WeeklyStats(
@@ -149,8 +148,9 @@ WeeklyStats buildWeeklyStats(
     budget: goals.dailyBudget * 7,
     moveKcal: moveKcal,
     moveTarget: goals.dailyMoveKcal * 7,
-    ritualsKept: ritualsKept,
-    ritualsTarget: effectiveDailyRitualTarget(routineCount, goals) * 7,
+    ritualsKept: completedRoutinesInPeriod(entries, routines,
+        start: weekStart, days: 7),
+    ritualsTarget: effectiveDailyRitualTarget(routines.length, goals) * 7,
   );
 }
 
@@ -167,8 +167,8 @@ Stream<WeeklyStats> weeklyStats(Ref ref) async* {
   final end = start.add(const Duration(days: 7));
 
   await for (final entries in entriesRepo.watchEntriesInRange(start, end)) {
-    final routineCount = (await ritualRepo.getAll()).length;
-    yield buildWeeklyStats(entries, goals, routineCount: routineCount, now: now);
+    final routines = await ritualRepo.getAll();
+    yield buildWeeklyStats(entries, goals, routines: routines, now: now);
   }
 }
 

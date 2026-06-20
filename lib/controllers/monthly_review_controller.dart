@@ -67,18 +67,23 @@ class MonthAggregate {
   /// Total movement active energy (move entries' [Entry.calories]).
   final int moveKcal;
 
-  /// Count of ritual entries logged.
+  /// Completed routines in the month (per-day completions summed).
   final int ritualsKept;
 
   /// Distinct calendar days with at least one move entry.
   final int activeMoveDays;
 }
 
-/// Folds one month's [entries] into a [MonthAggregate].
-MonthAggregate foldMonth(List<Entry> entries) {
+/// Folds one month's [entries] into a [MonthAggregate]. [monthStart]/[days]
+/// scope the completed-routines count to that month.
+MonthAggregate foldMonth(
+  List<Entry> entries,
+  List<RitualRoutine> routines,
+  DateTime monthStart,
+  int days,
+) {
   var spent = 0.0;
   var moveKcal = 0;
-  var ritualsKept = 0;
   final moveDays = <int>{};
   for (final e in entries) {
     switch (e.type) {
@@ -89,16 +94,20 @@ MonthAggregate foldMonth(List<Entry> entries) {
         final t = e.timestamp;
         moveDays.add(t.year * 10000 + t.month * 100 + t.day);
       case EntryType.rituals:
-        ritualsKept += 1;
+        break; // counted as completed routines below, not step entries
     }
   }
   return MonthAggregate(
     totalSpent: spent,
     moveKcal: moveKcal,
-    ritualsKept: ritualsKept,
+    ritualsKept: completedRoutinesInPeriod(entries, routines,
+        start: monthStart, days: days),
     activeMoveDays: moveDays.length,
   );
 }
+
+/// Days in the month that [d] falls in.
+int _daysInMonth(DateTime d) => DateTime(d.year, d.month + 1, 0).day;
 
 /// The fully-computed "By the numbers" block for [month], derived from the
 /// repositories. All math lives here so the screen is dumb and this is
@@ -212,12 +221,16 @@ MonthlyStats buildMonthlyStats(
   List<Entry> entries,
   List<Entry> previousEntries,
   int ritualStreak, {
+  List<RitualRoutine> routines = const [],
   Currency currency = Currency.usd,
 }) {
+  final monthStart = DateTime(month.year, month.month);
+  final prevStart = DateTime(month.year, month.month - 1);
   return MonthlyStats(
-    month: DateTime(month.year, month.month),
-    current: foldMonth(entries),
-    previous: foldMonth(previousEntries),
+    month: monthStart,
+    current: foldMonth(entries, routines, monthStart, _daysInMonth(monthStart)),
+    previous:
+        foldMonth(previousEntries, routines, prevStart, _daysInMonth(prevStart)),
     longestStreak: ritualStreak,
     currency: currency,
   );
@@ -229,6 +242,7 @@ MonthlyStats buildMonthlyStats(
 @riverpod
 Stream<MonthlyStats> monthlyStats(Ref ref) async* {
   final entriesRepo = ref.watch(entryRepositoryProvider);
+  final ritualRepo = ref.watch(ritualRepositoryProvider);
   final currency = ref.watch(appSettingsControllerProvider).currency;
 
   final now = DateTime.now();
@@ -248,9 +262,10 @@ Stream<MonthlyStats> monthlyStats(Ref ref) async* {
       today.subtract(const Duration(days: 60)),
       today.add(const Duration(days: 1)),
     );
+    final routines = await ritualRepo.getAll();
     yield buildMonthlyStats(
         start, entries, previous, ritualStreakDays(lookback, now: now),
-        currency: currency);
+        routines: routines, currency: currency);
   }
 }
 

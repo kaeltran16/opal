@@ -1,4 +1,5 @@
 import '../../models/models.dart';
+import '../../util/dates.dart' show startOfWeek;
 import 'pal_service.dart' show InsightRange, ReviewRange;
 
 /// Formats one timeline entry as the handoff's `HH:MM Title (type, detail)`.
@@ -33,11 +34,11 @@ Map<String, Object?> buildChatContext({
   required List<Entry> todayEntries,
   required List<Entry> weekEntries,
   required int moveStreakDays,
-  int routineCount = 0,
+  List<RitualRoutine> routines = const [],
   DateTime? now,
 }) {
   final clock = now ?? DateTime.now();
-  final ritualTarget = effectiveDailyRitualTarget(routineCount, goals);
+  final ritualTarget = effectiveDailyRitualTarget(routines.length, goals);
   return {
     'userName': userName,
     'todayEntries': todayEntries.map(formatEntryLine).toList(),
@@ -46,11 +47,12 @@ Map<String, Object?> buildChatContext({
     'ritualGoal': ritualTarget,
     'spentToday': _spent(todayEntries),
     'movedTodayKcal': _movedKcal(todayEntries),
-    'ritualsDoneToday': _rituals(todayEntries),
+    'ritualsDoneToday': completedRoutines(todayEntries, routines, day: clock),
     'weekSpent': _spent(weekEntries),
     'weekBudget': goals.dailyBudget * 7,
     'weekMovedKcal': _movedKcal(weekEntries),
-    'weekRitualsDone': _rituals(weekEntries),
+    'weekRitualsDone': completedRoutinesInPeriod(weekEntries, routines,
+        start: startOfWeek(clock), days: 7),
     'weekRitualGoal': ritualTarget * 7,
     'moveStreakDays': moveStreakDays,
     'hourOfDay': clock.hour,
@@ -153,7 +155,8 @@ Map<String, Object?> buildInsightsContext({
   required Goals goals,
   required int periodDays,
   required int streakDays,
-  int routineCount = 0,
+  List<RitualRoutine> routines = const [],
+  DateTime? periodStart,
 }) {
   final spendByWeekday = List<double>.filled(7, 0);
   final activeMoveDays = <int>{};
@@ -190,8 +193,11 @@ Map<String, Object?> buildInsightsContext({
     'budget': goals.dailyBudget * periodDays,
     'moveKcal': _movedKcal(entries),
     'moveTargetKcal': goals.dailyMoveKcal * periodDays,
-    'ritualsKept': _rituals(entries),
-    'ritualsTarget': effectiveDailyRitualTarget(routineCount, goals) * periodDays,
+    'ritualsKept': periodStart == null
+        ? _rituals(entries)
+        : completedRoutinesInPeriod(entries, routines,
+            start: periodStart, days: periodDays),
+    'ritualsTarget': effectiveDailyRitualTarget(routines.length, goals) * periodDays,
     'activeDays': activeMoveDays.length,
     'streakDays': streakDays,
     'topCategory': topCategory,

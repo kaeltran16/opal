@@ -227,7 +227,7 @@ DetailData buildDetailData(
   // Rituals counts completed *routines* (every step done) when routine data is
   // known; otherwise the per-entry magnitude fold below. Money/move always fold.
   final total = tracker == DetailTracker.rituals && routines.isNotEmpty
-      ? _completedRoutines(entries, routines).toDouble()
+      ? completedRoutines(entries, routines, day: n).toDouble()
       : todayIncluded.fold<double>(0, (s, e) => s + tracker.magnitudeOf(e));
 
   // --- Category breakdown (today, to share the hero's base) ------------------
@@ -273,19 +273,6 @@ DetailData buildDetailData(
     categories: categories,
     days: days,
   );
-}
-
-/// Number of fully-completed routines today: a routine is complete only when
-/// every one of its steps has a matching ritual [Entry] (`ritualId == step.id`).
-/// Mirrors the Today screen's routine-completion semantics.
-int _completedRoutines(List<Entry> entries, List<RitualRoutine> routines) {
-  final done = entries
-      .where((e) => e.type == EntryType.rituals && e.ritualId != null)
-      .map((e) => e.ritualId!)
-      .toSet();
-  return routines
-      .where((r) => r.steps.isNotEmpty && r.steps.every((s) => done.contains(s.id)))
-      .length;
 }
 
 /// Streams the [DetailData] for a [tracker]. Reactive: re-emits whenever the

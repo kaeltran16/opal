@@ -14,40 +14,67 @@ void main() {
         id: '', timestamp: at ?? DateTime(2026, 6, 10, 9), type: EntryType.move,
         title: 'Walk', duration: 30, calories: kcal, source: EntrySource.manual,
       );
-  Entry ritual({DateTime? at}) => Entry(
+  Entry ritual({DateTime? at, String? ritualId}) => Entry(
         id: '', timestamp: at ?? DateTime(2026, 6, 10, 7), type: EntryType.rituals,
-        title: 'Meditate', source: EntrySource.manual,
+        title: 'Meditate', ritualId: ritualId, source: EntrySource.manual,
+      );
+  // A routine whose every step id is in [stepIds]; completing all of them on a
+  // day counts as one completed routine.
+  RitualRoutine routine(String id, List<String> stepIds) => RitualRoutine(
+        id: id, name: id, time: '7:00 AM', tone: RitualTone.morning,
+        icon: 'x', blurb: '',
+        steps: [
+          for (final s in stepIds) RitualStep(id: s, title: s, note: '', icon: 'x'),
+        ],
       );
 
   test('buildChatContext folds today + week numbers', () {
+    final now = DateTime(2026, 6, 10, 12); // Wednesday
     final ctx = buildChatContext(
       userName: 'Kael',
       goals: goals,
-      todayEntries: [money(-12, category: 'Coffee'), move(20), ritual(), ritual(), ritual()],
-      weekEntries: [money(-200, category: 'Coffee'), move(140), ritual()],
+      todayEntries: [
+        money(-12, category: 'Coffee', at: now),
+        move(20, at: now),
+        ritual(at: now, ritualId: 'm0'),
+      ],
+      weekEntries: [
+        money(-200, category: 'Coffee', at: now),
+        move(140, at: now),
+        ritual(at: now, ritualId: 'm0'),
+      ],
       moveStreakDays: 11,
+      routines: [routine('morning', ['m0'])],
+      now: now,
     );
 
     expect(ctx['userName'], 'Kael');
     expect(ctx['dailyBudget'], 60);
     expect(ctx['spentToday'], 12); // absolute value of the expense
     expect(ctx['movedTodayKcal'], 20);
-    expect(ctx['ritualsDoneToday'], 3);
+    expect(ctx['ritualsDoneToday'], 1); // the morning routine completed today
+    expect(ctx['weekRitualsDone'], 1); // completed once this week
     expect(ctx['weekBudget'], 420); // 60 * 7
-    expect(ctx['weekRitualGoal'], 35); // 5 * 7
+    expect(ctx['weekRitualGoal'], 7); // 1 routine * 7
     expect(ctx['moveStreakDays'], 11);
-    expect((ctx['todayEntries'] as List).length, 5);
+    expect((ctx['todayEntries'] as List).length, 3);
   });
 
-  test('ritual goals derive from routineCount when provided, else fall back', () {
-    // routineCount > 0 → targets track the routines (3, 3*7); fallback otherwise.
+  test('ritual goals derive from the routine count when provided, else fall back',
+      () {
+    // 3 routines → targets track them (3, 3*7); empty list → daily fallback (5).
+    final routines = [
+      routine('a', ['a0']),
+      routine('b', ['b0']),
+      routine('c', ['c0']),
+    ];
     final derived = buildChatContext(
       userName: 'Kael',
       goals: goals, // dailyRitualTarget: 5
       todayEntries: const [],
       weekEntries: const [],
       moveStreakDays: 0,
-      routineCount: 3,
+      routines: routines,
     );
     expect(derived['ritualGoal'], 3);
     expect(derived['weekRitualGoal'], 21);
@@ -58,7 +85,7 @@ void main() {
       goals: goals,
       periodDays: 7,
       streakDays: 0,
-      routineCount: 3,
+      routines: routines,
     );
     expect(insights['ritualsTarget'], 21);
   });
@@ -71,18 +98,20 @@ void main() {
         money(-100, category: 'Dining', at: DateTime(2026, 6, 12, 19)), // Fri
         money(-20, category: 'Coffee', at: DateTime(2026, 6, 8, 8)), // Mon
         move(40, at: DateTime(2026, 6, 8, 9)),
-        ritual(at: DateTime(2026, 6, 8, 7)),
+        ritual(at: DateTime(2026, 6, 8, 7), ritualId: 'm0'),
       ],
       goals: goals,
       periodDays: 7,
       streakDays: 4,
+      routines: [routine('morning', ['m0'])],
+      periodStart: DateTime(2026, 6, 8), // Monday
     );
 
     expect(ctx['range'], 'week');
     expect(ctx['spent'], 120);
     expect(ctx['budget'], 420); // 60 * 7
     expect(ctx['moveKcal'], 40);
-    expect(ctx['ritualsKept'], 1);
+    expect(ctx['ritualsKept'], 1); // morning routine completed Monday
     expect(ctx['activeDays'], 1); // one distinct move day
     expect(ctx['streakDays'], 4);
     expect(ctx['topCategory'], 'Dining');
