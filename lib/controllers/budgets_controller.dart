@@ -75,13 +75,26 @@ class BudgetsData {
   bool get onPace => totalProgress <= monthPaceFraction + 0.02;
 }
 
+/// Catch-all row for expenses whose category matches no envelope. Cap 0 — it's
+/// a tally, not a budget. Its presence keeps the Budgets total equal to the
+/// real month spend (and to Insights), so nothing is ever silently dropped.
+const _uncategorizedEnvelope = BudgetEnvelope(
+  id: 'env-uncategorized',
+  category: 'Uncategorized',
+  cap: 0,
+  icon: 'tray.fill',
+  colorToken: 'money',
+  position: 1 << 30,
+);
+
 /// Builds a [BudgetsData] from [envelopes] and the month's [monthEntries].
 /// Extracted from the provider so it can be tested directly with fixtures.
 ///
 /// Matching rule: each expense entry (money type, negative amount) is bucketed
-/// into the envelope whose category matches case-insensitively (trimmed); its
-/// `amount.abs()` is summed. Unmatched expenses are dropped (counted toward no
-/// envelope). Envelope order ([BudgetEnvelope.position]) is preserved.
+/// into the envelope whose category matches via [normalizeCategory]; its
+/// `amount.abs()` is summed. Expenses matching no envelope are summed into an
+/// "Uncategorized" row (appended only when non-zero) so [BudgetsData.totalSpent]
+/// always equals the real month spend. Envelope order is preserved.
 BudgetsData buildBudgetsData(
   List<BudgetEnvelope> envelopes,
   List<Entry> monthEntries, {
@@ -91,23 +104,27 @@ BudgetsData buildBudgetsData(
     ..sort((a, b) => a.position.compareTo(b.position));
 
   final byCategory = <String, double>{
-    for (final e in ordered) e.category.trim().toLowerCase(): 0,
+    for (final e in ordered) normalizeCategory(e.category): 0,
   };
+  var uncategorized = 0.0;
   for (final entry in monthEntries) {
     if (entry.type != EntryType.money) continue;
     if ((entry.amount ?? 0) >= 0) continue;
-    final key = (entry.category ?? '').trim().toLowerCase();
+    final magnitude = entry.amount!.abs();
+    final key = normalizeCategory(entry.category);
     if (byCategory.containsKey(key)) {
-      byCategory[key] = byCategory[key]! + entry.amount!.abs();
+      byCategory[key] = byCategory[key]! + magnitude;
+    } else {
+      uncategorized += magnitude;
     }
   }
 
-  final spends = ordered
-      .map((env) => EnvelopeSpend(
-            envelope: env,
-            spent: byCategory[env.category.trim().toLowerCase()] ?? 0,
-          ))
-      .toList();
+  final spends = [
+    for (final env in ordered)
+      EnvelopeSpend(envelope: env, spent: byCategory[normalizeCategory(env.category)] ?? 0),
+    if (uncategorized > 0)
+      EnvelopeSpend(envelope: _uncategorizedEnvelope, spent: uncategorized),
+  ];
 
   final anchor = now ?? DateTime.now();
   return BudgetsData(

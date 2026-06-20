@@ -163,7 +163,7 @@ InsightsData buildInsightsData(
   // Resolve a display label + icon/color per category key. Envelopes win for
   // presentation; unmatched categories fall back to a generic money treatment.
   final envByKey = <String, BudgetEnvelope>{
-    for (final env in envelopes) env.category.trim().toLowerCase(): env,
+    for (final env in envelopes) normalizeCategory(env.category): env,
   };
 
   String labelFor(String key, String raw) {
@@ -180,7 +180,7 @@ InsightsData buildInsightsData(
     if (e.type != EntryType.money) continue;
     if ((e.amount ?? 0) >= 0) continue;
     final raw = (e.category ?? '').trim();
-    final key = raw.isEmpty ? 'uncategorized' : raw.toLowerCase();
+    final key = raw.isEmpty ? 'uncategorized' : normalizeCategory(raw);
     final mk = (e.timestamp.year, e.timestamp.month);
     if (mk == currentKey) {
       curTotals[key] = (curTotals[key] ?? 0) + e.amount!.abs();

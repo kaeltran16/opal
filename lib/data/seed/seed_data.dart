@@ -815,7 +815,7 @@ class SeedData {
           title: 'Verve Coffee',
           detail: 'Coffee · cortado',
           amount: -5.75,
-          category: 'Coffee',
+          category: 'Food & Drink',
           source: EntrySource.manual,
         ),
         Entry(
@@ -834,7 +834,7 @@ class SeedData {
           title: 'Tartine',
           detail: 'Lunch · sandwich',
           amount: -16.20,
-          category: 'Dining',
+          category: 'Food & Drink',
           source: EntrySource.email,
         ),
         Entry(
@@ -869,12 +869,11 @@ class SeedData {
         ),
       ];
 
-  /// The seven default per-category budget envelopes, position-ordered.
-  ///
-  /// Seed money [entries] use free-form categories (Coffee / Dining /
-  /// Groceries), so under exact case-insensitive matching only "Groceries"
-  /// lands in an envelope; "Coffee" and "Dining" don't map to "Food & Drink".
-  /// This is intentional for v1 — there is no fuzzy/alias matching.
+  /// The seven default per-category budget envelopes, position-ordered. Their
+  /// categories are the canonical [kSpendCategories]; seed money [entries] use
+  /// those same names so every expense lands in an envelope and the month total
+  /// matches Insights. Any category that doesn't match still counts toward the
+  /// authoritative total via the Budgets "Uncategorized" row.
   static List<BudgetEnvelope> budgetEnvelopes() => const [
         BudgetEnvelope(
           id: 'env-food',
