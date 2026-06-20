@@ -4,7 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../controllers/providers.dart';
 import '../../controllers/weekly_plan_controller.dart';
+import '../../models/models.dart';
 import '../../router.dart';
 import '../../theme/theme.dart';
 import '../../util/dates.dart';
@@ -126,13 +128,26 @@ class WeeklyPlanScreen extends ConsumerWidget {
             child: _TodaySpotlight(day: today),
           ),
 
-        // Schedule header.
+        // Schedule header + tap-to-assign hint (the visible affordance; the
+        // overflow "…" is no longer the only way to change the plan).
         Padding(
           padding: const EdgeInsets.fromLTRB(
               Spacing.xl, 0, Spacing.xl, Spacing.md),
-          child: Text(
-            'Schedule',
-            style: AppType.title2.copyWith(color: c.ink, letterSpacing: 0.35),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Schedule',
+                style:
+                    AppType.title2.copyWith(color: c.ink, letterSpacing: 0.35),
+              ),
+              const SizedBox(height: Spacing.xxs),
+              Text(
+                'Tap a day to set or change its routine.',
+                style: AppType.footnote
+                    .copyWith(color: c.ink3, letterSpacing: -0.08),
+              ),
+            ],
           ),
         ),
 
@@ -145,9 +160,12 @@ class WeeklyPlanScreen extends ConsumerWidget {
               color: c.surface,
               child: Column(
                 children: [
+                  // weekday = list index + 1 (rows are Mon..Sun, 1..7).
                   for (var i = 0; i < plan.days.length; i++)
                     _ScheduleRow(
-                        day: plan.days[i], last: i == plan.days.length - 1),
+                        day: plan.days[i],
+                        last: i == plan.days.length - 1,
+                        onTap: () => _showAssignSheet(context, ref, i + 1)),
                 ],
               ),
             ),
@@ -198,6 +216,85 @@ Future<void> _showPlanMenu(BuildContext context) {
                 context.pushNamed(AppRoute.routineEditor.name);
               },
             ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
+/// Routine picker for one weekday: lists every routine (+ a Rest option) and
+/// upserts the chosen assignment, which the plan stream re-derives. Resolves the
+/// current assignment from the repo so the checkmark is correct even when two
+/// routines share a name.
+Future<void> _showAssignSheet(
+    BuildContext context, WidgetRef ref, int weekday) async {
+  final routines =
+      ref.read(workoutRoutinesStreamProvider).asData?.value ?? const <Routine>[];
+  final schedule = await ref.read(weeklyPlanRepositoryProvider).getSchedule();
+  String? currentId;
+  for (final a in schedule) {
+    if (a.weekday == weekday) {
+      currentId = a.routineId;
+      break;
+    }
+  }
+  if (!context.mounted) return;
+
+  final repo = ref.read(weeklyPlanRepositoryProvider);
+  final c = context.colors;
+  await showModalBottomSheet<void>(
+    context: context,
+    backgroundColor: c.bg,
+    builder: (sheetContext) => SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.only(top: 8, bottom: 8),
+        child: InsetSection(
+          header: 'Assign routine',
+          children: [
+            ListRow(
+              icon: 'moon.stars.fill',
+              iconBg: c.ink3,
+              title: 'Rest day',
+              value: currentId == null ? '✓' : null,
+              valueColor: c.move,
+              chevron: false,
+              onTap: () {
+                Navigator.of(sheetContext).pop();
+                repo.upsert(weekday, null);
+              },
+            ),
+            for (var i = 0; i < routines.length; i++)
+              ListRow(
+                icon: routines[i].tag == RoutineTag.cardio
+                    ? 'figure.run'
+                    : 'dumbbell.fill',
+                iconBg: c.move,
+                title: routines[i].name,
+                subtitle: routines[i].estMin == null
+                    ? null
+                    : '${routines[i].estMin} min',
+                value: currentId == routines[i].id ? '✓' : null,
+                valueColor: c.move,
+                chevron: false,
+                last: i == routines.length - 1,
+                onTap: () {
+                  Navigator.of(sheetContext).pop();
+                  repo.upsert(weekday, routines[i].id);
+                },
+              ),
+            if (routines.isEmpty)
+              ListRow(
+                icon: 'plus',
+                iconBg: c.accent,
+                title: 'Create a routine',
+                subtitle: 'Build one to add it to your plan',
+                last: true,
+                onTap: () {
+                  Navigator.of(sheetContext).pop();
+                  context.pushNamed(AppRoute.routineEditor.name);
+                },
+              ),
           ],
         ),
       ),
@@ -426,9 +523,10 @@ class _TodaySpotlight extends StatelessWidget {
 
 /// One row in the full schedule list.
 class _ScheduleRow extends StatelessWidget {
-  const _ScheduleRow({required this.day, required this.last});
+  const _ScheduleRow({required this.day, required this.last, this.onTap});
   final WeekPlanDay day;
   final bool last;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -436,7 +534,10 @@ class _ScheduleRow extends StatelessWidget {
     final color = WeeklyPlanScreen._colorFor(c, day.colorKey);
     final isRest = day.isRest;
 
-    return Container(
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Container(
       decoration: BoxDecoration(
         color: day.today ? color.withValues(alpha: 0.06) : const Color(0x00000000),
         border: last
@@ -551,10 +652,13 @@ class _ScheduleRow extends StatelessWidget {
                     ],
                   ),
                 ),
+                const SizedBox(width: Spacing.sm),
+                AppIcon('chevron.right', size: 14, color: c.ink4),
               ],
             ),
           ),
         ],
+      ),
       ),
     );
   }
