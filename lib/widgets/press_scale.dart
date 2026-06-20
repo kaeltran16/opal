@@ -43,7 +43,14 @@ class _PressScaleState extends ConsumerState<PressScale> {
       child: widget.child,
     );
     if (enabled) {
-      child = Semantics(button: true, label: widget.semanticLabel, child: child);
+      // excludeSemantics prevents child Text nodes from merging their labels
+      // into this button node when an explicit label is provided.
+      child = Semantics(
+        button: true,
+        label: widget.semanticLabel,
+        excludeSemantics: widget.semanticLabel != null,
+        child: child,
+      );
     }
     return GestureDetector(
       onTap: widget.onTap,

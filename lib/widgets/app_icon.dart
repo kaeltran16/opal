@@ -75,6 +75,8 @@ const Map<String, IconData> _sfMap = {
   'timer': CupertinoIcons.timer,
   'list.number': CupertinoIcons.list_number,
   'arrow.uturn.backward': CupertinoIcons.arrow_counterclockwise,
+  // Pal memory — head-with-gears connotes mind/memory; distinct from sparkles.
+  'brain.head.profile': Icons.psychology,
   // Budgets (Phase 1) envelope + action glyphs.
   'bag.fill': CupertinoIcons.bag_fill,
   'car.fill': CupertinoIcons.car_fill,

@@ -134,18 +134,83 @@ void main() {
       await flushProviderTimers(tester);
     });
 
-    testWidgets('Refresh replaces the brief from the daily-insights seam',
+    testWidgets('memory section is always shown, with an empty-state on first run',
+        (tester) async {
+      // no `memory:` override → MockPalService returns an empty digest
+      await _pumpApp(tester, location: '/pal-home');
+
+      expect(find.text('What Pal remembers'), findsOneWidget);
+      expect(
+        find.text("As we talk, I'll note facts you mention and patterns I learn "
+            'here — you can delete anything.'),
+        findsOneWidget,
+      );
+
+      await flushProviderTimers(tester);
+    });
+
+    testWidgets('wiping memory asks for confirmation first', (tester) async {
+      await _pumpApp(tester, location: '/pal-home', memory: const PalMemoryDigest(
+        facts: [PalFact(id: 'f-1', text: 'Training for a marathon in October')],
+      ));
+
+      await tester.tap(find.text('Clear what Pal remembers'));
+      await tester.pumpAndSettle();
+
+      // a confirm step appears; the fact is still present until confirmed
+      expect(find.text('Clear all memory?'), findsOneWidget);
+      expect(find.text('Training for a marathon in October'), findsOneWidget);
+
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+      expect(find.text('Clear all memory?'), findsNothing);
+      expect(find.text('Training for a marathon in October'), findsOneWidget);
+
+      await flushProviderTimers(tester);
+    });
+
+    testWidgets('memory controls expose accessibility labels', (tester) async {
+      await _pumpApp(tester, location: '/pal-home', memory: const PalMemoryDigest(
+        facts: [PalFact(id: 'f-1', text: 'Training for a marathon in October')],
+      ));
+
+      expect(find.bySemanticsLabel('Forget this fact'), findsOneWidget);
+      expect(find.bySemanticsLabel('Clear all Pal memory'), findsOneWidget);
+
+      await flushProviderTimers(tester);
+    });
+
+    testWidgets('a learned pattern can be dismissed locally', (tester) async {
+      await _pumpApp(tester, location: '/pal-home', memory: const PalMemoryDigest(
+        patterns: [InsightPattern(
+            colorToken: 'money',
+            title: 'Fridays cost the most',
+            detail: 'Dining out drives the spike.')],
+      ));
+
+      expect(find.text('Fridays cost the most'), findsOneWidget);
+
+      await tester.tap(find.bySemanticsLabel('Dismiss this pattern'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Fridays cost the most'), findsNothing);
+
+      await flushProviderTimers(tester);
+    });
+
+    testWidgets('brief auto-fetches from the daily-insights seam on open',
         (tester) async {
       await _pumpApp(tester, location: '/pal-home');
 
-      // MockPalService.insights(day) headline — distinct from the default brief.
-      const refreshed = 'On days you finish';
-      expect(find.textContaining(refreshed), findsNothing);
+      // The brief is no longer a hardcoded showcase line — it is fetched from
+      // MockPalService.insights(day) on open, so its headline is already shown
+      // without tapping Refresh.
+      expect(find.textContaining('On days you finish'), findsOneWidget);
 
+      // Refresh re-fetches and keeps the seam-derived brief.
       await tester.tap(find.text('Refresh'));
       await tester.pumpAndSettle();
-
-      expect(find.textContaining(refreshed), findsOneWidget);
+      expect(find.textContaining('On days you finish'), findsOneWidget);
 
       await flushProviderTimers(tester);
     });

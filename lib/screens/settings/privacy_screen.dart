@@ -61,6 +61,14 @@ class PrivacyScreen extends StatelessWidget {
                 chevron: false,
               ),
               ListRow(
+                icon: 'brain.head.profile',
+                iconBg: c.accent,
+                title: 'Pal memory',
+                subtitle: 'Facts you mention and patterns Pal learns, '
+                    'stored to personalize replies. Clear anytime in Pal.',
+                chevron: false,
+              ),
+              ListRow(
                 icon: 'envelope.fill',
                 iconBg: c.accent,
                 title: 'Email sync',

@@ -670,12 +670,12 @@ class _LogCard extends ConsumerWidget {
 
     final subtitle = switch (action.type) {
       EntryType.money => '${action.category ?? 'Expense'} · Just now',
-      EntryType.move => 'Movement · Just now',
+      EntryType.move => 'Workout · Just now',
       EntryType.rituals => 'Ritual · Just now',
     };
     final trailing = switch (action.type) {
       EntryType.money =>
-        formatCurrency(action.amount ?? 0, currency, withSign: true, trimZeroCents: false),
+        formatCurrency(action.amount ?? 0, currency, withSign: true),
       EntryType.move =>
         action.durationMinutes != null ? '${action.durationMinutes} min' : null,
       EntryType.rituals => 'Done',
@@ -721,7 +721,7 @@ class _LogCard extends ConsumerWidget {
                           width: 15,
                           height: 15,
                           decoration:
-                              BoxDecoration(color: c.move, shape: BoxShape.circle),
+                              BoxDecoration(color: color, shape: BoxShape.circle),
                           alignment: Alignment.center,
                           child: AppIcon('checkmark', size: 9, color: c.onAccent),
                         ),
@@ -730,7 +730,7 @@ class _LogCard extends ConsumerWidget {
                           'LOGGED',
                           style: AppType.caption2.copyWith(
                             fontWeight: FontWeight.w700,
-                            color: c.move,
+                            color: color,
                             letterSpacing: 0.4,
                           ),
                         ),
@@ -919,18 +919,22 @@ class _CardAction extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: Spacing.md),
-        child: Center(
-          child: Text(
-            label,
-            style: AppType.footnote.copyWith(
-              fontWeight: FontWeight.w600,
-              color: color,
-              letterSpacing: -0.15,
+    return Semantics(
+      button: true,
+      label: label,
+      child: GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: Spacing.md),
+          child: Center(
+            child: Text(
+              label,
+              style: AppType.footnote.copyWith(
+                fontWeight: FontWeight.w600,
+                color: color,
+                letterSpacing: -0.15,
+              ),
             ),
           ),
         ),

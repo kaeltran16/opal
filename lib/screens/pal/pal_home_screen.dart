@@ -1,4 +1,4 @@
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -34,21 +34,28 @@ class PalHomeScreen extends ConsumerStatefulWidget {
 }
 
 class _PalHomeScreenState extends ConsumerState<PalHomeScreen> {
-  // Showcase brief shown until the user refreshes — it intentionally does NOT
-  // auto-fetch on open (the canvas renders many frames; auto-fetch would fire N
-  // model calls). Refresh pulls a fresh line from the daily-insights seam.
-  static const _defaultBrief =
-      "You're having a steady Thursday — \$60 spent against your \$85 budget, "
-      "66 minutes moved, and 4 of 5 rituals done. One ritual stands between you "
-      "and a closed day, and rent clears Monday with room to spare. That's an "
-      "11-day streak now — let's protect it.";
-
-  String _brief = _defaultBrief;
+  // The brief is fetched from the daily-insights seam once on open (see
+  // initState) — never seeded with fabricated stats. Fired from initState, not
+  // build, so the canvas re-rendering many frames doesn't fire N model calls.
+  String _brief = '';
   bool _loading = false;
 
   // Optimistic per-card overrides on top of the server agenda, keyed by id.
   final Map<String, _CardStatus> _statusById = {};
   final Map<String, bool> _autopilotById = {};
+  // patterns have no id; dismiss is local + session-only (reappears on refresh).
+  final Set<String> _dismissedPatterns = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _refreshBrief();
+    // re-read stored memory on every open so a returning screen never shows a
+    // stale-empty card (observed in the live audit after a Recap refresh).
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) ref.invalidate(palMemoryProvider);
+    });
+  }
 
   _CardStatus _statusOf(String id) => _statusById[id] ?? _CardStatus.open;
   bool _autopilotOn(PalAutopilotItem a) => _autopilotById[a.id] ?? a.enabled;
@@ -83,6 +90,23 @@ class _PalHomeScreenState extends ConsumerState<PalHomeScreen> {
   }
 
   Future<void> _wipeMemory() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Clear all memory?'),
+        content: const Text(
+            "Pal will forget every fact and pattern. This can't be undone."),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: const Text('Cancel')),
+          TextButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: const Text('Clear')),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
     await ref.read(palServiceProvider).clearMemory();
     ref.invalidate(palMemoryProvider);
   }
@@ -109,36 +133,16 @@ class _PalHomeScreenState extends ConsumerState<PalHomeScreen> {
         // clears the floating tab bar.
         padding: const EdgeInsets.only(bottom: 120),
         children: [
-          // --- Top bar: back to Today + Tune ---
+          // --- Top bar: back to Today ---
           Padding(
             // top 56 = status-bar/safe-area offset, kept literal.
             padding:
                 const EdgeInsets.fromLTRB(Spacing.lg, 56, Spacing.lg, Spacing.sm),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                NavAction(
-                  icon: 'chevron.left',
-                  label: 'Today',
-                  onTap: () => context.pop(),
-                  semanticLabel: 'Back to Today',
-                ),
-                // Inert in this build — a "tune what Pal does" surface is future
-                // work; rendered for fidelity with no dead-button tap target.
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: Spacing.md),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      AppIcon('slider.horizontal.3', size: 15, color: c.accent),
-                      const SizedBox(width: Spacing.xxs),
-                      Text('Tune',
-                          style: AppType.subhead.copyWith(
-                              color: c.accent, letterSpacing: -0.15)),
-                    ],
-                  ),
-                ),
-              ],
+            child: NavAction(
+              icon: 'chevron.left',
+              label: 'Today',
+              onTap: () => context.pop(),
+              semanticLabel: 'Back to Today',
             ),
           ),
 
@@ -150,6 +154,7 @@ class _PalHomeScreenState extends ConsumerState<PalHomeScreen> {
               needsYou: needsYou,
               onAutopilot: onAutopilot,
               streakDays: agenda.streakDays,
+              loading: !agendaAsync.hasValue,
             ),
           ),
 
@@ -218,22 +223,27 @@ class _PalHomeScreenState extends ConsumerState<PalHomeScreen> {
             ),
 
           // --- What Pal remembers ---
-          if (!memory.isEmpty) ...[
-            Padding(
-              padding: const EdgeInsets.fromLTRB(Spacing.xl, 0, Spacing.xl, 10),
-              child: Text('What Pal remembers',
-                  style:
-                      AppType.title2.copyWith(color: c.ink, letterSpacing: 0.35)),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(Spacing.lg, 0, Spacing.lg, 22),
-              child: _MemoryCard(
-                memory: memory,
-                onDeleteFact: _deleteFact,
-                onWipe: _wipeMemory,
+          Padding(
+            padding: const EdgeInsets.fromLTRB(Spacing.xl, 0, Spacing.xl, 10),
+            child: Text('What Pal remembers',
+                style:
+                    AppType.title2.copyWith(color: c.ink, letterSpacing: 0.35)),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(Spacing.lg, 0, Spacing.lg, 22),
+            child: _MemoryCard(
+              memory: PalMemoryDigest(
+                facts: memory.facts,
+                patterns: memory.patterns
+                    .where((p) => !_dismissedPatterns.contains(p.title))
+                    .toList(),
               ),
+              onDeleteFact: _deleteFact,
+              onDismissPattern: (p) =>
+                  setState(() => _dismissedPatterns.add(p.title)),
+              onWipe: _wipeMemory,
             ),
-          ],
+          ),
 
           // --- Ask Pal CTA ---
           const Padding(
@@ -263,12 +273,14 @@ class _Hero extends StatelessWidget {
     required this.needsYou,
     required this.onAutopilot,
     required this.streakDays,
+    required this.loading,
   });
 
   final String name;
   final int needsYou;
   final int onAutopilot;
   final int streakDays;
+  final bool loading;
 
   String get _greeting {
     final h = DateTime.now().hour;
@@ -284,10 +296,12 @@ class _Hero extends StatelessWidget {
     final white85 = white.withValues(alpha: 0.85);
     final white80 = white.withValues(alpha: 0.80);
 
+    // em-dash placeholders until the agenda lands, so the stat strip never
+    // shows a transient "0" that contradicts the brief.
     final stats = <(String, String, bool)>[
-      ('$needsYou', 'Need you', true),
-      ('$onAutopilot', 'On autopilot', false),
-      ('${streakDays}d', 'Streak held', false),
+      (loading ? '—' : '$needsYou', 'Need you', true),
+      (loading ? '—' : '$onAutopilot', 'On autopilot', false),
+      (loading ? '—' : '${streakDays}d', 'Streak held', false),
     ];
 
     return ClipRRect(
@@ -433,6 +447,40 @@ class _BriefCard extends StatelessWidget {
   final bool loading;
   final VoidCallback onRefresh;
 
+  /// Brief text when present; a shimmer-less skeleton while the first fetch is
+  /// in flight; a neutral line if it came back empty (e.g. Pal unreachable).
+  Widget _briefBody(AppColors c) {
+    if (brief.isNotEmpty) {
+      return Text(brief,
+          style: AppType.callout
+              .copyWith(color: c.ink, letterSpacing: -0.3, height: 1.5));
+    }
+    if (loading) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (final w in const [1.0, 0.92, 0.6])
+            Align(
+              alignment: Alignment.centerLeft,
+              child: FractionallySizedBox(
+                widthFactor: w,
+                child: Container(
+                  height: 13,
+                  margin: const EdgeInsets.only(bottom: 9),
+                  decoration: BoxDecoration(
+                      color: c.fill,
+                      borderRadius: BorderRadius.circular(Radii.xs)),
+                ),
+              ),
+            ),
+        ],
+      );
+    }
+    return Text("Tap Refresh and I'll read your day.",
+        style: AppType.callout
+            .copyWith(color: c.ink3, letterSpacing: -0.3, height: 1.5));
+  }
+
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
@@ -459,13 +507,13 @@ class _BriefCard extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           AnimatedOpacity(
-            opacity: loading ? 0.5 : 1,
+            // dim only when refreshing an existing brief; the skeleton is its
+            // own loading signal so it stays at full opacity.
+            opacity: (brief.isNotEmpty && loading) ? 0.5 : 1,
             duration: const Duration(milliseconds: 200),
             child: ConstrainedBox(
               constraints: const BoxConstraints(minHeight: 72),
-              child: Text(brief,
-                  style: AppType.callout.copyWith(
-                      color: c.ink, letterSpacing: -0.3, height: 1.5)),
+              child: _briefBody(c),
             ),
           ),
           const SizedBox(height: 14),
@@ -860,11 +908,13 @@ class _MemoryCard extends StatelessWidget {
   const _MemoryCard({
     required this.memory,
     required this.onDeleteFact,
+    required this.onDismissPattern,
     required this.onWipe,
   });
 
   final PalMemoryDigest memory;
   final Future<void> Function(String id) onDeleteFact;
+  final void Function(InsightPattern) onDismissPattern;
   final Future<void> Function() onWipe;
 
   @override
@@ -879,32 +929,63 @@ class _MemoryCard extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: Column(
         children: [
-          for (final f in memory.facts)
-            _row(c, text: f.text, onDelete: () => onDeleteFact(f.id)),
-          for (final p in memory.patterns)
-            _row(c, text: p.title, meta: p.detail),
-          // Wipe-all footer.
-          PressScale(
-            onTap: onWipe,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          if (memory.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
               child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  AppIcon('trash.fill', size: 13, color: c.accent),
-                  const SizedBox(width: Spacing.sm),
-                  Text('Clear what Pal remembers',
-                      style: AppType.footnote
-                          .copyWith(color: c.accent, letterSpacing: -0.08)),
+                  AppIcon('sparkles', size: 13, color: c.ink3),
+                  const SizedBox(width: Spacing.md),
+                  Expanded(
+                    child: Text(
+                      "As we talk, I'll note facts you mention and patterns I "
+                      'learn here — you can delete anything.',
+                      style: AppType.footnote.copyWith(
+                          color: c.ink3, letterSpacing: -0.08, height: 1.35),
+                    ),
+                  ),
                 ],
               ),
+            )
+          else ...[
+            for (final f in memory.facts)
+              _row(c, text: f.text, onDelete: () => onDeleteFact(f.id)),
+            for (final p in memory.patterns)
+              _row(c,
+                  text: p.title,
+                  meta: p.detail,
+                  onDelete: () => onDismissPattern(p),
+                  deleteLabel: 'Dismiss this pattern'),
+          ],
+          // Wipe-all footer — only when there is something to clear.
+          if (!memory.isEmpty)
+            PressScale(
+              onTap: onWipe,
+              semanticLabel: 'Clear all Pal memory',
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                child: Row(
+                  children: [
+                    AppIcon('trash.fill', size: 13, color: c.accent),
+                    const SizedBox(width: Spacing.sm),
+                    Text('Clear what Pal remembers',
+                        style: AppType.footnote
+                            .copyWith(color: c.accent, letterSpacing: -0.08)),
+                  ],
+                ),
+              ),
             ),
-          ),
         ],
       ),
     );
   }
 
-  Widget _row(AppColors c, {required String text, String? meta, VoidCallback? onDelete}) {
+  Widget _row(AppColors c,
+      {required String text,
+      String? meta,
+      VoidCallback? onDelete,
+      String deleteLabel = 'Forget this fact'}) {
     return Container(
       decoration: BoxDecoration(
         border: Border(bottom: BorderSide(color: c.hair, width: 0.5)),
@@ -921,7 +1002,7 @@ class _MemoryCard extends StatelessWidget {
                 color: c.accentTint,
                 borderRadius: BorderRadius.circular(Radii.sm)),
             alignment: Alignment.center,
-            child: AppIcon('sparkles', size: 13, color: c.accent),
+            child: AppIcon('sparkles', size: 13, color: c.ink2),
           ),
           const SizedBox(width: Spacing.md),
           Expanded(
@@ -944,13 +1025,17 @@ class _MemoryCard extends StatelessWidget {
               ],
             ),
           ),
-          // facts are user-authored and deletable; patterns are read-only.
+          // facts are user-authored and deletable; patterns can be dismissed.
           if (onDelete != null)
             PressScale(
               onTap: onDelete,
-              child: Padding(
-                padding: const EdgeInsets.only(left: Spacing.sm, top: 2),
-                child: AppIcon('xmark', size: 13, color: c.ink4),
+              semanticLabel: deleteLabel,
+              child: SizedBox(
+                width: 44,
+                height: 44,
+                child: Center(
+                  child: AppIcon('xmark', size: 13, color: c.ink4),
+                ),
               ),
             ),
         ],
