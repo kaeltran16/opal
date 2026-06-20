@@ -40,10 +40,13 @@ class MockPalService implements PalService {
         "stayed tight on the days you trained. Keep riding that link.",
   ];
 
+  // Rationales avoid asserting elapsed time: the mock can't see real workout
+  // history, so the card's meta line ("last done …") owns recency. A hardcoded
+  // day-count contradicts it (the old "3 days since" vs a seed done "today").
   static const _suggestions = <WorkoutSuggestion>[
     WorkoutSuggestion(
       title: 'Push Day A',
-      rationale: "It's been 3 days since you trained push, and you're fresh.",
+      rationale: 'Chest, shoulders and triceps — a balanced push day to chase a bench PR.',
       routineId: 'seed-routine-push-a',
       estimatedMinutes: 50,
       focus: 'Push',
