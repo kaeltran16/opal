@@ -154,7 +154,7 @@ export function buildApp(deps: AppDeps): FastifyInstance {
   })
 
   app.post('/v1/health/ingest', guard(healthIngestBody, async (b) =>
-    ({ upserted: deps.healthStore.upsert(b.date, b.metrics, b.capturedAt) })))
+    ({ upserted: deps.healthStore.upsert(b.date, b.metrics, new Date().toISOString()) })))
 
   app.get('/v1/health/day', async (req, reply) => {
     const parsed = healthDayQuery.safeParse(req.query)
