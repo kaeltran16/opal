@@ -80,4 +80,22 @@ void main() {
   test('envelope categories are exactly the canonical list', () {
     expect(envelopes.map((e) => e.category).toList(), kSpendCategories);
   });
+
+  test('category deltas are null without a prior month, set with one', () {
+    // current-month-only entries: no baseline to compare against, so every
+    // category delta is null and the "Change shown vs. last month" footer
+    // would have nothing to show (and must therefore stay hidden).
+    final noPrior = buildInsightsData(entries, envelopes, now: now);
+    expect(noPrior.categories, isNotEmpty);
+    expect(noPrior.categories.every((c) => c.deltaPct == null), isTrue);
+
+    // a May expense gives June's Groceries a prior-month baseline → real delta.
+    final withPrior = [
+      ...entries,
+      _expense(20, 'Groceries', DateTime(2026, 5, 15, 19)),
+    ];
+    final data = buildInsightsData(withPrior, envelopes, now: now);
+    final groceries = data.categories.firstWhere((c) => c.label == 'Groceries');
+    expect(groceries.deltaPct, isNotNull);
+  });
 }

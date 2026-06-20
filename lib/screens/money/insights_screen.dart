@@ -348,6 +348,9 @@ class _CategoriesTab extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     final cats = data.categories;
+    // the footer promises a month-over-month change; only show it when at least
+    // one category has a prior month to compare against (else deltas are blank).
+    final hasDelta = cats.any((cat) => cat.deltaPct != null);
     final monthLabel =
         data.months.isEmpty ? '' : data.months.last.label.toUpperCase();
     final maxFraction =
@@ -415,7 +418,7 @@ class _CategoriesTab extends StatelessWidget {
         // By category.
         InsetSection(
           header: 'By category',
-          footer: 'Change shown vs. last month.',
+          footer: hasDelta ? 'Change shown vs. last month.' : null,
           children: [
             for (var i = 0; i < cats.length; i++)
               _CategoryRow(
