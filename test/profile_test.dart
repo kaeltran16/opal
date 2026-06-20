@@ -206,11 +206,13 @@ void main() {
     // Sections below the fold — the ListView is lazy, so scroll to reveal them.
     final list = find.byType(Scrollable).first;
 
-    // Integrations: header + a single Gmail row.
+    // Integrations: header + a single Gmail row. No account is connected (empty
+    // DB / fresh prefs), so the row reads "Not connected" — matching the email
+    // dashboard rather than the old hardcoded "Gmail · On".
     await tester.scrollUntilVisible(find.text('Email sync'), 200,
         scrollable: list);
     expect(find.text('INTEGRATIONS'), findsOneWidget);
-    expect(find.text('Gmail · On'), findsOneWidget);
+    expect(find.text('Not connected'), findsOneWidget);
 
     await tester.scrollUntilVisible(find.text('Export data'), 200,
         scrollable: list);

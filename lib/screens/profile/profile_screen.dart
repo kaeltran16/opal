@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../controllers/email_sync_controller.dart';
 import '../../controllers/pal_agenda_controller.dart';
 import '../../controllers/profile_controller.dart';
 import '../../controllers/providers.dart';
@@ -37,6 +38,10 @@ class ProfileScreen extends ConsumerWidget {
     // Pal's "needs you" count for the Reviews row badge (from the agenda seam).
     final palCount =
         ref.watch(palAgendaProvider).asData?.value.proposals.length;
+    // Same connection-state source the email dashboard uses, so the You-tab
+    // Integrations row can't claim "On" while the dashboard says "not connected".
+    final emailConnected =
+        ref.watch(emailDashboardControllerProvider).isConnected;
 
     return async.when(
       loading: () => Center(
@@ -58,6 +63,7 @@ class ProfileScreen extends ConsumerWidget {
         routineCount: routineCount,
         currency: currency,
         palCount: palCount,
+        emailConnected: emailConnected,
       ),
     );
   }
@@ -83,6 +89,7 @@ class _ProfileBody extends StatelessWidget {
     required this.routineCount,
     required this.currency,
     required this.palCount,
+    required this.emailConnected,
   });
   final Goals goals;
 
@@ -103,6 +110,10 @@ class _ProfileBody extends StatelessWidget {
   /// Number of Pal proposals awaiting the user, shown as the Reviews row badge.
   /// Null while the agenda is still loading (badge hidden until it resolves).
   final int? palCount;
+
+  /// Whether an email account is connected — drives the Integrations row value
+  /// from the same source as the email dashboard.
+  final bool emailConnected;
 
   void _openBudgetSheet(BuildContext context) {
     // present over the whole shell so the sheet's backdrop covers the tab bar
@@ -273,7 +284,7 @@ class _ProfileBody extends StatelessWidget {
               icon: 'tray.fill',
               iconBg: c.accent,
               title: 'Email sync',
-              value: 'Gmail · On',
+              value: emailConnected ? 'Gmail · On' : 'Not connected',
               last: true,
               onTap: () => context.pushNamed(AppRoute.emailSync.name),
             ),
