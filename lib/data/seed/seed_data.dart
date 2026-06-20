@@ -183,7 +183,9 @@ class SeedData {
           kind: NoteKind.spotted,
           category: EntryType.move,
           icon: 'fork.knife',
-          title: 'You skipped lunch Sunday',
+          // no weekday in the copy: createdAt is relative (_minutesAgo) so the
+          // inbox stamp owns "when"; a hardcoded day would drift against it.
+          title: 'You skipped lunch',
           body: 'No food logged between breakfast and 6pm — and you still ran '
               '4.8km after. Just noticed.',
           actionLabel: 'Log it',
