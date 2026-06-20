@@ -308,7 +308,9 @@ describe('app', () => {
     })
     expect(res.statusCode).toBe(400)
     const details = res.json().error.details as string[]
-    expect(details.some((d) => d.includes('metrics.activeEnergy.value'))).toBe(true)
+    const hit = details.find((d) => d.includes('metrics.activeEnergy.value'))
+    expect(hit).toBeDefined()
+    expect(hit).toContain('received: "450"') // echoes the offending value
   })
 
   it('reads back an ingested day', async () => {
