@@ -15,6 +15,8 @@ export interface ChatContext {
   weekRitualsDone: number
   weekRitualGoal: number
   moveStreakDays: number
+  hourOfDay: number
+  weekday: number
 }
 
 export interface ReviewContext {
@@ -186,6 +188,42 @@ Produce two lists:
 Calm and specific. No hype words ("amazing", "crushed it"). Never use markdown.
 Return strictly this JSON shape; arrays may be empty but must be present: ${shape}
 No prose, no code fence. Output only the JSON object.`
+}
+
+export function suggestionsPrompt(
+  surface: 'composer' | 'newEntry' | 'routineGoal',
+  c: ChatContext | SuggestContext,
+): string {
+  const shape = `{"suggestions":[{"kind":"log_money"|"log_move"|"log_ritual"|"ask"|"routine_goal"|"generic","colorToken":"money"|"move"|"rituals"|"accent","label":string,"entry":{"type":"money"|"move"|"rituals","title":string,"amount":number|null,"category":string|null,"minutes":number|null}|null}]}`
+  const tail = `\nCalm and specific. No hype words, no emoji, never markdown. Return strictly this JSON shape; the array may be empty but must be present: ${shape}\nNo prose, no code fence. Output only the JSON object.`
+
+  if (surface === 'routineGoal') {
+    const sc = c as SuggestContext
+    const recent = sc.recentWorkouts.length
+      ? sc.recentWorkouts.map((w) => `${w.routineName} — ${w.date} — ${w.muscles}`).join('\n')
+      : '(none this week)'
+    return `You are Pal, a workout coach. Propose up to 6 short workout-goal chips the user can tap to generate a routine. Recent workouts:
+${recent}
+Today is ${sc.dayOfWeek}. Vary muscle groups vs recent volume; keep each label under ~5 words. Every chip: kind "routine_goal", colorToken one of money/move/rituals/accent, label is the goal text, entry null.${tail}`
+  }
+
+  const cc = c as ChatContext
+  const entries = cc.todayEntries.length ? cc.todayEntries.join('\n') : '(none yet)'
+  const name = cc.userName || 'the user'
+  const numbers = `Daily budget $${cc.dailyBudget}, move goal ${cc.moveGoalKcal}kcal, ritual goal ${cc.ritualGoal}. So far today: $${cc.spentToday} spent, ${cc.movedTodayKcal}kcal moved, ${cc.ritualsDoneToday}/${cc.ritualGoal} rituals. Local hour ${cc.hourOfDay}, weekday ${cc.weekday} (1=Mon). ${cc.moveStreakDays}-day move streak.`
+
+  if (surface === 'newEntry') {
+    return `You are Pal in a money/movement/rituals app. Propose up to 6 one-tap LOG presets for ${name} to record quickly — this surface has no chat, so NO questions. Today's entries:
+${entries}
+${numbers}
+Ground each in what is NOT yet logged today, recent categories, and the time of day. Each chip MUST carry an "entry": pick "kind" log_money / log_move / log_ritual to match entry.type (money/move/rituals), set colorToken to the matching pillar (money/move/rituals), and a short "label". For money, entry.amount is SIGNED (negative = expense); set category; minutes null. For move, set minutes; amount/category null. For rituals, amount/category/minutes null.${tail}`
+  }
+
+  // composer
+  return `You are Pal in a money/movement/rituals app. Propose exactly 3 quick chips for ${name}: a mix of one-tap LOGS and short ASKS, grounded in time of day, what is not yet logged today, recent categories, and budget pace. Today's entries:
+${entries}
+${numbers}
+For a LOG chip: set "kind" log_money / log_move / log_ritual matching entry.type, colorToken to the pillar, "label" the phrase the user would say (e.g. "Verve coffee, $5"), and a matching "entry" (money amount SIGNED, negative = expense, with category; move with minutes; rituals title only). For an ASK chip: kind "ask", colorToken "accent", a short question label, entry null.${tail}`
 }
 
 export interface ReceiptInput {

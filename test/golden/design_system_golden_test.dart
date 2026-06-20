@@ -6,11 +6,13 @@ import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:opal/app.dart';
+import 'package:opal/controllers/pal_suggestions_controller.dart';
 import 'package:opal/controllers/providers.dart';
 import 'package:opal/data/db/database.dart';
 import 'package:opal/data/seed/seeder.dart';
 import 'package:opal/screens/entry/new_entry_sheet.dart';
 import 'package:opal/services/pal/mock_pal_service.dart';
+import 'package:opal/services/pal/pal_service.dart';
 import 'package:opal/theme/app_colors.dart';
 import 'package:opal/widgets/loop_tab_bar.dart';
 
@@ -182,6 +184,10 @@ void main() {
         overrides: [
           loopDatabaseProvider.overrideWithValue(db),
           sharedPreferencesProvider.overrideWithValue(prefs),
+          // Capture the static-fallback quick-picks (today's design), not the
+          // mock-Pal suggestions the seam now serves by default.
+          palSuggestionsProvider(SuggestionSurface.newEntry)
+              .overrideWith((ref) async => const []),
         ],
         child: MaterialApp.router(
           debugShowCheckedModeBanner: false,

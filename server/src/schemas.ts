@@ -20,6 +20,8 @@ export const chatContext = z.object({
   weekRitualsDone: z.number(),
   weekRitualGoal: z.number(),
   moveStreakDays: z.number(),
+  hourOfDay: z.number(),
+  weekday: z.number(),
 })
 
 export const chatBody = z.object({
@@ -68,6 +70,12 @@ export const postWorkoutBody = z.object({ context: postWorkoutContext })
 
 // The Pal Home agenda reuses the chat context (today + week + goals + streak).
 export const agendaBody = z.object({ context: chatContext })
+
+export const suggestionsBody = z.object({
+  surface: z.enum(['composer', 'newEntry', 'routineGoal']),
+  // composer/newEntry send chat context; routineGoal sends suggest context.
+  context: z.union([chatContext, suggestContext]),
+})
 
 export const routineBody = z.object({
   goal: z.string().min(1),

@@ -114,6 +114,7 @@ describe('memory endpoints', () => {
           userName: 'Kael', todayEntries: [], dailyBudget: 60, moveGoalKcal: 400, ritualGoal: 5,
           spentToday: 0, movedTodayKcal: 0, ritualsDoneToday: 0,
           weekSpent: 0, weekBudget: 420, weekMovedKcal: 0, weekRitualsDone: 0, weekRitualGoal: 35, moveStreakDays: 0,
+          hourOfDay: 8, weekday: 6,
         },
       },
     })
@@ -188,6 +189,7 @@ describe('app', () => {
           userName: 'Kael', todayEntries: [], dailyBudget: 60, moveGoalKcal: 400, ritualGoal: 5,
           spentToday: 0, movedTodayKcal: 0, ritualsDoneToday: 0,
           weekSpent: 0, weekBudget: 420, weekMovedKcal: 0, weekRitualsDone: 0, weekRitualGoal: 35, moveStreakDays: 0,
+          hourOfDay: 8, weekday: 6,
         },
       },
     })

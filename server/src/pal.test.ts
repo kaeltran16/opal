@@ -26,7 +26,7 @@ describe('Pal.agenda', () => {
     userName: 'Mira', todayEntries: [], dailyBudget: 85, moveGoalKcal: 60, ritualGoal: 5,
     spentToday: 60, movedTodayKcal: 66, ritualsDoneToday: 4,
     weekSpent: 435, weekBudget: 595, weekMovedKcal: 296, weekRitualsDone: 26, weekRitualGoal: 35,
-    moveStreakDays: 11,
+    moveStreakDays: 11, hourOfDay: 8, weekday: 6,
   }
 
   it('derives icons/approveIcon/action from kind and echoes the streak', async () => {
@@ -579,5 +579,32 @@ function baseChatCtx() {
     userName: 'Kael', todayEntries: [], dailyBudget: 60, moveGoalKcal: 400, ritualGoal: 5,
     spentToday: 0, movedTodayKcal: 0, ritualsDoneToday: 0,
     weekSpent: 0, weekBudget: 420, weekMovedKcal: 0, weekRitualsDone: 0, weekRitualGoal: 35, moveStreakDays: 0,
+    hourOfDay: 8, weekday: 6,
   }
 }
+
+describe('Pal.suggestions', () => {
+  it('maps model output to chips and derives icons from kind', async () => {
+    const raw = JSON.stringify({
+      suggestions: [
+        { kind: 'log_money', colorToken: 'money', label: 'Coffee, $5',
+          entry: { type: 'money', title: 'Coffee', amount: -5, category: 'Coffee', minutes: null } },
+        { kind: 'ask', colorToken: 'accent', label: "How's my week?" },
+      ],
+    })
+    const pal = new Pal(fakeClient(raw))
+    const out = await pal.suggestions('composer', baseChatCtx() as never)
+    expect(out.suggestions).toHaveLength(2)
+    expect(out.suggestions[0].icon).toBe('dollarsign.circle.fill') // derived from kind
+    expect(out.suggestions[0].entry?.amount).toBe(-5)
+    expect(out.suggestions[1].entry).toBeNull()
+  })
+
+  it('coerces unknown kind/colorToken to safe defaults', async () => {
+    const raw = JSON.stringify({ suggestions: [{ kind: 'bogus', colorToken: 'neon', label: 'X' }] })
+    const pal = new Pal(fakeClient(raw))
+    const out = await pal.suggestions('composer', baseChatCtx() as never)
+    expect(out.suggestions[0].icon).toBe('sparkles') // generic
+    expect(out.suggestions[0].colorToken).toBe('accent')
+  })
+})

@@ -53,6 +53,8 @@ class _RecordingPal implements PalService {
   Future<PalMemoryDigest> deleteFact(String id) async => const PalMemoryDigest();
   @override
   Future<PalMemoryDigest> clearMemory() async => const PalMemoryDigest();
+  @override
+  Future<List<PalSuggestion>> suggestions(SuggestionSurface surface) async => const [];
 }
 
 void main() {
