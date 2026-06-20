@@ -267,6 +267,24 @@ class MockPalService implements PalService {
         return const PalInsights(
           headline: "You've worked out 11 days in a row. On days you finish "
               "morning routines, you spend less on food.",
+          suggestion: 'Set tomorrow up tonight — lay out your gym clothes so '
+              'keeping the streak is the easy choice.',
+          wins: [
+            InsightWin(
+                colorToken: 'move',
+                title: '11-day workout streak',
+                sub: 'Still going strong'),
+            InsightWin(
+                colorToken: 'rituals',
+                title: 'Morning pages logged',
+                sub: 'Done before 9am'),
+          ],
+          patterns: [
+            InsightPattern(
+                colorToken: 'money',
+                title: 'Morning routines curb spending',
+                detail: 'You spend less on food the days you finish them.'),
+          ],
         );
       case InsightRange.week:
         return const PalInsights(
@@ -302,6 +320,22 @@ class MockPalService implements PalService {
         );
       case InsightRange.month:
         return const PalInsights(
+          suggestion: 'Protect your morning routine next month — it is the '
+              'lever that keeps food spending down.',
+          wins: [
+            InsightWin(
+                colorToken: 'move',
+                title: 'Most active month yet',
+                sub: 'More workouts than any month this year'),
+            InsightWin(
+                colorToken: 'money',
+                title: 'Under budget 3 of 4 weeks',
+                sub: 'Only week one ran over'),
+            InsightWin(
+                colorToken: 'rituals',
+                title: 'Journaled most mornings',
+                sub: 'Your steadiest ritual'),
+          ],
           patterns: [
             InsightPattern(
                 colorToken: 'rituals',

@@ -98,6 +98,19 @@ void main() {
     });
   });
 
+  test('insights give every range the same depth (wins + patterns + one-thing)',
+      () async {
+    final pal = MockPalService(latency: Duration.zero);
+    for (final range in InsightRange.values) {
+      final i = await pal.insights(range);
+      expect(i.wins, isNotEmpty, reason: '$range should surface wins');
+      expect(i.patterns, isNotEmpty, reason: '$range should surface patterns');
+      expect(i.suggestion, isNotNull,
+          reason: '$range should offer a one-thing-to-try');
+      expect(i.suggestion, isNotEmpty);
+    }
+  });
+
   test('mock memory: refresh seeds patterns, delete/clear mutate facts', () async {
     final pal = MockPalService(latency: Duration.zero);
     final seeded = await pal.refreshMemory();
