@@ -150,8 +150,7 @@ class EveningCloseOutScreen extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('✦',
-                    style: TextStyle(fontSize: 40, color: _white)),
+                const AppIcon('sparkles', size: 40, color: _white),
                 const SizedBox(height: Spacing.sm),
                 Text('Close out\nyour day.',
                     style: AppFonts.sfr(
