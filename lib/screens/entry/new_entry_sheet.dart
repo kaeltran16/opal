@@ -415,23 +415,15 @@ class _NewEntrySheetState extends ConsumerState<NewEntrySheet> {
     return Scaffold(
       backgroundColor: c.bg,
       body: SafeArea(
-        top: false,
         child: Column(
           children: [
-            // Grabber.
-            Padding(
-              padding: const EdgeInsets.only(top: Spacing.sm, bottom: Spacing.xs),
-              child: Container(
-                width: 36,
-                height: 5,
-                decoration: BoxDecoration(
-                  color: c.ink4,
-                  borderRadius: BorderRadius.circular(2.5), // grabber corner; keep literal
-                ),
+            // Sticky nav: Cancel / New Entry / Add, with a hairline divider
+            // below. SafeArea (top inset) keeps the row clear of the status bar
+            // since the sheet fills the screen.
+            Container(
+              decoration: BoxDecoration(
+                border: Border(bottom: BorderSide(color: c.hair, width: 0.5)),
               ),
-            ),
-            // Header: Cancel / New Entry / Add.
-            Padding(
               padding: const EdgeInsets.fromLTRB(
                   Spacing.xs, Spacing.xxs, Spacing.xs, Spacing.xxs),
               child: Row(
@@ -456,40 +448,13 @@ class _NewEntrySheetState extends ConsumerState<NewEntrySheet> {
                 ],
               ),
             ),
-            // Fixed top: segmented type picker.
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                  Spacing.lg, Spacing.sm, Spacing.lg, 0),
-              child: Segmented<_Kind>(
-                options: const [
-                  (_Kind.expense, 'Expense'),
-                  (_Kind.workout, 'Workout'),
-                  (_Kind.ritual, 'Routine'),
-                ],
-                value: _kind,
-                onChanged: _selectKind,
-              ),
-            ),
-            const SizedBox(height: Spacing.xl),
-
-            // Fixed big display. Scaled down so long amounts (e.g. large VND
-            // values) shrink to fit instead of overflowing the row.
-            Center(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: Spacing.lg),
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: _buildDisplay(c, typeColor),
-                ),
-              ),
-            ),
-            const SizedBox(height: Spacing.lg),
-
-            // Scrollable middle: Log with Pal + quick picks + optional fields.
+            // Scrolling body, in design order: Log with Pal → type picker →
+            // amount hero → category quick-picks → optional fields. The keypad
+            // stays pinned below so it is always reachable while typing.
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(
-                    Spacing.lg, Spacing.xs, Spacing.lg, Spacing.md),
+                    Spacing.lg, Spacing.md, Spacing.lg, Spacing.md),
                 children: [
                   // "Log with Pal" — inline natural-language entry (U16). Parses
                   // free text via PalService and pre-fills the form.
@@ -501,6 +466,33 @@ class _NewEntrySheetState extends ConsumerState<NewEntrySheet> {
                     onParse: _parseNl,
                   ),
                   const SizedBox(height: Spacing.lg),
+                  Segmented<_Kind>(
+                    options: const [
+                      (_Kind.expense, 'Expense'),
+                      (_Kind.workout, 'Workout'),
+                      (_Kind.ritual, 'Routine'),
+                    ],
+                    value: _kind,
+                    onChanged: _selectKind,
+                  ),
+                  const SizedBox(height: Spacing.xxl),
+
+                  // Amount hero: a tinted type pill above the big display. The
+                  // display is scaled down so long amounts (e.g. large VND
+                  // values) shrink to fit instead of overflowing the row.
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _buildTypePill(c, typeColor),
+                      const SizedBox(height: Spacing.md),
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: _buildDisplay(c, typeColor),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: Spacing.xl),
+
                   Text(
                     'CATEGORY',
                     style: AppType.caption.copyWith(
@@ -519,6 +511,7 @@ class _NewEntrySheetState extends ConsumerState<NewEntrySheet> {
                       controller: _categoryCtrl,
                       hint: 'Category (optional)',
                       icon: 'tray.fill',
+                      onChanged: (_) => setState(() {}),
                     ),
                     const SizedBox(height: Spacing.sm),
                   ],
@@ -567,6 +560,54 @@ class _NewEntrySheetState extends ConsumerState<NewEntrySheet> {
     );
   }
 
+  /// SF Symbol shown in the amount-hero type pill, per active kind.
+  String get _pillIcon => switch (_kind) {
+        _Kind.expense => 'dollarsign.circle.fill',
+        _Kind.workout => 'figure.run',
+        _Kind.ritual => 'sparkles',
+      };
+
+  /// Pill label: the chosen category / title, or a "New …" type placeholder.
+  String get _pillLabel {
+    final picked = switch (_kind) {
+      _Kind.expense => _categoryCtrl.text.trim(),
+      _Kind.workout || _Kind.ritual => _titleCtrl.text.trim(),
+    };
+    if (picked.isNotEmpty) return picked;
+    return switch (_kind) {
+      _Kind.expense => 'New expense',
+      _Kind.workout => 'New workout',
+      _Kind.ritual => 'New routine',
+    };
+  }
+
+  /// The tinted type pill above the big display (design AddSheet amount hero).
+  Widget _buildTypePill(AppColors c, Color typeColor) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+          horizontal: Spacing.md, vertical: 6), // 6: no spacing token for pill
+      decoration: BoxDecoration(
+        color: typeColor.withValues(alpha: 0.13),
+        borderRadius: BorderRadius.circular(Radii.pill),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          AppIcon(_pillIcon, size: 14, color: typeColor),
+          const SizedBox(width: Spacing.sm),
+          Text(
+            _pillLabel,
+            style: AppType.footnote.copyWith(
+              fontWeight: FontWeight.w600,
+              color: typeColor,
+              letterSpacing: -0.08,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildDisplay(AppColors c, Color typeColor) {
     if (_kind == _Kind.ritual) {
       return Text(
@@ -585,7 +626,7 @@ class _NewEntrySheetState extends ConsumerState<NewEntrySheet> {
     // cents and trails the glyph; USD keeps cents and leads with it.
     final number = _kind == _Kind.expense
         ? (empty
-            ? '0'
+            ? (currency.decimals > 0 ? '0.00' : '0')
             : (currency.decimals > 0
                 ? _formatMoney(_numericValue ?? 0)
                 : groupThousands((_numericValue ?? 0).toStringAsFixed(0),
@@ -774,12 +815,14 @@ class _OptionalField extends StatelessWidget {
     required this.hint,
     required this.icon,
     this.keyboardType,
+    this.onChanged,
   });
 
   final TextEditingController controller;
   final String hint;
   final String icon;
   final TextInputType? keyboardType;
+  final ValueChanged<String>? onChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -800,6 +843,7 @@ class _OptionalField extends StatelessWidget {
             child: TextField(
               controller: controller,
               keyboardType: keyboardType,
+              onChanged: onChanged,
               style: AppType.subhead
                   .copyWith(color: c.ink, letterSpacing: -0.24),
               cursorColor: c.accent,
