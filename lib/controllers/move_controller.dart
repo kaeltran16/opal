@@ -57,7 +57,6 @@ class MoveState {
     required this.weekVolumeKg,
     required this.weekMinutes,
     required this.weekPrCount,
-    this.suggestedRoutineName,
   });
 
   /// Sum of today's logged move-entry active energy (kcal).
@@ -87,10 +86,6 @@ class MoveState {
 
   /// This week's personal-record count (hero "Records" stat).
   final int weekPrCount;
-
-  /// Pal's suggested routine name for the Start CTA, or null when there are no
-  /// routines yet.
-  final String? suggestedRoutineName;
 
   /// Weekly goal the hero ring/headline measures against.
   int get weekGoal => kWeeklyWorkoutGoal;
@@ -200,7 +195,6 @@ Stream<MoveState> moveState(Ref ref) async* {
       weekMinutes: weekWorkouts.fold<int>(
           0, (s, w) => s + (w.duration?.inMinutes ?? 0)),
       weekPrCount: weekWorkouts.fold<int>(0, (s, w) => s + w.prCount),
-      suggestedRoutineName: routines.isEmpty ? null : routines.first.name,
     );
   }
 }

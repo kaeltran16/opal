@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../controllers/move_controller.dart';
 import '../../controllers/providers.dart';
+import '../../controllers/start_workout_controller.dart';
 import '../../models/models.dart';
 import '../../router.dart';
 import '../../theme/theme.dart';
@@ -74,7 +75,7 @@ class _MoveBody extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.fromLTRB(
               Spacing.lg, 0, Spacing.lg, Spacing.xl),
-          child: _StartCta(routineName: state.suggestedRoutineName),
+          child: const _StartCta(),
         ),
         _QuickLinks(
           routineCount: state.routineCount,
@@ -486,13 +487,19 @@ class _HeroStat extends StatelessWidget {
 }
 
 /// "Start workout" CTA: move-tinted play circle + Pal eyebrow + routine + pill.
-class _StartCta extends StatelessWidget {
-  const _StartCta({required this.routineName});
-  final String? routineName;
+/// Reads the same [palPickControllerProvider] the Start Workout screen uses, so
+/// the pick shown here can't diverge from the one on the picker.
+class _StartCta extends ConsumerWidget {
+  const _StartCta();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final c = context.colors;
+    final async = ref.watch(palPickControllerProvider);
+    final suggestion = async.asData?.value;
+    final routineName = async.isLoading && suggestion == null
+        ? 'Thinking…'
+        : suggestion?.title ?? 'Freestyle session';
     return GestureDetector(
       onTap: () => context.pushNamed(AppRoute.startWorkout.name),
       behavior: HitTestBehavior.opaque,
@@ -542,7 +549,7 @@ class _StartCta extends StatelessWidget {
                   ),
                   const SizedBox(height: Spacing.xxs),
                   Text(
-                    routineName ?? 'Freestyle session',
+                    routineName,
                     style: AppFonts.sfr(
                         size: 18,
                         weight: FontWeight.w700,

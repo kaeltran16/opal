@@ -7,6 +7,7 @@ import 'package:opal/controllers/providers.dart';
 import 'package:opal/data/db/database.dart';
 import 'package:opal/data/seed/seeder.dart';
 import 'package:opal/router.dart';
+import 'package:opal/services/pal/mock_pal_service.dart';
 import 'package:opal/theme/app_colors.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -32,6 +33,10 @@ void main() {
         overrides: [
           sharedPreferencesProvider.overrideWithValue(prefs),
           loopDatabaseProvider.overrideWithValue(db),
+          // Fast Pal so the Start CTA's suggestWorkout() resolves under
+          // pumpAndSettle (the CTA now shows the shared Pal pick).
+          palServiceProvider.overrideWithValue(
+              MockPalService(latency: const Duration(milliseconds: 1))),
         ],
         child: MaterialApp.router(
           debugShowCheckedModeBanner: false,
@@ -58,9 +63,11 @@ void main() {
 
     // The seeded today workout shows up in recent sessions, with its PR badge
     // (scroll it into view — the list lazily builds off-screen children).
+    // "Push Day A" also appears in the Start CTA (it's the shared Pal pick), so
+    // expect it more than once.
     await tester.scrollUntilVisible(find.text('Push Day A'), 200,
         scrollable: find.byType(Scrollable).first);
-    expect(find.text('Push Day A'), findsOneWidget);
+    expect(find.text('Push Day A'), findsWidgets);
     // "1 PR" appears on the session card's PR badge and the hero Records stat.
     expect(find.text('1 PR'), findsWidgets);
 
