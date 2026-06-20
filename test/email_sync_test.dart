@@ -108,6 +108,7 @@ Future<void> _pump(
   Widget screen, {
   required SharedPreferences prefs,
   required LoopDatabase db,
+  EmailSyncService? service,
 }) async {
   final router = GoRouter(
     initialLocation: '/email',
@@ -132,7 +133,8 @@ Future<void> _pump(
       overrides: [
         sharedPreferencesProvider.overrideWithValue(prefs),
         loopDatabaseProvider.overrideWithValue(db),
-        emailSyncServiceProvider.overrideWithValue(MockEmailSyncService()),
+        emailSyncServiceProvider
+            .overrideWithValue(service ?? MockEmailSyncService()),
       ],
       child: MaterialApp.router(
         debugShowCheckedModeBanner: false,
@@ -207,6 +209,32 @@ void main() {
       200,
     );
     expect(find.text('iCloud, Outlook, any IMAP coming'), findsOneWidget);
+  });
+
+  // --- Widget: a connected account skips the cold pitch for the dashboard ----
+  // Regression: the Intro is the `/email` entry and the back-stop beneath
+  // Setup/Dashboard. When it ignored connection state, backing out of Setup —
+  // or reopening Email — showed the first-run pitch, so a saved connection
+  // looked lost. Connected → surface the dashboard here instead.
+  testWidgets('Email Intro surfaces the dashboard when already connected', (
+    WidgetTester tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
+    final db = LoopDatabase.forTesting(NativeDatabase.memory());
+    addTearDown(db.close);
+
+    await _pump(
+      tester,
+      const EmailIntroScreen(),
+      prefs: prefs,
+      db: db,
+      service: _StubSyncService(const []),
+    );
+
+    // Dashboard hero (connected account), not the cold-start pitch.
+    expect(find.text('me@gmail.com'), findsOneWidget);
+    expect(find.text('Stop logging card\ncharges by hand.'), findsNothing);
   });
 
   // --- Widget: Setup renders its credential form without crashing -----------

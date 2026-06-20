@@ -1,10 +1,13 @@
 import 'package:flutter/widgets.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../controllers/email_sync_controller.dart';
 import '../../theme/theme.dart';
 import '../../widgets/app_icon.dart';
 import '../../widgets/gmail_glyph.dart';
 import '../../widgets/inset_section.dart';
+import 'email_dashboard_screen.dart';
 import 'email_nav.dart';
 
 /// Screen 16 — Email Sync intro (mock).
@@ -13,7 +16,7 @@ import 'email_nav.dart';
 /// "How it works" 3-step section, a reassurance note, and the primary CTA that
 /// pushes the Setup screen. Provider list is implied by the secondary
 /// "iCloud, Outlook, any IMAP coming" line, matching the handoff.
-class EmailIntroScreen extends StatelessWidget {
+class EmailIntroScreen extends ConsumerWidget {
   const EmailIntroScreen({super.key});
 
   static const _steps = <(String icon, String token, String title, String sub)>[
@@ -38,7 +41,14 @@ class EmailIntroScreen extends StatelessWidget {
   ];
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // The Intro is the `/email` entry and the back-stop beneath Setup/Dashboard,
+    // so a connected account must surface the dashboard here — otherwise backing
+    // out of Setup, or reopening Email from the You tab, lands on this cold-start
+    // pitch and looks like the saved connection was lost.
+    if (ref.watch(emailDashboardControllerProvider).isConnected) {
+      return const EmailDashboardScreen();
+    }
     final c = context.colors;
     return ColoredBox(
       color: c.bg,
