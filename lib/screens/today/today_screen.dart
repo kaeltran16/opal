@@ -87,8 +87,17 @@ class _TodayBody extends ConsumerWidget {
     return LargeTitleScrollView(
       title: 'Today',
       subtitle: _dateSubtitle,
-      leading: Text(_monthAbbrev(),
-          style: AppType.body.copyWith(color: c.accent, letterSpacing: 0)),
+      leading: PressScale(
+        semanticLabel: 'You',
+        onTap: () => context.pushNamed(AppRoute.you.name),
+        child: SizedBox(
+          width: 44,
+          height: 44,
+          child: Center(
+              child: AppIcon('person.crop.circle.fill',
+                  size: 30, color: c.accent)),
+        ),
+      ),
       trailing: Row(children: [
         // Gradient Pal orb — opens the agentic Pal Home hub. Sits before the
         // inbox in the trailing group (Handoff: Pal · Home entry point).
@@ -346,8 +355,6 @@ class _TodayBody extends ConsumerWidget {
       ],
     );
   }
-
-  String _monthAbbrev() => kMonthsShort[DateTime.now().month - 1];
 }
 
 /// Opens the timeline search sheet over [entries] — the entries the Today

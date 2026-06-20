@@ -11,6 +11,9 @@ import 'screens/entry/new_entry_sheet.dart';
 import 'screens/library/exercise_library_screen.dart';
 import 'screens/move/move_screen.dart';
 import 'screens/move/weekly_plan_screen.dart';
+import 'screens/nutrition/nutrition_meal_detail_screen.dart';
+import 'screens/nutrition/nutrition_patterns_screen.dart';
+import 'screens/nutrition/nutrition_screen.dart';
 import 'screens/onboarding/onboarding_screen.dart';
 import 'screens/pal/pal_composer_screen.dart';
 import 'screens/pal/pal_home_screen.dart';
@@ -48,8 +51,13 @@ enum AppRoute {
   // Tab roots (branch roots of the StatefulShellRoute).
   today('today', '/today'),
   move('move', '/move'),
+  nutrition('nutrition', '/nutrition'),
   rituals('rituals', '/rituals'),
   you('you', '/you'),
+
+  // Nutrition sub-routes.
+  nutritionMeal('nutritionMeal', 'meal/:id'), //   -> /nutrition/meal/:id
+  nutritionPatterns('nutritionPatterns', 'patterns'), // /nutrition/patterns
 
   // Today sub-routes / detail (stubbed until their units).
   spendingDetail('spendingDetail', 'spending'), // U09 -> /today/spending
@@ -68,7 +76,7 @@ enum AppRoute {
   // Rituals sub-routes.
   manageRituals('manageRituals', 'manage'), //   U21b -> /rituals/manage
 
-  // You / Settings sub-routes (push within the You tab, tab bar stays).
+  // You / Settings sub-routes (push within the pushed /you route).
   youBudgets('youBudgets', 'budgets'), //           -> /you/budgets
   youInsights('youInsights', 'insights'), //        -> /you/insights
   budgetsGoals('budgetsGoals', 'budgets-goals'), // -> /you/budgets-goals
@@ -114,8 +122,8 @@ enum AppRoute {
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
 final _todayNavigatorKey = GlobalKey<NavigatorState>();
 final _moveNavigatorKey = GlobalKey<NavigatorState>();
+final _nutritionNavigatorKey = GlobalKey<NavigatorState>();
 final _ritualsNavigatorKey = GlobalKey<NavigatorState>();
-final _youNavigatorKey = GlobalKey<NavigatorState>();
 
 /// Builds the app router. Kept as a function so tests can supply their own
 /// `initialLocation` if needed.
@@ -222,6 +230,30 @@ GoRouter createRouter({
               ),
             ],
           ),
+          // --- Nutrition branch ---
+          StatefulShellBranch(
+            navigatorKey: _nutritionNavigatorKey,
+            routes: [
+              GoRoute(
+                path: AppRoute.nutrition.path,
+                name: AppRoute.nutrition.name,
+                builder: (context, state) => const NutritionScreen(),
+                routes: [
+                  GoRoute(
+                    path: AppRoute.nutritionMeal.path,
+                    name: AppRoute.nutritionMeal.name,
+                    builder: (context, state) =>
+                        NutritionMealDetailScreen(mealId: state.pathParameters['id']!),
+                  ),
+                  GoRoute(
+                    path: AppRoute.nutritionPatterns.path,
+                    name: AppRoute.nutritionPatterns.name,
+                    builder: (context, state) => const NutritionPatternsScreen(),
+                  ),
+                ],
+              ),
+            ],
+          ),
           // --- Rituals branch ---
           StatefulShellBranch(
             navigatorKey: _ritualsNavigatorKey,
@@ -240,58 +272,58 @@ GoRouter createRouter({
               ),
             ],
           ),
-          // --- You branch ---
-          StatefulShellBranch(
-            navigatorKey: _youNavigatorKey,
-            routes: [
-              GoRoute(
-                path: AppRoute.you.path,
-                name: AppRoute.you.name,
-                builder: (context, state) => const ProfileScreen(),
-                routes: [
-                  GoRoute(
-                    path: AppRoute.youBudgets.path,
-                    name: AppRoute.youBudgets.name,
-                    builder: (context, state) => const BudgetsScreen(),
-                  ),
-                  GoRoute(
-                    path: AppRoute.youInsights.path,
-                    name: AppRoute.youInsights.name,
-                    builder: (context, state) => const InsightsScreen(),
-                  ),
-                  GoRoute(
-                    path: AppRoute.budgetsGoals.path,
-                    name: AppRoute.budgetsGoals.name,
-                    builder: (context, state) => const BudgetsGoalsScreen(),
-                  ),
-                  GoRoute(
-                    path: AppRoute.notificationSettings.path,
-                    name: AppRoute.notificationSettings.name,
-                    builder: (context, state) => const NotificationsScreen(),
-                  ),
-                  GoRoute(
-                    path: AppRoute.appearance.path,
-                    name: AppRoute.appearance.name,
-                    builder: (context, state) => const AppearanceScreen(),
-                  ),
-                  GoRoute(
-                    path: AppRoute.privacy.path,
-                    name: AppRoute.privacy.name,
-                    builder: (context, state) => const PrivacyScreen(),
-                  ),
-                  GoRoute(
-                    path: AppRoute.exportData.path,
-                    name: AppRoute.exportData.name,
-                    builder: (context, state) => const ExportDataScreen(),
-                  ),
-                  GoRoute(
-                    path: AppRoute.about.path,
-                    name: AppRoute.about.name,
-                    builder: (context, state) => const AboutScreen(),
-                  ),
-                ],
-              ),
-            ],
+        ],
+      ),
+
+      // --- You / profile (pushed above the shell; lifted off the tab bar) ---
+      // Reached from the Today-header avatar via `pushNamed`, not a tab. Its
+      // existing sub-routes are preserved verbatim so /you/* deep links stay
+      // stable; the profile screen carries its own back/Done leading action.
+      GoRoute(
+        path: AppRoute.you.path,
+        name: AppRoute.you.name,
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const ProfileScreen(),
+        routes: [
+          GoRoute(
+            path: AppRoute.youBudgets.path,
+            name: AppRoute.youBudgets.name,
+            builder: (context, state) => const BudgetsScreen(),
+          ),
+          GoRoute(
+            path: AppRoute.youInsights.path,
+            name: AppRoute.youInsights.name,
+            builder: (context, state) => const InsightsScreen(),
+          ),
+          GoRoute(
+            path: AppRoute.budgetsGoals.path,
+            name: AppRoute.budgetsGoals.name,
+            builder: (context, state) => const BudgetsGoalsScreen(),
+          ),
+          GoRoute(
+            path: AppRoute.notificationSettings.path,
+            name: AppRoute.notificationSettings.name,
+            builder: (context, state) => const NotificationsScreen(),
+          ),
+          GoRoute(
+            path: AppRoute.appearance.path,
+            name: AppRoute.appearance.name,
+            builder: (context, state) => const AppearanceScreen(),
+          ),
+          GoRoute(
+            path: AppRoute.privacy.path,
+            name: AppRoute.privacy.name,
+            builder: (context, state) => const PrivacyScreen(),
+          ),
+          GoRoute(
+            path: AppRoute.exportData.path,
+            name: AppRoute.exportData.name,
+            builder: (context, state) => const ExportDataScreen(),
+          ),
+          GoRoute(
+            path: AppRoute.about.path,
+            name: AppRoute.about.name,
+            builder: (context, state) => const AboutScreen(),
           ),
         ],
       ),

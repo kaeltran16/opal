@@ -150,6 +150,14 @@ class _ProfileBody extends StatelessWidget {
     return LargeTitleScrollView(
       title: 'You',
       subtitle: 'Reviews, patterns, settings',
+      // You is now pushed from the Today header (not a tab root), so it needs
+      // its own back affordance.
+      leading: NavAction(
+        icon: 'chevron.left',
+        label: 'Today',
+        onTap: () => context.pop(),
+        semanticLabel: 'Back to Today',
+      ),
       padding: const EdgeInsets.only(bottom: 110),
       children: [
         // --- Profile card ---

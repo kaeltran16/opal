@@ -92,7 +92,9 @@ void main() {
 
   testWidgets('golden: move', (tester) async {
     pinSurface(tester);
-    await bootApp(tester);
+    // The Start CTA watches the Pal-pick seam; a zero-latency mock resolves it
+    // before capture and leaves no pending timer at teardown.
+    await bootApp(tester, palService: MockPalService(latency: Duration.zero));
 
     // The Move tab's nav label is "Workout"; scope the finder to the tab bar so
     // it doesn't collide with the Today summary tile's "Workout" text.
@@ -135,11 +137,9 @@ void main() {
     // deterministic and leaves no pending timer at capture time.
     await bootApp(tester, palService: MockPalService(latency: Duration.zero));
 
-    // The profile tab's nav label is "You".
-    await tester.tap(find.descendant(
-      of: find.byType(LoopTabBar),
-      matching: find.text('You'),
-    ));
+    // You is no longer a tab; it's pushed from the Today-header avatar
+    // (semanticLabel 'You').
+    await tester.tap(find.bySemanticsLabel('You'));
     await tester.pumpAndSettle();
 
     await expectLater(

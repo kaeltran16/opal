@@ -15,8 +15,8 @@ const _tabs = [
   LoopTab('today', 'Today', 'house.fill'),
   LoopTab('move', 'Workout', 'figure.run'),
   LoopTab('add', '', 'plus'),
+  LoopTab('nutrition', 'Nutrition', 'leaf.fill'),
   LoopTab('rituals', 'Routines', 'sparkles'),
-  LoopTab('you', 'You', 'person.crop.circle.fill'),
 ];
 
 /// Blurred bottom tab bar with a raised center FAB that opens the Pal composer.
