@@ -9,6 +9,7 @@ import '../../widgets/app_icon.dart';
 import '../../widgets/inset_section.dart';
 import '../../widgets/nav_bar.dart';
 import '../../widgets/press_scale.dart';
+import 'nutrition_add_sheet.dart';
 import 'widgets/nutrition_widgets.dart';
 
 /// Screen: Meal detail. Looked up from [NutritionState.meals] by [mealId].
@@ -277,15 +278,7 @@ class _AdjustButton extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final c = context.colors;
     return PressScale(
-      // TODO(Task 13): wire to NutritionAddSheet prefilled with this meal.
-      onTap: () {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Coming soon'),
-            duration: Duration(seconds: 2),
-          ),
-        );
-      },
+      onTap: () => showNutritionAddSheet(context),
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: Spacing.md),

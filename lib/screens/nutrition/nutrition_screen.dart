@@ -9,6 +9,8 @@ import '../../widgets/app_icon.dart';
 import '../../widgets/dashed_border.dart';
 import '../../widgets/nav_bar.dart';
 import '../../widgets/press_scale.dart';
+import 'nutrition_add_sheet.dart';
+import 'nutrition_confirm_sheet.dart';
 import 'widgets/nutrition_widgets.dart';
 
 /// Nutrition landing — hero, pending expense card, today's meals, week strip,
@@ -40,48 +42,6 @@ class NutritionScreen extends ConsumerWidget {
   }
 }
 
-// TODO(Task 13): Replace with real NutritionAddSheet when built.
-void _showAddSheetStub(BuildContext context) {
-  showModalBottomSheet<void>(
-    context: context,
-    builder: (_) => const _ComingSoonSheet(title: 'Add a meal'),
-  );
-}
-
-// TODO(Task 13): Replace with real NutritionConfirmSheet when built.
-void _showConfirmSheetStub(BuildContext context) {
-  showModalBottomSheet<void>(
-    context: context,
-    builder: (_) => const _ComingSoonSheet(title: 'Confirm meal from expense'),
-  );
-}
-
-class _ComingSoonSheet extends StatelessWidget {
-  const _ComingSoonSheet({required this.title});
-  final String title;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.colors;
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.all(Spacing.xxl),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(title,
-                style: AppFonts.sf(
-                    size: 17, weight: FontWeight.w600, color: c.ink)),
-            const SizedBox(height: Spacing.md),
-            Text('Coming soon (Task 13)',
-                style: AppType.subhead.copyWith(color: c.ink3)),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 // ─── Body ────────────────────────────────────────────────────────────────────
 
 class _NutritionBody extends StatelessWidget {
@@ -96,8 +56,7 @@ class _NutritionBody extends StatelessWidget {
       trailing: NavIconButton(
         name: 'plus',
         semanticLabel: 'Add a meal',
-        // TODO(Task 13): wire to real NutritionAddSheet
-        onTap: () => _showAddSheetStub(context),
+        onTap: () => showNutritionAddSheet(context),
       ),
       padding: const EdgeInsets.only(bottom: 110),
       children: [
@@ -344,8 +303,11 @@ class _PendingCard extends StatelessWidget {
             const SizedBox(height: Spacing.md),
             // "Add meal" pill
             PressScale(
-              // TODO(Task 13): wire to real NutritionConfirmSheet
-              onTap: () => _showConfirmSheetStub(context),
+              onTap: () => showNutritionConfirmSheet(
+                context,
+                expense: e,
+                guess: guess,
+              ),
               child: Container(
                 width: double.infinity,
                 height: 40,
