@@ -221,9 +221,10 @@ class SeedData {
           kind: NoteKind.reminder,
           category: EntryType.money,
           icon: 'bell.fill',
-          title: 'Rent auto-pays Monday',
-          body: '\$2,400 from Chase ··0427 on Jun 15. Balance looks fine — '
-              '\$4,192 after.',
+          // no weekday/date in the copy (see seed-note-3): createdAt is relative
+          // so the inbox stamp owns "when"; a hardcoded day/date would drift.
+          title: 'Rent auto-pays this week',
+          body: '\$2,400 from Chase ··0427. Balance looks fine — \$4,192 after.',
           actionLabel: 'View bill',
           unread: false,
         ),
