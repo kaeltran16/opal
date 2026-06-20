@@ -185,13 +185,12 @@ void main() {
     await tester.pump(const Duration(milliseconds: 40)); // fake latency
     await tester.pumpAndSettle();
 
-    // The mock parses "coffee 5" → a money expense of $5 with category Coffee,
-    // pre-filled into the sheet (the amount shows in the fixed display as the
-    // number run "5.00", with the "$" prefix rendered separately).
+    // The mock parses "coffee 5" → a $5 expense; the amount flows into the form
+    // (the number run "5.00", with the "$" prefix rendered separately).
     expect(find.text('5.00'), findsOneWidget);
 
-    // Tapping Add writes the pre-filled entry, proving type/amount/category all
-    // flowed from the parse into the form.
+    // Tapping Add writes the pre-filled entry, proving type + amount flowed from
+    // the parse into the form.
     await tester.tap(find.text('Add'));
     await tester.pumpAndSettle();
 
@@ -200,6 +199,37 @@ void main() {
     final e = all.single;
     expect(e.type, EntryType.money);
     expect(e.amount, closeTo(-5, 1e-9));
-    expect(e.category, 'Coffee');
+    // "Coffee" isn't a canonical kSpendCategories entry, so the picker drops it
+    // rather than persist a label no budget envelope recognizes.
+    expect(e.category, isNull);
+  });
+
+  testWidgets('selecting a category chip persists a canonical category',
+      (WidgetTester tester) async {
+    // Tall viewport so the category chips clear the pinned keypad and are
+    // hit-testable (matches new_entry_quick_picks_test).
+    tester.view.physicalSize = const Size(1000, 3000);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final db = LoopDatabase.forTesting(NativeDatabase.memory());
+    addTearDown(db.close);
+
+    final repo = await _pumpSheet(tester, db);
+
+    await tester.tap(find.text('9'));
+    await tester.pump();
+
+    // The canonical category chips render; tap one to select it.
+    await tester.tap(find.text('Groceries'));
+    await tester.pump();
+
+    await tester.tap(find.text('Add'));
+    await tester.pumpAndSettle();
+
+    final e = (await repo.getAll()).single;
+    expect(e.type, EntryType.money);
+    expect(e.category, 'Groceries');
   });
 }

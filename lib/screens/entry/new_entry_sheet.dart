@@ -122,7 +122,7 @@ class _NewEntrySheetState extends ConsumerState<NewEntrySheet> {
       title: 'Verve Coffee',
       label: '\$5',
       amount: 5,
-      category: 'Coffee',
+      category: 'Food & Drink',
       detail: 'Coffee',
     ),
     _QuickPick(
@@ -131,7 +131,7 @@ class _NewEntrySheetState extends ConsumerState<NewEntrySheet> {
       title: 'Lunch',
       label: '\$14',
       amount: 14,
-      category: 'Dining',
+      category: 'Food & Drink',
     ),
     _QuickPick(
       kind: _Kind.workout,
@@ -262,6 +262,19 @@ class _NewEntrySheetState extends ConsumerState<NewEntrySheet> {
     });
   }
 
+  /// The canonical [kSpendCategories] entry matching [raw] (case/space-
+  /// insensitive), or null when it isn't one. Keeps the logged category aligned
+  /// with budget envelopes — a quick-pick or Pal parse can't smuggle in a label
+  /// that no envelope recognizes.
+  static String? _canonicalCategory(String? raw) {
+    final key = normalizeCategory(raw);
+    if (key.isEmpty) return null;
+    for (final cat in kSpendCategories) {
+      if (normalizeCategory(cat) == key) return cat;
+    }
+    return null;
+  }
+
   void _applyPick(_QuickPick p) {
     setState(() {
       _kind = p.kind;
@@ -269,7 +282,7 @@ class _NewEntrySheetState extends ConsumerState<NewEntrySheet> {
         case _Kind.expense:
           _buffer = (p.amount ?? 0).toStringAsFixed(
               (p.amount ?? 0) % 1 == 0 ? 0 : 2);
-          _categoryCtrl.text = p.category ?? '';
+          _categoryCtrl.text = _canonicalCategory(p.category) ?? '';
           _titleCtrl.text = p.title;
           if (p.detail != null) _noteCtrl.text = p.detail!;
         case _Kind.workout:
@@ -325,7 +338,7 @@ class _NewEntrySheetState extends ConsumerState<NewEntrySheet> {
                     ? mag.toStringAsFixed(0)
                     : mag.toStringAsFixed(2);
               }();
-        _categoryCtrl.text = draft.category ?? '';
+        _categoryCtrl.text = _canonicalCategory(draft.category) ?? '';
         if (draft.title != null) _titleCtrl.text = draft.title!;
       case EntryType.move:
         _kind = _Kind.workout;
@@ -505,14 +518,9 @@ class _NewEntrySheetState extends ConsumerState<NewEntrySheet> {
                   _buildQuickPicks(c),
                   const SizedBox(height: Spacing.xl),
 
-                  // Optional category / calories / note.
+                  // Category picker (expense) + optional calories / note.
                   if (_kind == _Kind.expense) ...[
-                    _OptionalField(
-                      controller: _categoryCtrl,
-                      hint: 'Category (optional)',
-                      icon: 'tray.fill',
-                      onChanged: (_) => setState(() {}),
-                    ),
+                    _buildCategoryChips(c),
                     const SizedBox(height: Spacing.sm),
                   ],
                   if (_kind == _Kind.workout) ...[
@@ -736,6 +744,43 @@ class _NewEntrySheetState extends ConsumerState<NewEntrySheet> {
       ],
     );
   }
+
+  /// Single-select chips over the canonical [kSpendCategories] — the only
+  /// categories an expense can carry, so every logged amount lines up with a
+  /// budget envelope. Optional: tapping the selected chip clears it.
+  Widget _buildCategoryChips(AppColors c) {
+    final selected = _categoryCtrl.text.trim();
+    return Wrap(
+      spacing: Spacing.sm,
+      runSpacing: Spacing.sm,
+      children: [
+        for (final cat in kSpendCategories)
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () => setState(
+                () => _categoryCtrl.text = selected == cat ? '' : cat),
+            child: Container(
+              padding: const EdgeInsets.symmetric(
+                  horizontal: Spacing.md, vertical: Spacing.sm),
+              decoration: BoxDecoration(
+                color: selected == cat ? c.money : c.surface,
+                borderRadius: BorderRadius.circular(Radii.pill),
+                border: Border.all(
+                    color: selected == cat ? c.money : c.hair, width: 0.5),
+              ),
+              child: Text(
+                cat,
+                style: AppType.footnote.copyWith(
+                  fontWeight: FontWeight.w500,
+                  color: selected == cat ? c.onAccent : c.ink2,
+                  letterSpacing: -0.08,
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
 }
 
 class _QuickPickTile extends StatelessWidget {
@@ -815,14 +860,12 @@ class _OptionalField extends StatelessWidget {
     required this.hint,
     required this.icon,
     this.keyboardType,
-    this.onChanged,
   });
 
   final TextEditingController controller;
   final String hint;
   final String icon;
   final TextInputType? keyboardType;
-  final ValueChanged<String>? onChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -843,7 +886,6 @@ class _OptionalField extends StatelessWidget {
             child: TextField(
               controller: controller,
               keyboardType: keyboardType,
-              onChanged: onChanged,
               style: AppType.subhead
                   .copyWith(color: c.ink, letterSpacing: -0.24),
               cursorColor: c.accent,
