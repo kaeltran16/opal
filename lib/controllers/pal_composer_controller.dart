@@ -13,27 +13,6 @@ const _palOfflineReply =
     "Pal couldn't reach the server. You can still log this from the New Entry "
     'sheet.';
 
-/// A structured quick-log payload attached to a concrete starter chip. When Pal
-/// is offline, [PalComposerController.sendStarter] writes this as a local
-/// [Entry] instead of hanging. Open-prompt starters carry no payload (null).
-class StarterEntry {
-  const StarterEntry({
-    required this.type,
-    required this.title,
-    this.amount,
-    this.category,
-    this.durationMinutes,
-  });
-
-  final EntryType type;
-  final String title;
-
-  /// Money only. Pre-signed (negative = expense), mirroring [Entry.amount].
-  final double? amount;
-  final String? category;
-  final int? durationMinutes;
-}
-
 /// The Pal-composer chat view model: the running [messages] transcript plus an
 /// [isLoading] flag that drives the typing dots, and an [expanded] flag that
 /// flips the sheet from the compact greeting state into the chat.

@@ -34,7 +34,9 @@ Map<String, Object?> buildChatContext({
   required List<Entry> weekEntries,
   required int moveStreakDays,
   int routineCount = 0,
+  DateTime? now,
 }) {
+  final clock = now ?? DateTime.now();
   final ritualTarget = effectiveDailyRitualTarget(routineCount, goals);
   return {
     'userName': userName,
@@ -51,6 +53,8 @@ Map<String, Object?> buildChatContext({
     'weekRitualsDone': _rituals(weekEntries),
     'weekRitualGoal': ritualTarget * 7,
     'moveStreakDays': moveStreakDays,
+    'hourOfDay': clock.hour,
+    'weekday': clock.weekday,
   };
 }
 

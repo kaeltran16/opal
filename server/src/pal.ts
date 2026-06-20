@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import {
-  chatSystemPrompt, reviewPrompt, insightsPrompt, parsePrompt, suggestPrompt, postWorkoutPrompt, routinePrompt, agendaPrompt, memoryPatternsPrompt,
+  chatSystemPrompt, reviewPrompt, insightsPrompt, parsePrompt, suggestPrompt, postWorkoutPrompt, routinePrompt, agendaPrompt, suggestionsPrompt, memoryPatternsPrompt,
   type ChatContext, type ReviewContext, type InsightsContext, type SuggestContext, type PostWorkoutContext, type RoutineExercise,
 } from './prompts.js'
 import { MAX_PATTERNS, type MemoryOp, type MemoryDigest, type MemoryPattern } from './memory.js'
@@ -234,6 +234,47 @@ export interface AgendaResult {
   proposals: Array<{ id: string; tag: string; colorToken: string; icon: string; title: string; body: string; approveLabel: string; approveIcon: string; doneLabel: string; action: string | null }>
   autopilot: Array<{ id: string; colorToken: string; icon: string; title: string; subtitle: string; enabled: boolean }>
   streakDays: number
+}
+
+// --- Pal quick-pick suggestions (/v1/suggestions) ---------------------------
+// The model picks each chip's `kind` (and the copy); the server derives the
+// SF-symbol icon from that kind. Off-list kinds coerce to 'generic'.
+const suggestionKinds = ['log_money', 'log_move', 'log_ritual', 'ask', 'routine_goal', 'generic'] as const
+
+const SUGGESTION_ICON: Record<(typeof suggestionKinds)[number], string> = {
+  log_money: 'dollarsign.circle.fill',
+  log_move: 'figure.run',
+  log_ritual: 'sparkles',
+  ask: 'chart.bar.fill',
+  routine_goal: 'flame.fill',
+  generic: 'sparkles',
+}
+
+const suggestionEntry = z.object({
+  type: z.enum(['money', 'move', 'rituals']),
+  title: z.string(),
+  amount: z.number().nullable().optional(),
+  category: z.string().nullable().optional(),
+  minutes: z.number().nullable().optional(),
+}).nullable().optional()
+
+export const suggestionsModelSchema = z.object({
+  suggestions: z.array(z.object({
+    kind: z.enum(suggestionKinds).catch('generic'),
+    // chips include an 'accent' pillar (ask chips); off-list values coerce.
+    colorToken: z.enum(['money', 'move', 'rituals', 'accent']).catch('accent'),
+    label: z.string(),
+    entry: suggestionEntry,
+  })).default([]),
+})
+
+export interface SuggestionsResult {
+  suggestions: Array<{
+    label: string
+    icon: string
+    colorToken: string
+    entry: { type: 'money' | 'move' | 'rituals'; title: string; amount: number | null; category: string | null; minutes: number | null } | null
+  }>
 }
 
 const routineSetSchema = z.object({
@@ -492,6 +533,30 @@ export class Pal {
         enabled: a.enabled,
       })),
       streakDays: ctx.moveStreakDays,
+    }
+  }
+
+  async suggestions(surface: 'composer' | 'newEntry' | 'routineGoal', ctx: ChatContext | SuggestContext): Promise<SuggestionsResult> {
+    const raw = await this.client.complete(
+      [{ role: 'user', content: suggestionsPrompt(surface, ctx) }],
+      { json: true, maxTokens: INSIGHTS_MAX_TOKENS, temperature: 0 },
+    )
+    const parsed = suggestionsModelSchema.parse(extractJson(raw))
+    return {
+      suggestions: parsed.suggestions.map((s) => ({
+        label: s.label,
+        icon: SUGGESTION_ICON[s.kind],
+        colorToken: s.colorToken,
+        entry: s.entry
+          ? {
+              type: s.entry.type,
+              title: s.entry.title,
+              amount: s.entry.amount ?? null,
+              category: s.entry.category ?? null,
+              minutes: s.entry.minutes ?? null,
+            }
+          : null,
+      })),
     }
   }
 

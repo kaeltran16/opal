@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../controllers/pal_composer_controller.dart';
+import '../../controllers/pal_suggestions_controller.dart';
 import '../../controllers/providers.dart';
 import '../../controllers/today_controller.dart';
 import '../../models/models.dart';
@@ -250,7 +251,7 @@ class _Header extends StatelessWidget {
 
 /// The compact-state body: a "Start a workout" card, a "Try saying" label, and
 /// three starter chips. Shown only before the conversation expands.
-class _CompactBody extends StatelessWidget {
+class _CompactBody extends ConsumerWidget {
   const _CompactBody({required this.onSendStarter});
 
   final ValueChanged<_Starter> onSendStarter;
@@ -281,8 +282,21 @@ class _CompactBody extends StatelessWidget {
   ];
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final c = context.colors;
+    // Pal-generated starters when available; the static list is the fallback for
+    // loading / offline / empty, preserving the original offline quick-logs.
+    final palStarters = ref
+        .watch(palSuggestionsProvider(SuggestionSurface.composer))
+        .maybeWhen(
+          data: (list) => list.isEmpty
+              ? null
+              : list
+                  .map((s) => _Starter(s.icon, s.colorToken, s.label, payload: s.entry))
+                  .toList(),
+          orElse: () => null,
+        );
+    final starters = palStarters ?? _starters;
     return Padding(
       padding: const EdgeInsets.fromLTRB(Spacing.md, Spacing.xs, Spacing.md, Spacing.md),
       child: Column(
@@ -356,11 +370,11 @@ class _CompactBody extends StatelessWidget {
               ),
             ),
           ),
-          for (var i = 0; i < _starters.length; i++) ...[
+          for (var i = 0; i < starters.length; i++) ...[
             if (i > 0) const SizedBox(height: Spacing.sm),
             _StarterChip(
-              starter: _starters[i],
-              onTap: () => onSendStarter(_starters[i]),
+              starter: starters[i],
+              onTap: () => onSendStarter(starters[i]),
             ),
           ],
         ],

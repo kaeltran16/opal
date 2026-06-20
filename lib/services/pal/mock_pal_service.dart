@@ -462,6 +462,70 @@ class MockPalService implements PalService {
     );
   }
 
+  @override
+  Future<List<PalSuggestion>> suggestions(SuggestionSurface surface) async {
+    await Future<void>.delayed(latency);
+    switch (surface) {
+      case SuggestionSurface.composer:
+        return const [
+          PalSuggestion(
+            label: 'Verve coffee, \$5',
+            icon: 'cup.and.saucer.fill',
+            colorToken: 'money',
+            entry: StarterEntry(
+                type: EntryType.money, title: 'Verve coffee', amount: -5, category: 'Coffee'),
+          ),
+          PalSuggestion(
+            label: 'Finished morning pages',
+            icon: 'sparkles',
+            colorToken: 'rituals',
+            entry: StarterEntry(type: EntryType.rituals, title: 'Morning pages'),
+          ),
+          PalSuggestion(
+            label: "How's my week so far?",
+            icon: 'chart.bar.fill',
+            colorToken: 'accent',
+          ),
+        ];
+      case SuggestionSurface.newEntry:
+        return const [
+          PalSuggestion(
+            label: 'Verve Coffee',
+            icon: 'cup.and.saucer.fill',
+            colorToken: 'money',
+            entry: StarterEntry(
+                type: EntryType.money, title: 'Verve Coffee', amount: -5, category: 'Coffee'),
+          ),
+          PalSuggestion(
+            label: 'Lunch',
+            icon: 'fork.knife',
+            colorToken: 'money',
+            entry: StarterEntry(
+                type: EntryType.money, title: 'Lunch', amount: -14, category: 'Dining'),
+          ),
+          PalSuggestion(
+            label: 'Run',
+            icon: 'figure.run',
+            colorToken: 'move',
+            entry: StarterEntry(type: EntryType.move, title: 'Run', durationMinutes: 30),
+          ),
+          PalSuggestion(
+            label: 'Morning pages',
+            icon: 'sparkles',
+            colorToken: 'rituals',
+            entry: StarterEntry(type: EntryType.rituals, title: 'Morning pages'),
+          ),
+        ];
+      case SuggestionSurface.routineGoal:
+        return const [
+          PalSuggestion(label: '45-min push for strength', icon: 'flame.fill', colorToken: 'move'),
+          PalSuggestion(label: 'Quick full-body, no barbell', icon: 'figure.mixed.cardio', colorToken: 'accent'),
+          PalSuggestion(label: 'Pull day focused on back', icon: 'figure.pullup', colorToken: 'rituals'),
+          PalSuggestion(label: 'Short HIIT cardio', icon: 'bolt.fill', colorToken: 'money'),
+        ];
+    }
+  }
+
   // in-memory persistent memory for the preview: facts are user-authored (none
   // until a future chat-driven remember), patterns seed on refresh.
   final List<PalFact> _facts = [];

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../controllers/budget_alert_controller.dart';
+import '../../controllers/pal_suggestions_controller.dart';
 import '../../controllers/providers.dart';
 import '../../models/models.dart';
 import '../../services/services.dart';
@@ -624,12 +625,55 @@ class _NewEntrySheetState extends ConsumerState<NewEntrySheet> {
     );
   }
 
+  _Kind _kindForEntryType(EntryType t) => switch (t) {
+        EntryType.money => _Kind.expense,
+        EntryType.move => _Kind.workout,
+        EntryType.rituals => _Kind.ritual,
+      };
+
+  /// Maps a Pal suggestion's entry to the sheet's quick-pick tile. Suggestions
+  /// without an entry can't pre-fill the form, so they are skipped.
+  _QuickPick? _pickFromSuggestion(PalSuggestion s) {
+    final e = s.entry;
+    if (e == null) return null;
+    final kind = _kindForEntryType(e.type);
+    final currency = ref.read(appSettingsControllerProvider).currency;
+    final label = switch (e.type) {
+      EntryType.money when e.amount != null =>
+        formatCurrency(e.amount!.abs(), currency),
+      EntryType.move when e.durationMinutes != null => '${e.durationMinutes} min',
+      _ => 'Routine',
+    };
+    return _QuickPick(
+      kind: kind,
+      icon: s.icon,
+      title: e.title,
+      label: label,
+      amount: e.amount?.abs(),
+      minutes: e.durationMinutes,
+      category: e.category,
+      detail: e.category,
+    );
+  }
+
   Widget _buildQuickPicks(AppColors c) {
+    // Pal-generated picks when available; the static list is the fallback for
+    // loading / offline / empty. Picks are filtered to the active kind tab.
+    final palPicks = ref
+        .watch(palSuggestionsProvider(SuggestionSurface.newEntry))
+        .maybeWhen(
+          data: (list) {
+            final mapped = list.map(_pickFromSuggestion).whereType<_QuickPick>().toList();
+            return mapped.isEmpty ? null : mapped;
+          },
+          orElse: () => null,
+        );
+    final picks = palPicks ?? _picks;
     return Wrap(
       spacing: Spacing.sm,
       runSpacing: Spacing.sm,
       children: [
-        for (final p in _picks.where((p) => p.kind == _kind))
+        for (final p in picks.where((p) => p.kind == _kind))
           _QuickPickTile(
             pick: p,
             currency: ref.read(appSettingsControllerProvider).currency,

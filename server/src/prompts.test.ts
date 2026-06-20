@@ -8,7 +8,7 @@ describe('prompts', () => {
       dailyBudget: 60, moveGoalKcal: 400, ritualGoal: 5,
       spentToday: 12, movedTodayKcal: 250, ritualsDoneToday: 3,
       weekSpent: 200, weekBudget: 420, weekMovedKcal: 1800, weekRitualsDone: 18,
-      weekRitualGoal: 35, moveStreakDays: 11,
+      weekRitualGoal: 35, moveStreakDays: 11, hourOfDay: 8, weekday: 6,
     })
     expect(p).toContain('You are Pal')
     expect(p).toContain('Kael')
@@ -25,7 +25,7 @@ describe('prompts', () => {
     const p = chatSystemPrompt({
       userName: 'Kael', todayEntries: [], dailyBudget: 60, moveGoalKcal: 400, ritualGoal: 5,
       spentToday: 0, movedTodayKcal: 0, ritualsDoneToday: 0, weekSpent: 0, weekBudget: 420,
-      weekMovedKcal: 0, weekRitualsDone: 0, weekRitualGoal: 35, moveStreakDays: 0,
+      weekMovedKcal: 0, weekRitualsDone: 0, weekRitualGoal: 35, moveStreakDays: 0, hourOfDay: 8, weekday: 6,
     })
     expect(p.toLowerCase()).toContain('tool')
     expect(p.toLowerCase()).toContain('log')
@@ -200,7 +200,7 @@ const mem = {
 const chatCtx = {
   userName: 'Sam', todayEntries: [], dailyBudget: 80, moveGoalKcal: 500, ritualGoal: 5,
   spentToday: 0, movedTodayKcal: 0, ritualsDoneToday: 0, weekSpent: 0, weekBudget: 560,
-  weekMovedKcal: 0, weekRitualsDone: 0, weekRitualGoal: 35, moveStreakDays: 3,
+  weekMovedKcal: 0, weekRitualsDone: 0, weekRitualGoal: 35, moveStreakDays: 3, hourOfDay: 8, weekday: 6,
 }
 const insightsCtx = {
   range: 'week' as const, spent: 0, budget: 0, moveKcal: 0, moveTargetKcal: 0,

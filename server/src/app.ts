@@ -9,7 +9,7 @@ import type { TokenStore } from './store.js'
 import type { HealthStore } from './health.js'
 import type { WidgetSnapshotStore } from './widget.js'
 import type { MemoryStore } from './memory.js'
-import { registerBody, chatBody, parseBody, reviewBody, insightsBody, suggestBody, postWorkoutBody, routineBody, agendaBody, emailTestBody, emailSyncBody, healthIngestBody, healthDayQuery, widgetSnapshotBody, memoryRefreshBody } from './schemas.js'
+import { registerBody, chatBody, parseBody, reviewBody, insightsBody, suggestBody, postWorkoutBody, routineBody, agendaBody, suggestionsBody, emailTestBody, emailSyncBody, healthIngestBody, healthDayQuery, widgetSnapshotBody, memoryRefreshBody } from './schemas.js'
 
 export interface AppDeps {
   pal: Pal
@@ -116,6 +116,7 @@ export function buildApp(deps: AppDeps): FastifyInstance {
   app.post('/v1/post-workout-note', guard(postWorkoutBody, async (b) => ({ note: await deps.pal.postWorkoutNote(b.context) })))
   app.post('/v1/routine', guardTok(routineBody, async (b, token) => deps.pal.generateRoutine(b.goal, b.exercises, deps.memory.digest(token))))
   app.post('/v1/agenda', guardTok(agendaBody, async (b, token) => deps.pal.agenda(b.context, deps.memory.digest(token))))
+  app.post('/v1/suggestions', guard(suggestionsBody, async (b) => deps.pal.suggestions(b.surface, b.context)))
 
   app.get('/v1/memory', async (req) => {
     const token = extractBearer(req.headers.authorization)!

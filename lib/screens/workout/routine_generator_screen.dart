@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../controllers/pal_suggestions_controller.dart';
 import '../../controllers/routine_generator_controller.dart';
 import '../../models/models.dart';
 import '../../services/pal/pal_service.dart';
@@ -86,6 +87,18 @@ class _RoutineGeneratorScreenState
     final isResult = state is RoutineGeneratorResult;
     final isLoading = state is RoutineGeneratorLoading;
 
+    // Pal-generated goal chips when available; the static list is the fallback
+    // for loading / offline / empty.
+    final palGoals = ref
+        .watch(palSuggestionsProvider(SuggestionSurface.routineGoal))
+        .maybeWhen(
+          data: (list) => list.isEmpty
+              ? null
+              : list.map((s) => _QuickGoal(s.label, s.icon, c.forType(s.colorToken))).toList(),
+          orElse: () => null,
+        );
+    final goals = palGoals ?? _goals(c);
+
     return Scaffold(
       backgroundColor: c.bg,
       body: LargeTitleScrollView(
@@ -114,7 +127,7 @@ class _RoutineGeneratorScreenState
             Padding(
               padding: const EdgeInsets.fromLTRB(Spacing.lg, 0, Spacing.lg, 0),
               child: _QuickPicks(
-                goals: _goals(c),
+                goals: goals,
                 disabled: isLoading,
                 onPick: _runQuickGoal,
               ),

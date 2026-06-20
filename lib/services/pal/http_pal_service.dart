@@ -76,8 +76,9 @@ class HttpPalService implements PalService {
   Future<Map<String, dynamic>> _cachedPost(
     String kind,
     String path,
-    Map<String, Object?> ctx,
-  ) async {
+    Map<String, Object?> ctx, {
+    Map<String, Object?> extra = const {},
+  }) async {
     final key = '$kind:${jsonEncode(ctx)}';
     final hit = await cache.get(key);
     if (hit != null) {
@@ -87,7 +88,7 @@ class HttpPalService implements PalService {
         // corrupt entry — fall through and refetch.
       }
     }
-    final json = await _post(path, {'context': ctx});
+    final json = await _post(path, {'context': ctx, ...extra});
     await cache.put(key, jsonEncode(json));
     return json;
   }
@@ -383,6 +384,56 @@ class HttpPalService implements PalService {
           enabled: a['enabled'] as bool? ?? false,
         ),
       ),
+    );
+  }
+
+  static String _surfaceWire(SuggestionSurface s) => switch (s) {
+        SuggestionSurface.composer => 'composer',
+        SuggestionSurface.newEntry => 'newEntry',
+        SuggestionSurface.routineGoal => 'routineGoal',
+      };
+
+  @override
+  Future<List<PalSuggestion>> suggestions(SuggestionSurface surface) async {
+    final wire = _surfaceWire(surface);
+    // composer/newEntry are grounded in the chat context; routineGoal in the
+    // suggest context (recent workouts + day of week).
+    final ctx = surface == SuggestionSurface.routineGoal
+        ? await context.suggest(false, null)
+        : await context.chat();
+    final json = await _cachedPost('suggestions:$wire', '/v1/suggestions', ctx,
+        extra: {'surface': wire});
+    return ((json['suggestions'] as List?) ?? const [])
+        .cast<Map<String, dynamic>>()
+        .map(_suggestionFromWire)
+        .whereType<PalSuggestion>()
+        .toList();
+  }
+
+  /// Decodes one wire suggestion. Returns null when the required [label] is
+  /// missing/empty so a malformed item is dropped (newer-server-safe).
+  PalSuggestion? _suggestionFromWire(Map<String, dynamic> s) {
+    final label = (s['label'] as String?)?.trim();
+    if (label == null || label.isEmpty) return null;
+    final rawEntry = s['entry'];
+    StarterEntry? entry;
+    if (rawEntry is Map<String, dynamic>) {
+      final title = (rawEntry['title'] as String?)?.trim();
+      if (title != null && title.isNotEmpty) {
+        entry = StarterEntry(
+          type: _entryTypeFromWire(rawEntry['type'] as String? ?? 'money'),
+          title: title,
+          amount: (rawEntry['amount'] as num?)?.toDouble(),
+          category: rawEntry['category'] as String?,
+          durationMinutes: (rawEntry['minutes'] as num?)?.round(),
+        );
+      }
+    }
+    return PalSuggestion(
+      label: label,
+      icon: s['icon'] as String? ?? 'sparkles',
+      colorToken: s['colorToken'] as String? ?? 'accent',
+      entry: entry,
     );
   }
 

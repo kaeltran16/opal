@@ -541,6 +541,75 @@ class PalAgenda {
   bool get isEmpty => proposals.isEmpty && autopilot.isEmpty;
 }
 
+/// A structured quick-log payload attached to a concrete suggestion chip. When
+/// Pal is offline, the composer writes this as a local [Entry] instead of
+/// hanging; the New Entry sheet uses it to pre-fill the form. Open-prompt /
+/// goal chips carry none (null). Money [amount] is pre-signed (negative =
+/// expense), mirroring [Entry.amount].
+class StarterEntry {
+  const StarterEntry({
+    required this.type,
+    required this.title,
+    this.amount,
+    this.category,
+    this.durationMinutes,
+  });
+
+  final EntryType type;
+  final String title;
+  final double? amount;
+  final String? category;
+  final int? durationMinutes;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is StarterEntry &&
+          other.type == type &&
+          other.title == title &&
+          other.amount == amount &&
+          other.category == category &&
+          other.durationMinutes == durationMinutes;
+
+  @override
+  int get hashCode => Object.hash(type, title, amount, category, durationMinutes);
+}
+
+/// Which surface a [PalSuggestion] set is generated for. Tunes the server prompt
+/// and selects the context the client sends.
+enum SuggestionSurface { composer, newEntry, routineGoal }
+
+/// One Pal-generated quick-pick chip (the `/suggestions` seam). [label] is both
+/// the display text and the action text (chat message or routine goal). [icon]
+/// is an SF-symbol name derived server-side from the model's kind; [colorToken]
+/// is the pillar accent. [entry] is the optional structured quick-log used by
+/// the composer (offline fallback) and New Entry (form prefill).
+class PalSuggestion {
+  const PalSuggestion({
+    required this.label,
+    required this.icon,
+    required this.colorToken,
+    this.entry,
+  });
+
+  final String label;
+  final String icon;
+  final String colorToken;
+  final StarterEntry? entry;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is PalSuggestion &&
+          other.label == label &&
+          other.icon == icon &&
+          other.colorToken == colorToken &&
+          other.entry == entry;
+
+  @override
+  int get hashCode => Object.hash(label, icon, colorToken, entry);
+}
+
 /// The Pal AI interface. All methods are async to model network latency.
 abstract interface class PalService {
   /// `/chat`: continue a conversation given prior [history] and the new
@@ -580,6 +649,11 @@ abstract interface class PalService {
   /// approve, the autopilot delegation list, and the workout streak. Drives the
   /// agentic Pal Home screen.
   Future<PalAgenda> agenda();
+
+  /// `/v1/suggestions`: Pal-generated, context-aware quick-pick chips for the
+  /// given [surface]. Drives the composer starters, New Entry quick-picks, and
+  /// Routine Generator goal chips.
+  Future<List<PalSuggestion>> suggestions(SuggestionSurface surface);
 
   /// `/v1/memory`: Pal's current persistent memory for this device.
   Future<PalMemoryDigest> memory();
