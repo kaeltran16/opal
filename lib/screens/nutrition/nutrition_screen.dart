@@ -139,35 +139,53 @@ class _TodayHero extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Eyebrow
-                    Text(
-                      'TODAY',
-                      style: AppType.caption2.copyWith(
-                        fontWeight: FontWeight.w700,
-                        color: const Color(0xD9FFFFFF),
-                        letterSpacing: 1.3,
-                      ),
-                    ),
-                    const SizedBox(height: Spacing.md),
-                    // Calorie range
-                    CalRange(state.day.cal, size: 42, light: true),
-                    const SizedBox(height: Spacing.md),
-                    // Feel pill
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: Spacing.sm, vertical: Spacing.xxs),
-                      decoration: BoxDecoration(
-                        color: const Color(0x33FFFFFF),
-                        borderRadius: BorderRadius.circular(Radii.pill),
-                      ),
-                      child: Text(
-                        state.day.feel,
-                        style: AppFonts.sf(
-                          size: 12,
-                          weight: FontWeight.w600,
-                          color: Colors.white,
+                    // Eyebrow + calorie range on the left, feel pill top-right.
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'TODAY',
+                                style: AppType.caption2.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                  color: const Color(0xD9FFFFFF),
+                                  letterSpacing: 1.3,
+                                ),
+                              ),
+                              const SizedBox(height: Spacing.sm),
+                              CalRange(state.day.cal, size: 42, light: true),
+                            ],
+                          ),
                         ),
-                      ),
+                        const SizedBox(width: Spacing.sm),
+                        // Feel pill — leaf glyph + qualitative read.
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: Spacing.sm, vertical: 5),
+                          decoration: BoxDecoration(
+                            color: const Color(0x33FFFFFF),
+                            borderRadius: BorderRadius.circular(Radii.pill),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              AppIcon('leaf.fill', size: 12, color: Colors.white),
+                              const SizedBox(width: Spacing.xs),
+                              Text(
+                                state.day.feel,
+                                style: AppFonts.sf(
+                                  size: 12,
+                                  weight: FontWeight.w600,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: Spacing.md),
                     // Divider
@@ -253,29 +271,34 @@ class _PendingCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Eyebrow
-            Text(
-              'AN EXPENSE LOOKS LIKE A MEAL',
-              style: AppType.caption2.copyWith(
-                fontWeight: FontWeight.w700,
-                color: c.nutrition,
-                letterSpacing: 1.1,
-              ),
+            // Eyebrow — sparkles glyph + label
+            Row(
+              children: [
+                AppIcon('sparkles', size: 13, color: c.nutrition),
+                const SizedBox(width: Spacing.sm),
+                Text(
+                  'AN EXPENSE LOOKS LIKE A MEAL',
+                  style: AppType.caption2.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: c.nutrition,
+                    letterSpacing: 1.1,
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: Spacing.md),
             Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Bag tile
                 Container(
-                  width: 36,
-                  height: 36,
+                  width: 40,
+                  height: 40,
                   decoration: BoxDecoration(
                     color: c.nutritionTint,
                     borderRadius: BorderRadius.circular(Radii.sm),
                   ),
                   child: Center(
-                    child: AppIcon('bag.fill', size: 18, color: c.nutrition),
+                    child: AppIcon('bag.fill', size: 19, color: c.nutrition),
                   ),
                 ),
                 const SizedBox(width: Spacing.md),
@@ -286,7 +309,7 @@ class _PendingCard extends StatelessWidget {
                       Text(
                         guess.name,
                         style: AppFonts.sf(
-                            size: 15,
+                            size: 16,
                             weight: FontWeight.w600,
                             color: c.ink),
                       ),
@@ -299,33 +322,32 @@ class _PendingCard extends StatelessWidget {
                     ],
                   ),
                 ),
-              ],
-            ),
-            const SizedBox(height: Spacing.md),
-            // "Add meal" pill
-            PressScale(
-              onTap: () => showNutritionConfirmSheet(
-                context,
-                expense: e,
-                guess: guess,
-              ),
-              child: Container(
-                width: double.infinity,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: c.nutrition,
-                  borderRadius: BorderRadius.circular(Radii.md),
-                ),
-                alignment: Alignment.center,
-                child: Text(
-                  'Add meal',
-                  style: AppFonts.sf(
-                    size: 15,
-                    weight: FontWeight.w600,
-                    color: Colors.white,
+                const SizedBox(width: Spacing.sm),
+                // Inline "Add meal" pill
+                PressScale(
+                  onTap: () => showNutritionConfirmSheet(
+                    context,
+                    expense: e,
+                    guess: guess,
+                  ),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: Spacing.md, vertical: 9),
+                    decoration: BoxDecoration(
+                      color: c.nutrition,
+                      borderRadius: BorderRadius.circular(Radii.pill),
+                    ),
+                    child: Text(
+                      'Add meal',
+                      style: AppFonts.sf(
+                        size: 13,
+                        weight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
+                    ),
                   ),
                 ),
-              ),
+              ],
             ),
           ],
         ),
@@ -344,8 +366,8 @@ class _MealsSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     final now = DateTime.now();
-    // DateTime weekday: 1=Mon … 7=Sun, kWeekdaysShort is Mon-first
-    final dayLabel = kWeekdaysShort[now.weekday - 1];
+    // DateTime weekday: 1=Mon … 7=Sun, kWeekdays is Mon-first
+    final dayLabel = kWeekdays[now.weekday - 1];
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(
@@ -356,12 +378,25 @@ class _MealsSection extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.fromLTRB(
                 Spacing.xs, 0, Spacing.xs, Spacing.sm),
-            child: Text(
-              'Meals · $dayLabel',
-              style: AppType.caption.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: c.ink3,
-                  letterSpacing: 0.8),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.baseline,
+              textBaseline: TextBaseline.alphabetic,
+              children: [
+                Text(
+                  'Meals',
+                  style: AppFonts.sf(
+                    size: 22,
+                    weight: FontWeight.w700,
+                    color: c.ink,
+                    letterSpacing: 0.35,
+                  ),
+                ),
+                const Spacer(),
+                Text(
+                  dayLabel,
+                  style: AppFonts.sf(size: 13, color: c.ink3),
+                ),
+              ],
             ),
           ),
           if (state.meals.isEmpty)
@@ -412,12 +447,14 @@ class _WeekSection extends StatelessWidget {
   const _WeekSection({required this.state});
   final NutritionState state;
 
-  static const _barMaxH = 52.0;
-  static const _barMinH = 6.0;
+  static const _barMaxH = 56.0;
+  static const _barMinH = 10.0;
 
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
+    final weekTakeout = state.week.fold<int>(0, (s, d) => s + d.takeout);
+    final weekHome = state.week.fold<int>(0, (s, d) => s + d.home);
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(
@@ -432,13 +469,24 @@ class _WeekSection extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'This week',
-              style: AppFonts.sf(
-                  size: 15,
-                  weight: FontWeight.w600,
-                  color: c.ink,
-                  letterSpacing: -0.2),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.baseline,
+              textBaseline: TextBaseline.alphabetic,
+              children: [
+                Text(
+                  'This week',
+                  style: AppFonts.sf(
+                      size: 15,
+                      weight: FontWeight.w700,
+                      color: c.ink,
+                      letterSpacing: -0.2),
+                ),
+                const Spacer(),
+                Text(
+                  '$weekTakeout takeout · $weekHome home so far',
+                  style: AppFonts.sf(size: 11.5, color: c.ink3),
+                ),
+              ],
             ),
             const SizedBox(height: Spacing.lg),
             // Bars row
@@ -498,7 +546,7 @@ class _WeekBar extends StatelessWidget {
     final load = wd.load;
     final isFuture = load == null;
     final barH = isFuture
-        ? barMinH
+        ? barMaxH
         : (barMinH + load * (barMaxH - barMinH)).clamp(barMinH, barMaxH);
     final barColor = wd.today ? c.nutrition : c.nutrition.withValues(alpha: 0.30);
     final hasTakeout = wd.takeout > 0;
@@ -528,7 +576,7 @@ class _WeekBar extends StatelessWidget {
           DottedBorderBox(
             color: c.hair,
             radius: Radii.xs,
-            child: SizedBox(height: barMinH, width: double.infinity),
+            child: SizedBox(height: barH, width: double.infinity),
           )
         else
           Align(
@@ -583,82 +631,64 @@ class _ConnectionsSection extends StatelessWidget {
                 Spacing.xs, 0, Spacing.xs, Spacing.sm),
             child: Text(
               'Connections',
-              style: AppType.caption.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: c.ink3,
-                  letterSpacing: 0.8),
+              style: AppFonts.sf(
+                  size: 22,
+                  weight: FontWeight.w700,
+                  color: c.ink,
+                  letterSpacing: 0.35),
             ),
           ),
-          // Featured Pal card
+          // Featured Pal card — white surface, gradient sparkles glyph.
           PressScale(
             onTap: () => context.pushNamed(AppRoute.palComposer.name),
             child: Container(
               padding: const EdgeInsets.all(Spacing.lg),
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    c.nutrition,
-                    c.money,
-                  ],
-                ),
+                color: c.surface,
                 borderRadius: BorderRadius.circular(Radii.lg),
+                boxShadow: [BoxShadow(color: c.hair, blurRadius: 0.5)],
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Dots + eyebrow
+                  // Gradient sparkles dot + eyebrow + chevron
                   Row(
                     children: [
                       Container(
-                        width: 8,
-                        height: 8,
+                        width: 22,
+                        height: 22,
                         decoration: BoxDecoration(
-                          color: c.nutrition,
-                          border: Border.all(
-                              color: Colors.white, width: 1.5),
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [c.nutrition, c.money],
+                          ),
                           shape: BoxShape.circle,
                         ),
-                      ),
-                      const SizedBox(width: 4),
-                      Container(
-                        width: 8,
-                        height: 8,
-                        decoration: BoxDecoration(
-                          color: c.money,
-                          border: Border.all(
-                              color: Colors.white, width: 1.5),
-                          shape: BoxShape.circle,
-                        ),
+                        alignment: Alignment.center,
+                        child: AppIcon('sparkles', size: 11, color: Colors.white),
                       ),
                       const SizedBox(width: Spacing.sm),
                       Text(
                         'PAL NOTICED',
                         style: AppType.caption2.copyWith(
                           fontWeight: FontWeight.w700,
-                          color: const Color(0xD9FFFFFF),
+                          color: c.ink3,
                           letterSpacing: 1.1,
                         ),
                       ),
+                      const Spacer(),
+                      AppIcon('chevron.right', size: 13, color: c.ink4),
                     ],
                   ),
-                  const SizedBox(height: Spacing.sm),
-                  Text(
-                    featured.title,
-                    style: AppFonts.sf(
-                      size: 17,
-                      weight: FontWeight.w700,
-                      color: Colors.white,
-                      letterSpacing: -0.3,
-                    ),
-                  ),
-                  const SizedBox(height: Spacing.xs),
+                  const SizedBox(height: Spacing.md),
                   Text(
                     featured.body,
-                    style: AppType.subhead.copyWith(
-                      color: const Color(0xE6FFFFFF),
-                      letterSpacing: -0.1,
+                    style: AppFonts.sf(
+                      size: 17,
+                      color: c.ink,
+                      letterSpacing: -0.3,
+                      height: 1.38,
                     ),
                   ),
                 ],
@@ -680,14 +710,31 @@ class _ConnectionsSection extends StatelessWidget {
               ),
               child: Row(
                 children: [
+                  Container(
+                    width: 29,
+                    height: 29,
+                    decoration: BoxDecoration(
+                      color: c.nutrition,
+                      borderRadius: BorderRadius.circular(Radii.sm),
+                    ),
+                    alignment: Alignment.center,
+                    child: AppIcon('chart.bar.fill',
+                        size: 16, color: Colors.white),
+                  ),
+                  const SizedBox(width: Spacing.md),
                   Text(
                     'See all patterns',
                     style: AppFonts.sf(
-                        size: 15,
-                        weight: FontWeight.w500,
+                        size: 17,
+                        weight: FontWeight.w400,
                         color: c.ink),
                   ),
                   const Spacer(),
+                  Text(
+                    '${state.patterns.length}',
+                    style: AppFonts.sf(size: 15, color: c.ink3),
+                  ),
+                  const SizedBox(width: Spacing.sm),
                   AppIcon('chevron.right', size: 14, color: c.ink4),
                 ],
               ),

@@ -81,7 +81,7 @@ class _PatternCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Two square dots + eyebrow.
+            // Two square dots + eyebrow, with the tracker glyph top-right.
             Row(
               children: [
                 _SquareDot(color: c.nutrition),
@@ -99,24 +99,15 @@ class _PatternCard extends StatelessWidget {
                         letterSpacing: 0.5),
                   ),
                 ),
+                const SizedBox(width: Spacing.sm),
+                AppIcon(pattern.icon, size: 15, color: trackerColor),
               ],
             ),
             const SizedBox(height: Spacing.md),
-            // Icon tile + title + body.
+            // Title + body, with the sparkline bottom-aligned at the right.
             Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    color: trackerColor.withValues(alpha: 0.14),
-                    borderRadius: BorderRadius.circular(Radii.sm),
-                  ),
-                  alignment: Alignment.center,
-                  child: AppIcon(pattern.icon, size: 17, color: trackerColor),
-                ),
-                const SizedBox(width: Spacing.md),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -137,17 +128,13 @@ class _PatternCard extends StatelessWidget {
                     ],
                   ),
                 ),
+                const SizedBox(width: Spacing.md),
+                _Sparkline(
+                  values: pattern.spark,
+                  emph: pattern.emph,
+                  color: trackerColor,
+                ),
               ],
-            ),
-            const SizedBox(height: Spacing.md),
-            // Sparkline — right-aligned.
-            Align(
-              alignment: Alignment.centerRight,
-              child: _Sparkline(
-                values: pattern.spark,
-                emph: pattern.emph,
-                color: trackerColor,
-              ),
             ),
           ],
         ),
@@ -190,8 +177,8 @@ class _Sparkline extends StatelessWidget {
   final List<int> emph;
   final Color color;
 
-  static const double _maxH = 28;
-  static const double _barW = 4;
+  static const double _maxH = 40;
+  static const double _barW = 5;
   static const double _gap = 3;
 
   @override

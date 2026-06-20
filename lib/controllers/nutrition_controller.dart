@@ -83,12 +83,17 @@ class NutritionState {
     required this.week,
     required this.pending,
     required this.patterns,
+    this.linkedExpenses = const {},
   });
   final List<NutritionMeal> meals;
   final NutritionDay day;
   final List<NutritionWeekDay> week;
   final NutritionPending? pending;
   final List<NutritionPattern> patterns;
+
+  /// Linked expenses for this week's meals, keyed by `Entry.id`. Lets the meal
+  /// detail show the originating merchant + amount for a `linkedEntryId`.
+  final Map<String, Entry> linkedExpenses;
 }
 
 /// Streams the Nutrition view model and owns meal logging actions.
@@ -130,12 +135,24 @@ class NutritionController extends _$NutritionController {
       final weekEntries = await entryRepo.getEntriesInRange(weekStart, weekEnd);
       final patterns = _buildPatterns(weekMeals, weekEntries);
 
+      // Index the expenses behind this week's linked meals so the detail can
+      // name the merchant + amount a meal came from.
+      final linkedIds = {
+        for (final m in weekMeals)
+          if (m.linkedEntryId != null) m.linkedEntryId!
+      };
+      final linkedExpenses = {
+        for (final e in weekEntries)
+          if (linkedIds.contains(e.id)) e.id: e
+      };
+
       yield NutritionState(
         meals: meals,
         day: day,
         week: week,
         pending: pending,
         patterns: patterns,
+        linkedExpenses: linkedExpenses,
       );
     }
   }

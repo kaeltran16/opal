@@ -105,7 +105,7 @@ class _NutritionConfirmSheetState
       padding:
           EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
       child: SheetShell(
-        title: 'Add meal from spending',
+        title: 'Add as meal',
         onClose: () => Navigator.of(context).pop(),
         primaryLabel: 'Save',
         primaryEnabled: true,
@@ -116,7 +116,16 @@ class _NutritionConfirmSheetState
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // "From your spending" row
+              // FROM YOUR SPENDING
+              Text(
+                'FROM YOUR SPENDING',
+                style: AppFonts.sf(
+                    size: 11.5,
+                    weight: FontWeight.w700,
+                    color: c.ink3,
+                    letterSpacing: 0.4),
+              ),
+              const SizedBox(height: Spacing.sm),
               Container(
                 padding: const EdgeInsets.all(Spacing.md),
                 decoration: BoxDecoration(
@@ -126,14 +135,14 @@ class _NutritionConfirmSheetState
                 child: Row(
                   children: [
                     Container(
-                      width: 36,
-                      height: 36,
+                      width: 40,
+                      height: 40,
                       decoration: BoxDecoration(
                         color: c.nutritionTint,
                         borderRadius: BorderRadius.circular(Radii.sm),
                       ),
                       child: Center(
-                        child: AppIcon('bag.fill', size: 18, color: c.nutrition),
+                        child: AppIcon('bag.fill', size: 19, color: c.nutrition),
                       ),
                     ),
                     const SizedBox(width: Spacing.md),
@@ -144,62 +153,125 @@ class _NutritionConfirmSheetState
                           Text(
                             e.title,
                             style: AppFonts.sf(
-                                size: 15,
+                                size: 16,
                                 weight: FontWeight.w600,
                                 color: c.ink),
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            '$time · $amount',
+                            time,
                             style: AppType.footnote.copyWith(color: c.ink3),
                           ),
                         ],
                       ),
                     ),
+                    const SizedBox(width: Spacing.sm),
+                    Text(
+                      amount,
+                      style: AppFonts.sfr(
+                          size: 17, weight: FontWeight.w700, color: c.ink),
+                    ),
                   ],
                 ),
               ),
               const SizedBox(height: Spacing.lg),
-              // Editable name
+              // Pal's guess — sparkles eyebrow + editable name + helper.
+              Row(
+                children: [
+                  AppIcon('sparkles', size: 13, color: c.nutrition),
+                  const SizedBox(width: Spacing.xs),
+                  Text(
+                    'PAL THINKS THIS WAS',
+                    style: AppFonts.sf(
+                        size: 11.5,
+                        weight: FontWeight.w700,
+                        color: c.nutrition,
+                        letterSpacing: 0.4),
+                  ),
+                ],
+              ),
+              const SizedBox(height: Spacing.sm),
               TextField(
                 controller: _nameController,
                 style: AppFonts.sf(
-                    size: 17, weight: FontWeight.w600, color: c.ink),
+                    size: 17, weight: FontWeight.w500, color: c.ink),
                 decoration: InputDecoration(
                   hintText: 'Meal name',
                   hintStyle: AppFonts.sf(size: 17, color: c.ink3),
                   filled: true,
-                  fillColor: c.fill,
+                  fillColor: c.surface,
                   contentPadding: const EdgeInsets.symmetric(
-                      horizontal: Spacing.md, vertical: Spacing.sm),
-                  border: OutlineInputBorder(
+                      horizontal: Spacing.md, vertical: Spacing.sm + 1),
+                  enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(Radii.md),
-                    borderSide: BorderSide.none,
+                    borderSide: BorderSide(
+                        color: c.nutrition.withValues(alpha: 0.33),
+                        width: 1.5),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(Radii.md),
+                    borderSide: BorderSide(color: c.nutrition, width: 1.5),
                   ),
                 ),
               ),
-              const SizedBox(height: Spacing.lg),
-              // Portion chips
+              const SizedBox(height: Spacing.sm),
               Text(
-                'Portion',
+                'Tap to rename if Pal got it wrong.',
+                style: AppType.footnote.copyWith(color: c.ink3),
+              ),
+              const SizedBox(height: Spacing.lg),
+              // PORTION
+              Text(
+                'PORTION',
                 style: AppFonts.sf(
-                    size: 13,
-                    weight: FontWeight.w600,
+                    size: 11.5,
+                    weight: FontWeight.w700,
                     color: c.ink3,
                     letterSpacing: 0.4),
               ),
               const SizedBox(height: Spacing.sm),
               ChipRow(_portions, _portion, (v) => setState(() => _portion = v)),
               const SizedBox(height: Spacing.lg),
-              // Live-scaled cal + macros
+              // Live-scaled estimate card
+              Container(
+                padding: const EdgeInsets.all(Spacing.lg),
+                decoration: BoxDecoration(
+                  color: c.fill,
+                  borderRadius: BorderRadius.circular(Radii.lg),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        CalRange(scaledCal, size: 36),
+                        const Spacer(),
+                        ConfidenceChip(widget.guess.confidence),
+                      ],
+                    ),
+                    const SizedBox(height: Spacing.md),
+                    MacroSplit(scaledMacros),
+                  ],
+                ),
+              ),
+              const SizedBox(height: Spacing.md),
+              // estimate note
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  CalRange(scaledCal),
+                  AppIcon('leaf.fill', size: 12, color: c.ink4),
+                  const SizedBox(width: Spacing.xs),
+                  Expanded(
+                    child: Text(
+                      'These are estimates from the order — you can edit the '
+                      'meal anytime after saving.',
+                      style:
+                          AppType.footnote.copyWith(color: c.ink3, height: 1.4),
+                    ),
+                  ),
                 ],
               ),
-              const SizedBox(height: Spacing.md),
-              MacroSplit(scaledMacros),
               const SizedBox(height: Spacing.lg),
               // Dismiss link
               Center(

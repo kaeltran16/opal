@@ -494,6 +494,11 @@ class SheetShell extends StatelessWidget {
               );
             },
             child: Container(
+              // Cap the sheet at 94% of the viewport so tall content scrolls
+              // inside the body rather than overflowing the column.
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.sizeOf(context).height * 0.94,
+              ),
               decoration: BoxDecoration(
                 color: c.surface,
                 borderRadius: const BorderRadius.vertical(
@@ -568,8 +573,9 @@ class SheetShell extends StatelessWidget {
                     ),
                   ),
                   const Divider(height: 1, thickness: 0.5),
-                  // Body
-                  child,
+                  // Body — Flexible so a scrollable child shrinks to the
+                  // capped height and scrolls instead of overflowing.
+                  Flexible(child: child),
                 ],
               ),
             ),

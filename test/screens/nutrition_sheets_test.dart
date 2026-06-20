@@ -60,9 +60,16 @@ void main() {
 
     // Sheet is open — header and quick picks visible.
     expect(find.text('Add a meal'), findsOneWidget);
-    expect(find.text('Quick picks'), findsOneWidget);
+    expect(find.text('OR PICK A COMMON ONE'), findsOneWidget);
 
-    // Tap the 'Banana' quick pick.
+    // Tap the 'Banana' quick pick (scroll the sheet body to it first — the
+    // describe card can push the grid below the fold on short viewports).
+    final sheetScrollable = find.byType(Scrollable).last;
+    await tester.scrollUntilVisible(
+      find.text('Banana'),
+      200,
+      scrollable: sheetScrollable,
+    );
     await tester.tap(find.text('Banana'));
     await tester.pumpAndSettle();
 

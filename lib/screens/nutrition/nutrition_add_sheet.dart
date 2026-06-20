@@ -5,6 +5,7 @@ import '../../controllers/nutrition_controller.dart';
 import '../../models/models.dart';
 import '../../services/pal/pal_service.dart';
 import '../../theme/theme.dart';
+import '../../widgets/app_icon.dart';
 import 'widgets/nutrition_widgets.dart';
 
 // Quick-pick options with calorie ranges.
@@ -123,61 +124,100 @@ class _NutritionAddSheetState extends ConsumerState<_NutritionAddSheet> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Slot selector
+              // When
+              Text(
+                'WHEN',
+                style: AppFonts.sf(
+                    size: 11.5,
+                    weight: FontWeight.w700,
+                    color: c.ink3,
+                    letterSpacing: 0.4),
+              ),
+              const SizedBox(height: Spacing.sm),
               ChipRow(_slots, _slot, (v) => setState(() => _slot = v)),
               const SizedBox(height: Spacing.lg),
-              // Free-text + Estimate button
-              Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _textController,
-                      style: AppFonts.sf(size: 15, color: c.ink),
-                      decoration: InputDecoration(
-                        hintText: 'What did you eat?',
-                        hintStyle: AppFonts.sf(size: 15, color: c.ink3),
-                        filled: true,
-                        fillColor: c.fill,
-                        contentPadding: const EdgeInsets.symmetric(
-                            horizontal: Spacing.md, vertical: Spacing.sm),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(Radii.md),
-                          borderSide: BorderSide.none,
+              // Describe → estimate, in a tinted card.
+              Container(
+                padding: const EdgeInsets.all(Spacing.md),
+                decoration: BoxDecoration(
+                  color: c.nutritionTint,
+                  borderRadius: BorderRadius.circular(Radii.md),
+                  border: Border.all(
+                      color: c.nutrition.withValues(alpha: 0.20), width: 0.5),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        AppIcon('sparkles', size: 14, color: c.nutrition),
+                        const SizedBox(width: Spacing.xs),
+                        Text(
+                          'WHAT DID YOU EAT?',
+                          style: AppFonts.sf(
+                              size: 11.5,
+                              weight: FontWeight.w700,
+                              color: c.nutrition,
+                              letterSpacing: 0.3),
                         ),
-                      ),
-                      onSubmitted: (_) => _runEstimate(),
+                      ],
                     ),
-                  ),
-                  const SizedBox(width: Spacing.sm),
-                  GestureDetector(
-                    onTap: _loading ? null : _runEstimate,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: Spacing.md, vertical: Spacing.sm + 2),
-                      decoration: BoxDecoration(
-                        color: c.nutrition,
-                        borderRadius: BorderRadius.circular(Radii.md),
-                      ),
-                      child: _loading
-                          ? const SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
-                            )
-                          : Text(
-                              'Estimate',
-                              style: AppFonts.sf(
-                                size: 14,
-                                weight: FontWeight.w600,
-                                color: Colors.white,
+                    const SizedBox(height: Spacing.sm),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _textController,
+                            style: AppFonts.sf(size: 15, color: c.ink),
+                            decoration: InputDecoration(
+                              hintText: 'greek yogurt with berries',
+                              hintStyle: AppFonts.sf(size: 15, color: c.ink3),
+                              filled: true,
+                              fillColor: c.surface,
+                              contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: Spacing.md, vertical: Spacing.sm),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(Radii.sm),
+                                borderSide: BorderSide.none,
                               ),
                             ),
+                            onSubmitted: (_) => _runEstimate(),
+                          ),
+                        ),
+                        const SizedBox(width: Spacing.sm),
+                        GestureDetector(
+                          onTap: _loading ? null : _runEstimate,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: Spacing.md,
+                                vertical: Spacing.sm + 2),
+                            decoration: BoxDecoration(
+                              color: c.nutrition,
+                              borderRadius: BorderRadius.circular(Radii.sm),
+                            ),
+                            child: _loading
+                                ? const SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : Text(
+                                    'Estimate',
+                                    style: AppFonts.sf(
+                                      size: 14,
+                                      weight: FontWeight.w600,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
               const SizedBox(height: Spacing.lg),
               if (est != null) ...[
@@ -213,10 +253,10 @@ class _NutritionAddSheetState extends ConsumerState<_NutritionAddSheet> {
               ] else ...[
                 // Quick picks
                 Text(
-                  'Quick picks',
+                  'OR PICK A COMMON ONE',
                   style: AppFonts.sf(
-                      size: 13,
-                      weight: FontWeight.w600,
+                      size: 11.5,
+                      weight: FontWeight.w700,
                       color: c.ink3,
                       letterSpacing: 0.4),
                 ),
@@ -252,9 +292,13 @@ class _NutritionAddSheetState extends ConsumerState<_NutritionAddSheet> {
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
+                              const SizedBox(height: 3),
                               Text(
-                                '${pick.cal.lo}–${pick.cal.hi} cal',
-                                style: AppFonts.sfr(size: 12, color: c.ink3),
+                                '≈${((pick.cal.lo + pick.cal.hi) / 2).round()} cal',
+                                style: AppFonts.sfr(
+                                    size: 12,
+                                    weight: FontWeight.w600,
+                                    color: c.nutrition),
                               ),
                             ],
                           ),

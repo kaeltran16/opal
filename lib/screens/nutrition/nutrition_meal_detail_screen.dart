@@ -38,7 +38,10 @@ class NutritionMealDetailScreen extends ConsumerWidget {
             }
           }
           if (meal == null) return _notFound(context, c);
-          return _Body(meal: meal);
+          final expense = meal.linkedEntryId != null
+              ? state.linkedExpenses[meal.linkedEntryId]
+              : null;
+          return _Body(meal: meal, expense: expense);
         },
       ),
     );
@@ -70,9 +73,10 @@ class NutritionMealDetailScreen extends ConsumerWidget {
 }
 
 class _Body extends ConsumerWidget {
-  const _Body({required this.meal});
+  const _Body({required this.meal, this.expense});
 
   final NutritionMeal meal;
+  final Entry? expense;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -111,31 +115,41 @@ class _Body extends ConsumerWidget {
           child: Container(
             padding: const EdgeInsets.all(Spacing.lg),
             decoration: BoxDecoration(
-              color: c.nutritionTint,
+              color: c.surface,
               borderRadius: BorderRadius.circular(Radii.card),
-              border: Border.all(
-                  color: c.nutrition.withValues(alpha: 0.13), width: 0.5),
+              boxShadow: [BoxShadow(color: c.hair, blurRadius: 0.5)],
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                CalRange(meal.cal, size: 40),
-                const SizedBox(height: Spacing.md),
-                ConfidenceChip(meal.confidence),
-                const SizedBox(height: Spacing.md),
+                // Calorie range left, confidence chip right.
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    CalRange(meal.cal, size: 40),
+                    const Spacer(),
+                    ConfidenceChip(meal.confidence),
+                  ],
+                ),
+                const SizedBox(height: Spacing.lg),
                 MacroSplit(meal.macros),
+                const SizedBox(height: Spacing.lg),
+                Container(height: 0.5, color: c.hair),
                 const SizedBox(height: Spacing.md),
                 // Pal note line
                 Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     AppIcon('sparkles', size: 12, color: c.nutrition),
                     const SizedBox(width: Spacing.xs),
-                    Text(
-                      "Pal's estimate — ${meal.confidence.label}",
-                      style: AppFonts.sf(
-                          size: 12,
-                          color: c.nutrition,
-                          weight: FontWeight.w500),
+                    Expanded(
+                      child: Text(
+                        "Pal's estimate from "
+                        "${meal.source == NutritionSource.takeout ? 'the order' : 'what you logged'}"
+                        ". These are guesses — adjust anytime.",
+                        style:
+                            AppFonts.sf(size: 12, color: c.ink3, height: 1.4),
+                      ),
                     ),
                   ],
                 ),
@@ -164,20 +178,36 @@ class _Body extends ConsumerWidget {
         InsetSection(
           header: 'Where this came from',
           children: [
-            meal.linkedEntryId != null
-                ? const ListRow(
-                    icon: 'creditcard.fill',
-                    title: 'Linked expense',
-                    subtitle: 'From a linked expense',
-                    chevron: false,
-                    last: true,
-                  )
-                : const ListRow(
-                    icon: 'pencil',
-                    title: 'Added by hand',
-                    chevron: false,
-                    last: true,
-                  ),
+            if (expense != null)
+              ListRow(
+                icon: 'creditcard.fill',
+                iconBg: c.money,
+                title: expense!.title,
+                subtitle: 'Linked expense',
+                value: expense!.amount != null
+                    ? '\$${expense!.amount!.abs().toStringAsFixed(2)}'
+                    : null,
+                chevron: false,
+                last: true,
+              )
+            else if (meal.linkedEntryId != null)
+              ListRow(
+                icon: 'creditcard.fill',
+                iconBg: c.money,
+                title: 'Linked expense',
+                subtitle: 'From a linked expense',
+                chevron: false,
+                last: true,
+              )
+            else
+              ListRow(
+                icon: 'pencil',
+                iconBg: c.nutrition,
+                title: 'Added by hand',
+                subtitle: 'Not from an expense',
+                chevron: false,
+                last: true,
+              ),
           ],
         ),
 
@@ -185,45 +215,47 @@ class _Body extends ConsumerWidget {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: Spacing.lg),
           child: Container(
-            padding: const EdgeInsets.all(Spacing.lg),
+            padding: const EdgeInsets.all(Spacing.md),
             decoration: BoxDecoration(
-              color: c.move.withValues(alpha: 0.08),
+              color: c.move.withValues(alpha: 0.10),
               borderRadius: BorderRadius.circular(Radii.card),
               border: Border.all(
-                  color: c.move.withValues(alpha: 0.13), width: 0.5),
+                  color: c.move.withValues(alpha: 0.20), width: 0.5),
             ),
             child: Row(
               children: [
                 Container(
-                  width: 36,
-                  height: 36,
+                  width: 30,
+                  height: 30,
                   decoration: BoxDecoration(
-                    color: c.move.withValues(alpha: 0.13),
+                    color: c.move,
                     borderRadius: BorderRadius.circular(Radii.sm),
                   ),
                   child: Center(
-                      child: AppIcon('figure.run', size: 18, color: c.move)),
+                      child:
+                          AppIcon('figure.run', size: 16, color: Colors.white)),
                 ),
                 const SizedBox(width: Spacing.md),
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'NUTRITION × WORKOUT',
-                        style: AppFonts.sf(
-                          size: 11,
-                          weight: FontWeight.w700,
-                          color: c.move,
-                          letterSpacing: 0.4,
+                  child: Text.rich(
+                    TextSpan(
+                      style:
+                          AppFonts.sf(size: 13.5, color: c.ink2, height: 1.4),
+                      children: [
+                        const TextSpan(text: 'Today was a '),
+                        TextSpan(
+                          text: 'rest day',
+                          style: AppFonts.sf(
+                              size: 13.5,
+                              weight: FontWeight.w700,
+                              color: c.ink,
+                              height: 1.4),
                         ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        'Fuel around your training.',
-                        style: AppFonts.sf(size: 13, color: c.ink3),
-                      ),
-                    ],
+                        const TextSpan(
+                            text: ' — your dinners tend to run a little '
+                                'heavier on these.'),
+                      ],
+                    ),
                   ),
                 ),
               ],
