@@ -5,6 +5,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../models/models.dart';
 import '../util/dates.dart';
 import 'providers.dart';
+import 'weekly_plan_controller.dart';
 
 part 'move_controller.g.dart';
 
@@ -57,6 +58,7 @@ class MoveState {
     required this.weekVolumeKg,
     required this.weekMinutes,
     required this.weekPrCount,
+    required this.weekGoal,
   });
 
   /// Sum of today's logged move-entry active energy (kcal).
@@ -87,8 +89,10 @@ class MoveState {
   /// This week's personal-record count (hero "Records" stat).
   final int weekPrCount;
 
-  /// Weekly goal the hero ring/headline measures against.
-  int get weekGoal => kWeeklyWorkoutGoal;
+  /// Weekly goal the hero ring/headline measures against: the number of planned
+  /// (non-rest) days in the weekly plan, so Move and the Weekly Plan screen
+  /// share one target. Falls back to [kWeeklyWorkoutGoal] when no plan exists.
+  final int weekGoal;
 
   /// Workouts-vs-goal completion as a 0..1 fraction (capped at 1).
   double get weekProgress =>
@@ -143,6 +147,11 @@ Stream<MoveState> moveState(Ref ref) async* {
   // (not re-read) so a routine edit or a non-workout move entry also re-emits.
   final routines = await ref.watch(workoutRoutinesStreamProvider.future);
   final entries = await ref.watch(allEntriesStreamProvider.future);
+  // The hero's weekly goal is the weekly plan's planned-day count (shared with
+  // the Weekly Plan screen), falling back to the constant when no plan exists.
+  final plannedDays =
+      (await ref.watch(weeklyPlanControllerProvider.future)).totalCount;
+  final weekGoal = plannedDays > 0 ? plannedDays : kWeeklyWorkoutGoal;
 
   await for (final workouts in workoutRepo.watchWorkouts()) {
     // routineId -> cardio? for tagging recent sessions.
@@ -195,6 +204,7 @@ Stream<MoveState> moveState(Ref ref) async* {
       weekMinutes: weekWorkouts.fold<int>(
           0, (s, w) => s + (w.duration?.inMinutes ?? 0)),
       weekPrCount: weekWorkouts.fold<int>(0, (s, w) => s + w.prCount),
+      weekGoal: weekGoal,
     );
   }
 }

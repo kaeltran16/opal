@@ -50,7 +50,9 @@ void main() {
     // Move hero: redesigned "This week" hero with workouts-vs-goal headline and
     // a Volume / Time / Records stat row (no HealthKit calorie/HR content).
     expect(find.text('THIS WEEK'), findsOneWidget);
-    expect(find.text('/ 4 workouts'), findsOneWidget);
+    // weekly goal = the seed plan's 5 planned (non-rest) days, shared with the
+    // Weekly Plan screen (not the old hardcoded 4).
+    expect(find.text('/ 5 workouts'), findsOneWidget);
     expect(find.text('VOLUME'), findsOneWidget);
     expect(find.text('TIME'), findsOneWidget);
     expect(find.text('RECORDS'), findsOneWidget);
