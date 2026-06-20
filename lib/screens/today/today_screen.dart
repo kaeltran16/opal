@@ -91,7 +91,7 @@ class _TodayBody extends ConsumerWidget {
           style: AppType.body.copyWith(color: c.accent, letterSpacing: 0)),
       trailing: Row(children: [
         // Gradient Pal orb — opens the agentic Pal Home hub. Sits before the
-        // bell in the trailing group (Handoff: Pal · Home entry point).
+        // inbox in the trailing group (Handoff: Pal · Home entry point).
         PressScale(
           semanticLabel: 'Open Pal',
           onTap: () => context.pushNamed(AppRoute.palHome.name),
@@ -103,8 +103,8 @@ class _TodayBody extends ConsumerWidget {
         ),
         const SizedBox(width: Spacing.sm),
         NavIconButton(
-          name: 'bell.fill',
-          semanticLabel: 'Notifications',
+          name: 'tray.fill',
+          semanticLabel: 'Pal inbox',
           onTap: () => context.pushNamed(AppRoute.palInbox.name),
         ),
         const SizedBox(width: Spacing.sm),
