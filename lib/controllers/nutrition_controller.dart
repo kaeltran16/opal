@@ -94,6 +94,12 @@ class NutritionState {
 /// Streams the Nutrition view model and owns meal logging actions.
 @riverpod
 class NutritionController extends _$NutritionController {
+  /// Portion-size scale factors shared with the confirm sheet preview.
+  static const Map<String, double> portionFactors = {
+    'Lighter': 0.78,
+    'As shown': 1.0,
+    'Larger': 1.25,
+  };
   @override
   Stream<NutritionState> build() async* {
     final repo = ref.watch(nutritionRepositoryProvider);
@@ -332,20 +338,24 @@ class NutritionController extends _$NutritionController {
     await ref.read(hapticsServiceProvider).light();
   }
 
+  /// Meal slot inferred from the time of day an expense landed.
+  static String _slotForHour(int hour) {
+    if (hour < 11) return 'Breakfast';
+    if (hour < 15) return 'Lunch';
+    if (hour < 21) return 'Dinner';
+    return 'Snack';
+  }
+
   /// Confirms a takeout expense as a meal, scaling the estimate by [portion]
   /// (`Lighter` 0.78 / `As shown` 1 / `Larger` 1.25). Source = takeout, linked
-  /// back to the originating expense.
+  /// back to the originating expense. Slot is inferred from the expense time.
   Future<void> confirmFromExpense(
     Entry e,
     MealEstimate guess, {
     required String name,
     required String portion,
   }) async {
-    final factor = switch (portion) {
-      'Lighter' => 0.78,
-      'Larger' => 1.25,
-      _ => 1.0,
-    };
+    final factor = portionFactors[portion] ?? 1.0;
     IntRange scale(IntRange r) =>
         IntRange((r.lo * factor).round(), (r.hi * factor).round());
     final cal = scale(guess.cal);
@@ -358,7 +368,7 @@ class NutritionController extends _$NutritionController {
           NutritionMeal(
             id: '',
             timestamp: e.timestamp,
-            slot: 'Dinner',
+            slot: _slotForHour(e.timestamp.hour),
             name: name,
             source: NutritionSource.takeout,
             icon: NutritionSource.takeout.icon,

@@ -165,11 +165,10 @@ class _Body extends ConsumerWidget {
           header: 'Where this came from',
           children: [
             meal.linkedEntryId != null
-                ? ListRow(
+                ? const ListRow(
                     icon: 'creditcard.fill',
-                    iconBg: c.money,
                     title: 'Linked expense',
-                    subtitle: meal.linkedEntryId,
+                    subtitle: 'From a linked expense',
                     chevron: false,
                     last: true,
                   )

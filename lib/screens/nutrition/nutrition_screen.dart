@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../controllers/nutrition_controller.dart';
 import '../../router.dart';
 import '../../theme/theme.dart';
+import '../../util/dates.dart';
 import '../../widgets/app_icon.dart';
 import '../../widgets/dashed_border.dart';
 import '../../widgets/nav_bar.dart';
@@ -343,10 +344,8 @@ class _MealsSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     final now = DateTime.now();
-    // Mon / Tue … Sun
-    const weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    // DateTime weekday: 1=Mon … 7=Sun
-    final dayLabel = weekdays[now.weekday - 1];
+    // DateTime weekday: 1=Mon … 7=Sun, kWeekdaysShort is Mon-first
+    final dayLabel = kWeekdaysShort[now.weekday - 1];
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(

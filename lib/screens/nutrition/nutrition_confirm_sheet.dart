@@ -44,12 +44,7 @@ class _NutritionConfirmSheetState
   String _portion = 'As shown';
   late final TextEditingController _nameController;
 
-  // Portion scale factors
-  static const _factors = {
-    'Lighter': 0.78,
-    'As shown': 1.0,
-    'Larger': 1.25,
-  };
+  static const _factors = NutritionController.portionFactors;
 
   @override
   void initState() {

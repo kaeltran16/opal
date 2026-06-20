@@ -402,10 +402,10 @@ class MealRow extends StatelessWidget {
                             style: AppFonts.sf(size: 12, color: c.ink3),
                           ),
                           const SizedBox(width: Spacing.xs),
-                          const Text('·',
+                          Text('·',
                               style: TextStyle(
                                   fontSize: 12,
-                                  color: Color.fromRGBO(60, 60, 67, 0.30))),
+                                  color: c.ink4)),
                           const SizedBox(width: Spacing.xs),
                           SourceTag(meal.source),
                         ],
