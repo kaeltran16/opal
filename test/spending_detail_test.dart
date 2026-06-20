@@ -111,6 +111,55 @@ void main() {
     expect(data.days.first.entries.length, 4);
   });
 
+  test('hero totals today only; recent list keeps full history (move)', () {
+    final now = DateTime(2026, 6, 20, 20, 0);
+    DateTime at(int daysAgo, int hour) =>
+        DateTime(now.year, now.month, now.day - daysAgo, hour, 0);
+    final entries = [
+      Entry(
+        id: 't1',
+        timestamp: at(0, 7),
+        type: EntryType.move,
+        title: 'Run',
+        calories: 287,
+        source: EntrySource.health,
+      ),
+      Entry(
+        id: 't2',
+        timestamp: at(0, 17),
+        type: EntryType.move,
+        title: 'Push day',
+        calories: 312,
+        source: EntrySource.manual,
+      ),
+      // historical — must feed the recent list but NOT the hero total.
+      Entry(
+        id: 'h1',
+        timestamp: at(2, 7),
+        type: EntryType.move,
+        title: 'Old run',
+        calories: 1000,
+        source: EntrySource.health,
+      ),
+    ];
+
+    final data = buildDetailData(
+      DetailTracker.move,
+      entries,
+      const Goals(dailyMoveKcal: 500),
+      now: now,
+    );
+
+    // 287 + 312 = 599 — today only, not 1599.
+    expect(data.total, 599);
+    expect(data.target, 500);
+    expect(data.progress, closeTo(599 / 500, 1e-9));
+    // breakdown shares the hero's today base (single "Other" row).
+    expect(data.categories.single.amount, 599);
+    // recent list still spans both days.
+    expect(data.days.length, 2);
+  });
+
   // ---------------------------------------------------------------------------
   // Widget — renders total + category rows from seeded money entries.
   // ---------------------------------------------------------------------------

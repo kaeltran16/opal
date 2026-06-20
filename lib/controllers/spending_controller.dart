@@ -25,7 +25,7 @@ enum DetailTracker {
     unbudgetedLabel: 'Uncategorized',
     heroSub: 'Spent today',
     heroIcon: 'creditcard.fill',
-    recentHeader: "Today's spending",
+    recentHeader: 'Recent spending',
   ),
   move(
     title: 'Workout',
@@ -35,7 +35,7 @@ enum DetailTracker {
     unbudgetedLabel: 'Other',
     heroSub: 'Active energy',
     heroIcon: 'figure.run',
-    recentHeader: "Today's workouts",
+    recentHeader: 'Recent workouts',
   ),
   rituals(
     title: 'Routines',
@@ -45,7 +45,7 @@ enum DetailTracker {
     unbudgetedLabel: 'Other',
     heroSub: 'Routines completed',
     heroIcon: 'checkmark',
-    recentHeader: "Today's routines",
+    recentHeader: 'Recent routines',
   );
 
   const DetailTracker({
@@ -80,7 +80,9 @@ enum DetailTracker {
   /// SF symbol for the hero icon tile and entry rows (design `cfg.icon`/`e.sf`).
   final String heroIcon;
 
-  /// Section header over the recent-entries list (design `Today's …`).
+  /// Section header over the recent-entries list. "Recent", not the design's
+  /// "Today's …": the list groups by day (Today/Yesterday/date), so it spans
+  /// history while the hero above stays scoped to today.
   final String recentHeader;
 
   /// Magnitude of one entry for totals/breakdown. For money this is the
@@ -208,19 +210,29 @@ DetailData buildDetailData(
   List<Entry> entries,
   Goals goals, {
   List<RitualRoutine> routines = const [],
+  DateTime? now,
 }) {
   final included = entries.where(tracker.includes).toList();
+
+  // The hero + breakdown describe *today* vs the daily goal; the recent list
+  // below keeps full history. Without scoping, the fold summed every day — e.g.
+  // the move tracker showed ~2 weeks of active energy against the daily kcal
+  // goal (3012 / 500), reading as 100% off a monthly number on a daily label.
+  final n = now ?? DateTime.now();
+  bool isToday(DateTime t) =>
+      t.year == n.year && t.month == n.month && t.day == n.day;
+  final todayIncluded = included.where((e) => isToday(e.timestamp)).toList();
 
   // --- Total -----------------------------------------------------------------
   // Rituals counts completed *routines* (every step done) when routine data is
   // known; otherwise the per-entry magnitude fold below. Money/move always fold.
   final total = tracker == DetailTracker.rituals && routines.isNotEmpty
       ? _completedRoutines(entries, routines).toDouble()
-      : included.fold<double>(0, (s, e) => s + tracker.magnitudeOf(e));
+      : todayIncluded.fold<double>(0, (s, e) => s + tracker.magnitudeOf(e));
 
-  // --- Category breakdown ----------------------------------------------------
+  // --- Category breakdown (today, to share the hero's base) ------------------
   final byCategory = <String, double>{};
-  for (final e in included) {
+  for (final e in todayIncluded) {
     final label = tracker.categoryOf(e);
     byCategory[label] = (byCategory[label] ?? 0) + tracker.magnitudeOf(e);
   }
