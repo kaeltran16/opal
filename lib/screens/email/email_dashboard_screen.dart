@@ -141,16 +141,26 @@ class EmailDashboardScreen extends ConsumerWidget {
                   Row(
                     children: [
                       Expanded(
-                        child: _SyncNowButton(
-                          syncing: syncing,
-                          done: status == SyncStatus.upToDate,
-                          onTap: () => unawaited(ref
-                              .read(emailDashboardControllerProvider.notifier)
-                              .syncNow()),
-                        ),
+                        // Sync-now is a no-op without an account, so the
+                        // disconnected hero offers Connect Gmail instead — the
+                        // action this state actually needs.
+                        child: connected
+                            ? _SyncNowButton(
+                                syncing: syncing,
+                                done: status == SyncStatus.upToDate,
+                                onTap: () => unawaited(ref
+                                    .read(emailDashboardControllerProvider
+                                        .notifier)
+                                    .syncNow()),
+                              )
+                            : _ConnectButton(
+                                onTap: () => context.pushNamed('emailSetup'),
+                              ),
                       ),
-                      const SizedBox(width: Spacing.sm),
-                      _ScheduleChip(cadence: dash.syncCadence),
+                      if (connected) ...[
+                        const SizedBox(width: Spacing.sm),
+                        _ScheduleChip(cadence: dash.syncCadence),
+                      ],
                     ],
                   ),
                 ],
@@ -440,6 +450,42 @@ class _SyncNowButton extends StatelessWidget {
                 style: AppType.subhead.copyWith(
                     fontWeight: FontWeight.w600,
                     color: fg,
+                    letterSpacing: -0.1)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Primary connect CTA shown in place of Sync-now when no account is linked.
+class _ConnectButton extends StatelessWidget {
+  const _ConnectButton({required this.onTap});
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+            vertical: Spacing.md, horizontal: Spacing.lg),
+        decoration: BoxDecoration(
+          color: c.ink,
+          borderRadius: BorderRadius.circular(Radii.md),
+        ),
+        alignment: Alignment.center,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            AppIcon('envelope.fill', size: 13, color: c.bg),
+            const SizedBox(width: Spacing.sm),
+            Text('Connect Gmail',
+                style: AppType.subhead.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: c.bg,
                     letterSpacing: -0.1)),
           ],
         ),
