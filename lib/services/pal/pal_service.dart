@@ -610,6 +610,35 @@ class PalSuggestion {
   int get hashCode => Object.hash(label, icon, colorToken, entry);
 }
 
+/// AI calorie + macro estimate for a free-text meal description.
+///
+/// [macros] is derived from [cal] via [macrosFromCal] — no separate wire field
+/// needed; the getter recomputes on every access.
+class MealEstimate {
+  const MealEstimate({
+    required this.name,
+    required this.cal,
+    required this.confidence,
+  });
+
+  final String name;
+  final IntRange cal;
+  final NutritionConfidence confidence;
+
+  Macros get macros => macrosFromCal(cal);
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is MealEstimate &&
+          other.name == name &&
+          other.cal == cal &&
+          other.confidence == confidence;
+
+  @override
+  int get hashCode => Object.hash(name, cal, confidence);
+}
+
 /// The Pal AI interface. All methods are async to model network latency.
 abstract interface class PalService {
   /// `/chat`: continue a conversation given prior [history] and the new
@@ -667,4 +696,8 @@ abstract interface class PalService {
 
   /// `DELETE /v1/memory`: wipe all memory; returns the (empty) digest.
   Future<PalMemoryDigest> clearMemory();
+
+  /// `/v1/nutrition/estimate`: estimate a calorie range + confidence for a
+  /// free-text meal [description]. Powers the "Add a meal" sheet.
+  Future<MealEstimate> estimateMeal(String description);
 }

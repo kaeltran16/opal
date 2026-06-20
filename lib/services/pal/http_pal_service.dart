@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 import '../../models/models.dart';
+import 'mock_pal_service.dart';
 import 'pal_service.dart';
 
 /// Raised when the proxy is unreachable or returns a non-2xx (after one retry).
@@ -468,6 +469,32 @@ class HttpPalService implements PalService {
     await _send('DELETE', '/v1/memory');
     return const PalMemoryDigest();
   }
+
+  @override
+  Future<MealEstimate> estimateMeal(String description) async {
+    try {
+      final json = await _post('/v1/nutrition/estimate', {'text': description});
+      final lo = (json['calLo'] as num?)?.round();
+      final hi = (json['calHi'] as num?)?.round();
+      if (lo == null || hi == null) return MockPalService.localEstimate(description);
+      return MealEstimate(
+        name: (json['name'] as String?)?.trim().isNotEmpty == true
+            ? json['name'] as String
+            : description.trim(),
+        cal: IntRange(lo, hi < lo ? lo : hi),
+        confidence: _confidenceFromWire(json['confidence'] as String?),
+      );
+    } on PalException {
+      // graceful offline fallback — same estimate the mock would return
+      return MockPalService.localEstimate(description);
+    }
+  }
+
+  NutritionConfidence _confidenceFromWire(String? w) => switch (w) {
+        'high' => NutritionConfidence.high,
+        'med' => NutritionConfidence.med,
+        _ => NutritionConfidence.low,
+      };
 
   EntryType _entryTypeFromWire(String token) => switch (token) {
         'money' => EntryType.money,

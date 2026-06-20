@@ -14,6 +14,14 @@ class _RecordingPal implements PalService {
   @override
   Future<PalAgenda> agenda() async => const PalAgenda();
 
+  @override
+  Future<MealEstimate> estimateMeal(String description) async =>
+      const MealEstimate(
+        name: 'Meal',
+        cal: IntRange(300, 500),
+        confidence: NutritionConfidence.low,
+      );
+
   final List<WorkoutSuggestion> _suggestions;
   final List<({bool another, String? excludeRoutineId})> calls = [];
   int _i = 0;

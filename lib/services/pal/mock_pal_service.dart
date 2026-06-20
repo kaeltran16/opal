@@ -636,11 +636,45 @@ class MockPalService implements PalService {
         "right on plan.";
   }
 
-  String _titleCase(String s) {
+  String _titleCase(String s) => _titleCaseStatic(s);
+
+  static String _titleCaseStatic(String s) {
     if (s.isEmpty) return 'Expense';
     return s
         .split(RegExp(r'\s+'))
         .map((w) => w.isEmpty ? w : '${w[0].toUpperCase()}${w.substring(1)}')
         .join(' ');
+  }
+
+  @override
+  Future<MealEstimate> estimateMeal(String description) async {
+    await Future<void>.delayed(latency);
+    return _localEstimate(description);
+  }
+
+  MealEstimate _localEstimate(String d) => localEstimate(d);
+
+  /// Deterministic calorie estimate from a free-text [description].
+  ///
+  /// Used by both the mock and `HttpPalService`'s offline fallback so the
+  /// graceful degradation path returns the same values as the no-network mock.
+  static MealEstimate localEstimate(String description) {
+    final lower = description.toLowerCase();
+    final (IntRange cal, NutritionConfidence conf) = switch (lower) {
+      _ when lower.trim().length < 3 =>
+        (const IntRange(150, 350), NutritionConfidence.low),
+      _ when RegExp(r'salad|yogurt|banana|fruit|snack').hasMatch(lower) =>
+        (const IntRange(120, 320), NutritionConfidence.med),
+      _ when RegExp(r'sandwich|pasta|rice|burrito|burger|pizza|noodle')
+              .hasMatch(lower) =>
+        (const IntRange(520, 820), NutritionConfidence.med),
+      _ => (const IntRange(300, 560), NutritionConfidence.low),
+    };
+    return MealEstimate(
+      name: _titleCaseStatic(
+          description.trim().isEmpty ? 'Meal' : description.trim()),
+      cal: cal,
+      confidence: conf,
+    );
   }
 }

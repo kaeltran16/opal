@@ -28,6 +28,14 @@ class _SequencedPalService implements PalService {
   @override
   Future<PalAgenda> agenda() async => const PalAgenda();
 
+  @override
+  Future<MealEstimate> estimateMeal(String description) async =>
+      const MealEstimate(
+        name: 'Meal',
+        cal: IntRange(300, 500),
+        confidence: NutritionConfidence.low,
+      );
+
   int _i = 0;
   static const _reviews = [
     'FIRST_REVIEW — a steady month.',
