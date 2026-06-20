@@ -144,12 +144,13 @@ export function parsePrompt(input: string): string {
   return `Parse this free-form log into JSON. User said: "${input}"
 Return strictly: {"type": "money|move|rituals", "amount": number|null, "duration": number|null, "category": string|null, "title": string, "note": string|null, "direction": "expense|income"|null}
 - type: "money" for spending/income, "move" for workouts/activity, "rituals" for habits/routines.
-- amount: dollars for money (positive magnitude, no sign or symbol), else null.
-- duration: minutes for move, else null.
+- amount: the numeric amount for money (positive magnitude, no sign or currency symbol), else null. Expand magnitude suffixes: "k" = thousand, "m" = million (e.g. "50k" -> 50000, "1.5m" -> 1500000). Do not assume a currency.
+- duration: minutes for move, else null. A move count is a plain number — do not expand its magnitude suffix.
 - category: a short money category (e.g. Coffee, Dining, Transport), else null.
-- title: a short human label for the entry.
+- title: a short human label for the entry, with the amount and its suffix removed.
 - direction: for money, "income" if the user received money, else "expense" (default when unclear). null for move and rituals.
 Example: "add $5 for coffee" -> {"type":"money","amount":5,"duration":null,"category":"Coffee","title":"Coffee","note":null,"direction":"expense"}
+Example: "spent 50k on ramen" -> {"type":"money","amount":50000,"duration":null,"category":"Dining","title":"Ramen","note":null,"direction":"expense"}
 Example: "got paid $500" -> {"type":"money","amount":500,"duration":null,"category":null,"title":"Paycheck","note":null,"direction":"income"}
 Example: "ran 30 min" -> {"type":"move","amount":null,"duration":30,"category":null,"title":"Run","note":null,"direction":null}
 No prose. Output only the JSON object. If ambiguous, guess from context.`

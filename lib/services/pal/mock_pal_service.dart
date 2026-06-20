@@ -105,15 +105,14 @@ class MockPalService implements PalService {
             .hasMatch(lower);
     if (isQuestion) return null;
 
-    final amountMatch = RegExp(r'(\d+(?:\.\d{1,2})?)').firstMatch(message);
-    final amount =
-        amountMatch != null ? double.tryParse(amountMatch.group(1)!) : null;
+    final amount = _amountIn(message);
 
     final isMove = RegExp(
             r'\b(ran|run|walk|walked|jog|gym|workout|lift|cardio|min|yoga|swim|bike|cycle)\b')
         .hasMatch(lower);
     if (isMove) {
-      final minutes = amount?.round() ?? 30;
+      // a count, not a magnitude — "walk 5k" is 5 minutes, not 5000.
+      final minutes = amount?.base.round() ?? 30;
       return LogEntryAction(
         type: EntryType.move,
         durationMinutes: minutes,
@@ -131,7 +130,7 @@ class MockPalService implements PalService {
       final isCoffee = lower.contains('coffee');
       return LogEntryAction(
         type: EntryType.money,
-        amount: -amount,
+        amount: -amount.value,
         title: isCoffee ? 'Coffee' : 'Expense',
         category: isCoffee ? 'Coffee' : null,
       );
@@ -174,9 +173,7 @@ class MockPalService implements PalService {
     await Future<void>.delayed(latency);
     // Very light heuristic so the "Type it" demo pre-fills something sensible.
     final lower = text.toLowerCase();
-    final amountMatch = RegExp(r'(\d+(?:\.\d{1,2})?)').firstMatch(text);
-    final amount =
-        amountMatch != null ? double.tryParse(amountMatch.group(1)!) : null;
+    final amount = _amountIn(text);
 
     if (lower.contains('run') ||
         lower.contains('walk') ||
@@ -185,15 +182,39 @@ class MockPalService implements PalService {
       return ParsedEntryDraft(
         type: EntryType.move,
         title: text.trim().isEmpty ? 'Workout' : text.trim(),
-        durationMinutes: amount?.round(),
+        durationMinutes: amount?.base.round(),
       );
     }
+    // drop the matched amount (incl. its k/m suffix) from the title, not just
+    // bare digits — otherwise "50k" leaves a stray "k".
+    final cleanedTitle =
+        (amount == null ? text : text.replaceFirst(amount.span, ' '))
+            .replaceAll('\$', ' ')
+            .trim();
     return ParsedEntryDraft(
       type: EntryType.money,
-      title: _titleCase(text.replaceAll(RegExp(r'[\d.\$]'), '').trim()),
-      amount: amount == null ? null : -amount,
+      title: _titleCase(cleanedTitle),
+      amount: amount == null ? null : -amount.value,
       category: _expenseCategory(text),
     );
+  }
+
+  // "50k" → 50000, "1.5m" → 1500000. The suffix must be attached and end on a
+  // word boundary so "5 on milk" and "50kg" aren't misread as magnitudes.
+  static final _amountPattern =
+      RegExp(r'(\d+(?:\.\d{1,2})?)(k|m)?\b', caseSensitive: false);
+  static const _magnitudes = <String, double>{'k': 1000, 'm': 1000000};
+
+  /// First number in [text] with an optional k/m magnitude applied. [value] is
+  /// suffix-scaled (money); [base] is the bare number (counts like minutes);
+  /// [span] is the matched text (so a title can strip it). Null when none.
+  ({double value, double base, String span})? _amountIn(String text) {
+    final match = _amountPattern.firstMatch(text);
+    if (match == null) return null;
+    final base = double.tryParse(match.group(1)!);
+    if (base == null) return null;
+    final magnitude = _magnitudes[match.group(2)?.toLowerCase()] ?? 1;
+    return (value: base * magnitude, base: base, span: match.group(0)!);
   }
 
   /// Known expense category keywords the mock parser recognizes, mapped to a

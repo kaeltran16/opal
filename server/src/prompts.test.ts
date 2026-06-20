@@ -46,6 +46,12 @@ describe('prompts', () => {
     expect(p).toContain('"direction":"income"')
   })
 
+  it('parse prompt is currency-agnostic and expands magnitude suffixes', () => {
+    const p = parsePrompt('spent 50k on ramen')
+    expect(p).toContain('Do not assume a currency')
+    expect(p).toContain('"amount":50000')
+  })
+
   it('review prompt embeds the numbers and is month-worded for a month range', () => {
     const p = reviewPrompt({
       range: 'month', spent: 1840, spentDeltaPct: -12, kcalMoved: 12000, movedDeltaPct: 8,

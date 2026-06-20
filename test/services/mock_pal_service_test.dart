@@ -56,6 +56,46 @@ void main() {
       final r = await pal.chat(const [], 'how am I doing this week?');
       expect(r.actions, isEmpty);
     });
+
+    test('a "k" magnitude scales the amount (50k -> 50000)', () async {
+      final pal = MockPalService(latency: fast);
+      final r = await pal.chat(const [], 'spent 50k on ramen');
+      final a = onlyAction(r);
+      expect(a.type, EntryType.money);
+      expect(a.amount, -50000);
+    });
+
+    test('an "m" magnitude scales the amount (1.5m -> 1500000)', () async {
+      final pal = MockPalService(latency: fast);
+      final r = await pal.chat(const [], 'rent 1.5m');
+      final a = onlyAction(r);
+      expect(a.amount, -1500000);
+    });
+
+    test('a magnitude letter in a following word is not a suffix', () async {
+      final pal = MockPalService(latency: fast);
+      final r = await pal.chat(const [], 'spent 5 on milk');
+      final a = onlyAction(r);
+      expect(a.amount, -5);
+    });
+  });
+
+  group('parse', () {
+    test('scales a k amount and drops the suffix from the title', () async {
+      final pal = MockPalService(latency: fast);
+      final draft = await pal.parse('50k ramen');
+      expect(draft.type, EntryType.money);
+      expect(draft.amount, -50000);
+      expect(draft.title?.toLowerCase(), isNot(contains('k')));
+      expect(draft.title, isNot(contains('50')));
+    });
+
+    test('reads a move count as a bare number, not a magnitude', () async {
+      final pal = MockPalService(latency: fast);
+      final draft = await pal.parse('walk 5k');
+      expect(draft.type, EntryType.move);
+      expect(draft.durationMinutes, 5);
+    });
   });
 
   test('mock memory: refresh seeds patterns, delete/clear mutate facts', () async {
