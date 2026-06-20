@@ -24,12 +24,16 @@ import '../../widgets/nav_bar.dart';
 /// Money entries store a **negative** amount (expense). Move entries store the
 /// typed number as [Entry.duration] minutes. Ritual entries use the typed title.
 class NewEntrySheet extends ConsumerStatefulWidget {
-  const NewEntrySheet({super.key, this.initialKind});
+  const NewEntrySheet({super.key, this.initialKind, this.notice});
 
   /// Which tracker to open on, as a wire token ('expense' | 'workout' |
   /// 'ritual'). Lets deep links (e.g. the Quick Actions "Log workout" tile)
   /// preselect the segment. Null/unknown falls back to Expense.
   final String? initialKind;
+
+  /// Optional notice token surfaced on open. 'pal-offline' means the user was
+  /// routed here because Pal was unreachable, so we explain the handoff.
+  final String? notice;
 
   @override
   ConsumerState<NewEntrySheet> createState() => _NewEntrySheetState();
@@ -101,6 +105,14 @@ class _NewEntrySheetState extends ConsumerState<NewEntrySheet> {
       'ritual' => _Kind.ritual,
       _ => _Kind.expense,
     };
+    if (widget.notice == 'pal-offline') {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Pal's unreachable — log it here.")),
+        );
+      });
+    }
   }
 
   static const _picks = <_QuickPick>[

@@ -303,7 +303,10 @@ GoRouter createRouter({
         parentNavigatorKey: _rootNavigatorKey,
         pageBuilder: (context, state) => _sheetPage(
             state.pageKey,
-            NewEntrySheet(initialKind: state.uri.queryParameters['kind'])),
+            NewEntrySheet(
+              initialKind: state.uri.queryParameters['kind'],
+              notice: state.uri.queryParameters['notice'],
+            )),
       ),
       GoRoute(
         path: AppRoute.exerciseLibrary.path,
