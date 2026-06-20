@@ -156,14 +156,34 @@ void main() {
       final container = containerWith(db, _FakePal(fails: true));
       final notifier = container.read(palComposerControllerProvider().notifier);
 
-      await notifier.send('how am I doing?');
+      final result = await notifier.send('how am I doing?');
 
+      // a question (no number) stays in the composer — no manual handoff.
+      expect(result, PalSendResult.completed);
       final state = container.read(palComposerControllerProvider());
       expect(state.isLoading, isFalse);
       final reply = state.messages.last;
       expect(reply.role, PalRole.assistant);
       expect(reply.text, contains("couldn't reach the server"));
       // nothing was logged: no structured payload to fall back to.
+      expect(await EntryRepository(db).getAll(), isEmpty);
+    });
+
+    test('a loggable free-text message signals the manual fallback when offline',
+        () async {
+      final db = LoopDatabase.forTesting(NativeDatabase.memory());
+      addTearDown(db.close);
+      final container = containerWith(db, _FakePal(fails: true));
+      final notifier = container.read(palComposerControllerProvider().notifier);
+
+      final result = await notifier.send('coffee 25');
+
+      // "coffee 25" carries a number → route the user to the New Entry sheet.
+      expect(result, PalSendResult.offlineFallback);
+      final state = container.read(palComposerControllerProvider());
+      expect(state.isLoading, isFalse);
+      expect(state.messages.last.text, contains("couldn't reach the server"));
+      // still nothing logged here — the manual sheet captures it.
       expect(await EntryRepository(db).getAll(), isEmpty);
     });
 

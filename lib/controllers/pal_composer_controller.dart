@@ -13,6 +13,11 @@ const _palOfflineReply =
     "Pal couldn't reach the server. You can still log this from the New Entry "
     'sheet.';
 
+/// Outcome of a composer send, so the screen can react. [offlineFallback] means
+/// Pal was unreachable for a free-text message that looks loggable — the screen
+/// routes the user to the manual New Entry sheet instead of leaving them stuck.
+enum PalSendResult { completed, offlineFallback }
+
 /// The Pal-composer chat view model: the running [messages] transcript plus an
 /// [isLoading] flag that drives the typing dots, and an [expanded] flag that
 /// flips the sheet from the compact greeting state into the chat.
@@ -56,6 +61,15 @@ class PalComposerController extends _$PalComposerController {
   /// Reversal data per assistant message index (only for turns that mutated).
   final Map<int, AppliedActions> _undo = {};
 
+  /// Interactive chat round-trips bail out well before the service's 30s cap so
+  /// a slow / unreachable backend can't lock the composer; on a miss we degrade
+  /// to the offline path (local log or manual-entry handoff) instead of hanging.
+  static const _chatTimeout = Duration(seconds: 12);
+
+  /// Whether an offline free-text message looks like a quantified log (carries a
+  /// number) — the signal we use to offer the manual New Entry fallback.
+  static bool _looksLoggable(String message) => RegExp(r'\d').hasMatch(message);
+
   @override
   PalComposerState build({String? seed}) {
     final trimmedSeed = seed?.trim() ?? '';
@@ -77,9 +91,11 @@ class PalComposerController extends _$PalComposerController {
 
   /// Appends the user's [text], shows the typing indicator, then appends the
   /// assistant's reply. No-ops on empty input or while a reply is pending.
-  Future<void> send(String text) async {
+  /// Returns [PalSendResult.offlineFallback] when Pal was unreachable for a
+  /// loggable message, so the screen can hand off to the manual New Entry sheet.
+  Future<PalSendResult> send(String text) async {
     final trimmed = text.trim();
-    if (trimmed.isEmpty || state.isLoading) return;
+    if (trimmed.isEmpty || state.isLoading) return PalSendResult.completed;
 
     final history = state.messages;
     final userMessage = PalMessage(
@@ -93,7 +109,7 @@ class PalComposerController extends _$PalComposerController {
       expanded: true,
     );
 
-    await _reply(history, trimmed);
+    return _reply(history, trimmed);
   }
 
   /// Sends a starter chip [label] through Pal. When the chip carries a
@@ -127,39 +143,49 @@ class PalComposerController extends _$PalComposerController {
   /// On a Pal failure the chat never hangs: it resolves [isLoading] and either
   /// logs [payload] locally (with a confirmation) when present, or appends the
   /// graceful offline message.
-  Future<void> _reply(
+  Future<PalSendResult> _reply(
     List<PalMessage> history,
     String message, {
     StarterEntry? payload,
   }) async {
     try {
-      final result = await ref.read(palServiceProvider).chat(history, message);
+      final result = await ref
+          .read(palServiceProvider)
+          .chat(history, message)
+          .timeout(_chatTimeout);
       // apply any logging / goal / routine changes the reply carried, same as Ask-Pal
       final applied = await applyPalActions(ref, result.actions);
       final index = state.messages.length; // index the assistant message will occupy
       if (!applied.isEmpty) _undo[index] = applied;
       _appendAssistant(result.reply, actions: result.actions);
+      return PalSendResult.completed;
     } on PalException {
-      await _handleOffline(payload);
+      return _handleOffline(payload, message);
     } catch (_) {
-      await _handleOffline(payload);
+      return _handleOffline(payload, message);
     }
   }
 
   /// Logs [payload] locally when present (confirming it), else reports offline.
   /// Always resolves [isLoading] — a local-insert failure falls back to the
-  /// generic offline message rather than re-hanging the composer.
-  Future<void> _handleOffline(StarterEntry? payload) async {
-    if (payload == null) {
-      _appendAssistant(_palOfflineReply);
-      return;
+  /// generic offline message rather than re-hanging the composer. For free-text
+  /// [message]s that look loggable, signals [PalSendResult.offlineFallback] so
+  /// the screen can route to the manual New Entry sheet.
+  Future<PalSendResult> _handleOffline(
+      StarterEntry? payload, String message) async {
+    if (payload != null) {
+      try {
+        await ref.read(entryRepositoryProvider).insert(_entryFor(payload));
+        _appendAssistant(_offlineConfirmation(payload));
+      } catch (_) {
+        _appendAssistant(_palOfflineReply);
+      }
+      return PalSendResult.completed;
     }
-    try {
-      await ref.read(entryRepositoryProvider).insert(_entryFor(payload));
-      _appendAssistant(_offlineConfirmation(payload));
-    } catch (_) {
-      _appendAssistant(_palOfflineReply);
-    }
+    _appendAssistant(_palOfflineReply);
+    return _looksLoggable(message)
+        ? PalSendResult.offlineFallback
+        : PalSendResult.completed;
   }
 
   /// Builds a manual [Entry] from a starter [payload], mirroring the New Entry

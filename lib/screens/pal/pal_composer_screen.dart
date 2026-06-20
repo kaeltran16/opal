@@ -61,12 +61,19 @@ class _PalComposerSheetState extends ConsumerState<PalComposerSheet> {
   PalComposerController get _controller =>
       ref.read(palComposerControllerProvider(seed: widget.seed).notifier);
 
-  void _send(String text) {
+  Future<void> _send(String text) async {
     final trimmed = text.trim();
     if (trimmed.isEmpty) return;
     _inputCtrl.clear();
-    _controller.send(trimmed);
+    final pending = _controller.send(trimmed);
     _scrollToBottomSoon();
+    final result = await pending;
+    if (!mounted) return;
+    // Pal's unreachable and the text looks loggable — close the composer and
+    // hand off to the manual New Entry sheet (which surfaces an offline notice).
+    if (result == PalSendResult.offlineFallback) {
+      context.pushReplacement('/entry/new?kind=expense&notice=pal-offline');
+    }
   }
 
   void _sendStarter(_Starter starter) {
