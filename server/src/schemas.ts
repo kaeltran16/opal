@@ -106,7 +106,9 @@ const healthMetric = z.enum([
 ])
 export const healthIngestBody = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),        // local day from the shortcut
-  capturedAt: z.string().datetime({ offset: true }),    // ISO 8601, may carry a tz offset
+  // capturedAt is intentionally NOT accepted: the server stamps its own receive
+  // time, and nothing downstream reads it. keeps the iOS Shortcut from having to
+  // emit a strict ISO-8601 timestamp.
   metrics: z
     .record(healthMetric, z.object({ value: z.number().finite(), unit: z.string().min(1) }))
     .refine((m) => Object.keys(m).length > 0, 'at least one metric required'),

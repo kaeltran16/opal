@@ -277,6 +277,17 @@ describe('app', () => {
     expect(res.statusCode).toBe(400)
   })
 
+  it('ingests without capturedAt (server stamps its own receive time)', async () => {
+    const token = store.issue('d1')
+    const res = await app.inject({
+      method: 'POST', url: '/v1/health/ingest',
+      headers: { authorization: `Bearer ${token}` },
+      payload: { date: '2026-06-18', metrics: { activeEnergy: { value: 450, unit: 'kcal' } } },
+    })
+    expect(res.statusCode).toBe(200)
+    expect(res.json().upserted).toBe(1)
+  })
+
   it('returns 400 on a malformed date', async () => {
     const token = store.issue('d1')
     const res = await app.inject({
