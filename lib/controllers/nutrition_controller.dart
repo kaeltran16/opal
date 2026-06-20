@@ -225,7 +225,7 @@ class NutritionController extends _$NutritionController {
   }) async {
     // most recent today (the stream is newest-first) food expense not yet
     // turned into a meal.
-    final entries = await entryRepo.watchEntriesInRange(todayStart, todayEnd).first;
+    final entries = await entryRepo.getEntriesInRange(todayStart, todayEnd);
     final linked = await repo.linkedEntryIds(todayStart, todayEnd);
     Entry? candidate;
     for (final e in entries) {
