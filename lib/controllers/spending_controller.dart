@@ -112,11 +112,22 @@ enum DetailTracker {
     }
   }
 
-  /// Category bucket label for one entry.
+  /// Category bucket label for one entry. Money uses the entry's own category;
+  /// move/rituals carry none, so the bucket is read from the lead segment of the
+  /// `bucket · detail` convention — move groups by activity (Run/Walk/Strength),
+  /// rituals by routine (Morning/Evening) — falling back to [unbudgetedLabel]
+  /// when the convention isn't present.
   String categoryOf(Entry e) {
     final cat = e.category;
     if (cat != null && cat.trim().isNotEmpty) return cat;
-    return unbudgetedLabel;
+    switch (this) {
+      case DetailTracker.money:
+        return unbudgetedLabel;
+      case DetailTracker.move:
+        return _leadSegment(e.title) ?? unbudgetedLabel;
+      case DetailTracker.rituals:
+        return _leadSegment(e.detail) ?? _leadSegment(e.title) ?? unbudgetedLabel;
+    }
   }
 
   /// The budget/target to compare the total against, read off [Goals].
@@ -130,6 +141,16 @@ enum DetailTracker {
         return goals.dailyRitualTarget.toDouble();
     }
   }
+}
+
+/// The lead segment of a `bucket · detail` string ("Run · Mission loop" ->
+/// "Run"), or null when [s] is null/blank. Recovers an implicit category from
+/// move/rituals entries, which carry no explicit one.
+String? _leadSegment(String? s) {
+  if (s == null) return null;
+  final i = s.indexOf('·');
+  final head = (i >= 0 ? s.substring(0, i) : s).trim();
+  return head.isEmpty ? null : head;
 }
 
 /// One category row in the breakdown (amount + share of the total).

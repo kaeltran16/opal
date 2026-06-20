@@ -154,10 +154,54 @@ void main() {
     expect(data.total, 599);
     expect(data.target, 500);
     expect(data.progress, closeTo(599 / 500, 1e-9));
-    // breakdown shares the hero's today base (single "Other" row).
-    expect(data.categories.single.amount, 599);
+    // breakdown now splits by activity (the title's lead segment) instead of a
+    // single "Other" row; bare titles bucket as themselves.
+    expect(data.categories.map((e) => e.label).toList(), ['Push day', 'Run']);
+    expect(data.categories.map((e) => e.amount).toList(), [312, 287]);
     // recent list still spans both days.
     expect(data.days.length, 2);
+  });
+
+  test('move/rituals breakdown buckets by the "·" lead segment', () {
+    final now = DateTime(2026, 6, 20, 20, 0);
+    DateTime at(int hour, int min) =>
+        DateTime(now.year, now.month, now.day, hour, min);
+
+    // Move: two runs + a strength session → Run (collapsed) and Strength,
+    // not one "Other" row.
+    final move = buildDetailData(
+      DetailTracker.move,
+      [
+        Entry(id: 'm1', timestamp: at(7, 0), type: EntryType.move,
+            title: 'Run · morning loop', calories: 287, source: EntrySource.health),
+        Entry(id: 'm2', timestamp: at(12, 0), type: EntryType.move,
+            title: 'Run · lunch', calories: 200, source: EntrySource.health),
+        Entry(id: 'm3', timestamp: at(18, 0), type: EntryType.move,
+            title: 'Strength · push', calories: 312, source: EntrySource.manual),
+      ],
+      const Goals(dailyMoveKcal: 500),
+      now: now,
+    );
+    expect(move.categories.map((e) => e.label).toList(), ['Run', 'Strength']);
+    expect(move.categories.first.amount, 487); // 287 + 200 runs collapsed
+    expect(move.categories.last.amount, 312); // Strength
+
+    // Rituals: steps grouped by routine via the detail's lead segment.
+    final rituals = buildDetailData(
+      DetailTracker.rituals,
+      [
+        Entry(id: 'r1', timestamp: at(6, 42), type: EntryType.rituals,
+            title: 'Glass of water', detail: 'Morning · step 1', source: EntrySource.manual),
+        Entry(id: 'r2', timestamp: at(6, 48), type: EntryType.rituals,
+            title: 'Wash my face', detail: 'Morning · step 2', source: EntrySource.manual),
+        Entry(id: 'r3', timestamp: at(21, 0), type: EntryType.rituals,
+            title: 'Journal', detail: 'Evening · wind down', source: EntrySource.manual),
+      ],
+      const Goals(),
+      now: now,
+    );
+    expect(rituals.categories.map((e) => e.label).toList(), ['Morning', 'Evening']);
+    expect(rituals.categories.first.amount, 2); // two morning steps
   });
 
   // ---------------------------------------------------------------------------
