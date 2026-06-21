@@ -334,7 +334,7 @@ class _ProfileBody extends StatelessWidget {
               icon: 'gearshape.fill',
               iconBg: c.ink3,
               title: 'Settings',
-              onTap: () => context.pushNamed(AppRoute.budgetsGoals.name),
+              onTap: () => context.pushNamed(AppRoute.settings.name),
             ),
             ListRow(
               icon: 'heart.fill',

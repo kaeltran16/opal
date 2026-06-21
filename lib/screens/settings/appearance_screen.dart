@@ -31,7 +31,7 @@ class AppearanceScreen extends ConsumerWidget {
         children: [
           EmailNavBar(
             title: 'Appearance',
-            leadingLabel: 'You',
+            leadingLabel: 'Settings',
             onLeading: () => context.pop(),
           ),
           const SizedBox(height: Spacing.sm),

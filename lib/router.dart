@@ -34,6 +34,7 @@ import 'screens/settings/appearance_screen.dart';
 import 'screens/settings/export_data_screen.dart';
 import 'screens/settings/notifications_screen.dart';
 import 'screens/settings/privacy_screen.dart';
+import 'screens/settings/settings_screen.dart';
 import 'screens/shell/loop_shell.dart';
 import 'models/models.dart';
 import 'services/pal/pal_service.dart' show InsightRange;
@@ -79,6 +80,7 @@ enum AppRoute {
   // You / Settings sub-routes (push within the pushed /you route).
   youBudgets('youBudgets', 'budgets'), //           -> /you/budgets
   youInsights('youInsights', 'insights'), //        -> /you/insights
+  settings('settings', 'settings'), //              -> /you/settings (hub)
   budgetsGoals('budgetsGoals', 'budgets-goals'), // -> /you/budgets-goals
   notificationSettings('notificationSettings', 'notifications'), // /you/notifications
   appearance('appearance', 'appearance'), //        -> /you/appearance
@@ -294,6 +296,11 @@ GoRouter createRouter({
             path: AppRoute.youInsights.path,
             name: AppRoute.youInsights.name,
             builder: (context, state) => const InsightsScreen(),
+          ),
+          GoRoute(
+            path: AppRoute.settings.path,
+            name: AppRoute.settings.name,
+            builder: (context, state) => const SettingsScreen(),
           ),
           GoRoute(
             path: AppRoute.budgetsGoals.path,
