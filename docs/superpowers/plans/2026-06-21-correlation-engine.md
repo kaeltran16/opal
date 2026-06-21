@@ -1346,70 +1346,88 @@ git commit -m "feat(insights): CorrelationCard and trust sheet widgets"
 
 ---
 
-### Task 7: Surface on the Insights screen
+### Task 7: Surface the strongest correlation on the Recap screen
+
+> CORRECTION (controller, during execution): the original plan named
+> `lib/screens/money/insights_screen.dart`, but that screen is money-only
+> charts (Trend/Categories, reads `insightsDataProvider`) and renders no
+> cross-domain `PalInsights.patterns`. The actual cross-domain review surface
+> is **Recap** (`recap_screen.dart`), which already watches
+> `insightsProvider(_range)` and renders a "Patterns" section from
+> `PalInsights.patterns`. A Move↔Rituals correlation belongs there, not among
+> money charts. Task re-scoped to Recap.
 
 **Files:**
-- Modify: `lib/screens/money/insights_screen.dart`
-- Test: `test/spending_detail_test.dart` (or the screen's existing test — confirm which test mounts `InsightsScreen`)
+- Modify: `lib/screens/recap/recap_screen.dart`
+- Test: `test/screens/recap_screen_test.dart` (create; or reuse an existing harness that mounts `RecapScreen`)
 
 **Interfaces:**
-- Consumes: `surfacedCorrelationsProvider` (Task 3), `insightsProvider` (existing, for `correlationNarration`), `CorrelationCard` (Task 6).
-- Produces: the globally strongest correlation renders as a `CorrelationCard` in the patterns area; narration from `insightsProvider` applies to it.
+- Consumes: `surfacedCorrelationsProvider` (Task 3), `insightsProvider(_range)` (already watched in `recap_screen.dart` — `insights?.correlationNarration`), `CorrelationCard` (Task 6).
+- Produces: the globally strongest correlation renders as a `CorrelationCard` under a "Connections" section header on Recap; narration from `insights?.correlationNarration` (null → the card's template fallback). The card renders whenever `surfaced` is non-empty — it is NOT gated behind the `insights == null` notice path.
 
-- [ ] **Step 1: Read the screen to find the patterns render site**
+- [ ] **Step 1: Re-read the real screen structure**
 
-Run: `grep -n "patterns\|ref.watch\|InsightPattern\|ConsumerWidget\|build(" lib/screens/money/insights_screen.dart`
-Identify where the existing LLM `patterns` list renders (the section to place the correlation card above).
+Read `lib/screens/recap/recap_screen.dart`. Confirm: `build` is on `_RecapScreenState`, has `ref`, a `_range` field, `final insights = insightsAsync.asData?.value;`, and a `children:` list inside `LargeTitleScrollView` whose three-tile summary is followed by `..._qualitativeSection(context, insightsAsync.isLoading, insights)`. There is an existing private `_SectionHeader('Wins')` widget used in `_qualitativeSection` — reuse `_SectionHeader('Connections')` for the new section.
 
 - [ ] **Step 2: Write the failing test**
 
-In the screen's test, seed a DB with the 28-day move/money pattern (reuse the generator from Task 3's test), mount the Insights screen for the week range with a fake Pal returning a known `correlationNarration`, and assert the narration text appears. If no screen test exists, create `test/screens/insights_screen_test.dart` mirroring `test/screens/nutrition_screen_test.dart`'s harness.
+Create `test/screens/recap_screen_test.dart`. Seed an in-memory DB (override `loopDatabaseProvider`) with the 28-day move/money pattern (reuse the generator shape from `test/controllers/correlations_controller_test.dart`), mount `RecapScreen`, pump, and assert the correlation card surfaced. Use the FULL provider-override harness that an existing screen test uses (find one that mounts a `ConsumerStatefulWidget` screen reading multiple providers — e.g. `test/screens/nutrition_screen_test.dart` or `test/today_screen_test.dart` — and copy its `ProviderScope`/`MaterialApp` + theme-extension wrapper). `RecapScreen` reads `recapDataProvider(_range)`, `insightsProvider(_range)`, `recapMemoryRefreshProvider`, and `appSettingsControllerProvider`; override `palServiceProvider` with a fake (mirror `test/controllers/insights_controller_test.dart`'s `_FakePal`) so the Pal-backed providers resolve to a fixed value without a network call.
 
 ```dart
-expect(find.textContaining('workout days'), findsWidgets);
+// the strength chip text proves the card rendered, independent of narration:
+expect(find.textContaining('Based on'), findsOneWidget);
 ```
+
+> If mounting the whole `RecapScreen` proves impractically heavy (too many unresolved providers), fall back to a narrower test that verifies the same wiring (e.g. a thin test widget that calls the same `surfaced` read + `CorrelationCard` placement) and report DONE_WITH_CONCERNS naming the limitation. Prefer the full screen test.
 
 - [ ] **Step 3: Run to verify it fails**
 
-Run: `flutter test test/screens/insights_screen_test.dart`
+Run: `flutter test test/screens/recap_screen_test.dart`
 Expected: FAIL — no correlation card rendered yet.
 
 - [ ] **Step 4: Render the card**
 
-In `lib/screens/money/insights_screen.dart` build method, watch both providers and insert the card above the existing patterns section:
+In `lib/screens/recap/recap_screen.dart` `build`, read the provider near the existing `insights` read:
 
 ```dart
 final surfaced = ref.watch(surfacedCorrelationsProvider).asData?.value ?? const [];
-final narration = ref.watch(insightsProvider(InsightRange.week)).asData?.value?.correlationNarration;
-...
-// in the children list, before the existing patterns:
-if (surfaced.isNotEmpty)
+```
+
+Insert a "Connections" section into the `children:` list AFTER the three-tile summary block and BEFORE `..._qualitativeSection(...)`, gated only on `surfaced` (not on `insights`):
+
+```dart
+if (surfaced.isNotEmpty) ...[
+  _SectionHeader('Connections'),
   Padding(
-    padding: const EdgeInsets.fromLTRB(Spacing.lg, 0, Spacing.lg, Spacing.md),
-    child: CorrelationCard(correlation: surfaced.first, narration: narration),
+    padding:
+        const EdgeInsets.fromLTRB(Spacing.lg, 0, Spacing.lg, Spacing.xl),
+    child: CorrelationCard(
+      correlation: surfaced.first,
+      narration: insights?.correlationNarration,
+    ),
   ),
+],
 ```
 
 Add imports:
 
 ```dart
-import '../../analysis/correlations.dart';
 import '../../controllers/correlations_controller.dart';
 import '../../widgets/correlation_card.dart';
 ```
 
-> Use the same `InsightRange` the screen already requests from `insightsProvider` (match the existing `ref.watch(insightsProvider(...))` argument in this file; do not introduce a second range). If the screen reads `insightsProvider(range)` from a local `range` variable, use that.
+> Confirm `_SectionHeader`'s constructor signature from its definition in this file (it is called as `_SectionHeader('Wins')`, so a positional `String`). If it differs, match the real signature.
 
 - [ ] **Step 5: Run to verify it passes**
 
-Run: `flutter test test/screens/insights_screen_test.dart`
+Run: `flutter test test/screens/recap_screen_test.dart`
 Expected: PASS.
 
 - [ ] **Step 6: Commit**
 
 ```bash
-git add lib/screens/money/insights_screen.dart test/screens/insights_screen_test.dart
-git commit -m "feat(insights): surface the strongest correlation on the Insights screen"
+git add lib/screens/recap/recap_screen.dart test/screens/recap_screen_test.dart
+git commit -m "feat(insights): surface the strongest correlation on the Recap screen"
 ```
 
 ---
