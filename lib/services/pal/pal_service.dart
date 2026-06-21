@@ -382,6 +382,7 @@ class PalInsights {
     this.headline,
     this.lede,
     this.suggestion,
+    this.correlationNarration,
     this.wins = const [],
     this.patterns = const [],
   });
@@ -394,6 +395,10 @@ class PalInsights {
 
   /// One concrete thing to try (Weekly "One thing to try" card).
   final String? suggestion;
+
+  /// One warm sentence rephrasing the verified correlation, or null. The card
+  /// falls back to the deterministic Correlation.summary when this is null.
+  final String? correlationNarration;
 
   final List<InsightWin> wins;
   final List<InsightPattern> patterns;

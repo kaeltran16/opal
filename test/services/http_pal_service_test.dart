@@ -204,6 +204,33 @@ void main() {
     expect(result.patterns.single.colorToken, 'rituals');
   });
 
+  test('insights maps correlationNarration from the response', () async {
+    final service = build(MockClient((req) async => http.Response(
+          jsonEncode({
+            'headline': 'Steady week.',
+            'correlationNarration': 'You spend less on workout days.',
+          }),
+          200,
+          headers: {'content-type': 'application/json; charset=utf-8'},
+        )));
+
+    final result = await service.insights(InsightRange.week);
+
+    expect(result.correlationNarration, 'You spend less on workout days.');
+  });
+
+  test('insights maps absent correlationNarration as null', () async {
+    final service = build(MockClient((req) async => http.Response(
+          jsonEncode({'headline': 'Steady week.'}),
+          200,
+          headers: {'content-type': 'application/json; charset=utf-8'},
+        )));
+
+    final result = await service.insights(InsightRange.week);
+
+    expect(result.correlationNarration, isNull);
+  });
+
   test('re-registers once on 401 then retries', () async {
     var calls = 0;
     final service = build(MockClient((req) async {

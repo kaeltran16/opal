@@ -135,6 +135,13 @@ void main() {
     }
   });
 
+  test('insights correlationNarration defaults to null (no incoming context in mock)',
+      () async {
+    final svc = MockPalService();
+    final res = await svc.insights(InsightRange.week);
+    expect(res.correlationNarration, isNull);
+  });
+
   test('mock memory: refresh seeds patterns, delete/clear mutate facts', () async {
     final pal = MockPalService(latency: Duration.zero);
     final seeded = await pal.refreshMemory();

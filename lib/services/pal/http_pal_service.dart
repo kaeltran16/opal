@@ -242,6 +242,7 @@ class HttpPalService implements PalService {
       headline: json['headline'] as String?,
       lede: json['lede'] as String?,
       suggestion: json['suggestion'] as String?,
+      correlationNarration: json['correlationNarration'] as String?,
       wins: mapList(
         'wins',
         (w) => InsightWin(

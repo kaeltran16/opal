@@ -157,6 +157,7 @@ Map<String, Object?> buildInsightsContext({
   required int streakDays,
   List<RitualRoutine> routines = const [],
   DateTime? periodStart,
+  String? correlationSummary,
 }) {
   final spendByWeekday = List<double>.filled(7, 0);
   final activeMoveDays = <int>{};
@@ -204,6 +205,7 @@ Map<String, Object?> buildInsightsContext({
     'topCategoryPct': spent == 0 ? 0 : ((topVal / spent) * 100).round(),
     'spendByWeekday': spendByWeekday,
     'entries': entries.take(_maxInsightEntries).map(formatEntryLine).toList(),
+    if (correlationSummary != null) 'correlation': {'summary': correlationSummary},
   };
 }
 
