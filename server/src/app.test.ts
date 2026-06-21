@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest'
+import { insightsContext } from './schemas.js'
 import { buildApp } from './app.js'
 import { ImapAuthError } from './imap.js'
 import { TokenStore } from './store.js'
@@ -202,6 +203,7 @@ describe('app', () => {
     range: 'week', spent: 200, budget: 420, moveKcal: 1400, moveTargetKcal: 2100,
     ritualsKept: 18, ritualsTarget: 35, activeDays: 5, streakDays: 11,
     topCategory: 'Food', topCategoryPct: 34, spendByWeekday: [10, 20, 30, 40, 50, 25, 25], entries: [],
+    correlation: { summary: 'On your 12 workout days you averaged $34; on your 16 rest days, $52.' },
   }
 
   it('serves /v1/insights with a valid token', async () => {
@@ -513,5 +515,23 @@ describe('cors', () => {
     const res = await app.inject({ method: 'GET', url: '/healthz', headers: { origin: 'https://evil.example' } })
     expect(res.statusCode).toBe(200)
     expect(res.headers['access-control-allow-origin']).toBeUndefined()
+  })
+})
+
+describe('insights context schema', () => {
+  const base = {
+    range: 'week' as const, spent: 200, budget: 420, moveKcal: 1400, moveTargetKcal: 2100,
+    ritualsKept: 18, ritualsTarget: 35, activeDays: 5, streakDays: 11,
+    topCategory: 'Food', topCategoryPct: 34, spendByWeekday: [10, 20, 30, 40, 50, 25, 25], entries: [],
+  }
+
+  it('accepts a valid context with correlation.summary as a string', () => {
+    const result = insightsContext.safeParse({ ...base, correlation: { summary: 'x' } })
+    expect(result.success).toBe(true)
+  })
+
+  it('rejects correlation.summary when it is not a string', () => {
+    const result = insightsContext.safeParse({ ...base, correlation: { summary: 42 } })
+    expect(result.success).toBe(false)
   })
 })

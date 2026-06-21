@@ -48,6 +48,9 @@ export interface InsightsContext {
   topCategoryPct: number
   spendByWeekday: number[]
   entries: string[]
+  // a single verified cross-dimension relationship, computed on-device; the
+  // model only rephrases it. absent when nothing cleared the client's bar.
+  correlation?: { summary: string }
 }
 
 export interface SuggestContext {
@@ -117,13 +120,17 @@ export function insightsPrompt(c: InsightsContext, memory?: MemoryDigest): strin
   const byDay = weekdays.map((d, i) => `${d} $${c.spendByWeekday[i] ?? 0}`).join(', ')
   const entries = c.entries.length ? c.entries.join('\n') : '(none)'
   const mem = memoryBlock(memory)
-  const shape = `{"headline": string|null, "lede": string|null, "suggestion": string|null, "wins": [{"colorToken": "money"|"move"|"rituals", "title": string, "sub": string}], "patterns": [{"colorToken": "money"|"move"|"rituals", "title": string, "detail": string}]}`
+  const shape = `{"headline": string|null, "lede": string|null, "suggestion": string|null, "correlationNarration": string|null, "wins": [{"colorToken": "money"|"move"|"rituals", "title": string, "sub": string}], "patterns": [{"colorToken": "money"|"move"|"rituals", "title": string, "detail": string}]}`
 
   const byRange: Record<InsightsContext['range'], string> = {
-    day: 'Range is "day": fill "headline" only with one observation about today versus the goals. Leave "lede" and "suggestion" null, and "wins" and "patterns" empty.',
+    day: 'Range is "day": fill "headline" only with one observation about today versus the goals. Leave "lede" and "suggestion" null, and "wins" and "patterns" empty. "correlationNarration" may still be set per the verified-relationship instruction above.',
     week: 'Range is "week": fill "headline" and a 1-sentence "lede" sub-headline, up to 3 "wins", up to 3 "patterns", and one concrete "suggestion".',
     month: 'Range is "month": fill up to 3 "patterns". "headline", "lede" and "suggestion" may be null; leave "wins" empty.',
   }
+
+  const corr = c.correlation
+    ? `\n\nVerified relationship (computed from their data — rephrase this as ONE warm, specific sentence in "correlationNarration"; do NOT invent any other cross-domain relationship, and set "correlationNarration" to null if this is absent):\n${c.correlation.summary}`
+    : '\n\nNo verified cross-domain relationship this period — set "correlationNarration" to null.'
 
   return `${mem ? mem + '\n\n' : ''}Reflect on this ${c.range}'s tracking data. Be specific and observational. Avoid hype words like "amazing", "crushed it", or "great job".
 
@@ -132,7 +139,7 @@ Spend by weekday: ${byDay}.
 Entries:
 ${entries}
 
-Only make claims grounded in this data: use the spend-by-weekday numbers for day-of-week patterns, the top category for spending patterns, and the streak for streaks. Do not invent numbers that are not derivable from the data. Set "colorToken" to the metric each item is about (money, move or rituals).
+Only make claims grounded in this data: use the spend-by-weekday numbers for day-of-week patterns, the top category for spending patterns, and the streak for streaks. Do not invent numbers that are not derivable from the data. Set "colorToken" to the metric each item is about (money, move or rituals).${corr}
 
 ${byRange[c.range]}
 

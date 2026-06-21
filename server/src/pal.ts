@@ -175,6 +175,7 @@ export const insightsSchema = z.object({
   headline: z.string().nullable(),
   lede: z.string().nullable(),
   suggestion: z.string().nullable(),
+  correlationNarration: z.string().nullable().optional(),
   wins: z.array(z.object({ colorToken, title: z.string(), sub: z.string() })).default([]),
   patterns: z.array(z.object({ colorToken, title: z.string(), detail: z.string() })).default([]),
 })

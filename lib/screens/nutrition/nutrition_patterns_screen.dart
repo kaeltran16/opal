@@ -2,10 +2,15 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../analysis/correlations.dart';
+import '../../controllers/correlations_controller.dart';
+import '../../controllers/insights_controller.dart';
 import '../../controllers/nutrition_controller.dart';
 import '../../router.dart';
+import '../../services/pal/pal_service.dart' show InsightRange;
 import '../../theme/theme.dart';
 import '../../widgets/app_icon.dart';
+import '../../widgets/correlation_card.dart';
 import '../../widgets/nav_bar.dart';
 import '../../widgets/press_scale.dart';
 
@@ -20,8 +25,17 @@ class NutritionPatternsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final c = context.colors;
     final async = ref.watch(nutritionControllerProvider);
+    final surfaced =
+        ref.watch(surfacedCorrelationsProvider).asData?.value ?? const [];
+    final narration = ref
+        .watch(insightsProvider(InsightRange.week))
+        .asData
+        ?.value
+        ?.correlationNarration;
 
     final patterns = async.asData?.value.patterns ?? const [];
+    final nutritionCorrs =
+        surfaced.where((corr) => corr.involves(Dimension.nutrition)).toList();
 
     return ColoredBox(
       color: c.bg,
@@ -37,6 +51,20 @@ class NutritionPatternsScreen extends ConsumerWidget {
         padding: const EdgeInsets.only(bottom: 110),
         children: [
           const SizedBox(height: Spacing.lg),
+          for (final corr in nutritionCorrs)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                  Spacing.lg, 0, Spacing.lg, Spacing.md),
+              child: CorrelationCard(
+                correlation: corr,
+                // only the globally strongest correlation gets the LLM narration
+                narration: (surfaced.isNotEmpty &&
+                        corr.a == surfaced.first.a &&
+                        corr.b == surfaced.first.b)
+                    ? narration
+                    : null,
+              ),
+            ),
           for (final p in patterns)
             Padding(
               padding: const EdgeInsets.fromLTRB(

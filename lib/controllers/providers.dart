@@ -13,6 +13,8 @@ import '../services/services.dart';
 import '../theme/app_colors.dart';
 import '../util/dates.dart';
 import '../util/format.dart' show Currency;
+import '../analysis/correlations.dart';
+import 'correlations_controller.dart';
 
 part 'providers.g.dart';
 
@@ -282,6 +284,13 @@ PalService palService(Ref ref) {
       );
     },
     insights: (range) async {
+      List<Correlation> surfaced;
+      try {
+        surfaced = await ref.read(surfacedCorrelationsProvider.future);
+      } catch (_) {
+        // a correlation-compute failure must not suppress the rest of insights
+        surfaced = const [];
+      }
       final now = DateTime.now();
       final today = startOfDay(now);
       final weekStart = startOfWeek(now);
@@ -308,6 +317,7 @@ PalService palService(Ref ref) {
         streakDays: moveStreakDays(lookback, now: now),
         routines: await ritualRoutines.getAll(),
         periodStart: start,
+        correlationSummary: surfaced.isEmpty ? null : surfaced.first.summary,
       );
     },
     suggest: (another, excludeRoutineId) async {

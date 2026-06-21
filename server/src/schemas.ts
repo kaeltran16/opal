@@ -48,6 +48,7 @@ export const insightsContext = z.object({
   activeDays: z.number(), streakDays: z.number(),
   topCategory: z.string(), topCategoryPct: z.number(),
   spendByWeekday: z.array(z.number()), entries: z.array(z.string()),
+  correlation: z.object({ summary: z.string() }).optional(),
 })
 export const insightsBody = z.object({ context: insightsContext })
 
