@@ -2,9 +2,11 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../controllers/correlations_controller.dart';
 import '../../controllers/insights_controller.dart';
 import '../../controllers/providers.dart';
 import '../../controllers/recap_controller.dart';
+import '../../widgets/correlation_card.dart';
 import '../../services/pal/pal_service.dart';
 import '../../theme/theme.dart';
 import '../../widgets/app_icon.dart';
@@ -52,6 +54,8 @@ class _RecapScreenState extends ConsumerState<RecapScreen> {
     final recap = recapAsync.asData?.value;
     final insightsAsync = ref.watch(insightsProvider(_range));
     final insights = insightsAsync.asData?.value;
+    final surfaced =
+        ref.watch(surfacedCorrelationsProvider).asData?.value ?? const [];
 
     return ColoredBox(
       color: c.bg,
@@ -107,6 +111,21 @@ class _RecapScreenState extends ConsumerState<RecapScreen> {
               ),
             ),
           ),
+
+          // --- Strongest cross-dimension correlation --------------------------
+          // gated on surfaced only — renders even when Pal insights are absent;
+          // narration falls back to the card's template when null.
+          if (surfaced.isNotEmpty) ...[
+            _SectionHeader('Connections'),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                  Spacing.lg, 0, Spacing.lg, Spacing.xl),
+              child: CorrelationCard(
+                correlation: surfaced.first,
+                narration: insights?.correlationNarration,
+              ),
+            ),
+          ],
 
           // --- Wins / Patterns / One thing to try (Pal insights) --------------
           ..._qualitativeSection(context, insightsAsync.isLoading, insights),
