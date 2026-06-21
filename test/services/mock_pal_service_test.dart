@@ -34,6 +34,19 @@ void main() {
       expect(r.reply, isNot(contains('\$')));
     });
 
+    test('logged food (not just coffee) uses the canonical Food & Drink category',
+        () async {
+      final pal = MockPalService(latency: fast);
+      // the chat path must categorize all food, so a Pal-logged "lunch" surfaces
+      // as a meal candidate just like coffee does.
+      for (final text in ['coffee \$5', 'lunch at Tartine \$14', 'dinner \$40']) {
+        final a = onlyAction(await pal.chat(const [], text));
+        expect(a.type, EntryType.money, reason: 'for "$text"');
+        expect(a.category, 'Food & Drink', reason: 'for "$text"');
+        expect(kSpendCategories, contains(a.category), reason: 'for "$text"');
+      }
+    });
+
     test('a move phrase carries calories so the live ring advances', () async {
       final pal = MockPalService(latency: fast);
       final r = await pal.chat(const [], 'ran 30 min');
@@ -95,6 +108,17 @@ void main() {
       final draft = await pal.parse('walk 5k');
       expect(draft.type, EntryType.move);
       expect(draft.durationMinutes, 5);
+    });
+
+    test('food expenses map to the canonical Food & Drink category', () async {
+      final pal = MockPalService(latency: fast);
+      for (final text in ['lunch \$14', 'coffee \$5', 'dinner at Tartine \$40']) {
+        final draft = await pal.parse(text);
+        expect(draft.type, EntryType.money);
+        // must match the nutrition food gate and be a real kSpendCategories member.
+        expect(draft.category, 'Food & Drink', reason: 'for "$text"');
+        expect(kSpendCategories, contains(draft.category));
+      }
     });
   });
 

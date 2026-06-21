@@ -64,9 +64,12 @@ bool _sameDay(DateTime a, DateTime b) =>
 /// given, only entries logged that calendar day count — so a routine is
 /// complete only if all its steps were kept on the same day.
 ///
-/// The Today ring, the rituals detail hero, Recap, the period reviews, and Pal
-/// context all read this so the count can't drift between screens (the bug
-/// where Today showed 0/3 while Recap showed 3/3 by counting step *entries*).
+/// Recap, the period reviews ([completedRoutinesInPeriod]), and Pal context read
+/// this so their counts can't drift (the bug where Recap showed 3/3 by counting
+/// step *entries* while Today showed 0/3). Today (`today_controller`) and the
+/// Rituals tab (`rituals_controller`) compute completion independently from
+/// their own step-completion state; they agree with this today but do not yet
+/// route through it.
 int completedRoutines(
   Iterable<Entry> entries,
   List<RitualRoutine> routines, {

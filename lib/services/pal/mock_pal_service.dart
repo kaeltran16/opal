@@ -135,7 +135,10 @@ class MockPalService implements PalService {
         type: EntryType.money,
         amount: -amount.value,
         title: isCoffee ? 'Coffee' : 'Expense',
-        category: isCoffee ? 'Coffee' : null,
+        // route through the shared keyword map so all food (not just coffee)
+        // gets the canonical kSpendCategories member, matching the nutrition
+        // food gate and counting in takeout spend.
+        category: _expenseCategory(message),
       );
     }
 
@@ -223,11 +226,13 @@ class MockPalService implements PalService {
   /// Known expense category keywords the mock parser recognizes, mapped to a
   /// display label. First match wins.
   static const _categoryKeywords = <String, String>{
-    'coffee': 'Coffee',
-    'breakfast': 'Dining',
-    'lunch': 'Dining',
-    'dinner': 'Dining',
-    'restaurant': 'Dining',
+    // food keywords collapse to the canonical kSpendCategories member so the
+    // nutrition food gate matches and the spend counts as takeout.
+    'coffee': 'Food & Drink',
+    'breakfast': 'Food & Drink',
+    'lunch': 'Food & Drink',
+    'dinner': 'Food & Drink',
+    'restaurant': 'Food & Drink',
     'groceries': 'Groceries',
     'grocery': 'Groceries',
     'gas': 'Transport',
@@ -329,8 +334,8 @@ class MockPalService implements PalService {
                 sub: 'More workouts than any month this year'),
             InsightWin(
                 colorToken: 'money',
-                title: 'Under budget 3 of 4 weeks',
-                sub: 'Only week one ran over'),
+                title: 'Under budget most weeks',
+                sub: 'Only an early week ran over'),
             InsightWin(
                 colorToken: 'rituals',
                 title: 'Journaled most mornings',
@@ -360,6 +365,9 @@ class MockPalService implements PalService {
     String? excludeRoutineId,
   }) async {
     await Future<void>.delayed(latency);
+    // no history/lastDone is passed in, so this can't avoid suggesting a type
+    // just done. a "don't repeat the last workout" guard needs the real /suggest
+    // backend (history-aware) or a lastDone param added to this seam.
     if (another) _suggestionIndex = (_suggestionIndex + 1) % _suggestions.length;
     // honor the exclusion when it lands on the rejected routine, advancing
     // until a different pick (or back to the start if all match).
@@ -471,8 +479,8 @@ class MockPalService implements PalService {
           colorToken: 'rituals',
           icon: 'moon.stars.fill',
           title: 'Close out tonight',
-          body: '4 of 5 rituals done. A 5-min wind-down at 21:30 closes your '
-              'ring — I can cue it now.',
+          body: "You're almost through today's rituals. A 5-min wind-down at "
+              '21:30 closes your ring — I can cue it now.',
           approveLabel: 'Start close-out',
           approveIcon: 'play.fill',
           doneLabel: 'Close-out queued for 21:30',
@@ -484,8 +492,8 @@ class MockPalService implements PalService {
           colorToken: 'rituals',
           icon: 'sparkles',
           title: 'Add a 2-min wind-down ritual',
-          body: 'Your evening routine slips 3 of 5 nights. A short wind-down '
-              'could anchor it.',
+          body: 'Your evening routine tends to slip on busy nights. A short '
+              'wind-down could anchor it.',
           approveLabel: 'Add ritual',
           approveIcon: 'plus',
           doneLabel: 'Added to your Evening rituals',
@@ -531,7 +539,7 @@ class MockPalService implements PalService {
             icon: 'cup.and.saucer.fill',
             colorToken: 'money',
             entry: StarterEntry(
-                type: EntryType.money, title: 'Verve coffee', amount: -5, category: 'Coffee'),
+                type: EntryType.money, title: 'Verve coffee', amount: -5, category: 'Food & Drink'),
           ),
           PalSuggestion(
             label: 'Finished morning pages',
@@ -552,14 +560,14 @@ class MockPalService implements PalService {
             icon: 'cup.and.saucer.fill',
             colorToken: 'money',
             entry: StarterEntry(
-                type: EntryType.money, title: 'Verve Coffee', amount: -5, category: 'Coffee'),
+                type: EntryType.money, title: 'Verve Coffee', amount: -5, category: 'Food & Drink'),
           ),
           PalSuggestion(
             label: 'Lunch',
             icon: 'fork.knife',
             colorToken: 'money',
             entry: StarterEntry(
-                type: EntryType.money, title: 'Lunch', amount: -14, category: 'Dining'),
+                type: EntryType.money, title: 'Lunch', amount: -14, category: 'Food & Drink'),
           ),
           PalSuggestion(
             label: 'Run',

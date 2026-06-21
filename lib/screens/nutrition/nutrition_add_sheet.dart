@@ -28,7 +28,10 @@ const _slots = ['Breakfast', 'Lunch', 'Dinner', 'Snack', 'Drink'];
 
 /// Opens the add-by-hand sheet. Inherits the parent [ProviderScope] via the
 /// ambient [BuildContext] so Riverpod providers are accessible inside the sheet.
-Future<void> showNutritionAddSheet(BuildContext context) {
+///
+/// When [meal] is non-null the sheet edits that meal in place (Save routes
+/// through `updateMeal`) instead of inserting a new one.
+Future<void> showNutritionAddSheet(BuildContext context, {NutritionMeal? meal}) {
   return showModalBottomSheet<void>(
     context: context,
     // present over the shell so the sheet covers the bottom nav; without this it
@@ -36,23 +39,45 @@ Future<void> showNutritionAddSheet(BuildContext context) {
     useRootNavigator: true,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
-    builder: (_) => const _NutritionAddSheet(),
+    builder: (_) => _NutritionAddSheet(meal: meal),
   );
 }
 
 class _NutritionAddSheet extends ConsumerStatefulWidget {
-  const _NutritionAddSheet();
+  const _NutritionAddSheet({this.meal});
+
+  /// The meal being edited, or null when adding a new one.
+  final NutritionMeal? meal;
 
   @override
   ConsumerState<_NutritionAddSheet> createState() => _NutritionAddSheetState();
 }
 
 class _NutritionAddSheetState extends ConsumerState<_NutritionAddSheet> {
-  String _slot = 'Lunch';
+  late String _slot;
   final _textController = TextEditingController();
   final _nameController = TextEditingController();
   bool _loading = false;
   MealEstimate? _estimate;
+
+  @override
+  void initState() {
+    super.initState();
+    final meal = widget.meal;
+    if (meal != null) {
+      // editing: seed slot, name, and the current estimate so Save updates.
+      _slot = meal.slot;
+      _estimate = MealEstimate(
+        name: meal.name,
+        cal: meal.cal,
+        confidence: meal.confidence,
+      );
+      _nameController.text = meal.name;
+    } else {
+      // adding: default the slot to the current time of day.
+      _slot = NutritionController.slotForHour(DateTime.now().hour);
+    }
+  }
 
   @override
   void dispose() {
@@ -99,11 +124,13 @@ class _NutritionAddSheetState extends ConsumerState<_NutritionAddSheet> {
     final name = _nameController.text.trim().isEmpty
         ? est.name
         : _nameController.text.trim();
-    await ref.read(nutritionControllerProvider.notifier).addManualMeal(
-          slot: _slot,
-          name: name,
-          est: est,
-        );
+    final notifier = ref.read(nutritionControllerProvider.notifier);
+    final meal = widget.meal;
+    if (meal != null) {
+      await notifier.updateMeal(meal, slot: _slot, name: name, est: est);
+    } else {
+      await notifier.addManualMeal(slot: _slot, name: name, est: est);
+    }
     if (mounted) Navigator.of(context).pop();
   }
 
@@ -116,7 +143,7 @@ class _NutritionAddSheetState extends ConsumerState<_NutritionAddSheet> {
       padding:
           EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
       child: SheetShell(
-        title: 'Add a meal',
+        title: widget.meal != null ? 'Adjust estimate' : 'Add a meal',
         onClose: () => Navigator.of(context).pop(),
         primaryLabel: 'Save',
         primaryEnabled: est != null,

@@ -71,6 +71,10 @@ class EmailSetupController extends _$EmailSetupController {
   /// connected account so the caller can navigate to the dashboard.
   Future<void> save(EmailAccount account, String appPassword) async {
     await ref.read(emailSyncServiceProvider).connect(account, appPassword);
+    // the singleton service's identity doesn't change on connect, so mounted
+    // watchers won't re-read the now-connected account on their own. mirror
+    // disconnect (which replaces dashboard state) by forcing a rebuild.
+    ref.invalidate(emailDashboardControllerProvider);
   }
 
   /// Re-edits invalidate a prior pass; reset so Save re-locks until re-tested.
@@ -126,6 +130,8 @@ class EmailDashboardState {
     bool? autoCategorize,
   }) =>
       EmailDashboardState(
+        // null-coalescing means copyWith can't clear account back to null;
+        // disconnect must replace state wholesale (see disconnect()).
         account: account ?? this.account,
         imports: imports ?? this.imports,
         lastSyncAt: lastSyncAt ?? this.lastSyncAt,

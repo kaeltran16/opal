@@ -40,9 +40,6 @@ class WeekDay {
   final bool today;
 }
 
-/// Weekly workout goal (no per-user data source yet — see controller FLAG).
-const int kWeeklyWorkoutGoal = 4;
-
 /// The fully-computed Move view model: today's logged move minutes, the recent
 /// sessions (newest 3, decorated), the non-workout movement entries, and the
 /// quick-link counts. The screen is dumb; all derivation lives here so it is
@@ -91,7 +88,8 @@ class MoveState {
 
   /// Weekly goal the hero ring/headline measures against: the number of planned
   /// (non-rest) days in the weekly plan, so Move and the Weekly Plan screen
-  /// share one target. Falls back to [kWeeklyWorkoutGoal] when no plan exists.
+  /// share one target. 0 when no plan exists (no goal set, not a fabricated
+  /// target).
   final int weekGoal;
 
   /// Workouts-vs-goal completion as a 0..1 fraction (capped at 1).
@@ -147,11 +145,12 @@ Stream<MoveState> moveState(Ref ref) async* {
   // (not re-read) so a routine edit or a non-workout move entry also re-emits.
   final routines = await ref.watch(workoutRoutinesStreamProvider.future);
   final entries = await ref.watch(allEntriesStreamProvider.future);
-  // The hero's weekly goal is the weekly plan's planned-day count (shared with
-  // the Weekly Plan screen), falling back to the constant when no plan exists.
-  final plannedDays =
+  // The hero's weekly goal is the weekly plan's planned-day count, the single
+  // source shared with the Weekly Plan screen. When no plan exists this is 0
+  // (no goal set) rather than a fabricated target, so the two screens agree
+  // instead of the hero asserting "/4" while the plan shows "0 planned".
+  final weekGoal =
       (await ref.watch(weeklyPlanControllerProvider.future)).totalCount;
-  final weekGoal = plannedDays > 0 ? plannedDays : kWeeklyWorkoutGoal;
 
   await for (final workouts in workoutRepo.watchWorkouts()) {
     // routineId -> cardio? for tagging recent sessions.

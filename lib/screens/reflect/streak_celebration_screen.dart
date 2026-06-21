@@ -70,14 +70,16 @@ class StreakCelebrationScreen extends ConsumerWidget {
     final pills = _statsFor(stats, streak);
     // only frame it as an unlocked milestone once there's an actual streak.
     final unlocked = streak >= 1;
-    final start = streakStartDate(streak, DateTime.now());
-    final sinceLine = !unlocked
-        ? 'Move on any day to start a streak.'
-        : start == null
-            ? 'Your longest streak this year.'
-            : "You haven't missed a day since "
-                '${kMonthsShort[start.month - 1]} ${start.day}.\n'
-                'Your longest streak this year.';
+    final String sinceLine;
+    if (!unlocked) {
+      sinceLine = 'Move on any day to start a streak.';
+    } else {
+      // unlocked implies streak >= 1, so streakStartDate is never null here.
+      final start = streakStartDate(streak, DateTime.now())!;
+      sinceLine = "You haven't missed a day since "
+          '${kMonthsShort[start.month - 1]} ${start.day}.\n'
+          'Your current streak.';
+    }
 
     return DecoratedBox(
       decoration: BoxDecoration(

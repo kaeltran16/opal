@@ -84,7 +84,7 @@ class _Body extends ConsumerWidget {
 
     return LargeTitleScrollView(
       title: meal.name,
-      subtitle: meal.note,
+      subtitle: (meal.note?.isNotEmpty ?? false) ? meal.note : null,
       leading: NavAction(
         icon: 'chevron.left',
         label: 'Nutrition',
@@ -211,63 +211,10 @@ class _Body extends ConsumerWidget {
           ],
         ),
 
-        // ── connection card (move-tinted) ─────────────────────────────────
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: Spacing.lg),
-          child: Container(
-            padding: const EdgeInsets.all(Spacing.md),
-            decoration: BoxDecoration(
-              color: c.move.withValues(alpha: 0.10),
-              borderRadius: BorderRadius.circular(Radii.card),
-              border: Border.all(
-                  color: c.move.withValues(alpha: 0.20), width: 0.5),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 30,
-                  height: 30,
-                  decoration: BoxDecoration(
-                    color: c.move,
-                    borderRadius: BorderRadius.circular(Radii.sm),
-                  ),
-                  child: Center(
-                      child:
-                          AppIcon('figure.run', size: 16, color: Colors.white)),
-                ),
-                const SizedBox(width: Spacing.md),
-                Expanded(
-                  child: Text.rich(
-                    TextSpan(
-                      style:
-                          AppFonts.sf(size: 13.5, color: c.ink2, height: 1.4),
-                      children: [
-                        const TextSpan(text: 'Today was a '),
-                        TextSpan(
-                          text: 'rest day',
-                          style: AppFonts.sf(
-                              size: 13.5,
-                              weight: FontWeight.w700,
-                              color: c.ink,
-                              height: 1.4),
-                        ),
-                        const TextSpan(
-                            text: ' — your dinners tend to run a little '
-                                'heavier on these.'),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: Spacing.lg),
-
         // ── action buttons ────────────────────────────────────────────────
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: Spacing.lg),
-          child: _AdjustButton(mealId: meal.id),
+          child: _AdjustButton(meal: meal),
         ),
         const SizedBox(height: Spacing.sm),
         Padding(
@@ -302,14 +249,16 @@ class _TagChip extends StatelessWidget {
 }
 
 class _AdjustButton extends ConsumerWidget {
-  const _AdjustButton({required this.mealId});
-  final String mealId;
+  const _AdjustButton({required this.meal});
+  final NutritionMeal meal;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final c = context.colors;
     return PressScale(
-      onTap: () => showNutritionAddSheet(context),
+      // seed the sheet with this meal so Save edits it in place instead of
+      // inserting a duplicate.
+      onTap: () => showNutritionAddSheet(context, meal: meal),
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: Spacing.md),

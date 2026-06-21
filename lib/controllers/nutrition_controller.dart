@@ -189,11 +189,16 @@ class NutritionController extends _$NutritionController {
         : mid > 2200
             ? 'fuller day'
             : 'balanced day';
-    // carb kcal share of the day, at the macro mids (carbs @ 4 kcal/g).
-    final carbKcal = macros.carbs.mid * 4;
-    final note = (mid > 0 && carbKcal / mid > 0.5)
-        ? 'leaning carb-heavy'
-        : 'a fair mix';
+    // honest read of the takeout/home split (real counts). the old
+    // "carb-heavy" note was noise: macros are defined as a fixed 50% carbs, so
+    // that ratio could never reflect a genuinely carb-heavy day.
+    final note = takeout == 0
+        ? 'all home-cooked'
+        : home == 0
+            ? 'all takeout'
+            : takeout > home
+                ? 'mostly takeout'
+                : 'mostly home-cooked';
 
     return NutritionDay(
       cal: cal,
@@ -265,7 +270,9 @@ class NutritionController extends _$NutritionController {
     return NutritionPending(expense: candidate, guess: guess);
   }
 
-  // first-pass: qualitative bodies; headline numbers are real
+  // only the money pattern is computed from real data; the former move /
+  // rituals / steady-rhythm patterns were constant prose stated as observed
+  // fact, so they are not emitted until a real computation exists.
   List<NutritionPattern> _buildPatterns(
       List<NutritionMeal> weekMeals, List<Entry> weekEntries) {
     // real headline: takeout food spend vs home-cooked this week.
@@ -303,33 +310,6 @@ class NutritionController extends _$NutritionController {
         spark: [takeoutMeals, homeMeals],
         emph: const [0],
       ),
-      const NutritionPattern(
-        tracker: 'move',
-        icon: 'figure.run',
-        title: 'Fuel around workouts',
-        body: "On the days you trained, you tended to eat a little more — "
-            "your body asking for it after the work.",
-        spark: [40, 55, 48, 70, 62, 80, 58],
-        emph: [3, 5],
-      ),
-      const NutritionPattern(
-        tracker: 'rituals',
-        icon: 'sparkles',
-        title: 'Mornings set the tone',
-        body: "Days that started with your morning ritual leaned lighter and "
-            "more balanced through lunch.",
-        spark: [60, 45, 50, 40, 55, 42, 48],
-        emph: [1, 3],
-      ),
-      const NutritionPattern(
-        tracker: 'nutrition',
-        icon: 'leaf.fill',
-        title: 'Your steady rhythm',
-        body: "Most days land in a similar range — a calm, repeatable baseline "
-            "rather than big swings.",
-        spark: [52, 58, 50, 55, 53, 60, 54],
-        emph: [],
-      ),
     ];
   }
 
@@ -355,8 +335,31 @@ class NutritionController extends _$NutritionController {
     await ref.read(hapticsServiceProvider).light();
   }
 
-  /// Meal slot inferred from the time of day an expense landed.
-  static String _slotForHour(int hour) {
+  /// Edits an existing meal in place from a (possibly re-run) estimate. Keeps
+  /// the meal's identity — id, timestamp, source, icon, link — and rewrites only
+  /// the slot, name, and estimate. Routes through `upsert` so no duplicate is
+  /// created.
+  Future<void> updateMeal(
+    NutritionMeal meal, {
+    required String slot,
+    required String name,
+    required MealEstimate est,
+  }) async {
+    await ref.read(nutritionRepositoryProvider).upsert(
+          meal.copyWith(
+            slot: slot,
+            name: name,
+            confidence: est.confidence,
+            cal: est.cal,
+            macros: est.macros,
+          ),
+        );
+    await ref.read(hapticsServiceProvider).light();
+  }
+
+  /// Meal slot inferred from the time of day an expense landed. Also used by
+  /// the add-by-hand sheet to default the slot to the current hour.
+  static String slotForHour(int hour) {
     if (hour < 11) return 'Breakfast';
     if (hour < 15) return 'Lunch';
     if (hour < 21) return 'Dinner';
@@ -385,7 +388,7 @@ class NutritionController extends _$NutritionController {
           NutritionMeal(
             id: '',
             timestamp: e.timestamp,
-            slot: _slotForHour(e.timestamp.hour),
+            slot: slotForHour(e.timestamp.hour),
             name: name,
             source: NutritionSource.takeout,
             icon: NutritionSource.takeout.icon,

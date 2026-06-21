@@ -62,8 +62,9 @@ class RecapData {
   /// Absolute sum of expense amounts (money entries, amount < 0) in the period.
   final double spent;
 
-  /// Period budget. Day/week = dailyBudget * days; month = the sum of envelope
-  /// caps (the canonical monthly budget, matching the Budgets screen).
+  /// Period budget = dailyBudget * days for every range (month = dailyBudget *
+  /// daysInMonth). Single budget basis shared with the Today ring and the
+  /// Budgets screen, so editing the daily budget moves every period.
   final double budget;
 
   /// Total movement active energy (move entries' [Entry.calories]) in the period.
@@ -161,18 +162,18 @@ RecapData buildRecapData(
   List<Entry> periodEntries,
   Goals goals, {
   List<RitualRoutine> routines = const [],
+  // retained for source-compat; the monthly budget is now derived from
+  // goals.dailyBudget, so this seed-frozen envelope-cap sum is ignored.
   double? monthlyBudget,
   DateTime? now,
 }) {
   final n = now ?? DateTime.now();
   final days = _periodDays(range, n);
   final periodStart = _periodStart(range, n);
-  // month uses the canonical envelope-cap sum when available; day/week scale
-  // the daily budget.
-  final budget =
-      range == InsightRange.month && monthlyBudget != null && monthlyBudget > 0
-          ? monthlyBudget
-          : goals.dailyBudget * days;
+  // single budget basis for every range: dailyBudget * days (month =
+  // dailyBudget * daysInMonth). the seed-frozen envelope-cap sum no longer
+  // backs the monthly target, so editing the daily budget moves every period.
+  final budget = goals.dailyBudget * days;
   var spent = 0.0;
   var moveKcal = 0;
   for (final e in periodEntries) {
@@ -204,7 +205,6 @@ RecapData buildRecapData(
 Stream<RecapData> recapData(Ref ref, InsightRange range) async* {
   final entriesRepo = ref.watch(entryRepositoryProvider);
   final ritualRepo = ref.watch(ritualRepositoryProvider);
-  final envelopeRepo = ref.watch(budgetEnvelopeRepositoryProvider);
   final goals = ref.watch(goalsStreamProvider).asData?.value ?? const Goals();
 
   final now = DateTime.now();
@@ -217,10 +217,7 @@ Stream<RecapData> recapData(Ref ref, InsightRange range) async* {
 
   await for (final entries in entriesRepo.watchEntriesInRange(start, end)) {
     final routines = await ritualRepo.getAll();
-    final monthlyBudget = (await envelopeRepo.getEnvelopes())
-        .fold<double>(0, (s, e) => s + e.cap);
-    yield buildRecapData(range, entries, goals,
-        routines: routines, monthlyBudget: monthlyBudget, now: now);
+    yield buildRecapData(range, entries, goals, routines: routines, now: now);
   }
 }
 

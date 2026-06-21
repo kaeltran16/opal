@@ -50,18 +50,23 @@ void main() {
     final uncategorized =
         budgets.envelopes.where((e) => e.envelope.category == 'Uncategorized');
     expect(uncategorized.single.spent, closeTo(10, 1e-9));
-    // the catch-all carries no cap, so the budget total is unchanged.
-    expect(budgets.totalCap, monthCap);
+    // the monthly budget basis is independent of spend, so a stray expense
+    // leaves the budget total unchanged.
+    final baseline = buildBudgetsData(envelopes, entries, now: now);
+    expect(budgets.totalCap, baseline.totalCap);
   });
 
-  test('the canonical monthly budget is the envelope-cap sum', () {
+  test('the monthly budget is dailyBudget x daysInMonth, shared by both screens',
+      () {
+    // single source of truth: the editable daily budget, scaled to the month.
+    // const Goals() defaults to 85/day; June 2026 has 30 days -> 2550.
     final budgets = buildBudgetsData(envelopes, entries, now: now);
     final recap = buildRecapData(InsightRange.month, entries, const Goals(),
         monthlyBudget: monthCap, now: now);
 
-    expect(monthCap, 2600);
-    expect(budgets.totalCap, 2600);
-    expect(recap.budget, 2600);
+    expect(budgets.totalCap, closeTo(2550, 1e-9));
+    expect(recap.budget, closeTo(2550, 1e-9));
+    expect(budgets.totalCap, closeTo(recap.budget, 1e-9));
   });
 
   test('seed money categories all match a canonical envelope category', () {

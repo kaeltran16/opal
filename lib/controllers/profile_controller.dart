@@ -12,7 +12,10 @@ part 'profile_controller.g.dart';
 /// this is unit-testable.
 ///
 /// Stats are derived from the live [Entry] stream (money/move/rituals) and the
-/// rituals list (for the longest streak), scoped to the current calendar year.
+/// rituals list (for the current ritual streak), scoped to the current calendar
+/// year. The [longestStreak] field name is a legacy misnomer — it holds the
+/// *current* consecutive-day streak (see field doc); the name is retained
+/// because renaming would ripple into screens/tests outside this file.
 @immutable
 class ProfileStats {
   const ProfileStats({

@@ -199,9 +199,9 @@ void main() {
     final e = all.single;
     expect(e.type, EntryType.money);
     expect(e.amount, closeTo(-5, 1e-9));
-    // "Coffee" isn't a canonical kSpendCategories entry, so the picker drops it
-    // rather than persist a label no budget envelope recognizes.
-    expect(e.category, isNull);
+    // the parser maps food spend (coffee/dining) to the canonical "Food & Drink"
+    // category, so the picker keeps it and the entry persists with that label.
+    expect(e.category, 'Food & Drink');
   });
 
   testWidgets('selecting a category chip persists a canonical category',
