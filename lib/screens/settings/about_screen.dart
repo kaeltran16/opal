@@ -26,7 +26,7 @@ class AboutScreen extends StatelessWidget {
         children: [
           EmailNavBar(
             title: 'About',
-            leadingLabel: 'Settings',
+            leadingLabel: 'You',
             onLeading: () => context.pop(),
           ),
           Padding(

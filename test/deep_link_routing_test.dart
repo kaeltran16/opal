@@ -82,6 +82,42 @@ void main() {
     await tester.pump(const Duration(seconds: 1));
   });
 
+  testWidgets('a /pal deep link pushes the Pal hub above the shell',
+      (WidgetTester tester) async {
+    SharedPreferences.setMockInitialValues({
+      'settings.onboardingComplete': true,
+    });
+    final prefs = await SharedPreferences.getInstance();
+    final db = LoopDatabase.forTesting(NativeDatabase.memory());
+    await Seeder(db).seedIfNeeded();
+    addTearDown(db.close);
+
+    final siri = _FakeSiriShortcutsService();
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          loopDatabaseProvider.overrideWithValue(db),
+          siriShortcutsServiceProvider.overrideWithValue(siri),
+        ],
+        child: const LoopApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // The canonical Pal path is /pal (the old /pal-home, /pal-inbox redirect to
+    // it). It must be treated as an above-shell overlay route and pushed, not
+    // go'd — otherwise the hub replaces the whole stack and looks stuck.
+    siri.emit('/pal');
+    await tester.pumpAndSettle();
+    expect(find.text('Needs you'), findsOneWidget);
+
+    // Flush the agenda/brief mock-latency + drift stream-close timers.
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump(const Duration(seconds: 1));
+  });
+
   testWidgets('an immediate duplicate deep link is ignored',
       (WidgetTester tester) async {
     SharedPreferences.setMockInitialValues({

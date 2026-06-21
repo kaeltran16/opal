@@ -103,7 +103,7 @@ class _TodayBody extends ConsumerWidget {
         // inbox in the trailing group (Handoff: Pal · Home entry point).
         PressScale(
           semanticLabel: 'Open Pal',
-          onTap: () => context.pushNamed(AppRoute.palHome.name),
+          onTap: () => context.pushNamed(AppRoute.pal.name),
           child: const SizedBox(
             width: 44,
             height: 44,
@@ -114,7 +114,7 @@ class _TodayBody extends ConsumerWidget {
         NavIconButton(
           name: 'tray.fill',
           semanticLabel: 'Pal inbox',
-          onTap: () => context.pushNamed(AppRoute.palInbox.name),
+          onTap: () => context.pushNamed(AppRoute.pal.name),
         ),
         const SizedBox(width: Spacing.sm),
         NavIconButton(

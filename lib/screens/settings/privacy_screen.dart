@@ -23,7 +23,7 @@ class PrivacyScreen extends StatelessWidget {
         children: [
           EmailNavBar(
             title: 'Privacy',
-            leadingLabel: 'Settings',
+            leadingLabel: 'You',
             onLeading: () => context.pop(),
           ),
           const SizedBox(height: Spacing.sm),

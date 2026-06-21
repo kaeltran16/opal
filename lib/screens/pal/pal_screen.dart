@@ -14,27 +14,19 @@ import '../../widgets/inset_section.dart';
 import '../../widgets/nav_bar.dart';
 import '../../widgets/pal_avatar.dart';
 import '../../widgets/press_scale.dart';
+import 'pal_noticed_section.dart';
 
-/// Pal Home — Pal promoted from a reactive sheet to a first-class agentic hub.
-///
-/// A daily "command center": an AI daily brief, cross-pillar actions the user
-/// approves ("Needs you"), an "on autopilot" delegation list, and a "what Pal
-/// remembers" persistent-memory section. Presented full-screen above the shell
-/// (see the `/pal-home` route).
-///
-/// The agenda (proposals, autopilot, memory, streak) comes from the `/agenda`
-/// Pal seam via [palAgendaProvider]; the brief is regenerated from the daily
-/// `insights` seam on Refresh. Per-card approve/dismiss and toggle state is held
-/// locally (keyed by id) over the server data — optimistic, with Undo — until a
-/// real mutation seam lands.
-class PalHomeScreen extends ConsumerStatefulWidget {
-  const PalHomeScreen({super.key});
+/// Pal hub — the single destination for what Pal has for you (agenda: brief,
+/// Needs you, On autopilot, memory) and what it noticed (the observation
+/// feed). Composer stays the separate FAB input surface. Route: /pal.
+class PalScreen extends ConsumerStatefulWidget {
+  const PalScreen({super.key});
 
   @override
-  ConsumerState<PalHomeScreen> createState() => _PalHomeScreenState();
+  ConsumerState<PalScreen> createState() => _PalScreenState();
 }
 
-class _PalHomeScreenState extends ConsumerState<PalHomeScreen> {
+class _PalScreenState extends ConsumerState<PalScreen> {
   // The brief is fetched from the daily-insights seam once on open (see
   // initState) — never seeded with fabricated stats. Fired from initState, not
   // build, so the canvas re-rendering many frames doesn't fire N model calls.
@@ -228,6 +220,10 @@ class _PalHomeScreenState extends ConsumerState<PalHomeScreen> {
                   ),
               ],
             ),
+
+          // --- What Pal noticed ---
+          const PalNoticedSection(),
+          const SizedBox(height: Spacing.xxl),
 
           // --- What Pal remembers ---
           Padding(

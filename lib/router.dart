@@ -16,8 +16,7 @@ import 'screens/nutrition/nutrition_patterns_screen.dart';
 import 'screens/nutrition/nutrition_screen.dart';
 import 'screens/onboarding/onboarding_screen.dart';
 import 'screens/pal/pal_composer_screen.dart';
-import 'screens/pal/pal_home_screen.dart';
-import 'screens/pal/pal_inbox_screen.dart';
+import 'screens/pal/pal_screen.dart';
 import 'screens/money/budgets_screen.dart';
 import 'screens/money/insights_screen.dart';
 import 'screens/profile/profile_screen.dart';
@@ -34,7 +33,6 @@ import 'screens/settings/appearance_screen.dart';
 import 'screens/settings/export_data_screen.dart';
 import 'screens/settings/notifications_screen.dart';
 import 'screens/settings/privacy_screen.dart';
-import 'screens/settings/settings_screen.dart';
 import 'screens/shell/loop_shell.dart';
 import 'models/models.dart';
 import 'services/pal/pal_service.dart' show InsightRange;
@@ -80,7 +78,6 @@ enum AppRoute {
   // You / Settings sub-routes (push within the pushed /you route).
   youBudgets('youBudgets', 'budgets'), //           -> /you/budgets
   youInsights('youInsights', 'insights'), //        -> /you/insights
-  settings('settings', 'settings'), //              -> /you/settings (hub)
   budgetsGoals('budgetsGoals', 'budgets-goals'), // -> /you/budgets-goals
   notificationSettings('notificationSettings', 'notifications'), // /you/notifications
   appearance('appearance', 'appearance'), //        -> /you/appearance
@@ -101,8 +98,9 @@ enum AppRoute {
   // Pal composer — the unified FAB input surface (replaces Quick Actions menu).
   palComposer('palComposer', '/pal-composer'),
   palInbox('palInbox', '/pal-inbox'),
-  // Pal Home — the agentic hub (daily brief + actions to approve + autopilot).
+  // palHome kept for stable deep links; redirects to /pal.
   palHome('palHome', '/pal-home'),
+  pal('pal', '/pal'),
   eveningCloseOut('eveningCloseOut', '/close-out'),
   streakCelebration('streakCelebration', '/streak'),
   weeklyReview('weeklyReview', '/weekly-review'),
@@ -298,11 +296,6 @@ GoRouter createRouter({
             builder: (context, state) => const InsightsScreen(),
           ),
           GoRoute(
-            path: AppRoute.settings.path,
-            name: AppRoute.settings.name,
-            builder: (context, state) => const SettingsScreen(),
-          ),
-          GoRoute(
             path: AppRoute.budgetsGoals.path,
             name: AppRoute.budgetsGoals.name,
             builder: (context, state) => const BudgetsGoalsScreen(),
@@ -463,19 +456,26 @@ GoRouter createRouter({
           RoutinePlayerScreen(routineId: state.pathParameters['routineId']!),
         ),
       ),
+      // Pal hub — the merged Home + Inbox destination.
+      GoRoute(
+        path: AppRoute.pal.path,
+        name: AppRoute.pal.name,
+        parentNavigatorKey: _rootNavigatorKey,
+        pageBuilder: (context, state) =>
+            _sheetPage(state.pageKey, const PalScreen()),
+      ),
+      // Old Pal routes kept as stable redirects into the hub.
       GoRoute(
         path: AppRoute.palInbox.path,
         name: AppRoute.palInbox.name,
         parentNavigatorKey: _rootNavigatorKey,
-        pageBuilder: (context, state) =>
-            _sheetPage(state.pageKey, const PalInboxScreen()),
+        redirect: (context, state) => '/pal',
       ),
       GoRoute(
         path: AppRoute.palHome.path,
         name: AppRoute.palHome.name,
         parentNavigatorKey: _rootNavigatorKey,
-        pageBuilder: (context, state) =>
-            _sheetPage(state.pageKey, const PalHomeScreen()),
+        redirect: (context, state) => '/pal',
       ),
       GoRoute(
         path: AppRoute.eveningCloseOut.path,

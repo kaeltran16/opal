@@ -270,7 +270,7 @@ class _ProfileBody extends StatelessWidget {
               subtitle: "Your daily brief & what Pal's handling",
               value: palCount != null && palCount! > 0 ? '$palCount for you' : null,
               valueColor: c.accent,
-              onTap: () => context.pushNamed(AppRoute.palHome.name),
+              onTap: () => context.pushNamed(AppRoute.pal.name),
             ),
             ListRow(
               icon: 'calendar',
@@ -316,6 +316,12 @@ class _ProfileBody extends StatelessWidget {
               onTap: () => context.pushNamed(AppRoute.exportData.name),
             ),
             ListRow(
+              icon: 'lock.fill',
+              iconBg: c.ink3,
+              title: 'Privacy',
+              onTap: () => context.pushNamed(AppRoute.privacy.name),
+            ),
+            ListRow(
               icon: 'bell.fill',
               iconBg: c.money,
               title: 'Notifications',
@@ -331,10 +337,16 @@ class _ProfileBody extends StatelessWidget {
           header: 'Account',
           children: [
             ListRow(
-              icon: 'gearshape.fill',
+              icon: 'slider.horizontal.3',
               iconBg: c.ink3,
-              title: 'Settings',
-              onTap: () => context.pushNamed(AppRoute.settings.name),
+              title: 'Appearance',
+              onTap: () => context.pushNamed(AppRoute.appearance.name),
+            ),
+            ListRow(
+              icon: 'book.closed.fill',
+              iconBg: c.ink3,
+              title: 'About Opal',
+              onTap: () => context.pushNamed(AppRoute.about.name),
             ),
             ListRow(
               icon: 'heart.fill',

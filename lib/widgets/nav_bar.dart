@@ -85,24 +85,31 @@ class LargeTitleScrollView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return CustomScrollView(
-      controller: controller,
-      slivers: [
-        SliverPersistentHeader(
-          pinned: true,
-          delegate: _CollapsingNavDelegate(
-            colors: context.colors,
-            title: title,
-            subtitle: subtitle,
-            leading: leading,
-            trailing: trailing,
+    // Paint the page background ourselves so the view doesn't depend on an
+    // ancestor Scaffold. Routes pushed above the shell (e.g. /you, the Pal hub)
+    // have no Scaffold, so without this the platform default shows through —
+    // black on iOS — behind the list, hiding the dark large title in light mode.
+    return ColoredBox(
+      color: context.colors.bg,
+      child: CustomScrollView(
+        controller: controller,
+        slivers: [
+          SliverPersistentHeader(
+            pinned: true,
+            delegate: _CollapsingNavDelegate(
+              colors: context.colors,
+              title: title,
+              subtitle: subtitle,
+              leading: leading,
+              trailing: trailing,
+            ),
           ),
-        ),
-        SliverPadding(
-          padding: padding,
-          sliver: SliverList(delegate: SliverChildListDelegate(children)),
-        ),
-      ],
+          SliverPadding(
+            padding: padding,
+            sliver: SliverList(delegate: SliverChildListDelegate(children)),
+          ),
+        ],
+      ),
     );
   }
 }

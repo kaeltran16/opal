@@ -218,10 +218,15 @@ void main() {
         scrollable: list);
     expect(find.text('DATA'), findsOneWidget);
     expect(find.text('Export data'), findsOneWidget);
+    // Privacy now lives directly on the You tab (no separate Settings hub).
+    expect(find.text('Privacy'), findsOneWidget);
     await tester.scrollUntilVisible(find.text('Help & feedback'), 200,
         scrollable: list);
     expect(find.text('ACCOUNT'), findsOneWidget);
-    expect(find.text('Settings'), findsOneWidget);
+    // The orphaned settings screens are reachable as direct rows here, replacing
+    // the old "Settings" hub row.
+    expect(find.text('Appearance'), findsOneWidget);
+    expect(find.text('About Opal'), findsOneWidget);
 
     // --- Daily budget row → opens the BudgetSheet ---
     await tester.scrollUntilVisible(find.text('Daily budget'), -200,

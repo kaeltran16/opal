@@ -8,15 +8,14 @@ import '../../theme/theme.dart';
 import '../../util/dates.dart';
 import '../../widgets/app_icon.dart';
 import '../../widgets/nav_bar.dart';
-import '../../widgets/pal_avatar.dart';
 import '../../widgets/press_scale.dart';
 
-/// Screen 25 — Pal Inbox. "A quiet inbox, not an anxious one": a timeline of the
-/// passive observations Pal has made, filterable by tracker, with a "Mark all
-/// read" affordance. Reads [PalInboxState] from [palInboxControllerProvider];
-/// this widget only lays out.
-class PalInboxScreen extends ConsumerWidget {
-  const PalInboxScreen({super.key});
+/// "What Pal noticed" — the passive observation feed, embedded as a section of
+/// the Pal hub. Reads [palInboxControllerProvider]; renders as a Column so it
+/// nests inside the hub's scroll view. Handles its own loading/empty/error
+/// independent of the agenda regions (compose, not fuse).
+class PalNoticedSection extends ConsumerWidget {
+  const PalNoticedSection({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -24,29 +23,19 @@ class PalInboxScreen extends ConsumerWidget {
     final async = ref.watch(palInboxControllerProvider);
 
     return async.when(
-      loading: () => Container(
-        color: c.bg,
-        alignment: Alignment.center,
-        child: Text('…',
-            style: AppType.body.copyWith(color: c.ink3)),
+      loading: () => const SizedBox.shrink(),
+      error: (e, _) => Padding(
+        padding: const EdgeInsets.fromLTRB(Spacing.xl, Spacing.lg, Spacing.xl, Spacing.lg),
+        child: Text("Couldn't load what Pal noticed.",
+            style: AppType.footnote.copyWith(color: c.ink3, letterSpacing: -0.15)),
       ),
-      error: (e, _) => Container(
-        color: c.bg,
-        alignment: Alignment.center,
-        child: Padding(
-          padding: const EdgeInsets.all(Spacing.xxl),
-          child: Text("Couldn't load your inbox. Try again in a moment.",
-              textAlign: TextAlign.center,
-              style: AppType.subhead.copyWith(color: c.ink3, letterSpacing: -0.24)),
-        ),
-      ),
-      data: (state) => _InboxBody(state: state),
+      data: (state) => _Body(state: state),
     );
   }
 }
 
-class _InboxBody extends ConsumerWidget {
-  const _InboxBody({required this.state});
+class _Body extends ConsumerWidget {
+  const _Body({required this.state});
   final PalInboxState state;
 
   @override
@@ -56,162 +45,90 @@ class _InboxBody extends ConsumerWidget {
     final unread = state.unreadCount;
     final visible = state.visible;
 
-    return Container(
-      color: c.bg,
-      child: ListView(
-        padding: const EdgeInsets.only(bottom: 110), // bottom-nav clearance
-        children: [
-          // --- Nav: back to Today + Mark all read -----------------------------
-          Padding(
-            // top 56 = status-bar/safe-area offset, kept literal
-            padding: const EdgeInsets.fromLTRB(Spacing.lg, 56, Spacing.lg, Spacing.sm),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                NavAction(
-                  icon: 'chevron.left',
-                  label: 'Today',
-                  onTap: () => context.pop(),
-                  semanticLabel: 'Back',
-                ),
-                NavAction(
-                  label: 'Mark all read',
-                  onTap: controller.markAllRead,
-                  semanticLabel: 'Mark all read',
-                ),
-              ],
-            ),
-          ),
-
-          // --- Title: gradient sparkle avatar + "Pal noticed" + sub -----------
-          Padding(
-            padding: const EdgeInsets.fromLTRB(Spacing.xl, Spacing.xs, Spacing.xl, Spacing.lg),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    const PalAvatar(size: 36, glyphSize: 16, glow: true),
-                    const SizedBox(width: Spacing.md),
-                    Text('Pal noticed',
-                        style: AppType.title1.copyWith(
-                            color: c.ink,
-                            letterSpacing: -0.3,
-                            height: 1)),
-                  ],
-                ),
-                Padding(
-                  padding: const EdgeInsets.only(top: Spacing.sm),
-                  child: unread > 0
-                      ? Text.rich(
-                          TextSpan(
-                            style: AppType.subhead.copyWith(
-                                color: c.ink3, letterSpacing: -0.24),
-                            children: [
-                              TextSpan(
-                                  text: '$unread new',
-                                  style: TextStyle(
-                                      color: c.ink,
-                                      fontWeight: FontWeight.w700)),
-                              const TextSpan(
-                                  text:
-                                      ' · a quiet inbox, not an anxious one'),
-                            ],
-                          ),
-                        )
-                      : Text('All caught up · a quiet inbox, not an anxious one',
-                          style: AppType.subhead.copyWith(
-                              color: c.ink3, letterSpacing: -0.24)),
-                ),
-              ],
-            ),
-          ),
-
-          // --- Filter chips ---------------------------------------------------
-          SizedBox(
-            height: 36,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: Spacing.lg),
-              children: [
-                _FilterChip(
-                  label: 'All',
-                  count: state.notes.length,
-                  active: state.filter == InboxFilter.all,
-                  onTap: () => controller.setFilter(InboxFilter.all),
-                ),
-                const SizedBox(width: Spacing.sm),
-                _FilterChip(
-                  label: 'Unread',
-                  count: unread,
-                  active: state.filter == InboxFilter.unread,
-                  onTap: () => controller.setFilter(InboxFilter.unread),
-                ),
-                const SizedBox(width: Spacing.sm),
-                _FilterChip(
-                  label: 'Money',
-                  dotColor: c.money,
-                  active: state.filter == InboxFilter.money,
-                  onTap: () => controller.setFilter(InboxFilter.money),
-                ),
-                const SizedBox(width: Spacing.sm),
-                _FilterChip(
-                  label: 'Workout',
-                  dotColor: c.move,
-                  active: state.filter == InboxFilter.move,
-                  onTap: () => controller.setFilter(InboxFilter.move),
-                ),
-                const SizedBox(width: Spacing.sm),
-                _FilterChip(
-                  label: 'Routines',
-                  dotColor: c.rituals,
-                  active: state.filter == InboxFilter.rituals,
-                  onTap: () => controller.setFilter(InboxFilter.rituals),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: Spacing.lg),
-
-          // --- Timeline -------------------------------------------------------
-          if (visible.isEmpty)
-            Padding(
-              // 40 vertical = deliberate empty-state breathing room, kept literal
-              padding: const EdgeInsets.fromLTRB(Spacing.xl, 40, Spacing.xl, 40),
-              child: Text('Nothing here. A quiet Pal is a happy Pal.',
-                  textAlign: TextAlign.center,
-                  style:
-                      AppType.footnote.copyWith(color: c.ink3, letterSpacing: -0.15)),
-            )
-          else
-            for (var i = 0; i < visible.length; i++) ...[
-              if (i > 0) const SizedBox(height: Spacing.sm),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: Spacing.lg),
-                child: _NoteCard(note: visible[i]),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // --- Header: "What Pal noticed" + Mark all read --------------------
+        Padding(
+          padding: const EdgeInsets.fromLTRB(Spacing.xl, Spacing.lg, Spacing.lg, Spacing.sm),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Text('What Pal noticed',
+                  style: AppType.title3.copyWith(color: c.ink, letterSpacing: -0.3)),
+              NavAction(
+                label: 'Mark all read',
+                onTap: controller.markAllRead,
+                semanticLabel: 'Mark all read',
               ),
             ],
-
-          // --- Footer: tune what Pal notices ----------------------------------
-          Padding(
-            padding: const EdgeInsets.fromLTRB(Spacing.xl, Spacing.xl, Spacing.xl, Spacing.sm),
-            child: Center(
-              // no onTap yet — render as a plain label so screen readers don't
-              // announce a dead button.
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  AppIcon('gearshape.fill', size: 12, color: c.ink3),
-                  const SizedBox(width: Spacing.sm),
-                  Text('Tune what Pal notices',
-                      style: AppType.footnote.copyWith(
-                          color: c.ink3, letterSpacing: -0.08)),
-                ],
-              ),
-            ),
           ),
-        ],
-      ),
+        ),
+
+        // --- Filter chips -------------------------------------------------
+        SizedBox(
+          height: 36,
+          child: ListView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: Spacing.lg),
+            children: [
+              _FilterChip(
+                label: 'All',
+                count: state.notes.length,
+                active: state.filter == InboxFilter.all,
+                onTap: () => controller.setFilter(InboxFilter.all),
+              ),
+              const SizedBox(width: Spacing.sm),
+              _FilterChip(
+                label: 'Unread',
+                count: unread,
+                active: state.filter == InboxFilter.unread,
+                onTap: () => controller.setFilter(InboxFilter.unread),
+              ),
+              const SizedBox(width: Spacing.sm),
+              _FilterChip(
+                label: 'Money',
+                dotColor: c.money,
+                active: state.filter == InboxFilter.money,
+                onTap: () => controller.setFilter(InboxFilter.money),
+              ),
+              const SizedBox(width: Spacing.sm),
+              _FilterChip(
+                label: 'Workout',
+                dotColor: c.move,
+                active: state.filter == InboxFilter.move,
+                onTap: () => controller.setFilter(InboxFilter.move),
+              ),
+              const SizedBox(width: Spacing.sm),
+              _FilterChip(
+                label: 'Routines',
+                dotColor: c.rituals,
+                active: state.filter == InboxFilter.rituals,
+                onTap: () => controller.setFilter(InboxFilter.rituals),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: Spacing.lg),
+
+        // --- Notes --------------------------------------------------------
+        if (visible.isEmpty)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(Spacing.xl, 24, Spacing.xl, 24),
+            child: Text('Nothing here. A quiet Pal is a happy Pal.',
+                textAlign: TextAlign.center,
+                style: AppType.footnote.copyWith(color: c.ink3, letterSpacing: -0.15)),
+          )
+        else
+          for (var i = 0; i < visible.length; i++) ...[
+            if (i > 0) const SizedBox(height: Spacing.sm),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: Spacing.lg),
+              child: _NoteCard(note: visible[i]),
+            ),
+          ],
+      ],
     );
   }
 }

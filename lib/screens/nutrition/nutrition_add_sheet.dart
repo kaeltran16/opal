@@ -31,6 +31,9 @@ const _slots = ['Breakfast', 'Lunch', 'Dinner', 'Snack', 'Drink'];
 Future<void> showNutritionAddSheet(BuildContext context) {
   return showModalBottomSheet<void>(
     context: context,
+    // present over the shell so the sheet covers the bottom nav; without this it
+    // opens on the tab's nested navigator and only fills the tab body.
+    useRootNavigator: true,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
     builder: (_) => const _NutritionAddSheet(),

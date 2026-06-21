@@ -59,7 +59,7 @@ void main() {
   group('Pal Home', () {
     testWidgets('renders the brief, needs-you actions, and all sections',
         (tester) async {
-      await _pumpApp(tester, location: '/pal-home', memory: const PalMemoryDigest(
+      await _pumpApp(tester, location: '/pal', memory: const PalMemoryDigest(
         facts: [PalFact(id: 'f-1', text: 'Training for a marathon in October')],
         patterns: [InsightPattern(
             colorToken: 'money', title: 'Fridays cost the most', detail: 'Dining out drives the spike.')],
@@ -88,7 +88,7 @@ void main() {
 
     testWidgets('Approve flips a card to its done confirmation; Undo reverts',
         (tester) async {
-      await _pumpApp(tester, location: '/pal-home');
+      await _pumpApp(tester, location: '/pal');
 
       // The money action approves in place (no navigation).
       await tester.tap(find.text('Hold \$40'));
@@ -108,7 +108,7 @@ void main() {
     });
 
     testWidgets('Not now removes the card', (tester) async {
-      await _pumpApp(tester, location: '/pal-home');
+      await _pumpApp(tester, location: '/pal');
 
       // First card is the Workout action; dismiss it via its "Not now".
       expect(find.text('Move Legs day to Friday'), findsOneWidget);
@@ -122,7 +122,7 @@ void main() {
 
     testWidgets('close-out action navigates instead of flipping to done',
         (tester) async {
-      await _pumpApp(tester, location: '/pal-home');
+      await _pumpApp(tester, location: '/pal');
 
       await tester.tap(find.text('Start close-out'));
       await tester.pumpAndSettle();
@@ -137,7 +137,7 @@ void main() {
     testWidgets('memory section is always shown, with an empty-state on first run',
         (tester) async {
       // no `memory:` override → MockPalService returns an empty digest
-      await _pumpApp(tester, location: '/pal-home');
+      await _pumpApp(tester, location: '/pal');
 
       expect(find.text('What Pal remembers'), findsOneWidget);
       expect(
@@ -150,7 +150,7 @@ void main() {
     });
 
     testWidgets('wiping memory asks for confirmation first', (tester) async {
-      await _pumpApp(tester, location: '/pal-home', memory: const PalMemoryDigest(
+      await _pumpApp(tester, location: '/pal', memory: const PalMemoryDigest(
         facts: [PalFact(id: 'f-1', text: 'Training for a marathon in October')],
       ));
 
@@ -170,7 +170,7 @@ void main() {
     });
 
     testWidgets('memory controls expose accessibility labels', (tester) async {
-      await _pumpApp(tester, location: '/pal-home', memory: const PalMemoryDigest(
+      await _pumpApp(tester, location: '/pal', memory: const PalMemoryDigest(
         facts: [PalFact(id: 'f-1', text: 'Training for a marathon in October')],
       ));
 
@@ -181,7 +181,7 @@ void main() {
     });
 
     testWidgets('a learned pattern can be dismissed locally', (tester) async {
-      await _pumpApp(tester, location: '/pal-home', memory: const PalMemoryDigest(
+      await _pumpApp(tester, location: '/pal', memory: const PalMemoryDigest(
         patterns: [InsightPattern(
             colorToken: 'money',
             title: 'Fridays cost the most',
@@ -200,7 +200,7 @@ void main() {
 
     testWidgets('brief auto-fetches from the daily-insights seam on open',
         (tester) async {
-      await _pumpApp(tester, location: '/pal-home');
+      await _pumpApp(tester, location: '/pal');
 
       // The brief is no longer a hardcoded showcase line — it is fetched from
       // MockPalService.insights(day) on open, so its headline is already shown
@@ -214,22 +214,58 @@ void main() {
 
       await flushProviderTimers(tester);
     });
+
+    testWidgets('hub renders the "What Pal noticed" feed with filter pills',
+        (tester) async {
+      await _pumpApp(tester, location: '/pal');
+
+      expect(find.text('What Pal noticed'), findsOneWidget);
+      // The five inbox filter pills.
+      expect(find.text('All'), findsOneWidget);
+      expect(find.text('Unread'), findsOneWidget);
+      expect(find.text('Money'), findsOneWidget);
+      expect(find.text('Workout'), findsOneWidget);
+      expect(find.text('Routines'), findsOneWidget);
+      // Mark-all-read affordance from the inbox.
+      expect(find.bySemanticsLabel('Mark all read'), findsOneWidget);
+
+      await flushProviderTimers(tester);
+    });
+  });
+
+  group('Pal hub routing', () {
+    testWidgets('/pal-home redirects to the hub', (tester) async {
+      await _pumpApp(tester, location: '/pal-home');
+      expect(find.text('Needs you'), findsOneWidget);
+      await flushProviderTimers(tester);
+    });
+
+    testWidgets('/pal-inbox redirects to the hub', (tester) async {
+      await _pumpApp(tester, location: '/pal-inbox');
+      expect(find.text('Needs you'), findsOneWidget);
+      await flushProviderTimers(tester);
+    });
   });
 
   group('Pal Home entry points', () {
-    testWidgets('Today nav bar shows the Pal orb and it opens Pal Home',
-        (tester) async {
+    testWidgets('Today Pal orb opens the hub', (tester) async {
       await _pumpApp(tester, location: '/today');
-
       final orb = find.bySemanticsLabel('Open Pal');
       expect(orb, findsOneWidget);
-
       await tester.tap(orb);
       await tester.pumpAndSettle();
-
       expect(find.text('Needs you'), findsOneWidget);
-      expect(find.text('Ask Pal anything'), findsOneWidget);
+      expect(find.text('What Pal noticed'), findsOneWidget);
+      await flushProviderTimers(tester);
+    });
 
+    testWidgets('Today tray icon opens the hub', (tester) async {
+      await _pumpApp(tester, location: '/today');
+      final tray = find.bySemanticsLabel('Pal inbox');
+      expect(tray, findsOneWidget);
+      await tester.tap(tray);
+      await tester.pumpAndSettle();
+      expect(find.text('What Pal noticed'), findsOneWidget);
       await flushProviderTimers(tester);
     });
 

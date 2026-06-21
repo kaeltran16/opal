@@ -4,7 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:opal/controllers/pal_memory_controller.dart';
 import 'package:opal/controllers/providers.dart';
 import 'package:opal/models/models.dart';
-import 'package:opal/screens/pal/pal_home_screen.dart';
+import 'package:opal/screens/pal/pal_screen.dart';
 import 'package:opal/services/pal/mock_pal_service.dart';
 import 'package:opal/services/pal/pal_service.dart';
 import 'package:opal/theme/app_colors.dart';
@@ -32,7 +32,7 @@ void main() {
         child: MaterialApp(
           debugShowCheckedModeBanner: false,
           theme: ThemeData(useMaterial3: true, extensions: [colors]),
-          home: const PalHomeScreen(),
+          home: const PalScreen(),
         ),
       ),
     );
