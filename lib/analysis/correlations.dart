@@ -286,7 +286,7 @@ Map<Dimension, DailySeries> buildDailyVectors(
   for (final e in entries) {
     if (!inWindow(e.timestamp)) continue;
     final day = DateTime(e.timestamp.year, e.timestamp.month, e.timestamp.day);
-    if (earliest == null || day.isBefore(earliest!)) earliest = day;
+    if (earliest == null || day.isBefore(earliest)) earliest = day;
     final k = _dayOrd(day);
     switch (e.type) {
       case EntryType.money:
@@ -301,7 +301,7 @@ Map<Dimension, DailySeries> buildDailyVectors(
   // 0-fill money/move/rituals across [earliest, today]. With no entries at all,
   // there is nothing to fill (every map stays empty -> no pairs clear the bar).
   if (earliest != null) {
-    for (var d = earliest!;
+    for (var d = earliest;
         !d.isAfter(today);
         d = d.add(const Duration(days: 1))) {
       final k = _dayOrd(d);

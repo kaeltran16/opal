@@ -7,7 +7,7 @@ import '../../controllers/correlations_controller.dart';
 import '../../controllers/insights_controller.dart';
 import '../../controllers/nutrition_controller.dart';
 import '../../router.dart';
-import '../../services/pal/pal_service.dart';
+import '../../services/pal/pal_service.dart' show InsightRange;
 import '../../theme/theme.dart';
 import '../../widgets/app_icon.dart';
 import '../../widgets/correlation_card.dart';

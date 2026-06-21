@@ -6,11 +6,11 @@ import '../../controllers/correlations_controller.dart';
 import '../../controllers/insights_controller.dart';
 import '../../controllers/providers.dart';
 import '../../controllers/recap_controller.dart';
-import '../../widgets/correlation_card.dart';
 import '../../services/pal/pal_service.dart';
 import '../../theme/theme.dart';
 import '../../widgets/app_icon.dart';
 import '../../widgets/controls.dart';
+import '../../widgets/correlation_card.dart';
 import '../../widgets/nav_bar.dart';
 import '../../widgets/pal_avatar.dart';
 
