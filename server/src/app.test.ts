@@ -202,6 +202,7 @@ describe('app', () => {
     range: 'week', spent: 200, budget: 420, moveKcal: 1400, moveTargetKcal: 2100,
     ritualsKept: 18, ritualsTarget: 35, activeDays: 5, streakDays: 11,
     topCategory: 'Food', topCategoryPct: 34, spendByWeekday: [10, 20, 30, 40, 50, 25, 25], entries: [],
+    correlation: { summary: 'On your 12 workout days you averaged $34; on your 16 rest days, $52.' },
   }
 
   it('serves /v1/insights with a valid token', async () => {

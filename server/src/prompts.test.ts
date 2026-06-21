@@ -114,6 +114,18 @@ describe('prompts', () => {
     expect(p).toContain('fill "headline" only')
   })
 
+  it('includes the verified correlation summary and forbids inventing others', () => {
+    const p = insightsPrompt({
+      range: 'week', spent: 100, budget: 200, moveKcal: 0, moveTargetKcal: 0,
+      ritualsKept: 0, ritualsTarget: 0, activeDays: 0, streakDays: 0,
+      topCategory: 'Food', topCategoryPct: 34, spendByWeekday: [10, 20, 30, 40, 50, 25, 25],
+      entries: [], correlation: { summary: 'On your 12 workout days you averaged $34; on your 16 rest days, $52.' },
+    })
+    expect(p).toContain('workout days you averaged $34')
+    expect(p).toContain('correlationNarration')
+    expect(p.toLowerCase()).toContain('do not invent')
+  })
+
   it('suggest prompt lists routines and day', () => {
     const p = suggestPrompt({
       recentWorkouts: [{ routineName: 'Push A', date: 'Mon', muscles: 'chest' }],
