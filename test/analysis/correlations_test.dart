@@ -1,4 +1,3 @@
-import 'dart:math' as math;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opal/analysis/correlations.dart';
 
@@ -27,6 +26,9 @@ void main() {
     });
     test('too few points is non-significant (p = 1)', () {
       expect(correlationPValue(0.9, 3), 1.0);
+    });
+    test('a perfect correlation is maximally significant', () {
+      expect(correlationPValue(-1.0, 24), lessThan(kAlpha));
     });
   });
 

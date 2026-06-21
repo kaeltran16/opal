@@ -108,18 +108,18 @@ class Correlation {
   }
 
   String get summary {
-    final b = breakdown;
-    if (b != null) {
-      final active = activeDayLabel(b.binaryDim);
-      final inactive = inactiveDayLabel(b.binaryDim);
-      return 'On your ${b.countActive} $active you averaged '
-          '${formatValue(b.continuousDim, b.meanWhenActive)}; '
-          'on your ${b.countInactive} $inactive, '
-          '${formatValue(b.continuousDim, b.meanWhenInactive)}.';
+    final bd = breakdown;
+    if (bd != null) {
+      final active = activeDayLabel(bd.binaryDim);
+      final inactive = inactiveDayLabel(bd.binaryDim);
+      return 'On your ${bd.countActive} $active you averaged '
+          '${formatValue(bd.continuousDim, bd.meanWhenActive)}; '
+          'on your ${bd.countInactive} $inactive, '
+          '${formatValue(bd.continuousDim, bd.meanWhenInactive)}.';
     }
     final dir = r >= 0 ? 'higher' : 'lower';
     return 'Days with more ${dimensionNoun(a)} tend to run $dir on '
-        '${dimensionNoun(this.b)} (based on $n days).';
+        '${dimensionNoun(b)} (based on $n days).';
   }
 }
 
