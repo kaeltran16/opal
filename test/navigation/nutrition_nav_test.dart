@@ -75,9 +75,9 @@ void main() {
     await tester.tap(avatar);
     await tester.pumpAndSettle();
 
-    // The pushed profile screen renders its header + its back-to-Today action.
+    // The pushed profile screen renders its header + its (generic) back action.
     expect(find.text('Reviews, patterns, settings'), findsOneWidget);
-    expect(find.bySemanticsLabel('Back to Today'), findsOneWidget);
+    expect(find.bySemanticsLabel('Back'), findsOneWidget);
 
     await flushProviderTimers(tester);
   });

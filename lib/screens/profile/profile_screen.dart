@@ -150,13 +150,13 @@ class _ProfileBody extends StatelessWidget {
     return LargeTitleScrollView(
       title: 'You',
       subtitle: 'Reviews, patterns, settings',
-      // You is now pushed from the Today header (not a tab root), so it needs
-      // its own back affordance.
+      // You is pushed from any tab header (not a tab root), so it needs its own
+      // back affordance — generic, since the origin tab varies.
       leading: NavAction(
         icon: 'chevron.left',
-        label: 'Today',
+        label: 'Back',
         onTap: () => context.pop(),
-        semanticLabel: 'Back to Today',
+        semanticLabel: 'Back',
       ),
       padding: const EdgeInsets.only(bottom: 110),
       children: [
