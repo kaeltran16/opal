@@ -11,6 +11,7 @@ import '../../widgets/app_icon.dart';
 import '../../widgets/gmail_glyph.dart';
 import '../../widgets/inset_section.dart';
 import 'email_nav.dart';
+import 'sender_filter_section.dart';
 
 /// Screen 17 — App-password setup (mock).
 ///
@@ -36,6 +37,15 @@ class _EmailSetupScreenState extends ConsumerState<EmailSetupScreen> {
   final _port = TextEditingController(text: '993');
   bool _advancedOpen = false;
 
+  // Starting allowlist — the senders whose emails carry the user's receipts.
+  // Editable in the UI below; an empty list scans the whole inbox.
+  static const _defaultSenders = [
+    'no-reply@grab.com',
+    'info@card.vib.com.vn',
+    'info@mail.shopee.vn',
+  ];
+  final List<String> _senders = [..._defaultSenders];
+
   @override
   void dispose() {
     _email.dispose();
@@ -52,6 +62,7 @@ class _EmailSetupScreenState extends ConsumerState<EmailSetupScreen> {
         appPasswordRef: '',
         imapHost: _host.text.trim().isEmpty ? 'imap.gmail.com' : _host.text.trim(),
         imapPort: int.tryParse(_port.text.trim()) ?? 993,
+        senderFilters: List.of(_senders),
       );
 
   void _runTest() {
@@ -134,6 +145,13 @@ class _EmailSetupScreenState extends ConsumerState<EmailSetupScreen> {
                 ),
               ),
             ],
+          ),
+
+          // --- Sender allowlist ----------------------------------------------
+          SenderFilterSection(
+            senders: _senders,
+            onChanged: (list) =>
+                setState(() => _senders..clear()..addAll(list)),
           ),
 
           // --- How-to card ---------------------------------------------------

@@ -77,6 +77,15 @@ class RealEmailSyncService implements EmailSyncService {
   }
 
   @override
+  Future<void> updateSenderFilters(List<String> filters) async {
+    final account = _account;
+    if (account == null) return;
+    final updated = account.copyWith(senderFilters: filters);
+    _account = updated;
+    await prefs.setString(_accountKey, jsonEncode(updated.toJson()));
+  }
+
+  @override
   Future<List<EmailImportItem>> syncNow() async {
     final account = _account;
     final appPassword = await secure.read(_passwordKey);
