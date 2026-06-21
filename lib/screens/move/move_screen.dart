@@ -13,6 +13,7 @@ import '../../theme/theme.dart';
 import '../../widgets/app_icon.dart';
 import '../../widgets/inset_section.dart';
 import '../../widgets/nav_bar.dart';
+import '../shell/tab_header.dart';
 
 /// Screen 07 — Move landing, on live data.
 ///
@@ -55,15 +56,15 @@ class _MoveBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return LargeTitleScrollView(
+    return TabHeaderScrollView(
       title: 'Workout',
-      subtitle: 'Workouts, routines & sessions',
-      trailing: Builder(
-        builder: (context) => NavIconButton(
-          name: 'ellipsis',
-          semanticLabel: 'More options',
-          onTap: () => _showMoveMenu(context),
-        ),
+      subtitle: state.weekGoal == 0
+          ? 'No weekly plan yet'
+          : '${state.weekWorkouts} of ${state.weekGoal} workouts this week',
+      contextualAction: NavIconButton(
+        name: 'plus',
+        semanticLabel: 'New routine',
+        onTap: () => context.pushNamed(AppRoute.routineEditor.name),
       ),
       padding: const EdgeInsets.only(bottom: 110),
       children: [
@@ -88,47 +89,6 @@ class _MoveBody extends StatelessWidget {
       ],
     );
   }
-}
-
-/// Overflow ("…") menu for the Workout home: quick shortcuts to create a
-/// routine or generate one with Pal. Matches the app's bottom-sheet menu
-/// convention (InsetSection + ListRow over a `c.bg` sheet).
-Future<void> _showMoveMenu(BuildContext context) {
-  final c = context.colors;
-  return showModalBottomSheet<void>(
-    context: context,
-    backgroundColor: c.bg,
-    builder: (sheetContext) => SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.only(top: 8, bottom: 8),
-        child: InsetSection(
-          children: [
-            ListRow(
-              icon: 'plus',
-              iconBg: c.accent,
-              title: 'New routine',
-              subtitle: 'Build from scratch',
-              onTap: () {
-                Navigator.of(sheetContext).pop();
-                context.pushNamed(AppRoute.routineEditor.name);
-              },
-            ),
-            ListRow(
-              icon: 'sparkles',
-              iconBg: c.rituals,
-              title: 'Generate with AI',
-              subtitle: 'Describe the workout you want',
-              last: true,
-              onTap: () {
-                Navigator.of(sheetContext).pop();
-                context.pushNamed(AppRoute.routineGenerator.name);
-              },
-            ),
-          ],
-        ),
-      ),
-    ),
-  );
 }
 
 /// Move-gradient "This week" hero: workouts-vs-goal headline + mini progress
@@ -604,6 +564,12 @@ class _QuickLinks extends StatelessWidget {
           title: 'My routines',
           value: '$routineCount',
           onTap: () => context.pushNamed(AppRoute.startWorkout.name),
+        ),
+        ListRow(
+          icon: 'sparkles',
+          iconBg: c.rituals,
+          title: 'Generate with AI',
+          onTap: () => context.pushNamed(AppRoute.routineGenerator.name),
         ),
         ListRow(
           icon: 'dumbbell.fill',

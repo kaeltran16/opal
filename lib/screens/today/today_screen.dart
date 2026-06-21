@@ -19,6 +19,7 @@ import '../../widgets/dashed_border.dart';
 import '../../widgets/nav_bar.dart';
 import '../../widgets/pal_avatar.dart';
 import '../../widgets/press_scale.dart';
+import '../shell/tab_header.dart';
 import '../../widgets/summary_tile.dart';
 
 /// Screen 02 — Today, on live data.
@@ -84,45 +85,14 @@ class _TodayBody extends ConsumerWidget {
         ? 'All routines done · nice close'
         : '$ritualsRemaining routine${ritualsRemaining == 1 ? '' : 's'} to close';
 
-    return LargeTitleScrollView(
+    return TabHeaderScrollView(
       title: 'Today',
       subtitle: _dateSubtitle,
-      leading: PressScale(
-        semanticLabel: 'You',
-        onTap: () => context.pushNamed(AppRoute.you.name),
-        child: SizedBox(
-          width: 44,
-          height: 44,
-          child: Center(
-              child: AppIcon('person.crop.circle.fill',
-                  size: 30, color: c.accent)),
-        ),
+      contextualAction: NavIconButton(
+        name: 'magnifyingglass',
+        semanticLabel: 'Search',
+        onTap: () => _openSearch(context, today.timelineEntries),
       ),
-      trailing: Row(children: [
-        // Gradient Pal orb — opens the agentic Pal Home hub. Sits before the
-        // inbox in the trailing group (Handoff: Pal · Home entry point).
-        PressScale(
-          semanticLabel: 'Open Pal',
-          onTap: () => context.pushNamed(AppRoute.pal.name),
-          child: const SizedBox(
-            width: 44,
-            height: 44,
-            child: Center(child: PalAvatar(size: 32, glyphSize: 16, glow: true)),
-          ),
-        ),
-        const SizedBox(width: Spacing.sm),
-        NavIconButton(
-          name: 'tray.fill',
-          semanticLabel: 'Pal inbox',
-          onTap: () => context.pushNamed(AppRoute.pal.name),
-        ),
-        const SizedBox(width: Spacing.sm),
-        NavIconButton(
-          name: 'magnifyingglass',
-          semanticLabel: 'Search',
-          onTap: () => _openSearch(context, today.timelineEntries),
-        ),
-      ]),
       // kept literal: fixed bottom inset clearing the floating tab bar / FAB.
       padding: const EdgeInsets.only(bottom: 110),
       children: [

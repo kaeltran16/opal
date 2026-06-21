@@ -10,6 +10,7 @@ import '../../widgets/app_icon.dart';
 import '../../widgets/dashed_border.dart';
 import '../../widgets/nav_bar.dart';
 import '../../widgets/press_scale.dart';
+import '../shell/tab_header.dart';
 import 'nutrition_add_sheet.dart';
 import 'nutrition_confirm_sheet.dart';
 import 'widgets/nutrition_widgets.dart';
@@ -51,10 +52,11 @@ class _NutritionBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return LargeTitleScrollView(
+    return TabHeaderScrollView(
       title: 'Nutrition',
-      subtitle: "how you've been eating",
-      trailing: NavIconButton(
+      subtitle:
+          '${state.day.meals} meal${state.day.meals == 1 ? '' : 's'} logged today',
+      contextualAction: NavIconButton(
         name: 'plus',
         semanticLabel: 'Add a meal',
         onTap: () => showNutritionAddSheet(context),

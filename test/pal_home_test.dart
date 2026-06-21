@@ -259,16 +259,6 @@ void main() {
       await flushProviderTimers(tester);
     });
 
-    testWidgets('Today tray icon opens the hub', (tester) async {
-      await _pumpApp(tester, location: '/today');
-      final tray = find.bySemanticsLabel('Pal inbox');
-      expect(tray, findsOneWidget);
-      await tester.tap(tray);
-      await tester.pumpAndSettle();
-      expect(find.text('What Pal noticed'), findsOneWidget);
-      await flushProviderTimers(tester);
-    });
-
     testWidgets('You tab Reviews section has a Pal row that opens Pal Home',
         (tester) async {
       await _pumpApp(tester, location: '/you');

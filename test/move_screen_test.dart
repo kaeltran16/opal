@@ -78,6 +78,18 @@ void main() {
         scrollable: find.byType(Scrollable).first);
     expect(find.text('Run · Mission loop'), findsOneWidget);
 
+    // Header consolidation: single direct "+" (New routine), profile + Pal
+    // anchors, and NO overflow menu.
+    expect(find.bySemanticsLabel('You'), findsOneWidget);
+    expect(find.bySemanticsLabel('Open Pal'), findsOneWidget);
+    expect(find.bySemanticsLabel('New routine'), findsOneWidget);
+    expect(find.bySemanticsLabel('More options'), findsNothing);
+
+    // "Generate with AI" now lives in the body quick-links, not a header menu.
+    await tester.scrollUntilVisible(find.text('Generate with AI'), 200,
+        scrollable: find.byType(Scrollable).first);
+    expect(find.text('Generate with AI'), findsOneWidget);
+
     await flushProviderTimers(tester);
   });
 }

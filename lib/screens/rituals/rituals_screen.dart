@@ -9,6 +9,7 @@ import '../../widgets/app_icon.dart';
 import '../../widgets/dashed_border.dart';
 import '../../widgets/nav_bar.dart';
 import '../../widgets/press_scale.dart';
+import '../shell/tab_header.dart';
 
 /// Screen 13 — Rituals landing, reframed as time-of-day routines.
 ///
@@ -49,10 +50,10 @@ class _RitualsBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return LargeTitleScrollView(
+    return TabHeaderScrollView(
       title: 'Routines',
       subtitle: '${state.doneSteps} of ${state.totalSteps} steps today',
-      trailing: NavIconButton(
+      contextualAction: NavIconButton(
         name: 'plus',
         semanticLabel: 'New routine',
         onTap: () => context.go('/rituals/manage'),
