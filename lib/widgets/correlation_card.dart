@@ -20,12 +20,7 @@ class CorrelationCard extends StatelessWidget {
         Dimension.nutrition => 'Nutrition',
       };
 
-  static String _token(Dimension d) => switch (d) {
-        Dimension.money => 'money',
-        Dimension.move => 'move',
-        Dimension.rituals => 'rituals',
-        Dimension.nutrition => 'nutrition',
-      };
+  static String _token(Dimension d) => _label(d).toLowerCase();
 
   @override
   Widget build(BuildContext context) {
@@ -105,13 +100,16 @@ class _Dot extends StatelessWidget {
 /// requires.
 Future<void> showCorrelationTrustSheet(
     BuildContext context, Correlation correlation) {
-  final c = context.colors;
   final b = correlation.breakdown;
+  // backgroundColor is resolved immediately at call-site, not inside the builder.
+  final surface = context.colors.surface;
   return showModalBottomSheet<void>(
     context: context,
-    backgroundColor: c.surface,
+    backgroundColor: surface,
     showDragHandle: true,
-    builder: (_) => Padding(
+    builder: (ctx) {
+      final c = ctx.colors;
+      return Padding(
       padding:
           const EdgeInsets.fromLTRB(Spacing.lg, 0, Spacing.lg, Spacing.xl),
       child: Column(
@@ -142,7 +140,8 @@ Future<void> showCorrelationTrustSheet(
               style: AppType.footnote.copyWith(color: c.ink3, height: 1.4)),
         ],
       ),
-    ),
+    );
+    },
   );
 }
 

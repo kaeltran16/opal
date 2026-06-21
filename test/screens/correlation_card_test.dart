@@ -42,6 +42,7 @@ void main() {
         correlation: _correlation,
         narration: 'You spend less on workout days.')));
     expect(find.text('You spend less on workout days.'), findsOneWidget);
+    expect(find.textContaining('workout days'), findsOneWidget);
   });
 
   testWidgets('tapping opens the trust sheet with the two-group breakdown',
