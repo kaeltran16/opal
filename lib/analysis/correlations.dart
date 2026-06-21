@@ -1,5 +1,7 @@
 import 'dart:math' as math;
 
+import '../models/models.dart';
+
 /// Statistical bar for surfacing a correlation (see the design spec). A pair
 /// must clear all three: enough paired days, a strong |r|, and Holm-corrected
 /// significance across the pairs tested.
@@ -253,4 +255,73 @@ Correlation _toCorrelation(_PairStat s) {
     );
   }
   return Correlation(a: s.a, b: s.b, r: s.r, n: s.n, breakdown: breakdown);
+}
+
+/// Rolling window for correlations: the last [kCorrelationWindowDays] days.
+const int kCorrelationWindowDays = 90;
+
+int _dayOrd(DateTime d) => d.year * 10000 + d.month * 100 + d.day;
+
+/// Builds one daily scalar series per dimension over the window ending [now].
+///
+/// Money/Move/Rituals are 0-filled across the span from the earliest in-window
+/// entry (of any type) to today — a day with no entry is a genuine zero.
+/// Nutrition is only defined on days with a logged meal (no log != ate
+/// nothing), so its pairs naturally pair on the intersection of days.
+Map<Dimension, DailySeries> buildDailyVectors(
+  List<Entry> entries,
+  List<NutritionMeal> meals, {
+  required DateTime now,
+  int windowDays = kCorrelationWindowDays,
+}) {
+  final today = DateTime(now.year, now.month, now.day);
+  final windowStart = today.subtract(Duration(days: windowDays - 1));
+  bool inWindow(DateTime t) =>
+      !t.isBefore(windowStart) && t.isBefore(today.add(const Duration(days: 1)));
+
+  final money = <int, double>{};
+  final move = <int, double>{};
+  final rituals = <int, double>{};
+  DateTime? earliest;
+  for (final e in entries) {
+    if (!inWindow(e.timestamp)) continue;
+    final day = DateTime(e.timestamp.year, e.timestamp.month, e.timestamp.day);
+    if (earliest == null || day.isBefore(earliest!)) earliest = day;
+    final k = _dayOrd(day);
+    switch (e.type) {
+      case EntryType.money:
+        if ((e.amount ?? 0) < 0) money[k] = (money[k] ?? 0) + e.amount!.abs();
+      case EntryType.move:
+        move[k] = (move[k] ?? 0) + (e.calories ?? 0).toDouble();
+      case EntryType.rituals:
+        rituals[k] = (rituals[k] ?? 0) + 1;
+    }
+  }
+
+  // 0-fill money/move/rituals across [earliest, today]. With no entries at all,
+  // there is nothing to fill (every map stays empty -> no pairs clear the bar).
+  if (earliest != null) {
+    for (var d = earliest!;
+        !d.isAfter(today);
+        d = d.add(const Duration(days: 1))) {
+      final k = _dayOrd(d);
+      money.putIfAbsent(k, () => 0);
+      move.putIfAbsent(k, () => 0);
+      rituals.putIfAbsent(k, () => 0);
+    }
+  }
+
+  final nutrition = <int, double>{};
+  for (final meal in meals) {
+    if (!inWindow(meal.timestamp)) continue;
+    final k = _dayOrd(meal.timestamp);
+    nutrition[k] = (nutrition[k] ?? 0) + meal.cal.mid.toDouble();
+  }
+
+  return {
+    Dimension.money: DailySeries(dim: Dimension.money, byDay: money),
+    Dimension.move: DailySeries(dim: Dimension.move, byDay: move),
+    Dimension.rituals: DailySeries(dim: Dimension.rituals, byDay: rituals),
+    Dimension.nutrition: DailySeries(dim: Dimension.nutrition, byDay: nutrition),
+  };
 }

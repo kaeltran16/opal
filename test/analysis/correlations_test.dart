@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opal/analysis/correlations.dart';
+import 'package:opal/models/models.dart';
 
 void main() {
   group('pearson', () {
@@ -121,4 +122,62 @@ void main() {
       expect(out, isEmpty); // guards against re-introducing fiction
     });
   });
+
+  group('buildDailyVectors', () {
+    final now = DateTime(2026, 3, 1, 12);
+    Entry money(int daysAgo, double amount) => Entry(
+        id: 'm$daysAgo',
+        timestamp: now.subtract(Duration(days: daysAgo)),
+        type: EntryType.money,
+        title: 'x',
+        amount: amount,
+        source: EntrySource.manual);
+    Entry move(int daysAgo, int cal) => Entry(
+        id: 'w$daysAgo',
+        timestamp: now.subtract(Duration(days: daysAgo)),
+        type: EntryType.move,
+        title: 'x',
+        calories: cal,
+        source: EntrySource.manual);
+
+    test('money sums expense magnitude per day; income ignored', () {
+      final v = buildDailyVectors(
+          [money(1, -10), money(1, -5), money(1, 100)], const [],
+          now: now);
+      final key = _ord(now.subtract(const Duration(days: 1)));
+      expect(v[Dimension.money]!.byDay[key], 15.0);
+    });
+
+    test('move days are 0-filled within the active span', () {
+      // a move 3 days ago and one today -> day between is a real 0.
+      final v = buildDailyVectors([move(3, 200), move(0, 200)], const [],
+          now: now);
+      expect(v[Dimension.move]!.byDay[_ord(now.subtract(const Duration(days: 1)))],
+          0.0);
+    });
+
+    test('nutrition only has days with a logged meal (no 0-fill)', () {
+      final meal = NutritionMeal(
+        id: 'n1',
+        timestamp: now.subtract(const Duration(days: 2)),
+        slot: 'Lunch',
+        name: 'x',
+        source: NutritionSource.manual,
+        icon: 'fork.knife',
+        confidence: NutritionConfidence.med,
+        cal: const IntRange(400, 600),
+        macros: const Macros(
+          protein: IntRange(0, 0),
+          carbs: IntRange(0, 0),
+          fat: IntRange(0, 0),
+        ),
+      );
+      final v = buildDailyVectors([move(0, 200)], [meal], now: now);
+      expect(v[Dimension.nutrition]!.byDay.length, 1);
+      expect(v[Dimension.nutrition]!.byDay[_ord(now.subtract(const Duration(days: 2)))],
+          500.0); // cal.mid
+    });
+  });
 }
+
+int _ord(DateTime d) => d.year * 10000 + d.month * 100 + d.day;
