@@ -162,7 +162,9 @@ class _ListRowState extends State<ListRow> {
                                 fontFeatures: const [FontFeature.tabularFigures()]),
                           ),
                         ),
-                      if (widget.chevron)
+                      // chevron only when the row actually navigates — an
+                      // affordance either works or isn't shown
+                      if (widget.chevron && tappable)
                         Padding(
                           padding: const EdgeInsets.only(left: Spacing.sm),
                           child: AppIcon('chevron.right', size: 14, color: c.ink4),
