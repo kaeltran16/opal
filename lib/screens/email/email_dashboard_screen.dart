@@ -16,6 +16,7 @@ import '../../widgets/controls.dart';
 import '../../widgets/gmail_glyph.dart';
 import '../../widgets/inset_section.dart';
 import '../../widgets/nav_bar.dart';
+import 'sender_filter_section.dart';
 
 /// Screen 18 — Synced dashboard (mock).
 ///
@@ -276,6 +277,17 @@ class EmailDashboardScreen extends ConsumerWidget {
               ),
             ],
           ),
+
+          // --- Sender allowlist ----------------------------------------------
+          // Editable live: writes straight onto the connected account and rides
+          // along on the next sync — no disconnect/reconnect.
+          if (connected)
+            SenderFilterSection(
+              senders: dash.account?.senderFilters ?? const [],
+              onChanged: (list) => ref
+                  .read(emailDashboardControllerProvider.notifier)
+                  .setSenderFilters(list),
+            ),
 
           // --- Disconnect ----------------------------------------------------
           // Only meaningful when an account is connected.

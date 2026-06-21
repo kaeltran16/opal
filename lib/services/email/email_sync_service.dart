@@ -75,6 +75,10 @@ abstract interface class EmailSyncService {
   /// Persist the account (credentials via secure storage in the real impl).
   Future<void> connect(EmailAccount account, String appPassword);
 
+  /// Replace the connected account's sender allowlist (persisted). No-op when
+  /// no account is connected. Takes effect on the next [syncNow] — no reconnect.
+  Future<void> updateSenderFilters(List<String> filters);
+
   /// Run a sync now; resolves with the items found (also emitted via [status]).
   Future<List<EmailImportItem>> syncNow();
 

@@ -47,6 +47,11 @@ class MockEmailSyncService implements EmailSyncService {
   }
 
   @override
+  Future<void> updateSenderFilters(List<String> filters) async {
+    _account = _account?.copyWith(senderFilters: filters);
+  }
+
+  @override
   Future<List<EmailImportItem>> syncNow() async {
     _controller.add(SyncStatus.scanning);
     await Future<void>.delayed(stageDelay);

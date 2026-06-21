@@ -201,6 +201,14 @@ class EmailDashboardController extends _$EmailDashboardController {
     state = state.copyWith(autoCategorize: enabled);
   }
 
+  /// Updates the connected account's sender allowlist. Persisted on the account
+  /// by the service and re-sent on the next [syncNow] — no reconnect needed.
+  Future<void> setSenderFilters(List<String> filters) async {
+    final service = ref.read(emailSyncServiceProvider);
+    await service.updateSenderFilters(filters);
+    state = state.copyWith(account: service.account);
+  }
+
   /// Runs a sync; the staged [SyncStatus] is emitted via the service's stream
   /// (read through [syncStatusProvider]). On completion the returned imports are
   /// materialised as timeline [Entry]s (deduped by `sourceRef` so re-syncs don't

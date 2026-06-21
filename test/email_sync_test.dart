@@ -17,6 +17,7 @@ import 'package:opal/screens/email/email_nav.dart';
 import 'package:opal/screens/email/email_setup_screen.dart';
 import 'package:opal/services/services.dart';
 import 'package:opal/theme/app_colors.dart';
+import 'package:opal/widgets/app_icon.dart';
 
 /// A no-op [HapticsService] for container-only controller tests.
 class _NoHaptics implements HapticsService {
@@ -49,6 +50,8 @@ class _StubSyncService implements EmailSyncService {
   Future<bool> testConnection(EmailAccount a, String p) async => true;
   @override
   Future<void> connect(EmailAccount a, String p) async {}
+  @override
+  Future<void> updateSenderFilters(List<String> f) async {}
   @override
   Future<List<EmailImportItem>> syncNow() async => _items;
   @override
@@ -85,6 +88,8 @@ class _SetupSyncService implements EmailSyncService {
   EmailAccount? get account => null;
   @override
   Future<void> connect(EmailAccount a, String p) async {}
+  @override
+  Future<void> updateSenderFilters(List<String> f) async {}
   @override
   Future<List<EmailImportItem>> syncNow() async => const [];
   @override
@@ -255,6 +260,77 @@ void main() {
     expect(find.byType(TextField), findsWidgets);
   });
 
+  // --- Widget: the sender allowlist lists defaults and supports add/remove ---
+  testWidgets('Setup lists the sender allowlist and supports add + remove', (
+    WidgetTester tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
+    final db = LoopDatabase.forTesting(NativeDatabase.memory());
+    addTearDown(db.close);
+
+    await _pump(tester, const EmailSetupScreen(), prefs: prefs, db: db);
+
+    // The three seeded senders render.
+    expect(find.text('no-reply@grab.com'), findsOneWidget);
+    expect(find.text('info@card.vib.com.vn'), findsOneWidget);
+    expect(find.text('info@mail.shopee.vn'), findsOneWidget);
+
+    // Add a sender via the trailing field + submit.
+    await tester.enterText(find.byType(TextField).last, 'info@mail.lazada.vn');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pump();
+    expect(find.text('info@mail.lazada.vn'), findsOneWidget);
+
+    // Remove the first sender via its xmark control.
+    await tester.tap(find.byIcon(iconForSf('xmark')).first);
+    await tester.pump();
+    expect(find.text('no-reply@grab.com'), findsNothing);
+  });
+
+  // --- Widget: the allowlist flows into the connected account on Save --------
+  testWidgets('Setup carries the sender allowlist into the connected account', (
+    WidgetTester tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
+    final db = LoopDatabase.forTesting(NativeDatabase.memory());
+    addTearDown(db.close);
+
+    // Tall viewport so the lazy ListView builds the whole form (the sender
+    // section pushes Test/Save below an 800x600 fold otherwise).
+    tester.view.physicalSize = const Size(1200, 3000);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final service = MockEmailSyncService();
+    await _pump(
+      tester,
+      const EmailSetupScreen(),
+      prefs: prefs,
+      db: db,
+      service: service,
+    );
+
+    final fields = find.byType(TextField);
+    await tester.enterText(fields.at(0), 'me@gmail.com'); // email
+    await tester.enterText(fields.at(1), 'abcdefghijklmnop'); // app password
+
+    // Test must succeed before Save unlocks.
+    await tester.tap(find.text('Test connection'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+
+    expect(service.account, isNotNull);
+    expect(service.account!.senderFilters, const [
+      'no-reply@grab.com',
+      'info@card.vib.com.vn',
+      'info@mail.shopee.vn',
+    ]);
+  });
+
   // --- Container: syncNow materialises imports as Entries, deduped by ref -----
   test(
     'Dashboard syncNow writes imports as Entries and dedupes on re-sync',
@@ -310,6 +386,46 @@ void main() {
       expect(all, hasLength(2));
     },
   );
+
+  // --- Container: editing the allowlist persists without a reconnect --------
+  test('Dashboard setSenderFilters updates the account live (no reconnect)', () async {
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
+    final db = LoopDatabase.forTesting(NativeDatabase.memory());
+    addTearDown(db.close);
+
+    // A connected account (mock holds it in memory; same EmailSyncService seam).
+    final service = MockEmailSyncService();
+    await service.connect(
+      const EmailAccount(
+        address: 'me@gmail.com',
+        provider: Provider.gmail,
+        appPasswordRef: '',
+      ),
+      'abcd efgh ijkl mnop',
+    );
+
+    final container = ProviderContainer(
+      overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
+        loopDatabaseProvider.overrideWithValue(db),
+        emailSyncServiceProvider.overrideWithValue(service),
+        hapticsServiceProvider.overrideWithValue(_NoHaptics()),
+      ],
+    );
+    addTearDown(container.dispose);
+    container.listen(emailDashboardControllerProvider, (_, _) {});
+
+    final notifier = container.read(emailDashboardControllerProvider.notifier);
+    await notifier.setSenderFilters(const ['no-reply@grab.com', 'info@card.vib.com.vn']);
+
+    // The change lands on the connected account (so the next sync re-sends it)
+    // and on the dashboard state (so the UI reflects it) — no reconnect.
+    expect(service.account!.senderFilters,
+        const ['no-reply@grab.com', 'info@card.vib.com.vn']);
+    expect(container.read(emailDashboardControllerProvider).account!.senderFilters,
+        const ['no-reply@grab.com', 'info@card.vib.com.vn']);
+  });
 
   // --- Container: import counts come from email-sourced entries -------------
   test('Dashboard counts only email-sourced entries; month vs all-time', () async {
