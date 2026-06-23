@@ -11,6 +11,7 @@ import 'screens/entry/new_entry_sheet.dart';
 import 'screens/library/exercise_library_screen.dart';
 import 'screens/move/move_screen.dart';
 import 'screens/move/weekly_plan_screen.dart';
+import 'screens/move/workout_history_screen.dart';
 import 'screens/nutrition/nutrition_meal_detail_screen.dart';
 import 'screens/nutrition/nutrition_patterns_screen.dart';
 import 'screens/nutrition/nutrition_screen.dart';
@@ -66,6 +67,7 @@ enum AppRoute {
   // Move sub-routes.
   startWorkout('startWorkout', 'start'), //   U12 -> /move/start
   workoutDetail('workoutDetail', 'workout/:id'), // U15 -> /move/workout/:id
+  workoutHistory('workoutHistory', 'history'), //   -> /move/history
   routineEditor('routineEditor', 'routine-editor'), // U21b -> /move/routine-editor
 
   // Workout focus routes (full-screen, above the shell — no tab bar).
@@ -206,6 +208,11 @@ GoRouter createRouter({
                     name: AppRoute.workoutDetail.name,
                     builder: (context, state) => WorkoutDetailScreen(
                         workoutId: state.pathParameters['id']!),
+                  ),
+                  GoRoute(
+                    path: AppRoute.workoutHistory.path,
+                    name: AppRoute.workoutHistory.name,
+                    builder: (context, state) => const WorkoutHistoryScreen(),
                   ),
                   // U21b — Routine Editor. `routineId` query param absent =
                   // create new; present = edit that routine.

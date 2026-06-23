@@ -584,9 +584,7 @@ class _QuickLinks extends StatelessWidget {
           title: 'History & trends',
           value: 'All time',
           last: true,
-          // Same destination as the profile "All stats" row.
-          onTap: () => context.pushNamed(AppRoute.recap.name,
-              queryParameters: const {'range': 'week'}),
+          onTap: () => context.pushNamed(AppRoute.workoutHistory.name),
         ),
       ],
     );
@@ -620,15 +618,10 @@ class _RecentSessions extends StatelessWidget {
                       letterSpacing: 0.8),
                 ),
                 GestureDetector(
-                  // No history-list screen yet (not a v1 unit); jump to the
-                  // most recent session's detail when there is one.
-                  onTap: sessions.isEmpty
-                      ? null
-                      : () => context.pushNamed(AppRoute.workoutDetail.name,
-                          pathParameters: {'id': sessions.first.workout.id}),
+                  onTap: () => context.pushNamed(AppRoute.workoutHistory.name),
                   behavior: HitTestBehavior.opaque,
                   child: Text(
-                    'Latest',
+                    'See all',
                     style: AppType.footnote.copyWith(
                         fontWeight: FontWeight.w600,
                         color: c.accent,
