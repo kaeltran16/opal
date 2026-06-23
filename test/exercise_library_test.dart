@@ -11,6 +11,7 @@ import 'package:opal/models/models.dart';
 import 'package:opal/screens/library/exercise_library_screen.dart';
 import 'package:opal/theme/app_colors.dart';
 import 'package:opal/widgets/inset_section.dart';
+import 'package:opal/widgets/nav_bar.dart';
 
 /// Pumps the Exercise Library wrapped in a MaterialApp carrying the AppColors
 /// ThemeExtension (so `context.colors` resolves) + a ProviderScope whose DB is
@@ -55,7 +56,7 @@ void main() {
 
   setUp(() async {
     db = LoopDatabase.forTesting(NativeDatabase.memory());
-    // Seed the full catalog (~21 exercises across the 5 groups + routines).
+    // Seed the full catalog (~36 exercises across the 5 groups + routines).
     await Seeder(db).seedIfNeeded();
     // Snapshot the seeded catalog so the screen can be driven by a closed
     // stream (see `_pumpLibrary`) rather than a live drift subscription.
@@ -64,6 +65,14 @@ void main() {
 
   tearDown(() async {
     await db.close();
+  });
+
+  testWidgets('uses the shared large-title nav bar (matches sibling screens)',
+      (tester) async {
+    await _pumpLibrary(tester, db, catalog);
+
+    expect(find.byType(LargeTitleNavBar), findsOneWidget);
+    expect(find.text('Exercises'), findsOneWidget);
   });
 
   testWidgets('renders group-grouped sections with rows from the seed',

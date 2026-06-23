@@ -66,6 +66,7 @@ class _ExerciseLibraryScreenState extends ConsumerState<ExerciseLibraryScreen> {
   Widget build(BuildContext context) {
     final c = context.colors;
     final async = ref.watch(exercisesProvider);
+    final count = async.asData?.value.length;
 
     return Scaffold(
       backgroundColor: c.bg,
@@ -74,7 +75,15 @@ class _ExerciseLibraryScreenState extends ConsumerState<ExerciseLibraryScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _Header(count: async.asData?.value.length),
+            LargeTitleNavBar(
+              title: 'Exercises',
+              subtitle: count != null ? '$count in library' : null,
+              leading: NavAction(
+                icon: 'chevron.left',
+                onTap: () => context.pop(),
+                semanticLabel: 'Back',
+              ),
+            ),
             _SearchPill(
               controller: _searchController,
               onChanged: (v) => setState(() => _query = v),
@@ -128,48 +137,6 @@ class _ExerciseLibraryScreenState extends ConsumerState<ExerciseLibraryScreen> {
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-/// Title row with a back affordance (this is a root-level focus route).
-class _Header extends StatelessWidget {
-  const _Header({this.count});
-
-  /// Total catalog size for the "{N} in library" subtitle (null while loading).
-  final int? count;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.colors;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(
-          Spacing.sm, Spacing.sm, Spacing.lg, Spacing.xs),
-      child: Row(
-        children: [
-          NavAction(
-            icon: 'chevron.left',
-            label: 'Workout',
-            onTap: () => context.pop(),
-            semanticLabel: 'Back',
-          ),
-          const SizedBox(width: Spacing.xs),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Exercises',
-                    style: AppType.title2.copyWith(
-                        color: c.ink, letterSpacing: 0.35)),
-                if (count != null)
-                  Text('$count in library',
-                      style: AppType.caption
-                          .copyWith(color: c.ink3, letterSpacing: -0.08)),
-              ],
-            ),
-          ),
-        ],
       ),
     );
   }

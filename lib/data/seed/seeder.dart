@@ -4,47 +4,87 @@ import '../db/database.dart';
 import '../db/mappers.dart';
 import 'seed_data.dart';
 
-/// Populates the database with first-run content exactly once.
+/// Populates the database with first-run content, in two independently-guarded
+/// passes: [seedReferenceData] (the exercise catalog — always) and
+/// [seedDemoData] (a fake user's history — dev only).
 ///
-/// Idempotency is guarded by a row in the `seed_markers` table: if the marker
-/// is present, [seedIfNeeded] is a no-op. The whole seed runs in a single
-/// transaction, so a crash mid-seed won't leave a half-seeded DB marked done.
+/// Each pass is idempotent via its own row in the `seed_markers` table and runs
+/// in its own transaction, so a crash mid-pass won't leave it half-seeded but
+/// marked done, and the reference catalog never depends on the demo commit.
 class Seeder {
   Seeder(this._db);
 
   final LoopDatabase _db;
 
-  /// Marker key written once the initial seed completes.
+  /// Marker keys, written once each section's seed completes.
   ///
-  /// Bumped to `v7`: demo nutrition meals + a pending Thai Basil expense are
-  /// seeded, so DBs seeded under `initial_seed_v6` re-run (insertOrReplace)
-  /// and backfill the nutrition content.
-  static const String _markerKey = 'initial_seed_v7';
+  /// Split so reference data (the catalog) seeds on every launch while demo
+  /// content stays behind the dev `SEED_DATA` flag. Bump a key to re-run that
+  /// section (insertOrReplace) over an already-seeded DB.
+  static const String _catalogMarker = 'catalog_seed_v1';
+  static const String _demoMarker = 'demo_seed_v1';
 
-  /// Seeds the DB if it hasn't been seeded yet. Safe to call on every launch.
+  /// Seeds everything — reference catalog + demo history. Convenience for tests
+  /// and the dev launch; prod calls [seedReferenceData] alone.
   Future<void> seedIfNeeded() async {
-    final already = await (_db.select(_db.seedMarkers)
-          ..where((t) => t.key.equals(_markerKey)))
-        .getSingleOrNull();
-    if (already != null) return;
+    await seedReferenceData();
+    await seedDemoData();
+  }
 
+  /// Seeds the exercise catalog — reference data the app needs in every build
+  /// (routines/workouts/set_logs FK-reference it). Idempotent via
+  /// [_catalogMarker]. Ships PR-less: PRs are demo data, overlaid by
+  /// [seedDemoData].
+  Future<void> seedReferenceData() async {
+    if (await _isSeeded(_catalogMarker)) return;
     await _db.transaction(() async {
       // Double-check inside the transaction to avoid a race on concurrent
       // first-run opens.
-      final check = await (_db.select(_db.seedMarkers)
-            ..where((t) => t.key.equals(_markerKey)))
-          .getSingleOrNull();
-      if (check != null) return;
+      if (await _isSeeded(_catalogMarker)) return;
+
+      for (final e in SeedData.exercises()) {
+        await _db
+            .into(_db.exercises)
+            .insert(e.toCompanion(), mode: InsertMode.insertOrReplace);
+      }
+
+      // One-time cleanup of the pre-split combined marker.
+      await (_db.delete(_db.seedMarkers)
+            ..where((t) => t.key.like('initial_seed_%')))
+          .go();
+      await _writeMarker(_catalogMarker);
+    });
+  }
+
+  /// Seeds the demo user's first-run content (a fake history). Dev only.
+  /// Ensures the reference catalog exists first (FK targets), then overlays the
+  /// demo PRs onto it. Idempotent via [_demoMarker].
+  Future<void> seedDemoData() async {
+    // Demo routines/workouts FK-reference the catalog; guarantee it exists.
+    await seedReferenceData();
+
+    if (await _isSeeded(_demoMarker)) return;
+    await _db.transaction(() async {
+      if (await _isSeeded(_demoMarker)) return;
+
+      // Seed rows use insertOrReplace so a marker bump re-runs cleanly over an
+      // already-seeded DB without tripping primary-key conflicts on stable ids.
+      const replace = InsertMode.insertOrReplace;
+
+      // Overlay the demo user's PRs onto the (PR-less) reference catalog rows.
+      final byId = {for (final e in SeedData.exercises()) e.id: e};
+      for (final pr in SeedData.demoExercisePrs().entries) {
+        final base = byId[pr.key];
+        if (base == null) continue;
+        await _db
+            .into(_db.exercises)
+            .insert(base.copyWith(pr: pr.value).toCompanion(), mode: replace);
+      }
 
       // Goals (single row).
       await _db
           .into(_db.goalsTable)
-          .insert(SeedData.goals.toCompanion(), mode: InsertMode.insertOrReplace);
-
-      // Seed rows use insertOrReplace so a marker bump (e.g. v1 -> v2 for the
-      // expanded catalog) re-runs cleanly over an already-seeded DB without
-      // tripping primary-key conflicts on the stable seed ids.
-      const replace = InsertMode.insertOrReplace;
+          .insert(SeedData.goals.toCompanion(), mode: replace);
 
       // Ritual routines + their ordered steps.
       for (final routine in SeedData.ritualRoutines()) {
@@ -62,11 +102,6 @@ class Seeder {
       // Pal notes.
       for (final n in SeedData.palNotes()) {
         await _db.into(_db.palNotes).insert(n.toCompanion(), mode: replace);
-      }
-
-      // Exercises (catalog) — must precede routines/workouts (FK targets).
-      for (final e in SeedData.exercises()) {
-        await _db.into(_db.exercises).insert(e.toCompanion(), mode: replace);
       }
 
       // Routines + their ordered exercise slots.
@@ -115,15 +150,20 @@ class Seeder {
         await _db.into(_db.nutritionMeals).insert(meal.toCompanion(), mode: replace);
       }
 
-      // Mark done. Drop stale older `initial_seed_*` markers so version bumps
-      // don't accumulate dead rows, then write the current marker idempotently.
-      await (_db.delete(_db.seedMarkers)
-            ..where((t) => t.key.like('initial_seed_%') & t.key.equals(_markerKey).not()))
-          .go();
-      await _db.into(_db.seedMarkers).insert(
-            SeedMarkersCompanion.insert(key: _markerKey),
-            mode: InsertMode.insertOrReplace,
-          );
+      await _writeMarker(_demoMarker);
     });
   }
+
+  /// True when [key]'s marker row is present.
+  Future<bool> _isSeeded(String key) async {
+    final row = await (_db.select(_db.seedMarkers)
+          ..where((t) => t.key.equals(key)))
+        .getSingleOrNull();
+    return row != null;
+  }
+
+  Future<void> _writeMarker(String key) => _db.into(_db.seedMarkers).insert(
+        SeedMarkersCompanion.insert(key: key),
+        mode: InsertMode.insertOrReplace,
+      );
 }

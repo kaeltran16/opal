@@ -254,9 +254,12 @@ class SeedData {
         ),
       ];
 
-  /// The full exercise catalog, mirroring the handoff `workout-data.jsx`
-  /// `EXERCISES` table (~21 across Push / Pull / Legs / Core / Cardio).
-  /// Cardio entries have no PR (the prototype omits `pr` for them).
+  /// The exercise catalog — reference data shipped to every build (36 across
+  /// Push / Pull / Legs / Core / Cardio).
+  ///
+  /// Ships PR-less: PRs are user-derived, not catalog data. The demo user's
+  /// records are overlaid separately via [demoExercisePrs] in the dev seed only.
+  /// Icons reuse SF Symbols already present in the catalog.
   static List<Exercise> exercises() => const [
         // --- Push ---
         Exercise(
@@ -266,7 +269,6 @@ class SeedData {
           muscle: 'Chest',
           icon: 'figure.strengthtraining.traditional',
           equipment: 'Barbell',
-          pr: ExercisePR(weightKg: 92.5, reps: 5),
         ),
         Exercise(
           id: 'ohp',
@@ -275,7 +277,6 @@ class SeedData {
           muscle: 'Shoulders',
           icon: 'figure.strengthtraining.traditional',
           equipment: 'Barbell',
-          pr: ExercisePR(weightKg: 57.5, reps: 5),
         ),
         Exercise(
           id: 'incline-db',
@@ -284,7 +285,30 @@ class SeedData {
           muscle: 'Chest',
           icon: 'dumbbell.fill',
           equipment: 'Dumbbell',
-          pr: ExercisePR(weightKg: 32.5, reps: 8),
+        ),
+        Exercise(
+          id: 'flat-db-press',
+          name: 'Flat DB Press',
+          group: 'Push',
+          muscle: 'Chest',
+          icon: 'dumbbell.fill',
+          equipment: 'Dumbbell',
+        ),
+        Exercise(
+          id: 'cable-fly',
+          name: 'Cable Fly',
+          group: 'Push',
+          muscle: 'Chest',
+          icon: 'figure.strengthtraining.functional',
+          equipment: 'Cable',
+        ),
+        Exercise(
+          id: 'dips',
+          name: 'Dips',
+          group: 'Push',
+          muscle: 'Chest',
+          icon: 'figure.strengthtraining.functional',
+          equipment: 'Bodyweight',
         ),
         Exercise(
           id: 'tricep-rope',
@@ -293,7 +317,6 @@ class SeedData {
           muscle: 'Triceps',
           icon: 'figure.strengthtraining.functional',
           equipment: 'Cable',
-          pr: ExercisePR(weightKg: 35, reps: 12),
         ),
         Exercise(
           id: 'lateral-raise',
@@ -302,7 +325,6 @@ class SeedData {
           muscle: 'Shoulders',
           icon: 'dumbbell.fill',
           equipment: 'Dumbbell',
-          pr: ExercisePR(weightKg: 12.5, reps: 12),
         ),
 
         // --- Pull ---
@@ -313,7 +335,6 @@ class SeedData {
           muscle: 'Back',
           icon: 'figure.strengthtraining.traditional',
           equipment: 'Barbell',
-          pr: ExercisePR(weightKg: 142.5, reps: 3),
         ),
         Exercise(
           id: 'pullup',
@@ -322,7 +343,14 @@ class SeedData {
           muscle: 'Back',
           icon: 'figure.pullup',
           equipment: 'Bodyweight',
-          pr: ExercisePR(weightKg: 0, reps: 11),
+        ),
+        Exercise(
+          id: 'lat-pulldown',
+          name: 'Lat Pulldown',
+          group: 'Pull',
+          muscle: 'Back',
+          icon: 'figure.strengthtraining.functional',
+          equipment: 'Cable',
         ),
         Exercise(
           id: 'barbell-row',
@@ -331,7 +359,14 @@ class SeedData {
           muscle: 'Back',
           icon: 'figure.strengthtraining.traditional',
           equipment: 'Barbell',
-          pr: ExercisePR(weightKg: 77.5, reps: 6),
+        ),
+        Exercise(
+          id: 'seated-cable-row',
+          name: 'Seated Cable Row',
+          group: 'Pull',
+          muscle: 'Back',
+          icon: 'figure.strengthtraining.functional',
+          equipment: 'Cable',
         ),
         Exercise(
           id: 'face-pull',
@@ -340,7 +375,14 @@ class SeedData {
           muscle: 'Rear Delts',
           icon: 'figure.strengthtraining.functional',
           equipment: 'Cable',
-          pr: ExercisePR(weightKg: 30, reps: 15),
+        ),
+        Exercise(
+          id: 'barbell-shrug',
+          name: 'Barbell Shrug',
+          group: 'Pull',
+          muscle: 'Traps',
+          icon: 'figure.strengthtraining.traditional',
+          equipment: 'Barbell',
         ),
         Exercise(
           id: 'bicep-curl',
@@ -349,7 +391,14 @@ class SeedData {
           muscle: 'Biceps',
           icon: 'dumbbell.fill',
           equipment: 'Dumbbell',
-          pr: ExercisePR(weightKg: 17.5, reps: 10),
+        ),
+        Exercise(
+          id: 'hammer-curl',
+          name: 'Hammer Curl',
+          group: 'Pull',
+          muscle: 'Biceps',
+          icon: 'dumbbell.fill',
+          equipment: 'Dumbbell',
         ),
 
         // --- Legs ---
@@ -360,7 +409,6 @@ class SeedData {
           muscle: 'Quads',
           icon: 'figure.strengthtraining.traditional',
           equipment: 'Barbell',
-          pr: ExercisePR(weightKg: 115, reps: 5),
         ),
         Exercise(
           id: 'rdl',
@@ -369,7 +417,6 @@ class SeedData {
           muscle: 'Hamstrings',
           icon: 'figure.strengthtraining.traditional',
           equipment: 'Barbell',
-          pr: ExercisePR(weightKg: 95, reps: 8),
         ),
         Exercise(
           id: 'leg-press',
@@ -378,16 +425,38 @@ class SeedData {
           muscle: 'Quads',
           icon: 'figure.strengthtraining.functional',
           equipment: 'Machine',
-          pr: ExercisePR(weightKg: 180, reps: 10),
         ),
         Exercise(
-          id: 'calf-raise',
-          name: 'Standing Calf Raise',
+          id: 'leg-extension',
+          name: 'Leg Extension',
           group: 'Legs',
-          muscle: 'Calves',
+          muscle: 'Quads',
           icon: 'figure.strengthtraining.functional',
           equipment: 'Machine',
-          pr: ExercisePR(weightKg: 80, reps: 15),
+        ),
+        Exercise(
+          id: 'leg-curl',
+          name: 'Leg Curl',
+          group: 'Legs',
+          muscle: 'Hamstrings',
+          icon: 'figure.strengthtraining.functional',
+          equipment: 'Machine',
+        ),
+        Exercise(
+          id: 'hip-thrust',
+          name: 'Hip Thrust',
+          group: 'Legs',
+          muscle: 'Glutes',
+          icon: 'figure.strengthtraining.traditional',
+          equipment: 'Barbell',
+        ),
+        Exercise(
+          id: 'bulgarian-split-squat',
+          name: 'Bulgarian Split Squat',
+          group: 'Legs',
+          muscle: 'Quads',
+          icon: 'figure.walk',
+          equipment: 'Dumbbell',
         ),
         Exercise(
           id: 'walking-lunge',
@@ -396,7 +465,14 @@ class SeedData {
           muscle: 'Quads',
           icon: 'figure.walk',
           equipment: 'Dumbbell',
-          pr: ExercisePR(weightKg: 20, reps: 12),
+        ),
+        Exercise(
+          id: 'calf-raise',
+          name: 'Standing Calf Raise',
+          group: 'Legs',
+          muscle: 'Calves',
+          icon: 'figure.strengthtraining.functional',
+          equipment: 'Machine',
         ),
 
         // --- Core ---
@@ -407,7 +483,6 @@ class SeedData {
           muscle: 'Core',
           icon: 'figure.core.training',
           equipment: 'Bodyweight',
-          pr: ExercisePR(weightKg: 0, reps: 90),
         ),
         Exercise(
           id: 'hanging-leg',
@@ -416,10 +491,41 @@ class SeedData {
           muscle: 'Abs',
           icon: 'figure.core.training',
           equipment: 'Bodyweight',
-          pr: ExercisePR(weightKg: 0, reps: 12),
+        ),
+        Exercise(
+          id: 'crunch',
+          name: 'Crunch',
+          group: 'Core',
+          muscle: 'Abs',
+          icon: 'figure.core.training',
+          equipment: 'Bodyweight',
+        ),
+        Exercise(
+          id: 'cable-crunch',
+          name: 'Cable Crunch',
+          group: 'Core',
+          muscle: 'Abs',
+          icon: 'figure.core.training',
+          equipment: 'Cable',
+        ),
+        Exercise(
+          id: 'russian-twist',
+          name: 'Russian Twist',
+          group: 'Core',
+          muscle: 'Obliques',
+          icon: 'figure.core.training',
+          equipment: 'Bodyweight',
+        ),
+        Exercise(
+          id: 'ab-wheel',
+          name: 'Ab Wheel Rollout',
+          group: 'Core',
+          muscle: 'Core',
+          icon: 'figure.core.training',
+          equipment: 'Bodyweight',
         ),
 
-        // --- Cardio (no PR) ---
+        // --- Cardio ---
         Exercise(
           id: 'treadmill',
           name: 'Treadmill Run',
@@ -453,6 +559,29 @@ class SeedData {
           equipment: 'Machine',
         ),
       ];
+
+  /// The demo user's personal records, keyed by exercise id. Overlaid onto the
+  /// (PR-less) reference catalog by the dev seed only — see [Seeder.seedDemoData].
+  /// These are the baseline volumes PR detection compares against in a session.
+  static Map<String, ExercisePR> demoExercisePrs() => const {
+        'bench': ExercisePR(weightKg: 92.5, reps: 5),
+        'ohp': ExercisePR(weightKg: 57.5, reps: 5),
+        'incline-db': ExercisePR(weightKg: 32.5, reps: 8),
+        'tricep-rope': ExercisePR(weightKg: 35, reps: 12),
+        'lateral-raise': ExercisePR(weightKg: 12.5, reps: 12),
+        'deadlift': ExercisePR(weightKg: 142.5, reps: 3),
+        'pullup': ExercisePR(weightKg: 0, reps: 11),
+        'barbell-row': ExercisePR(weightKg: 77.5, reps: 6),
+        'face-pull': ExercisePR(weightKg: 30, reps: 15),
+        'bicep-curl': ExercisePR(weightKg: 17.5, reps: 10),
+        'squat': ExercisePR(weightKg: 115, reps: 5),
+        'rdl': ExercisePR(weightKg: 95, reps: 8),
+        'leg-press': ExercisePR(weightKg: 180, reps: 10),
+        'calf-raise': ExercisePR(weightKg: 80, reps: 15),
+        'walking-lunge': ExercisePR(weightKg: 20, reps: 12),
+        'plank': ExercisePR(weightKg: 0, reps: 90),
+        'hanging-leg': ExercisePR(weightKg: 0, reps: 12),
+      };
 
   /// Sample routines from the handoff `ROUTINES` table (Push / Pull / Legs +
   /// an upper-power custom + a cardio interval). Targets derive from the
