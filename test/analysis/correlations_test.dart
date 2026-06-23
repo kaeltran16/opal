@@ -142,7 +142,7 @@ void main() {
 
     test('money sums expense magnitude per day; income ignored', () {
       final v = buildDailyVectors(
-          [money(1, -10), money(1, -5), money(1, 100)], const [],
+          [money(1, -10), money(1, -5), money(1, 100)], const [], const [], const [],
           now: now);
       final key = _ord(now.subtract(const Duration(days: 1)));
       expect(v[Dimension.money]!.byDay[key], 15.0);
@@ -150,7 +150,7 @@ void main() {
 
     test('move days are 0-filled within the active span', () {
       // a move 3 days ago and one today -> day between is a real 0.
-      final v = buildDailyVectors([move(3, 200), move(0, 200)], const [],
+      final v = buildDailyVectors([move(3, 200), move(0, 200)], const [], const [], const [],
           now: now);
       expect(v[Dimension.move]!.byDay[_ord(now.subtract(const Duration(days: 1)))],
           0.0);
@@ -172,10 +172,54 @@ void main() {
           fat: IntRange(0, 0),
         ),
       );
-      final v = buildDailyVectors([move(0, 200)], [meal], now: now);
+      final v = buildDailyVectors([move(0, 200)], [meal], const [], const [], now: now);
       expect(v[Dimension.nutrition]!.byDay.length, 1);
       expect(v[Dimension.nutrition]!.byDay[_ord(now.subtract(const Duration(days: 2)))],
           500.0); // cal.mid
+    });
+
+    test('label/format switches cover sleep & mood', () {
+      expect(dimensionNoun(Dimension.sleep), 'sleep');
+      expect(dimensionNoun(Dimension.mood), 'mood');
+      expect(activeDayLabel(Dimension.sleep), 'short nights');
+      expect(inactiveDayLabel(Dimension.sleep), 'other nights');
+      expect(formatValue(Dimension.sleep, 414), '6h 54m');
+      expect(formatValue(Dimension.mood, 0.64), 'Slightly pleasant (0.64)');
+    });
+
+    test('sleep attributed to the next day; short-night split + means', () {
+      final nights = [
+        SleepNight(id: '1', night: DateTime(2026, 6, 1), asleepMinutes: 360,
+          inBedMinutes: 380, bedtime: '1:00', wake: '7:00', deepMinutes: 40,
+          remMinutes: 80, coreMinutes: 240, awakeMinutes: 20, wakes: 2,
+          source: EntrySource.health),
+        SleepNight(id: '2', night: DateTime(2026, 6, 2), asleepMinutes: 450,
+          inBedMinutes: 470, bedtime: '23:00', wake: '7:00', deepMinutes: 70,
+          remMinutes: 100, coreMinutes: 280, awakeMinutes: 20, wakes: 1,
+          source: EntrySource.health),
+      ];
+      final entries = [
+        Entry(id: 'm1', timestamp: DateTime(2026, 6, 2, 9), type: EntryType.money,
+          title: 'x', amount: -80, source: EntrySource.manual),
+        Entry(id: 'm2', timestamp: DateTime(2026, 6, 3, 9), type: EntryType.money,
+          title: 'y', amount: -20, source: EntrySource.manual),
+      ];
+      final vectors = buildDailyVectors(entries, const [], nights, const [],
+          now: DateTime(2026, 6, 3));
+      final sleep = vectors[Dimension.sleep]!.byDay;
+      expect(sleep[20260602], 360);
+      expect(sleep[20260603], 450);
+    });
+
+    test('mood daily mean is sparse (only days with a check-in)', () {
+      final moods = [
+        MoodCheckin(id: 'a', timestamp: DateTime(2026, 6, 2, 8), pleasantness: 0.4, source: EntrySource.manual),
+        MoodCheckin(id: 'b', timestamp: DateTime(2026, 6, 2, 20), pleasantness: 0.6, source: EntrySource.manual),
+      ];
+      final v = buildDailyVectors(const [], const [], const [], moods,
+          now: DateTime(2026, 6, 3));
+      expect(v[Dimension.mood]!.byDay[20260602], closeTo(0.5, 1e-9));
+      expect(v[Dimension.mood]!.byDay.containsKey(20260603), isFalse);
     });
   });
 }

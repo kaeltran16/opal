@@ -22,7 +22,8 @@ class Seeder {
   /// content stays behind the dev `SEED_DATA` flag. Bump a key to re-run that
   /// section (insertOrReplace) over an already-seeded DB.
   static const String _catalogMarker = 'catalog_seed_v1';
-  static const String _demoMarker = 'demo_seed_v1';
+  // bump triggers a re-seed over existing dev DBs (sleep/mood tables now seeded).
+  static const String _demoMarker = 'demo_seed_v2';
 
   /// Seeds everything — reference catalog + demo history. Convenience for tests
   /// and the dev launch; prod calls [seedReferenceData] alone.
@@ -148,6 +149,15 @@ class Seeder {
       // Nutrition meals (no FK; standalone).
       for (final meal in SeedData.nutritionMeals()) {
         await _db.into(_db.nutritionMeals).insert(meal.toCompanion(), mode: replace);
+      }
+
+      // Sleep nights (no FK; standalone).
+      for (final n in SeedData.sleepNights()) {
+        await _db.into(_db.sleepNights).insert(n.toCompanion(), mode: replace);
+      }
+      // Mood check-ins (no FK; standalone).
+      for (final c in SeedData.moodCheckins()) {
+        await _db.into(_db.moodCheckins).insert(c.toCompanion(), mode: replace);
       }
 
       await _writeMarker(_demoMarker);

@@ -40,4 +40,21 @@ void main() {
     final mixed = c.lerp(AppColors.dark(AppAccent.indigo), 1.0);
     expect(mixed.nutrition, const Color(0xFF3FD0E0));
   });
+
+  test('sleep & mood tokens resolve via forType in both brightnesses', () {
+    final light = AppColors.light(AppAccent.blue);
+    final dark = AppColors.dark(AppAccent.blue);
+    expect(light.forType('sleep'), const Color(0xFF5B6CDB));
+    expect(light.forType('mood'), const Color(0xFF2FA6BC));
+    expect(dark.forType('sleep'), const Color(0xFF8491F0));
+    expect(dark.forType('mood'), const Color(0xFF56C2DA));
+  });
+
+  test('lerp interpolates sleep & mood tokens', () {
+    final a = AppColors.light(AppAccent.blue);
+    final b = AppColors.dark(AppAccent.blue);
+    final mid = a.lerp(b, 0.5) as AppColors;
+    expect(mid.sleep, isNot(a.sleep)); // proves sleep is in lerp
+    expect(mid.mood, isNot(a.mood));
+  });
 }

@@ -299,6 +299,47 @@ class NutritionMeals extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+/// One night of sleep, synced read-only from Apple Health. `night` is the
+/// calendar date the user woke on (the morning's date).
+@DataClassName('SleepNightRow')
+class SleepNights extends Table {
+  TextColumn get id => text()();
+  DateTimeColumn get night => dateTime()();
+  IntColumn get asleepMinutes => integer()();
+  IntColumn get inBedMinutes => integer()();
+  TextColumn get bedtime => text()();
+  TextColumn get wake => text()();
+  IntColumn get deepMinutes => integer()();
+  IntColumn get remMinutes => integer()();
+  IntColumn get coreMinutes => integer()();
+  IntColumn get awakeMinutes => integer()();
+  IntColumn get wakes => integer().withDefault(const Constant(0))();
+
+  /// [EntrySource.wire] — 'health'.
+  TextColumn get source => text()();
+
+  /// Health sample UUID (dedup); null for seed.
+  TextColumn get sourceRef => text().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+/// One user-logged mood check-in. `pleasantness` is the 0..1 scale position.
+@DataClassName('MoodCheckinRow')
+class MoodCheckins extends Table {
+  TextColumn get id => text()();
+  DateTimeColumn get timestamp => dateTime()();
+  RealColumn get pleasantness => real()();
+  TextColumn get tag => text().nullable()();
+
+  /// [EntrySource.wire] — 'manual'.
+  TextColumn get source => text()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 /// Per-category monthly budget envelopes, ordered by [position].
 ///
 /// Each row caps one spending category; expense entries are matched to an

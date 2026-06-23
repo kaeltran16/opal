@@ -88,8 +88,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // The strength chip text proves CorrelationCard rendered, independent of narration.
-    expect(find.textContaining('Based on'), findsOneWidget);
+    // PAL NOTICED eyebrow proves CorrelationCard rendered, independent of narration.
+    expect(find.text('PAL NOTICED'), findsOneWidget);
 
     await flushProviderTimers(tester);
   });

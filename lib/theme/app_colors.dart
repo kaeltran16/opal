@@ -62,6 +62,10 @@ class AppColors extends ThemeExtension<AppColors> {
     required this.ritualsTint,
     required this.nutrition,
     required this.nutritionTint,
+    required this.sleep,
+    required this.sleepTint,
+    required this.mood,
+    required this.moodTint,
     required this.accent,
     required this.accentTint,
     required this.red,
@@ -78,6 +82,8 @@ class AppColors extends ThemeExtension<AppColors> {
   final Color move, moveTint;
   final Color rituals, ritualsTint;
   final Color nutrition, nutritionTint;
+  final Color sleep, sleepTint;
+  final Color mood, moodTint;
   final Color accent, accentTint;
   final Color red;
   final Color onAccent;
@@ -90,6 +96,8 @@ class AppColors extends ThemeExtension<AppColors> {
         'move' => move,
         'rituals' => rituals,
         'nutrition' => nutrition,
+        'sleep' => sleep,
+        'mood' => mood,
         _ => accent,
       };
 
@@ -115,6 +123,10 @@ class AppColors extends ThemeExtension<AppColors> {
       ritualsTint: const Color.fromRGBO(175, 82, 222, 0.14),
       nutrition: const Color(0xFF0FB5C9),
       nutritionTint: const Color.fromRGBO(15, 181, 201, 0.14),
+      sleep: const Color(0xFF5B6CDB),
+      sleepTint: const Color.fromRGBO(91, 108, 219, 0.14),
+      mood: const Color(0xFF2FA6BC),
+      moodTint: const Color.fromRGBO(47, 166, 188, 0.14),
       accent: a,
       accentTint: a.withValues(alpha: 0.14),
       red: const Color(0xFFFF3B30),
@@ -146,6 +158,10 @@ class AppColors extends ThemeExtension<AppColors> {
       ritualsTint: const Color.fromRGBO(191, 90, 242, 0.18),
       nutrition: const Color(0xFF3FD0E0),
       nutritionTint: const Color.fromRGBO(63, 208, 224, 0.18),
+      sleep: const Color(0xFF8491F0),
+      sleepTint: const Color.fromRGBO(132, 145, 240, 0.20),
+      mood: const Color(0xFF56C2DA),
+      moodTint: const Color.fromRGBO(86, 194, 218, 0.20),
       accent: a,
       accentTint: a.withValues(alpha: 0.18),
       red: const Color(0xFFFF453A),
@@ -174,6 +190,8 @@ class AppColors extends ThemeExtension<AppColors> {
       move: base.move, moveTint: base.moveTint,
       rituals: base.rituals, ritualsTint: base.ritualsTint,
       nutrition: base.nutrition, nutritionTint: base.nutritionTint,
+      sleep: base.sleep, sleepTint: base.sleepTint,
+      mood: base.mood, moodTint: base.moodTint,
       accent: a,
       accentTint: a.withValues(alpha: dark ? 0.18 : 0.14),
       red: base.red,
@@ -207,6 +225,10 @@ class AppColors extends ThemeExtension<AppColors> {
       ritualsTint: c(ritualsTint, other.ritualsTint),
       nutrition: c(nutrition, other.nutrition),
       nutritionTint: c(nutritionTint, other.nutritionTint),
+      sleep: c(sleep, other.sleep),
+      sleepTint: c(sleepTint, other.sleepTint),
+      mood: c(mood, other.mood),
+      moodTint: c(moodTint, other.moodTint),
       accent: c(accent, other.accent),
       accentTint: c(accentTint, other.accentTint),
       red: c(red, other.red),

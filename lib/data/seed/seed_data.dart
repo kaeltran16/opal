@@ -1010,6 +1010,12 @@ class SeedData {
           category: 'Food & Drink',
           source: EntrySource.email,
         ),
+
+        // --- Backfill: 29 days of money + ritual entries for correlation engine ---
+        // Short nights attributed to daysAgo 0,3,6,9,12,15,19,24 — those days
+        // carry higher spend (~$65–72) vs normal-night days (~$30–37).
+        // Today (daysAgo=0) already has ~$85 in the entries above.
+        ..._backfillMoneyAndRituals(),
       ];
 
   /// Four demo nutrition meals (design's m1–m4), anchored to today so the
@@ -1070,6 +1076,220 @@ class SeedData {
           linkedEntryId: 'seed-entry-groceries',
         ),
       ];
+
+  // ---------------------------------------------------------------------------
+  // Backfill helpers (sleep/mood correlation window)
+  // ---------------------------------------------------------------------------
+
+  /// Generates 29 days of money + ritual entries (daysAgo 1..29) so the
+  /// correlation engine has ≥21 paired days for Sleep×Spending and Mood×Ritual.
+  ///
+  /// Money amounts are calibrated against [sleepNights]: days whose night was
+  /// short (daysAgo 1,4,7,10,13,16,20,25 → attributed to daysAgo 0,3,6,9,12,
+  /// 15,19,24) carry higher spend ($64–72); all other days carry lower spend
+  /// ($30–37). Today (daysAgo 0) is covered by the existing entries above.
+  ///
+  /// Ritual days (daysAgo 1,2,3,5,6,8,9,11,12,14,15,17,18,20,21,23,24,26,27)
+  /// get 5 morning-step completions each; skipped days contribute nothing
+  /// (the 0-fill in buildDailyVectors handles those).
+  static List<Entry> _backfillMoneyAndRituals() {
+    // spend per daysAgo 1..29; index 0 = daysAgo 1.
+    // daysAgo 3,6,9,12,15,19,24 are "after short night" → higher spend.
+    // daysAgo 0 (today) is handled by existing entries; not in this list.
+    const spendByDaysAgo = <int, double>{
+      1: 33.00,
+      2: 35.00,
+      3: 66.50, // after short night
+      4: 36.00,
+      5: 30.00,
+      6: 71.00, // after short night
+      7: 34.00,
+      8: 37.00,
+      9: 64.20, // after short night
+      10: 31.00,
+      11: 36.00,
+      12: 68.80, // after short night
+      13: 32.00,
+      14: 34.00,
+      15: 70.50, // after short night
+      16: 33.00,
+      17: 36.00,
+      18: 30.00,
+      19: 65.30, // after short night
+      20: 34.00,
+      21: 37.00,
+      22: 31.00,
+      23: 35.00,
+      24: 72.00, // after short night
+      25: 33.00,
+      26: 36.00,
+      27: 30.00,
+      28: 35.00,
+      29: 32.00,
+    };
+
+    // days with morning ritual completed (5 steps each).
+    const ritualDays = {1, 2, 3, 5, 6, 8, 9, 11, 12, 14, 15, 17, 18, 20, 21, 23, 24, 26, 27};
+
+    final entries = <Entry>[];
+    for (final e in spendByDaysAgo.entries) {
+      final d = e.key;
+      entries.add(Entry(
+        id: 'seed-spend-d$d',
+        timestamp: _daysAgoAt(d, 12, 0),
+        type: EntryType.money,
+        title: 'Daily spend',
+        detail: 'auto-seeded',
+        amount: -e.value,
+        category: 'Food & Drink',
+        source: EntrySource.manual,
+      ));
+    }
+    for (final d in ritualDays) {
+      for (var step = 0; step < 5; step++) {
+        entries.add(Entry(
+          id: 'seed-ritual-d${d}-s$step',
+          timestamp: _daysAgoAt(d, 7, step * 5),
+          type: EntryType.rituals,
+          title: 'Morning step ${step + 1}',
+          detail: 'Morning · step ${step + 1}',
+          ritualId: 'morning-step-$step',
+          source: EntrySource.manual,
+        ));
+      }
+    }
+    return entries;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Sleep nights — 30 nights; engineered so short nights precede high-spend days
+  // ---------------------------------------------------------------------------
+
+  /// 30 nights ending last night. [SleepNight.night] is the calendar date of
+  /// the sleep session; [buildDailyVectors] attributes it to night+1 for
+  /// same-day pairing with money. Short nights (asleepMinutes < 390) at
+  /// daysAgo 4,7,10,13,16,20,25 are attributed to the higher-spend days.
+  static List<SleepNight> sleepNights() {
+    // (daysAgo, asleepMin, inBedMin, bedtime, wake, deep, rem, core, awake, wakes)
+    const nights = <(int, int, int, String, String, int, int, int, int, int)>[
+      // last night — prescribed (asleep 432, normal; today's high spend is an outlier
+      // the correlation absorbs — estimated |r| still ~0.84 across 30 nights).
+      (1, 432, 450, '23:32', '7:02', 64, 98, 270, 18, 2),
+      // short nights — asleepMinutes < 390 (kShortNightMinutes = 390),
+      // each attributed to a higher-spend day via night+1 mapping.
+      (4, 355, 375, '0:18', '6:13', 48, 82, 225, 20, 3),
+      (7, 342, 362, '0:42', '6:24', 44, 76, 222, 20, 3),
+      (10, 368, 388, '23:55', '6:03', 52, 88, 228, 20, 2),
+      (13, 348, 368, '0:30', '6:18', 46, 80, 222, 20, 3),
+      (16, 362, 382, '0:12', '6:14', 50, 85, 227, 20, 3),
+      (20, 350, 370, '0:38', '6:28', 45, 78, 227, 20, 3),
+      (25, 375, 395, '23:48', '6:03', 55, 90, 230, 20, 2),
+      // normal nights — asleepMinutes 415–468
+      (2, 438, 455, '23:10', '6:48', 68, 102, 268, 17, 1),
+      (3, 452, 468, '22:55', '6:47', 72, 108, 272, 16, 1),
+      (5, 445, 462, '23:05', '6:50', 70, 105, 270, 17, 1),
+      (6, 420, 438, '23:22', '6:42', 64, 98, 258, 18, 2),
+      (8, 456, 472, '22:52', '6:48', 74, 110, 272, 16, 1),
+      (9, 418, 436, '23:18', '6:36', 63, 96, 259, 18, 2),
+      (11, 462, 478, '22:48', '6:50', 76, 112, 274, 16, 1),
+      (12, 428, 445, '23:15', '6:43', 66, 100, 262, 17, 2),
+      (14, 448, 465, '23:00', '6:48', 71, 107, 270, 17, 1),
+      (15, 415, 433, '23:20', '6:35', 62, 95, 258, 18, 2),
+      (17, 460, 476, '22:50', '6:50', 75, 111, 274, 16, 1),
+      (18, 435, 452, '23:12', '6:47', 68, 103, 264, 17, 1),
+      (19, 422, 440, '23:16', '6:38', 64, 97, 261, 18, 2),
+      (21, 458, 474, '22:52', '6:50', 74, 110, 274, 16, 1),
+      (22, 442, 458, '23:08', '6:50', 69, 105, 268, 17, 1),
+      (23, 430, 448, '23:14', '6:44', 67, 101, 262, 17, 2),
+      (24, 452, 468, '23:00', '6:52', 72, 108, 272, 16, 1),
+      (26, 438, 455, '23:10', '6:48', 68, 102, 268, 17, 1),
+      (27, 455, 470, '22:58', '6:53', 73, 109, 273, 16, 1),
+      (28, 425, 442, '23:18', '6:43', 65, 99, 261, 17, 2),
+      (29, 446, 463, '23:05', '6:51', 71, 107, 268, 17, 1),
+      (30, 440, 457, '23:10', '6:50', 69, 104, 267, 17, 1),
+    ];
+
+    return [
+      for (final (d, asleep, inBed, bed, wake, deep, rem, core, awake, wakes) in nights)
+        SleepNight(
+          id: 'seed-sleep-$d',
+          night: _daysAgoAt(d, 0, 0),
+          asleepMinutes: asleep,
+          inBedMinutes: inBed,
+          bedtime: bed,
+          wake: wake,
+          deepMinutes: deep,
+          remMinutes: rem,
+          coreMinutes: core,
+          awakeMinutes: awake,
+          wakes: wakes,
+          source: EntrySource.health,
+        ),
+    ];
+  }
+
+  // ---------------------------------------------------------------------------
+  // Mood check-ins — calibrated against ritual days
+  // ---------------------------------------------------------------------------
+
+  /// One+ check-ins per day for 30 days. On ritual days (where morning steps
+  /// were logged) pleasantness is higher (0.62–0.72); on skipped days it is
+  /// lower (0.36–0.46). Today has three check-ins matching the prototype hero.
+  static List<MoodCheckin> moodCheckins() {
+    // ritual days: 0,1,2,3,5,6,8,9,11,12,14,15,17,18,20,21,23,24,26,27
+    // skipped days: 4,7,10,13,16,19,22,25,28,29 — lower pleasantness entries below.
+
+    // (daysAgo, hour, min, pleasantness, tag)
+    final specs = <(int, int, int, double, String?)>[
+      // today — three check-ins matching prototype hero (prescribed)
+      (0, 8, 5, 0.46, 'Tired'),
+      (0, 13, 40, 0.62, 'Calm'),
+      (0, 21, 12, 0.70, 'Calm'),
+      // prior days — one mid-day check-in each
+      (1, 13, 15, 0.65, null),
+      (2, 13, 20, 0.68, null),
+      (3, 13, 10, 0.63, null),
+      (4, 13, 30, 0.42, null), // skipped ritual
+      (5, 13, 5, 0.66, null),
+      (6, 13, 25, 0.71, null),
+      (7, 13, 15, 0.38, null), // skipped
+      (8, 13, 20, 0.67, null),
+      (9, 13, 10, 0.64, null),
+      (10, 13, 30, 0.44, null), // skipped
+      (11, 13, 5, 0.69, null),
+      (12, 13, 25, 0.65, null),
+      (13, 13, 15, 0.40, null), // skipped
+      (14, 13, 20, 0.70, null),
+      (15, 13, 10, 0.63, null),
+      (16, 13, 30, 0.43, null), // skipped
+      (17, 13, 5, 0.68, null),
+      (18, 13, 25, 0.66, null),
+      (19, 13, 15, 0.37, null), // skipped
+      (20, 13, 20, 0.72, null),
+      (21, 13, 10, 0.65, null),
+      (22, 13, 30, 0.45, null), // skipped
+      (23, 13, 5, 0.67, null),
+      (24, 13, 25, 0.70, null),
+      (25, 13, 15, 0.41, null), // skipped
+      (26, 13, 20, 0.64, null),
+      (27, 13, 10, 0.69, null),
+      (28, 13, 30, 0.46, null), // skipped
+      (29, 13, 5, 0.39, null), // skipped
+    ];
+
+    final result = <MoodCheckin>[];
+    for (var i = 0; i < specs.length; i++) {
+      final (d, h, m, p, tag) = specs[i];
+      result.add(MoodCheckin(
+        id: 'seed-mood-$i',
+        timestamp: _daysAgoAt(d, h, m),
+        pleasantness: p,
+        tag: tag,
+        source: EntrySource.manual,
+      ));
+    }
+    return result;
+  }
 
   /// The seven default per-category budget envelopes, position-ordered. Their
   /// categories are the canonical [kSpendCategories]; seed money [entries] use

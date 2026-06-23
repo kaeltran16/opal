@@ -9,6 +9,7 @@ import 'package:go_router/go_router.dart';
 import 'controllers/health_sync_controller.dart';
 import 'controllers/notification_reconcile_controller.dart';
 import 'controllers/providers.dart';
+import 'controllers/sleep_sync_controller.dart';
 import 'controllers/widget_sync_controller.dart';
 import 'router.dart';
 import 'theme/app_colors.dart';
@@ -50,6 +51,8 @@ class _LoopAppState extends ConsumerState<LoopApp> {
       ref.read(widgetSyncControllerProvider);
       // Pull today's Apple Watch active energy into a health-sourced move entry.
       ref.read(healthSyncControllerProvider);
+      // Pull the last 30 nights from Apple Health into the sleep repository.
+      ref.read(sleepSyncControllerProvider);
       // Bring scheduled ritual reminders in line with the persisted toggle/time.
       ref.read(notificationReconcileControllerProvider);
     }

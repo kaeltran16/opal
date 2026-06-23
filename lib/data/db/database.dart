@@ -26,6 +26,8 @@ part 'database.g.dart';
     WeeklyPlanDays,
     BudgetEnvelopes,
     NutritionMeals,
+    SleepNights,
+    MoodCheckins,
   ],
 )
 class LoopDatabase extends _$LoopDatabase {
@@ -36,7 +38,7 @@ class LoopDatabase extends _$LoopDatabase {
   LoopDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 8;
+  int get schemaVersion => 9;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -75,6 +77,10 @@ class LoopDatabase extends _$LoopDatabase {
         //
         // v7 -> v8: new nutrition_meals table backs the Nutrition tracker. Brand-new table;
         // creating it leaves existing data untouched; the seeder (marker bump) populates demo meals.
+        //
+        // v8 -> v9: new sleep_nights + mood_checkins tables back the Sleep &
+        // Mood dimensions. Brand-new tables; creating them leaves existing data
+        // untouched; the seeder (marker bump) populates demo nights/check-ins.
         onUpgrade: (m, from, to) async {
           if (from < 2) {
             await customStatement('DROP TABLE IF EXISTS rituals');
@@ -104,6 +110,10 @@ class LoopDatabase extends _$LoopDatabase {
           }
           if (from < 8) {
             await m.createTable(nutritionMeals);
+          }
+          if (from < 9) {
+            await m.createTable(sleepNights);
+            await m.createTable(moodCheckins);
           }
         },
         beforeOpen: (details) async {

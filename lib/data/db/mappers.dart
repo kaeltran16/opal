@@ -387,3 +387,67 @@ extension GoalsModelMapper on Goals {
         dailyRitualTarget: Value(dailyRitualTarget),
       );
 }
+
+// ---------------------------------------------------------------------------
+// SleepNight
+// ---------------------------------------------------------------------------
+
+extension SleepNightRowMapper on SleepNightRow {
+  SleepNight toModel() => SleepNight(
+        id: id,
+        night: night,
+        asleepMinutes: asleepMinutes,
+        inBedMinutes: inBedMinutes,
+        bedtime: bedtime,
+        wake: wake,
+        deepMinutes: deepMinutes,
+        remMinutes: remMinutes,
+        coreMinutes: coreMinutes,
+        awakeMinutes: awakeMinutes,
+        wakes: wakes,
+        source: EntrySource.fromWire(source),
+        sourceRef: sourceRef,
+      );
+}
+
+extension SleepNightModelMapper on SleepNight {
+  SleepNightsCompanion toCompanion() => SleepNightsCompanion(
+        id: Value(id),
+        night: Value(night),
+        asleepMinutes: Value(asleepMinutes),
+        inBedMinutes: Value(inBedMinutes),
+        bedtime: Value(bedtime),
+        wake: Value(wake),
+        deepMinutes: Value(deepMinutes),
+        remMinutes: Value(remMinutes),
+        coreMinutes: Value(coreMinutes),
+        awakeMinutes: Value(awakeMinutes),
+        wakes: Value(wakes),
+        source: Value(source.wire),
+        sourceRef: Value(sourceRef),
+      );
+}
+
+// ---------------------------------------------------------------------------
+// MoodCheckin
+// ---------------------------------------------------------------------------
+
+extension MoodCheckinRowMapper on MoodCheckinRow {
+  MoodCheckin toModel() => MoodCheckin(
+        id: id,
+        timestamp: timestamp,
+        pleasantness: pleasantness,
+        tag: tag,
+        source: EntrySource.fromWire(source),
+      );
+}
+
+extension MoodCheckinModelMapper on MoodCheckin {
+  MoodCheckinsCompanion toCompanion() => MoodCheckinsCompanion(
+        id: Value(id),
+        timestamp: Value(timestamp),
+        pleasantness: Value(pleasantness),
+        tag: Value(tag),
+        source: Value(source.wire),
+      );
+}
