@@ -8,6 +8,10 @@ import '../util/dates.dart';
 import 'providers.dart';
 import 'workout_detail_controller.dart' show buildWeeklyVolume;
 
+// note: the .g.dart was hand-written to match riverpod_generator (authored
+// without a local SDK). regenerate before merging —
+// `dart run build_runner build --delete-conflicting-outputs` — only the
+// _$workoutHistoryHash() line should change. delete this note afterward.
 part 'workout_history_controller.g.dart';
 
 /// The period the History & Trends screen is scoped to. Each value rescales the
