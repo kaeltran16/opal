@@ -11,8 +11,8 @@ import 'controllers/providers.dart';
 import 'data/seed/seeder.dart';
 
 /// When true (set via `--dart-define=SEED_DATA=true`, e.g. the "dev (seeded)"
-/// launch config), first-run demo content is seeded. Defaults to false so real
-/// usage builds start with an empty database.
+/// launch config), the demo user's history is seeded. Defaults to false so real
+/// usage builds start with only the reference exercise catalog and no demo data.
 const _seedData = bool.fromEnvironment('SEED_DATA');
 
 /// Composition root: loads `shared_preferences`, initializes the timezone DB
@@ -44,9 +44,12 @@ Future<void> main() async {
     ],
   );
 
-  // Seed first-run demo content before the first frame, dev builds only.
+  // The exercise catalog is reference data the app needs in every build, so it
+  // seeds unconditionally. The fake-user demo history stays dev-only.
+  final seeder = Seeder(container.read(loopDatabaseProvider));
+  await seeder.seedReferenceData();
   if (_seedData) {
-    await Seeder(container.read(loopDatabaseProvider)).seedIfNeeded();
+    await seeder.seedDemoData();
   }
 
   runApp(

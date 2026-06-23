@@ -348,5 +348,40 @@ void main() {
       expect(afterSecond, afterFirst);
       expect(routinesSecond, routinesFirst);
     });
+
+    test('seedReferenceData seeds a PR-less catalog but no demo content',
+        () async {
+      await Seeder(db).seedReferenceData();
+
+      // Catalog (reference data) is present — this is the prod path.
+      final exercises = await RoutineRepository(db).getAllExercises();
+      expect(exercises, isNotEmpty);
+
+      // PRs are demo data, not reference data: a fresh build ships none.
+      expect(exercises.every((e) => e.pr == null), isTrue);
+
+      // Demo content (a fake user's history) is NOT seeded.
+      expect(await RoutineRepository(db).watchRoutines().first, isEmpty);
+      expect(await WorkoutRepository(db).watchWorkouts().first, isEmpty);
+      expect(await EntryRepository(db).getAll(), isEmpty);
+    });
+
+    test('seedReferenceData is idempotent', () async {
+      final seeder = Seeder(db);
+      await seeder.seedReferenceData();
+      final first = (await RoutineRepository(db).getAllExercises()).length;
+      await seeder.seedReferenceData();
+      final second = (await RoutineRepository(db).getAllExercises()).length;
+      expect(second, first);
+    });
+
+    test('full seed overlays the demo PRs onto the catalog', () async {
+      await Seeder(db).seedIfNeeded();
+
+      final bench =
+          await RoutineRepository(db).getExerciseById('bench');
+      expect(bench?.pr, isNotNull);
+      expect(bench!.pr!.weightKg, 92.5);
+    });
   });
 }

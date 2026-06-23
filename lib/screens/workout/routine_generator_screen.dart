@@ -111,7 +111,9 @@ class _RoutineGeneratorScreenState
         // bottom: 110 scroll-tail clearance for floating actions → keep literal
         padding: const EdgeInsets.only(bottom: 110),
         children: [
-          if (!isResult) ...[
+          // The idle form is hidden while loading so the loading pill renders
+          // directly under the title instead of below the off-screen form.
+          if (!isResult && !isLoading) ...[
             const Padding(
               padding: EdgeInsets.fromLTRB(Spacing.lg, Spacing.xs, Spacing.lg, Spacing.xl),
               child: _HeroCard(),
