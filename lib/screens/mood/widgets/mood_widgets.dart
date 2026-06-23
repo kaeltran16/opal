@@ -206,8 +206,9 @@ class _DayBar extends StatelessWidget {
 
     return Column(
       children: [
-        SizedBox(
-          height: MoodWeekChart._chartH - 16, // leave room for letter row
+        // bars fill the space above the letter row; bars are absolutely
+        // positioned so Expanded controls only the box, not their geometry.
+        Expanded(
           child: Stack(
             alignment: Alignment.topCenter,
             children: [

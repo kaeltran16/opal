@@ -2,7 +2,6 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../data/repositories/repositories.dart';
 import '../models/models.dart';
-import '../services/health/health_service.dart';
 import 'providers.dart';
 
 part 'sleep_sync_controller.g.dart';

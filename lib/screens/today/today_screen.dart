@@ -16,7 +16,6 @@ import '../../widgets/activity_rings.dart';
 import '../../widgets/app_icon.dart';
 import '../../widgets/controls.dart';
 import '../../widgets/dashed_border.dart';
-import '../../widgets/inset_section.dart';
 import '../../widgets/nav_bar.dart';
 import '../../widgets/pal_avatar.dart';
 import '../../widgets/press_scale.dart';
@@ -225,20 +224,6 @@ class _TodayBody extends ConsumerWidget {
               ),
             ),
           ),
-        ),
-
-        // Dimensions hub entry — Sleep & Mood live behind a hub off Today.
-        InsetSection(
-          children: [
-            ListRow(
-              icon: 'square.grid.2x2.fill',
-              iconBg: c.accent,
-              title: 'Dimensions',
-              subtitle: 'Sleep & Mood',
-              onTap: () => context.pushNamed(AppRoute.dimensionsHub.name),
-              last: true,
-            ),
-          ],
         ),
 
         // Timeline header.

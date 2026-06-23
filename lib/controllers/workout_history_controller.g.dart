@@ -73,13 +73,17 @@ final class WorkoutHistoryProvider
   }
 }
 
-String _$workoutHistoryHash() => r'00000000000000000000000000000000workout1';
+String _$workoutHistoryHash() => r'c80678beed7ee963ffd61aced5298edddb80608b';
 
 /// Streams the [WorkoutHistoryState] for [range]: re-emits when the workout
 /// store changes. The catalog and routines are awaited once via `.future`.
 
 final class WorkoutHistoryFamily extends $Family
-    with $FunctionalFamilyOverride<Stream<WorkoutHistoryState>, WorkoutHistoryRange> {
+    with
+        $FunctionalFamilyOverride<
+          Stream<WorkoutHistoryState>,
+          WorkoutHistoryRange
+        > {
   const WorkoutHistoryFamily._()
     : super(
         retry: null,

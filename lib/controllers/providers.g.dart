@@ -530,6 +530,89 @@ final class NutritionRepositoryProvider
 String _$nutritionRepositoryHash() =>
     r'f71278edbae596e5fb4e5c4a5eac763392ea2b9e';
 
+@ProviderFor(sleepRepository)
+const sleepRepositoryProvider = SleepRepositoryProvider._();
+
+final class SleepRepositoryProvider
+    extends
+        $FunctionalProvider<SleepRepository, SleepRepository, SleepRepository>
+    with $Provider<SleepRepository> {
+  const SleepRepositoryProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'sleepRepositoryProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$sleepRepositoryHash();
+
+  @$internal
+  @override
+  $ProviderElement<SleepRepository> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  SleepRepository create(Ref ref) {
+    return sleepRepository(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(SleepRepository value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<SleepRepository>(value),
+    );
+  }
+}
+
+String _$sleepRepositoryHash() => r'2de259673ea08390f6eb8bd571c6a44196d55c84';
+
+@ProviderFor(moodRepository)
+const moodRepositoryProvider = MoodRepositoryProvider._();
+
+final class MoodRepositoryProvider
+    extends $FunctionalProvider<MoodRepository, MoodRepository, MoodRepository>
+    with $Provider<MoodRepository> {
+  const MoodRepositoryProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'moodRepositoryProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$moodRepositoryHash();
+
+  @$internal
+  @override
+  $ProviderElement<MoodRepository> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  MoodRepository create(Ref ref) {
+    return moodRepository(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(MoodRepository value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<MoodRepository>(value),
+    );
+  }
+}
+
+String _$moodRepositoryHash() => r'e51bc76dfb80e6c39a321a79a1f54cb423a87a2d';
+
 /// The exercise catalog (name-ascending), streamed from [RoutineRepository].
 /// Powers the Exercise Library (U11); U12/U13 reuse the same source.
 
@@ -844,7 +927,7 @@ final class PalServiceProvider
   }
 }
 
-String _$palServiceHash() => r'5dd86710708e8cd79543a876675af631e99dfa47';
+String _$palServiceHash() => r'422f07f734cda62de70c05ec6ffb9c1d7e030ede';
 
 /// Real [HttpHealthService] when `PAL_BASE_URL` is set; [MockHealthService]
 /// otherwise (tests, backend-less preview). Shares the proxy's http client +

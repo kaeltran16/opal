@@ -1148,7 +1148,7 @@ class SeedData {
     for (final d in ritualDays) {
       for (var step = 0; step < 5; step++) {
         entries.add(Entry(
-          id: 'seed-ritual-d${d}-s$step',
+          id: 'seed-ritual-d$d-s$step',
           timestamp: _daysAgoAt(d, 7, step * 5),
           type: EntryType.rituals,
           title: 'Morning step ${step + 1}',

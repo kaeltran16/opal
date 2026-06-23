@@ -53,7 +53,7 @@ void main() {
   test('lerp interpolates sleep & mood tokens', () {
     final a = AppColors.light(AppAccent.blue);
     final b = AppColors.dark(AppAccent.blue);
-    final mid = a.lerp(b, 0.5) as AppColors;
+    final mid = a.lerp(b, 0.5);
     expect(mid.sleep, isNot(a.sleep)); // proves sleep is in lerp
     expect(mid.mood, isNot(a.mood));
   });

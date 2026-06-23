@@ -15,12 +15,19 @@ class _FakeHealthService implements HealthService {
 
   @override
   Future<HealthDay> fetchDay(DateTime d) async => day;
+
+  @override
+  Future<List<HealthSleep>> fetchSleep(DateTime from, DateTime to) async => [];
 }
 
 /// Always throws, mirroring a real network/proxy failure.
 class _ThrowingHealthService implements HealthService {
   @override
   Future<HealthDay> fetchDay(DateTime d) async =>
+      throw const PalException('proxy returned 500');
+
+  @override
+  Future<List<HealthSleep>> fetchSleep(DateTime from, DateTime to) async =>
       throw const PalException('proxy returned 500');
 }
 

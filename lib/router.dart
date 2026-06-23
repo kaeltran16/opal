@@ -43,7 +43,6 @@ import 'screens/workout/routine_editor_screen.dart';
 import 'screens/workout/start_workout_screen.dart';
 import 'screens/workout/workout_detail_screen.dart';
 import 'screens/today/today_screen.dart';
-import 'screens/dimensions/dimensions_hub_screen.dart';
 import 'screens/sleep/sleep_screen.dart';
 import 'screens/mood/mood_screen.dart';
 
@@ -67,10 +66,9 @@ enum AppRoute {
   moveDetail('moveDetail', 'move-detail'), //       -> /today/move-detail
   ritualsDetail('ritualsDetail', 'rituals-detail'), //  /today/rituals-detail
 
-  // Dimensions hub (Sleep & Mood) — nested under Today so back returns to Today.
-  dimensionsHub('dimensionsHub', 'dimensions'), //      -> /today/dimensions
-  sleep('sleep', 'dimensions/sleep'), //                -> /today/dimensions/sleep
-  mood('mood', 'dimensions/mood'), //                   -> /today/dimensions/mood
+  // Sleep & Mood are tab-style branches reached from the More overflow popover.
+  sleep('sleep', '/sleep'),
+  mood('mood', '/mood'),
 
   // Move sub-routes.
   startWorkout('startWorkout', 'start'), //   U12 -> /move/start
@@ -134,6 +132,8 @@ final _todayNavigatorKey = GlobalKey<NavigatorState>();
 final _moveNavigatorKey = GlobalKey<NavigatorState>();
 final _nutritionNavigatorKey = GlobalKey<NavigatorState>();
 final _ritualsNavigatorKey = GlobalKey<NavigatorState>();
+final _sleepNavigatorKey = GlobalKey<NavigatorState>();
+final _moodNavigatorKey = GlobalKey<NavigatorState>();
 
 /// Builds the app router. Kept as a function so tests can supply their own
 /// `initialLocation` if needed.
@@ -192,24 +192,6 @@ GoRouter createRouter({
                     name: AppRoute.ritualsDetail.name,
                     builder: (context, state) =>
                         const DetailScreen(tracker: DetailTracker.rituals),
-                  ),
-                  // Dimensions hub + the Sleep & Mood dimension screens. Flat
-                  // siblings (multi-segment paths) so deep links resolve; the
-                  // hub pushNamed's each, keeping a Today -> hub -> screen stack.
-                  GoRoute(
-                    path: AppRoute.dimensionsHub.path,
-                    name: AppRoute.dimensionsHub.name,
-                    builder: (context, state) => const DimensionsHubScreen(),
-                  ),
-                  GoRoute(
-                    path: AppRoute.sleep.path,
-                    name: AppRoute.sleep.name,
-                    builder: (context, state) => const SleepScreen(),
-                  ),
-                  GoRoute(
-                    path: AppRoute.mood.path,
-                    name: AppRoute.mood.name,
-                    builder: (context, state) => const MoodScreen(),
                   ),
                 ],
               ),
@@ -302,6 +284,31 @@ GoRouter createRouter({
                     builder: (context, state) => const RitualsBuilderScreen(),
                   ),
                 ],
+              ),
+            ],
+          ),
+          // --- Sleep branch ---
+          // Sleep & Mood are tab-style destinations hidden behind the More
+          // overflow popover (see LoopShell). Each is its own branch so the bar
+          // keeps the More tab lit and the popover marks the active one.
+          StatefulShellBranch(
+            navigatorKey: _sleepNavigatorKey,
+            routes: [
+              GoRoute(
+                path: AppRoute.sleep.path,
+                name: AppRoute.sleep.name,
+                builder: (context, state) => const SleepScreen(),
+              ),
+            ],
+          ),
+          // --- Mood branch ---
+          StatefulShellBranch(
+            navigatorKey: _moodNavigatorKey,
+            routes: [
+              GoRoute(
+                path: AppRoute.mood.path,
+                name: AppRoute.mood.name,
+                builder: (context, state) => const MoodScreen(),
               ),
             ],
           ),

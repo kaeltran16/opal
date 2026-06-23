@@ -116,11 +116,14 @@ void main() {
     pinSurface(tester);
     await bootApp(tester);
 
-    // The Rituals tab's nav label is "Routines".
+    // Routines is no longer a top-level tab — it's reached from the More tab's
+    // menu. Open More, then tap the Routines row.
     await tester.tap(find.descendant(
       of: find.byType(LoopTabBar),
-      matching: find.text('Routines'),
+      matching: find.text('More'),
     ));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Routines'));
     await tester.pumpAndSettle();
 
     await expectLater(

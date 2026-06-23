@@ -457,7 +457,7 @@ class _ConnectionsSection extends ConsumerWidget {
 
     return async.when(
       loading: () => const SizedBox.shrink(),
-      error: (_, __) => const SizedBox.shrink(),
+      error: (_, _) => const SizedBox.shrink(),
       data: (correlations) {
         final moodCorrs = correlations.where(
           (corr) => corr.a == Dimension.mood || corr.b == Dimension.mood,

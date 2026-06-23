@@ -9,10 +9,22 @@ import 'package:opal/data/db/database.dart';
 import 'package:opal/screens/mood/mood_logger_sheet.dart';
 import 'package:opal/screens/mood/widgets/mood_widgets.dart';
 import 'package:opal/services/pal/mock_pal_service.dart';
+import 'package:opal/services/services.dart';
 import 'package:opal/theme/app_colors.dart';
 import 'package:opal/util/mood_scale.dart';
 
 import '../../support/flush_provider_timers.dart';
+
+/// No-op haptics so logCheckin doesn't await the real platform channel, which
+/// does not resolve under flutter_test (other controller tests override it too).
+class _NoHaptics implements HapticsService {
+  @override
+  Future<void> light() async {}
+  @override
+  Future<void> medium() async {}
+  @override
+  Future<void> success() async {}
+}
 
 /// Wraps a button that opens the sheet. We use a full ProviderScope +
 /// a real (empty) in-memory DB so the logCheckin call can resolve without
@@ -23,6 +35,7 @@ Widget _buildOpener(LoopDatabase db, SharedPreferences prefs) {
     overrides: [
       sharedPreferencesProvider.overrideWithValue(prefs),
       loopDatabaseProvider.overrideWithValue(db),
+      hapticsServiceProvider.overrideWithValue(_NoHaptics()),
       palServiceProvider.overrideWithValue(
         MockPalService(latency: const Duration(milliseconds: 1)),
       ),

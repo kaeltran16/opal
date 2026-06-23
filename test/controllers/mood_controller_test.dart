@@ -39,6 +39,10 @@ void main() {
 
       // keep the autodispose stream provider alive while awaiting first emit
       container.listen(moodControllerProvider, (_, _) {});
+      // invalidate so the stream rebuilds and its first emission reflects the
+      // just-written rows — re-reading .future alone returns the stale initial
+      // emission (the stream re-emit races this read).
+      container.invalidate(moodControllerProvider);
       final state = await container.read(moodControllerProvider.future);
 
       expect(state.todayCheckins, isEmpty);
@@ -81,6 +85,10 @@ void main() {
       expect(checkins.single.source, EntrySource.manual);
 
       // await the re-emit triggered by the insert
+      // invalidate so the stream rebuilds and its first emission reflects the
+      // just-written rows — re-reading .future alone returns the stale initial
+      // emission (the stream re-emit races this read).
+      container.invalidate(moodControllerProvider);
       final state = await container.read(moodControllerProvider.future);
       expect(state.todayCheckins, hasLength(1));
       expect(state.todayLean, closeTo(0.7, 0.001));
@@ -103,6 +111,10 @@ void main() {
 
       await container.read(moodControllerProvider.notifier).logCheckin(0.3, null);
 
+      // invalidate so the stream rebuilds and its first emission reflects the
+      // just-written rows — re-reading .future alone returns the stale initial
+      // emission (the stream re-emit races this read).
+      container.invalidate(moodControllerProvider);
       final state = await container.read(moodControllerProvider.future);
       expect(state.todayLean, closeTo(0.3, 0.001));
       expect(state.mostTag, isNull);
@@ -125,6 +137,10 @@ void main() {
       await notifier.logCheckin(0.8, 'Calm');
       await notifier.logCheckin(0.8, 'Calm');
 
+      // invalidate so the stream rebuilds and its first emission reflects the
+      // just-written rows — re-reading .future alone returns the stale initial
+      // emission (the stream re-emit races this read).
+      container.invalidate(moodControllerProvider);
       final state = await container.read(moodControllerProvider.future);
       // mean of 0.2, 0.8, 0.8 = 0.6
       expect(state.todayLean, closeTo(0.6, 0.001));
@@ -147,6 +163,10 @@ void main() {
 
       await container.read(moodControllerProvider.notifier).logCheckin(0.6, null);
 
+      // invalidate so the stream rebuilds and its first emission reflects the
+      // just-written rows — re-reading .future alone returns the stale initial
+      // emission (the stream re-emit races this read).
+      container.invalidate(moodControllerProvider);
       final state = await container.read(moodControllerProvider.future);
       final todayBar = state.week.last;
       expect(todayBar.isToday, isTrue);

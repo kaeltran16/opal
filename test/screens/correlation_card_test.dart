@@ -53,11 +53,11 @@ Widget _wrap(Widget child) {
     routes: [
       GoRoute(
         path: '/',
-        builder: (_, __) => Scaffold(body: child),
+        builder: (_, _) => Scaffold(body: child),
         routes: [
           GoRoute(
             path: 'pal-composer',
-            builder: (_, __) => const Scaffold(
+            builder: (_, _) => const Scaffold(
               body: Center(child: Text('pal-composer')),
             ),
           ),
@@ -71,6 +71,13 @@ Widget _wrap(Widget child) {
       routerConfig: router,
     ),
   );
+}
+
+// The trust sheet body is a lazy ListView; lower sections aren't built until
+// scrolled into view in the test viewport.
+Future<void> _revealInSheet(WidgetTester t, Finder f) async {
+  await t.scrollUntilVisible(f, 150, scrollable: find.byType(Scrollable).last);
+  await t.pumpAndSettle();
 }
 
 void main() {
@@ -161,8 +168,9 @@ void main() {
     await t.pumpAndSettle();
     expect(find.text('After short nights'), findsOneWidget);
     expect(find.text('After other nights'), findsOneWidget);
-    expect(find.text('\$64'), findsOneWidget);
-    expect(find.text('\$39'), findsOneWidget);
+    // the value appears in both the side-by-side card and the numbers card
+    expect(find.text('\$64'), findsWidgets);
+    expect(find.text('\$39'), findsWidgets);
   });
 
   testWidgets('trust sheet shows >=3 underlying number rows', (t) async {
@@ -189,6 +197,7 @@ void main() {
     })));
     await t.tap(find.text('open'));
     await t.pumpAndSettle();
+    await _revealInSheet(t, find.textContaining('last 30 days'));
     expect(find.textContaining('last 30 days'), findsOneWidget);
   });
 
@@ -201,6 +210,7 @@ void main() {
     })));
     await t.tap(find.text('open'));
     await t.pumpAndSettle();
+    await _revealInSheet(t, find.textContaining("WHY YOU'RE SEEING THIS"));
     expect(find.textContaining("WHY YOU'RE SEEING THIS"), findsOneWidget);
   });
 
@@ -213,6 +223,7 @@ void main() {
     })));
     await t.tap(find.text('open'));
     await t.pumpAndSettle();
+    await _revealInSheet(t, find.text('Ask Pal about this'));
     expect(find.text('Ask Pal about this'), findsOneWidget);
   });
 
@@ -226,6 +237,7 @@ void main() {
     })));
     await t.tap(find.text('open'));
     await t.pumpAndSettle();
+    await _revealInSheet(t, find.text('Ask Pal about this'));
     await t.tap(find.text('Ask Pal about this'));
     await t.pumpAndSettle();
     // navigation landed on the pal-composer stub route

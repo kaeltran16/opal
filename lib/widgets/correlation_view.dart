@@ -87,7 +87,7 @@ class CorrelationView {
 
     if (bd.meanWhenInactive != 0) {
       final ratio = (bd.meanWhenActive / bd.meanWhenInactive).toStringAsFixed(1);
-      rows.add(('Difference', '${ratio}×'));
+      rows.add(('Difference', '$ratio×'));
     }
 
     return rows;

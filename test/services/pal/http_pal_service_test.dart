@@ -16,9 +16,9 @@ HttpPalService _service(Map<String, dynamic> body) {
     tokens: TokenProvider(token: () async => 't', clear: () async {}),
     context: PalContextSource(
       chat: () async => {},
-      review: (_, __) async => {},
+      review: (_, _) async => {},
       insights: (_) async => {},
-      suggest: (_, __) async => {},
+      suggest: (_, _) async => {},
       postWorkout: (_) async => {},
       resolveRoutineTitle: (_) async => null,
     ),

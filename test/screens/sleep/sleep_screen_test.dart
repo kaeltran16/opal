@@ -68,16 +68,16 @@ Widget _wrap({
     routes: [
       GoRoute(
         path: '/',
-        builder: (_, __) => const Scaffold(body: SleepScreen()),
+        builder: (_, _) => const Scaffold(body: SleepScreen()),
         routes: [
           GoRoute(
             path: 'you',
-            builder: (_, __) =>
+            builder: (_, _) =>
                 const Scaffold(body: Center(child: Text('you'))),
           ),
           GoRoute(
             path: 'pal',
-            builder: (_, __) =>
+            builder: (_, _) =>
                 const Scaffold(body: Center(child: Text('pal'))),
           ),
         ],

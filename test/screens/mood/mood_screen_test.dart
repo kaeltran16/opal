@@ -28,24 +28,24 @@ Widget _buildApp(
       GoRoute(
         path: '/',
         name: 'mood',
-        builder: (_, __) => const Scaffold(body: MoodScreen()),
+        builder: (_, _) => const Scaffold(body: MoodScreen()),
       ),
       GoRoute(
         path: '/you',
         name: 'you',
-        builder: (_, __) =>
+        builder: (_, _) =>
             const Scaffold(body: Center(child: Text('you'))),
       ),
       GoRoute(
         path: '/pal',
         name: 'pal',
-        builder: (_, __) =>
+        builder: (_, _) =>
             const Scaffold(body: Center(child: Text('pal'))),
       ),
       GoRoute(
         path: '/pal-composer',
         name: 'palComposer',
-        builder: (_, __) =>
+        builder: (_, _) =>
             const Scaffold(body: Center(child: Text('pal-composer'))),
       ),
     ],

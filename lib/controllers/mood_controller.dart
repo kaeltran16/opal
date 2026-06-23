@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-import '../data/repositories/repositories.dart';
 import '../models/models.dart';
 import '../util/dates.dart';
 import 'providers.dart';
@@ -146,13 +145,18 @@ class MoodController extends _$MoodController {
 
   /// Logs a manual check-in with [pleasantness] (0..1) and an optional [tag].
   Future<void> logCheckin(double pleasantness, String? tag) async {
-    await ref.read(moodRepositoryProvider).insert(MoodCheckin(
+    // resolve providers before the first await: this is an autodispose stream
+    // provider, so touching `ref` after an async gap can hit a disposed Ref
+    // when nothing else is keeping the controller alive.
+    final repo = ref.read(moodRepositoryProvider);
+    final haptics = ref.read(hapticsServiceProvider);
+    await repo.insert(MoodCheckin(
           id: '',
           timestamp: DateTime.now(),
           pleasantness: pleasantness,
           tag: tag,
           source: EntrySource.manual,
         ));
-    await ref.read(hapticsServiceProvider).light();
+    await haptics.light();
   }
 }
