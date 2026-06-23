@@ -67,6 +67,15 @@ void main() {
     });
   });
 
+  test('Currency.toWire emits the server money descriptor', () {
+    expect(Currency.usd.toWire(), {
+      'symbol': '\$', 'symbolBefore': true, 'decimals': 2, 'group': ',', 'decimal': '.',
+    });
+    expect(Currency.vnd.toWire(), {
+      'symbol': '₫', 'symbolBefore': false, 'decimals': 0, 'group': '.', 'decimal': ',',
+    });
+  });
+
   group('Currency.fromCode', () {
     test('resolves known codes', () {
       expect(Currency.fromCode('USD'), Currency.usd);

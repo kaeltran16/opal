@@ -194,6 +194,17 @@ class HttpPalService implements PalService {
       case 'create_routine':
         final goal = a['goal'] as String?;
         return goal == null ? null : CreateRoutineAction(goal: goal, name: a['name'] as String?);
+      case 'log_meal':
+        final lo = (a['calLo'] as num?)?.round();
+        final hi = (a['calHi'] as num?)?.round();
+        final mealName = a['name'] as String?;
+        if (lo == null || hi == null || mealName == null || mealName.isEmpty) return null;
+        return LogMealAction(
+          name: mealName,
+          slot: a['slot'] as String?,
+          cal: IntRange(lo, hi < lo ? lo : hi),
+          confidence: _confidenceFromWire(a['confidence'] as String?),
+        );
       default:
         return null;
     }
@@ -262,10 +273,10 @@ class HttpPalService implements PalService {
     );
   }
 
-  /// Clamps a wire colorToken to the three known accents, defaulting unknown
-  /// values to 'rituals' so a stray token never crashes the row.
+  /// Clamps a wire colorToken to the known accents, defaulting unknown values
+  /// to 'rituals' so a stray token never crashes the row.
   String _colorToken(Object? raw) => switch (raw) {
-        'money' || 'move' || 'rituals' => raw! as String,
+        'money' || 'move' || 'rituals' || 'nutrition' => raw! as String,
         _ => 'rituals',
       };
 
@@ -491,7 +502,7 @@ class HttpPalService implements PalService {
     }
   }
 
-  NutritionConfidence _confidenceFromWire(String? w) => switch (w) {
+  static NutritionConfidence _confidenceFromWire(String? w) => switch (w) {
         'high' => NutritionConfidence.high,
         'med' => NutritionConfidence.med,
         _ => NutritionConfidence.low,

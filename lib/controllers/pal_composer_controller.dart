@@ -295,6 +295,10 @@ class PalComposerController extends _$PalComposerController {
     for (final id in rec.routineIds) {
       await routines.deleteById(id);
     }
+    final meals = ref.read(nutritionRepositoryProvider);
+    for (final id in rec.mealIds) {
+      await meals.deleteById(id);
+    }
     if (rec.priorGoals != null) {
       await ref.read(goalsRepositoryProvider).upsert(rec.priorGoals!);
     }

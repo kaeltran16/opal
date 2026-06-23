@@ -202,6 +202,7 @@ PalService palService(Ref ref) {
         weekEntries: week,
         moveStreakDays: await moveStreak(now),
         routines: await ritualRoutines.getAll(),
+        currency: settings.currency,
       );
     },
     review: (anchor, range) async {
@@ -281,6 +282,7 @@ PalService palService(Ref ref) {
         streakDays: await moveStreak(now),
         topCategory: topCat,
         topCategoryPct: topPct,
+        currency: settings.currency,
       );
     },
     insights: (range) async {
@@ -318,6 +320,7 @@ PalService palService(Ref ref) {
         routines: await ritualRoutines.getAll(),
         periodStart: start,
         correlationSummary: surfaced.isEmpty ? null : surfaced.first.summary,
+        currency: settings.currency,
       );
     },
     suggest: (another, excludeRoutineId) async {

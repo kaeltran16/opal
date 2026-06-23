@@ -9,7 +9,7 @@ import type { TokenStore } from './store.js'
 import type { HealthStore } from './health.js'
 import type { WidgetSnapshotStore } from './widget.js'
 import type { MemoryStore } from './memory.js'
-import { registerBody, chatBody, parseBody, reviewBody, insightsBody, suggestBody, postWorkoutBody, routineBody, agendaBody, suggestionsBody, emailTestBody, emailSyncBody, healthIngestBody, healthDayQuery, widgetSnapshotBody, memoryRefreshBody } from './schemas.js'
+import { registerBody, chatBody, parseBody, reviewBody, insightsBody, suggestBody, postWorkoutBody, routineBody, agendaBody, suggestionsBody, emailTestBody, emailSyncBody, healthIngestBody, healthDayQuery, widgetSnapshotBody, memoryRefreshBody, nutritionEstimateBody } from './schemas.js'
 
 export interface AppDeps {
   pal: Pal
@@ -128,6 +128,7 @@ export function buildApp(deps: AppDeps): FastifyInstance {
     return { reply: res.reply, actions: res.actions }
   }))
   app.post('/v1/parse', guard(parseBody, async (b) => deps.pal.parse(b.text)))
+  app.post('/v1/nutrition/estimate', guard(nutritionEstimateBody, async (b) => deps.pal.estimateMeal(b.text)))
   app.post('/v1/review', guardTok(reviewBody, async (b, token) => ({ text: await deps.pal.review(b.context, deps.memory.digest(token)) })))
   app.post('/v1/insights', guardTok(insightsBody, async (b, token) => deps.pal.insights(b.context, deps.memory.digest(token))))
   app.post('/v1/suggest-workout', guard(suggestBody, async (b) => deps.pal.suggestWorkout(b.another, b.context)))

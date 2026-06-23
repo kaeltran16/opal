@@ -513,21 +513,19 @@ class _Bubble extends StatelessWidget {
     final m = message!;
     if (m.role == PalRole.user) return _userRow(context, m.text);
 
-    final logActions = m.actions.whereType<LogEntryAction>().toList();
+    final logActions =
+        m.actions.where((a) => a is LogEntryAction || a is LogMealAction).toList();
     if (logActions.isNotEmpty) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           for (final action in logActions)
-            _LogCard(
-              action: action,
-              undone: m.undone,
-              onUndo: onUndo,
-              onEdit: onEdit,
-            ),
+            if (action is LogEntryAction)
+              _LogCard(action: action, undone: m.undone, onUndo: onUndo, onEdit: onEdit)
+            else if (action is LogMealAction)
+              _MealCard(action: action, undone: m.undone, onUndo: onUndo, onEdit: onEdit),
           if (m.text.trim().isNotEmpty)
-            _assistantRow(
-                context, _textBubble(context, m.text, isUser: false)),
+            _assistantRow(context, _textBubble(context, m.text, isUser: false)),
         ],
       );
     }
@@ -922,6 +920,175 @@ class _LogCard extends ConsumerWidget {
               minHeight: 5,
               backgroundColor: c.fill,
               valueColor: AlwaysStoppedAnimation<Color>(bar),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The confirmation card shown when a Pal turn logged a meal: a nutrition-tinted
+/// LOGGED header, the meal on a leaf tile with its calorie range + confidence,
+/// and Undo / Edit. No progress ring — nutrition has no daily calorie target.
+class _MealCard extends StatelessWidget {
+  const _MealCard({
+    required this.action,
+    required this.undone,
+    this.onUndo,
+    this.onEdit,
+  });
+
+  final LogMealAction action;
+  final bool undone;
+  final VoidCallback? onUndo;
+  final VoidCallback? onEdit;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    final color = c.nutrition;
+    final slot = action.slot ?? 'Meal';
+    return Padding(
+      padding: const EdgeInsets.only(bottom: Spacing.sm),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          const PalAvatar(size: 24, glyphSize: 11),
+          const SizedBox(width: Spacing.sm),
+          Flexible(
+            child: Container(
+              constraints: BoxConstraints(
+                  maxWidth: MediaQuery.sizeOf(context).width * 0.84),
+              decoration: BoxDecoration(
+                color: c.surface,
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(Radii.lg),
+                  topRight: Radius.circular(Radii.lg),
+                  bottomRight: Radius.circular(Radii.lg),
+                  bottomLeft: Radius.circular(Radii.xs),
+                ),
+                border: Border.all(color: c.hair, width: 0.5),
+                boxShadow: [
+                  BoxShadow(color: c.shadow, blurRadius: 10, offset: const Offset(0, 2)),
+                ],
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // LOGGED header
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(
+                        Spacing.md, Spacing.md, Spacing.md, 0),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 15,
+                          height: 15,
+                          decoration:
+                              BoxDecoration(color: color, shape: BoxShape.circle),
+                          alignment: Alignment.center,
+                          child: AppIcon('checkmark', size: 9, color: c.onAccent),
+                        ),
+                        const SizedBox(width: Spacing.xs),
+                        Text(
+                          'LOGGED',
+                          style: AppType.caption2.copyWith(
+                            fontWeight: FontWeight.w700,
+                            color: color,
+                            letterSpacing: 0.4,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  // Meal row
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(
+                        Spacing.md, Spacing.sm, Spacing.md, Spacing.md),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 38,
+                          height: 38,
+                          decoration: BoxDecoration(
+                              color: c.nutritionTint,
+                              borderRadius: BorderRadius.circular(Radii.md)),
+                          alignment: Alignment.center,
+                          child: AppIcon('leaf.fill', size: 18, color: color),
+                        ),
+                        const SizedBox(width: Spacing.md),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                action.name,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: AppType.subhead.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                  color: c.ink,
+                                  letterSpacing: -0.24,
+                                ),
+                              ),
+                              const SizedBox(height: 1),
+                              Text(
+                                '$slot · ${action.confidence.label}',
+                                style: AppType.caption.copyWith(
+                                    color: c.ink3, letterSpacing: -0.08),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: Spacing.sm),
+                        Text(
+                          '${action.cal.lo}–${action.cal.hi} cal',
+                          style: AppType.body.copyWith(
+                            fontWeight: FontWeight.w700,
+                            color: color,
+                            letterSpacing: -0.3,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  // Undo / Edit (or the undone marker)
+                  DecoratedBox(
+                    decoration: BoxDecoration(
+                      border: Border(top: BorderSide(color: c.hair, width: 0.5)),
+                    ),
+                    child: undone
+                        ? Padding(
+                            padding:
+                                const EdgeInsets.symmetric(vertical: Spacing.md),
+                            child: Center(
+                              child: Text(
+                                'Undone',
+                                style: AppType.footnote.copyWith(
+                                    color: c.ink3, letterSpacing: -0.08),
+                              ),
+                            ),
+                          )
+                        : Row(
+                            children: [
+                              Expanded(
+                                child: _CardAction(
+                                    label: 'Undo', color: c.red, onTap: onUndo),
+                              ),
+                              Container(width: 0.5, height: 38, color: c.hair),
+                              Expanded(
+                                child: _CardAction(
+                                    label: 'Edit', color: c.accent, onTap: onEdit),
+                              ),
+                            ],
+                          ),
+                  ),
+                ],
+              ),
             ),
           ),
         ],

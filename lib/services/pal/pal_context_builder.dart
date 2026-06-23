@@ -1,13 +1,15 @@
 import '../../models/models.dart';
 import '../../util/dates.dart' show startOfWeek;
+import '../../util/format.dart';
 import 'pal_service.dart' show InsightRange, ReviewRange;
 
 /// Formats one timeline entry as the handoff's `HH:MM Title (type, detail)`.
-String formatEntryLine(Entry e) {
+String formatEntryLine(Entry e, Currency currency) {
   final hh = e.timestamp.hour.toString().padLeft(2, '0');
   final mm = e.timestamp.minute.toString().padLeft(2, '0');
   final detail = switch (e.type) {
-    EntryType.money => e.amount == null ? '' : '\$${e.amount!.toStringAsFixed(2)}',
+    EntryType.money =>
+      e.amount == null ? '' : formatCurrency(e.amount!, currency, withSign: true),
     EntryType.move => e.duration == null ? '' : '${e.duration}min',
     EntryType.rituals => '',
   };
@@ -35,13 +37,14 @@ Map<String, Object?> buildChatContext({
   required List<Entry> weekEntries,
   required int moveStreakDays,
   List<RitualRoutine> routines = const [],
+  Currency currency = Currency.usd,
   DateTime? now,
 }) {
   final clock = now ?? DateTime.now();
   final ritualTarget = effectiveDailyRitualTarget(routines.length, goals);
   return {
     'userName': userName,
-    'todayEntries': todayEntries.map(formatEntryLine).toList(),
+    'todayEntries': todayEntries.map((e) => formatEntryLine(e, currency)).toList(),
     'dailyBudget': goals.dailyBudget,
     'moveGoalKcal': goals.dailyMoveKcal,
     'ritualGoal': ritualTarget,
@@ -57,6 +60,7 @@ Map<String, Object?> buildChatContext({
     'moveStreakDays': moveStreakDays,
     'hourOfDay': clock.hour,
     'weekday': clock.weekday,
+    'currency': currency.toWire(),
   };
 }
 
@@ -72,6 +76,7 @@ Map<String, Object?> buildReviewContext({
   required int streakDays,
   required String topCategory,
   required int topCategoryPct,
+  Currency currency = Currency.usd,
 }) {
   final pct = ritualsTarget == 0 ? 0 : ((ritualsKept / ritualsTarget) * 100).round();
   return {
@@ -90,6 +95,7 @@ Map<String, Object?> buildReviewContext({
     'streakDays': streakDays,
     'topCategory': topCategory,
     'topCategoryPct': topCategoryPct,
+    'currency': currency.toWire(),
   };
 }
 
@@ -158,6 +164,7 @@ Map<String, Object?> buildInsightsContext({
   List<RitualRoutine> routines = const [],
   DateTime? periodStart,
   String? correlationSummary,
+  Currency currency = Currency.usd,
 }) {
   final spendByWeekday = List<double>.filled(7, 0);
   final activeMoveDays = <int>{};
@@ -204,8 +211,9 @@ Map<String, Object?> buildInsightsContext({
     'topCategory': topCategory,
     'topCategoryPct': spent == 0 ? 0 : ((topVal / spent) * 100).round(),
     'spendByWeekday': spendByWeekday,
-    'entries': entries.take(_maxInsightEntries).map(formatEntryLine).toList(),
+    'entries': entries.take(_maxInsightEntries).map((e) => formatEntryLine(e, currency)).toList(),
     if (correlationSummary != null) 'correlation': {'summary': correlationSummary},
+    'currency': currency.toWire(),
   };
 }
 
