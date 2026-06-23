@@ -134,6 +134,32 @@ void main() {
     });
   });
 
+  group('applyPalActions — meal', () {
+    test('logs a meal and rolls it back on reverse', () async {
+      final db = LoopDatabase.forTesting(NativeDatabase.memory());
+      addTearDown(db.close);
+      final ref = refWith(db, _FakePal());
+
+      final applied = await applyPalActions(ref, [
+        const LogMealAction(
+          name: 'Burrito', cal: IntRange(520, 820),
+          confidence: NutritionConfidence.med, slot: 'Lunch'),
+      ]);
+
+      expect(applied.mealIds, hasLength(1));
+      final repo = NutritionRepository(db);
+      final after = await repo.getMealsInRange(
+          DateTime(2000), DateTime(2100));
+      expect(after.single.name, 'Burrito');
+      expect(after.single.cal, const IntRange(520, 820));
+      expect(after.single.source, NutritionSource.manual);
+
+      // reverse (mirrors the controller's undo) clears it
+      await repo.deleteById(applied.mealIds.single);
+      expect(await repo.getMealsInRange(DateTime(2000), DateTime(2100)), isEmpty);
+    });
+  });
+
   group('applyPalActions — rollback on mid-loop failure', () {
     test('rolls back an already-inserted entry when a later action throws',
         () async {

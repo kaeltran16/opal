@@ -143,6 +143,36 @@ class CreateRoutineAction extends PalAction {
   int get hashCode => Object.hash(goal, name);
 }
 
+/// Log a meal from chat: the model supplies the meal [name], a calorie range
+/// [cal], a [confidence], and an optional [slot]. Fulfilled client-side by
+/// inserting a NutritionMeal (source manual) — meals never join the entry
+/// timeline. Slot falls back to the time of day when null.
+class LogMealAction extends PalAction {
+  const LogMealAction({
+    required this.name,
+    required this.cal,
+    required this.confidence,
+    this.slot,
+  });
+
+  final String name;
+  final IntRange cal;
+  final NutritionConfidence confidence;
+  final String? slot;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is LogMealAction &&
+          other.name == name &&
+          other.cal == cal &&
+          other.confidence == confidence &&
+          other.slot == slot;
+
+  @override
+  int get hashCode => Object.hash(name, cal, confidence, slot);
+}
+
 /// Change one daily goal to [value].
 class SetGoalAction extends PalAction {
   const SetGoalAction({required this.target, required this.value});

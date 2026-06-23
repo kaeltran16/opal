@@ -69,6 +69,16 @@ enum Currency {
         (c) => c.code == code,
         orElse: () => Currency.usd,
       );
+
+  /// Wire descriptor sent to the Pal proxy so the server renders money in this
+  /// currency. Mirrors [formatCurrency]'s inputs; omits the UI-only budgetScale.
+  Map<String, Object?> toWire() => {
+        'symbol': symbol,
+        'symbolBefore': symbolBefore,
+        'decimals': decimals,
+        'group': groupSeparator,
+        'decimal': decimalSeparator,
+      };
 }
 
 /// Formats [amount] in [currency]: groups thousands, places the symbol per the

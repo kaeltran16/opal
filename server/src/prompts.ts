@@ -1,4 +1,5 @@
 import type { MemoryDigest } from './memory.js'
+import { PRODUCT_FRAMING, money, type CurrencyDescriptor } from './product.js'
 
 export interface ChatContext {
   userName: string
@@ -17,6 +18,7 @@ export interface ChatContext {
   moveStreakDays: number
   hourOfDay: number
   weekday: number
+  currency?: CurrencyDescriptor
 }
 
 export interface ReviewContext {
@@ -32,6 +34,7 @@ export interface ReviewContext {
   streakDays: number
   topCategory: string
   topCategoryPct: number
+  currency?: CurrencyDescriptor
 }
 
 export interface InsightsContext {
@@ -51,6 +54,7 @@ export interface InsightsContext {
   // a single verified cross-dimension relationship, computed on-device; the
   // model only rephrases it. absent when nothing cleared the client's bar.
   correlation?: { summary: string }
+  currency?: CurrencyDescriptor
 }
 
 export interface SuggestContext {
@@ -87,17 +91,17 @@ export function chatSystemPrompt(c: ChatContext, memory?: MemoryDigest): string 
   const heading = c.userName ? `Today's entries for ${c.userName}:` : "Today's entries:"
   const mem = memoryBlock(memory, { withIds: true })
   const memSection = mem ? `${mem}\nWhen the user states a durable fact about themselves, call remember. When a remembered fact is wrong or obsolete, call forget with its id.\n\n` : ''
-  return `You are Pal, a gentle, concise coach in an iOS app that tracks money, movement and daily rituals.
+  return `You are Pal, a gentle, concise coach in ${PRODUCT_FRAMING}.
 
 ${memSection}${heading}
 ${entries}
 
-Daily budget $${c.dailyBudget}, move goal ${c.moveGoalKcal}kcal, ritual goal ${c.ritualGoal}.
-Spent $${c.spentToday} so far, moved ${c.movedTodayKcal}kcal, ${c.ritualsDoneToday}/${c.ritualGoal} rituals done.
+Daily budget ${money(c.dailyBudget, c.currency)}, move goal ${c.moveGoalKcal}kcal, ritual goal ${c.ritualGoal}.
+Spent ${money(c.spentToday, c.currency)} so far, moved ${c.movedTodayKcal}kcal, ${c.ritualsDoneToday}/${c.ritualGoal} rituals done.
 
-Week: $${c.weekSpent} of $${c.weekBudget} spent, ${c.weekMovedKcal}kcal moved, ${c.weekRitualsDone}/${c.weekRitualGoal} rituals. ${c.moveStreakDays}-day move streak.
+Week: ${money(c.weekSpent, c.currency)} of ${money(c.weekBudget, c.currency)} spent, ${c.weekMovedKcal}kcal moved, ${c.weekRitualsDone}/${c.weekRitualGoal} rituals. ${c.moveStreakDays}-day move streak.
 
-You can act, not just talk. When the user tells you they did or spent something, asks to change a goal, or asks for a workout routine, call the matching tool — for example "add $5 for coffee" calls log_expense, "ran 30 min" calls log_movement, "set my budget to $60" calls set_daily_budget, "build me a push day" calls create_routine. Only call a tool when the user clearly wants that change; for questions, just answer.
+You can act, not just talk. When the user tells you they did, spent, or ate something, asks to change a goal, or asks for a workout routine, call the matching tool — for example "add $5 for coffee" calls log_expense, "ran 30 min" calls log_movement, "had a burrito for lunch" calls log_meal, "set my budget to $60" calls set_daily_budget, "build me a push day" calls create_routine. Only call a tool when the user clearly wants that change; for questions, just answer.
 
 When you log an entry (expense, income, movement or ritual), the app already shows the user a confirmation card with the entry and an updated progress ring — so do NOT restate what was logged or say "logged it". Instead reply with at most one short, specific insight tied to their day or week (a pace, a streak, a budget heads-up), or reply with nothing at all if you have nothing genuinely useful to add. For a goal or routine change, a one-line confirmation is still helpful.
 
@@ -112,15 +116,15 @@ export function reviewPrompt(c: ReviewContext, memory?: MemoryDigest): string {
   const mem = memoryBlock(memory)
   return `${mem ? mem + '\n\n' : ''}Write a 2-3 sentence warm, specific, editorial reflection on this ${period}'s tracking data. Avoid hype words like "amazing" or "crushed it". Be specific and observational.
 
-Data: $${c.spent} spent${deltaPhrase(c.spentDeltaPct)}, ${c.kcalMoved}kcal moved${deltaPhrase(c.movedDeltaPct)}, ${c.activeDays} active days, ${c.ritualsKept}/${c.ritualsTarget} rituals kept (${c.ritualsPct}%). Current ${c.streakDays}-day move streak. Top category: ${c.topCategory} ${c.topCategoryPct}%.`
+Data: ${money(c.spent, c.currency)} spent${deltaPhrase(c.spentDeltaPct)}, ${c.kcalMoved}kcal moved${deltaPhrase(c.movedDeltaPct)}, ${c.activeDays} active days, ${c.ritualsKept}/${c.ritualsTarget} rituals kept (${c.ritualsPct}%). Current ${c.streakDays}-day move streak. Top category: ${c.topCategory} ${c.topCategoryPct}%.`
 }
 
 export function insightsPrompt(c: InsightsContext, memory?: MemoryDigest): string {
   const weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-  const byDay = weekdays.map((d, i) => `${d} $${c.spendByWeekday[i] ?? 0}`).join(', ')
+  const byDay = weekdays.map((d, i) => `${d} ${money(c.spendByWeekday[i] ?? 0, c.currency)}`).join(', ')
   const entries = c.entries.length ? c.entries.join('\n') : '(none)'
   const mem = memoryBlock(memory)
-  const shape = `{"headline": string|null, "lede": string|null, "suggestion": string|null, "correlationNarration": string|null, "wins": [{"colorToken": "money"|"move"|"rituals", "title": string, "sub": string}], "patterns": [{"colorToken": "money"|"move"|"rituals", "title": string, "detail": string}]}`
+  const shape = `{"headline": string|null, "lede": string|null, "suggestion": string|null, "correlationNarration": string|null, "wins": [{"colorToken": "money"|"move"|"rituals"|"nutrition", "title": string, "sub": string}], "patterns": [{"colorToken": "money"|"move"|"rituals"|"nutrition", "title": string, "detail": string}]}`
 
   const byRange: Record<InsightsContext['range'], string> = {
     day: 'Range is "day": fill "headline" only with one observation about today versus the goals. Leave "lede" and "suggestion" null, and "wins" and "patterns" empty. "correlationNarration" may still be set per the verified-relationship instruction above.',
@@ -134,12 +138,12 @@ export function insightsPrompt(c: InsightsContext, memory?: MemoryDigest): strin
 
   return `${mem ? mem + '\n\n' : ''}Reflect on this ${c.range}'s tracking data. Be specific and observational. Avoid hype words like "amazing", "crushed it", or "great job".
 
-Data: $${c.spent} of $${c.budget} budget, ${c.moveKcal} of ${c.moveTargetKcal} move kcal, ${c.ritualsKept}/${c.ritualsTarget} rituals kept, ${c.activeDays} active days, ${c.streakDays}-day move streak. Top category: ${c.topCategory} ${c.topCategoryPct}%.
+Data: ${money(c.spent, c.currency)} of ${money(c.budget, c.currency)} budget, ${c.moveKcal} of ${c.moveTargetKcal} move kcal, ${c.ritualsKept}/${c.ritualsTarget} rituals kept, ${c.activeDays} active days, ${c.streakDays}-day move streak. Top category: ${c.topCategory} ${c.topCategoryPct}%.
 Spend by weekday: ${byDay}.
 Entries:
 ${entries}
 
-Only make claims grounded in this data: use the spend-by-weekday numbers for day-of-week patterns, the top category for spending patterns, and the streak for streaks. Do not invent numbers that are not derivable from the data. Set "colorToken" to the metric each item is about (money, move or rituals).${corr}
+Only make claims grounded in this data: use the spend-by-weekday numbers for day-of-week patterns, the top category for spending patterns, and the streak for streaks. Do not invent numbers that are not derivable from the data. Set "colorToken" to the metric each item is about (money, move, rituals or nutrition).${corr}
 
 ${byRange[c.range]}
 
@@ -163,6 +167,15 @@ Example: "ran 30 min" -> {"type":"move","amount":null,"duration":30,"category":n
 No prose. Output only the JSON object. If ambiguous, guess from context.`
 }
 
+export function nutritionEstimatePrompt(description: string): string {
+  return `Estimate the calories for this meal or drink: "${description}".
+Return strictly: {"name": string, "calLo": number, "calHi": number, "confidence": "high"|"med"|"low"}
+- name: a short, clean, title-cased label for the meal, e.g. "Chicken Burrito".
+- calLo/calHi: an honest calorie range (calLo <= calHi) — no fake precision.
+- confidence: "high" if the description is specific, "med" if rough, "low" if vague or very short.
+No prose, no code fence. Output only the JSON object.`
+}
+
 export function suggestPrompt(c: SuggestContext): string {
   const recent = c.recentWorkouts.length
     ? c.recentWorkouts.map((w) => `${w.routineName} — ${w.date} — ${w.muscles}`).join('\n')
@@ -182,12 +195,12 @@ export function agendaPrompt(c: ChatContext, memory?: MemoryDigest): string {
   const name = c.userName || 'the user'
   const mem = memoryBlock(memory)
   const shape = `{"proposals":[{"kind":"reschedule_workout"|"hold_funds"|"close_out"|"add_ritual"|"generic","colorToken":"money"|"move"|"rituals","tag":string,"title":string,"body":string,"approveLabel":string,"doneLabel":string}],"autopilot":[{"kind":"bills_watch"|"review_draft"|"spend_nudge"|"generic","colorToken":"money"|"move"|"rituals"|"accent","title":string,"subtitle":string,"enabled":boolean}]}`
-  return `You are Pal, a calm, specific coach in an iOS app tracking money, movement and daily rituals. Build today's agenda for ${name}.
+  return `You are Pal, a calm, specific coach in ${PRODUCT_FRAMING}. Build today's agenda for ${name}.
 
 ${mem ? mem + '\n\n' : ''}Today's entries:
 ${entries}
 
-Daily budget $${c.dailyBudget}, move goal ${c.moveGoalKcal}kcal, ritual goal ${c.ritualGoal}. So far: $${c.spentToday} spent, ${c.movedTodayKcal}kcal moved, ${c.ritualsDoneToday}/${c.ritualGoal} rituals done. Week: $${c.weekSpent} of $${c.weekBudget}, ${c.weekMovedKcal}kcal, ${c.weekRitualsDone}/${c.weekRitualGoal} rituals. ${c.moveStreakDays}-day move streak.
+Daily budget ${money(c.dailyBudget, c.currency)}, move goal ${c.moveGoalKcal}kcal, ritual goal ${c.ritualGoal}. So far: ${money(c.spentToday, c.currency)} spent, ${c.movedTodayKcal}kcal moved, ${c.ritualsDoneToday}/${c.ritualGoal} rituals done. Week: ${money(c.weekSpent, c.currency)} of ${money(c.weekBudget, c.currency)}, ${c.weekMovedKcal}kcal, ${c.weekRitualsDone}/${c.weekRitualGoal} rituals. ${c.moveStreakDays}-day move streak.
 
 Produce two lists:
 - "proposals": up to 4 concrete actions you can take FOR them, each needing one approval. Set "kind" to the matching action (reschedule a workout, hold money aside, close out the day, add a ritual, or generic). "tag" is the pillar label (Workout, Money, or Rituals); "colorToken" is the pillar (move, money, rituals). "approveLabel" is a short button verb (e.g. "Hold $40"); "doneLabel" is the past-tense confirmation. Keep "body" to one or two specific sentences grounded in the numbers above.
@@ -311,7 +324,7 @@ Return strictly this JSON, no prose:
 // the model doesn't echo the same observations every refresh.
 export function memoryPatternsPrompt(c: InsightsContext, digest: MemoryDigest): string {
   const weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-  const byDay = weekdays.map((d, i) => `${d} $${c.spendByWeekday[i] ?? 0}`).join(', ')
+  const byDay = weekdays.map((d, i) => `${d} ${money(c.spendByWeekday[i] ?? 0, c.currency)}`).join(', ')
   const entries = c.entries.length ? c.entries.join('\n') : '(none)'
   const prior = memoryBlock(digest) || '(nothing learned yet)'
   const shape = `{"patterns":[{"colorToken":"money"|"move"|"rituals","title":string,"detail":string}]}`
@@ -321,7 +334,7 @@ ${prior}
 
 Revise that set against the latest data below. Keep what still holds, drop what no longer does, add at most a few genuinely new ones. Return at most 5 patterns total. Ground every pattern in the data; do not invent numbers you cannot derive.
 
-Data: $${c.spent} of $${c.budget} budget, ${c.moveKcal} of ${c.moveTargetKcal} move kcal, ${c.ritualsKept}/${c.ritualsTarget} rituals kept, ${c.activeDays} active days, ${c.streakDays}-day move streak. Top category: ${c.topCategory} ${c.topCategoryPct}%.
+Data: ${money(c.spent, c.currency)} of ${money(c.budget, c.currency)} budget, ${c.moveKcal} of ${c.moveTargetKcal} move kcal, ${c.ritualsKept}/${c.ritualsTarget} rituals kept, ${c.activeDays} active days, ${c.streakDays}-day move streak. Top category: ${c.topCategory} ${c.topCategoryPct}%.
 Spend by weekday: ${byDay}.
 Entries:
 ${entries}

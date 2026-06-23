@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import {
   Pal, OpenRouterClient, OpenRouterError, extractJson, toolCallsToActions, toolCallsToMemoryOps, parseSchema, synthReply,
+  insightsSchema, nutritionEstimateSchema,
   type CompletionClient, type CompletionResult, type ToolCall, type ChatMessage,
 } from './pal.js'
 
@@ -259,6 +260,14 @@ describe('toolCallsToActions', () => {
     ])
     expect(actions).toEqual([])
   })
+
+  it('maps a log_meal tool call carrying the model calorie estimate', () => {
+    const actions = toolCallsToActions([toolCall('log_meal', { name: 'Burrito', slot: 'Lunch', calLo: 520, calHi: 820, confidence: 'med' })])
+    expect(actions).toEqual([{ kind: 'log_meal', name: 'Burrito', slot: 'Lunch', calLo: 520, calHi: 820, confidence: 'med' }])
+  })
+  it('drops a log_meal with no calorie range', () => {
+    expect(toolCallsToActions([toolCall('log_meal', { name: 'Burrito' })])).toEqual([])
+  })
 })
 
 describe('parseSchema', () => {
@@ -275,6 +284,26 @@ describe('parseSchema', () => {
 
   it('coerces an off-list direction to expense', () => {
     expect(parseSchema.parse({ ...base, direction: 'refund' }).direction).toBe('expense')
+  })
+})
+
+describe('insights colour tokens', () => {
+  it('accepts a nutrition colour token on a pattern', () => {
+    const parsed = insightsSchema.parse({
+      headline: null, lede: null, suggestion: null,
+      wins: [], patterns: [{ colorToken: 'nutrition', title: 't', detail: 'd' }],
+    })
+    expect(parsed.patterns[0].colorToken).toBe('nutrition')
+  })
+})
+
+describe('nutritionEstimateSchema', () => {
+  it('parses a calorie estimate', () => {
+    expect(nutritionEstimateSchema.parse({ name: 'Burrito', calLo: 520, calHi: 820, confidence: 'med' }))
+      .toEqual({ name: 'Burrito', calLo: 520, calHi: 820, confidence: 'med' })
+  })
+  it('coerces an off-list confidence to low', () => {
+    expect(nutritionEstimateSchema.parse({ name: 'x', calLo: 1, calHi: 2, confidence: 'maybe' }).confidence).toBe('low')
   })
 })
 

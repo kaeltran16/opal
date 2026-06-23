@@ -1,5 +1,15 @@
 import { z } from 'zod'
 
+export const currencyDescriptor = z.object({
+  symbol: z.string(),
+  symbolBefore: z.boolean(),
+  decimals: z.number().int(),
+  group: z.string(),
+  decimal: z.string(),
+})
+
+export const nutritionEstimateBody = z.object({ text: z.string() })
+
 export const registerBody = z.object({
   provisioningKey: z.string().min(1),
   deviceId: z.string().min(1),
@@ -22,6 +32,7 @@ export const chatContext = z.object({
   moveStreakDays: z.number(),
   hourOfDay: z.number(),
   weekday: z.number(),
+  currency: currencyDescriptor.optional(),
 })
 
 export const chatBody = z.object({
@@ -37,6 +48,7 @@ export const reviewContext = z.object({
   spent: z.number(), spentDeltaPct: z.number().nullable(), kcalMoved: z.number(), movedDeltaPct: z.number().nullable(),
   activeDays: z.number(), ritualsKept: z.number(), ritualsTarget: z.number(), ritualsPct: z.number(),
   streakDays: z.number(), topCategory: z.string(), topCategoryPct: z.number(),
+  currency: currencyDescriptor.optional(),
 })
 export const reviewBody = z.object({ context: reviewContext })
 
@@ -49,6 +61,7 @@ export const insightsContext = z.object({
   topCategory: z.string(), topCategoryPct: z.number(),
   spendByWeekday: z.array(z.number()), entries: z.array(z.string()),
   correlation: z.object({ summary: z.string() }).optional(),
+  currency: currencyDescriptor.optional(),
 })
 export const insightsBody = z.object({ context: insightsContext })
 

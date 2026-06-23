@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { chatSystemPrompt, reviewPrompt, insightsPrompt, parsePrompt, suggestPrompt, postWorkoutPrompt, routinePrompt, receiptsBatchPrompt, memoryBlock, agendaPrompt, memoryPatternsPrompt } from './prompts.js'
+import { chatSystemPrompt, reviewPrompt, insightsPrompt, parsePrompt, suggestPrompt, postWorkoutPrompt, routinePrompt, receiptsBatchPrompt, memoryBlock, agendaPrompt, memoryPatternsPrompt, nutritionEstimatePrompt } from './prompts.js'
 
 describe('prompts', () => {
   it('chat system prompt substitutes user data', () => {
@@ -58,7 +58,7 @@ describe('prompts', () => {
       activeDays: 22, ritualsKept: 120, ritualsTarget: 150, ritualsPct: 80,
       streakDays: 12, topCategory: 'Food', topCategoryPct: 34,
     })
-    expect(p).toContain('$1840')
+    expect(p).toContain('$1,840')
     expect(p).toContain('12000kcal moved')
     expect(p).toContain('12-day move streak')
     expect(p).toContain('Food 34%')
@@ -85,7 +85,35 @@ describe('prompts', () => {
       streakDays: 12, topCategory: 'Food', topCategoryPct: 34,
     })
     expect(p).not.toContain('vs last month')
-    expect(p).toContain('$1840 spent,')
+    expect(p).toContain('$1,840 spent,')
+  })
+
+  it('renders money in the provided currency (VND: trailing symbol, dot grouping)', () => {
+    const p = reviewPrompt({
+      range: 'month', spent: 1840000, spentDeltaPct: null, kcalMoved: 0, movedDeltaPct: null,
+      activeDays: 0, ritualsKept: 0, ritualsTarget: 0, ritualsPct: 0,
+      streakDays: 0, topCategory: 'Food', topCategoryPct: 0,
+      currency: { symbol: '₫', symbolBefore: false, decimals: 0, group: '.', decimal: ',' },
+    })
+    expect(p).toContain('1.840.000 ₫')
+    expect(p).not.toContain('$')
+  })
+
+  it('chat framing names nutrition and mentions logging a meal', () => {
+    const p = chatSystemPrompt({
+      userName: 'Kael', todayEntries: [], dailyBudget: 60, moveGoalKcal: 400, ritualGoal: 5,
+      spentToday: 0, movedTodayKcal: 0, ritualsDoneToday: 0, weekSpent: 0, weekBudget: 420,
+      weekMovedKcal: 0, weekRitualsDone: 0, weekRitualGoal: 35, moveStreakDays: 0, hourOfDay: 8, weekday: 6,
+    })
+    expect(p).toContain('nutrition')
+    expect(p).toContain('log_meal')
+  })
+
+  it('nutrition estimate prompt embeds the description and asks for a calorie range', () => {
+    const p = nutritionEstimatePrompt('a chicken burrito')
+    expect(p).toContain('a chicken burrito')
+    expect(p).toContain('calLo')
+    expect(p).toContain('confidence')
   })
 
   it('insights prompt embeds data, weekday spend, and tailors to range', () => {

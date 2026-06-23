@@ -21,6 +21,7 @@ function fakePal() {
     }),
     agenda: async () => ({ proposals: [], autopilot: [], streakDays: 0 }),
     refreshPatterns: async () => [{ colorToken: 'money', title: 't', detail: 'd' }],
+    estimateMeal: async () => ({ name: 'Burrito', calLo: 520, calHi: 820, confidence: 'med' }),
   }
 }
 
@@ -59,6 +60,12 @@ const insightsCtxFixture = {
   range: 'week', spent: 200, budget: 420, moveKcal: 1400, moveTargetKcal: 2100,
   ritualsKept: 18, ritualsTarget: 35, activeDays: 5, streakDays: 11,
   topCategory: 'Food', topCategoryPct: 34, spendByWeekday: [10, 20, 30, 40, 50, 25, 25], entries: [],
+}
+
+const chatCtxFixture = {
+  userName: 'Kael', todayEntries: [], dailyBudget: 60, moveGoalKcal: 400, ritualGoal: 5,
+  spentToday: 0, movedTodayKcal: 0, ritualsDoneToday: 0, weekSpent: 0, weekBudget: 420,
+  weekMovedKcal: 0, weekRitualsDone: 0, weekRitualGoal: 35, moveStreakDays: 0, hourOfDay: 8, weekday: 6,
 }
 
 describe('memory endpoints', () => {
@@ -533,5 +540,37 @@ describe('insights context schema', () => {
   it('rejects correlation.summary when it is not a string', () => {
     const result = insightsContext.safeParse({ ...base, correlation: { summary: 42 } })
     expect(result.success).toBe(false)
+  })
+})
+
+describe('nutrition + currency contract', () => {
+  it('POST /v1/nutrition/estimate returns a calorie range', async () => {
+    const { app, token } = buildTestApp()
+    const res = await app.inject({
+      method: 'POST', url: '/v1/nutrition/estimate',
+      headers: { authorization: `Bearer ${token}` }, payload: { text: 'a burrito' },
+    })
+    expect(res.statusCode).toBe(200)
+    expect(res.json()).toMatchObject({ name: 'Burrito', calLo: 520, calHi: 820, confidence: 'med' })
+  })
+
+  it('rejects an estimate request with no text', async () => {
+    const { app, token } = buildTestApp()
+    const res = await app.inject({
+      method: 'POST', url: '/v1/nutrition/estimate',
+      headers: { authorization: `Bearer ${token}` }, payload: {},
+    })
+    expect(res.statusCode).toBe(400)
+  })
+
+  it('accepts an optional currency descriptor in the chat context', async () => {
+    const { app, token } = buildTestApp()
+    const context = { ...chatCtxFixture, currency: { symbol: '₫', symbolBefore: false, decimals: 0, group: '.', decimal: ',' } }
+    const res = await app.inject({
+      method: 'POST', url: '/v1/chat',
+      headers: { authorization: `Bearer ${token}` },
+      payload: { history: [], message: 'hi', context },
+    })
+    expect(res.statusCode).toBe(200)
   })
 })

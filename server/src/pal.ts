@@ -1,9 +1,10 @@
 import { z } from 'zod'
 import {
-  chatSystemPrompt, reviewPrompt, insightsPrompt, parsePrompt, suggestPrompt, postWorkoutPrompt, routinePrompt, agendaPrompt, suggestionsPrompt, memoryPatternsPrompt,
+  chatSystemPrompt, reviewPrompt, insightsPrompt, parsePrompt, suggestPrompt, postWorkoutPrompt, routinePrompt, agendaPrompt, suggestionsPrompt, memoryPatternsPrompt, nutritionEstimatePrompt,
   type ChatContext, type ReviewContext, type InsightsContext, type SuggestContext, type PostWorkoutContext, type RoutineExercise,
 } from './prompts.js'
 import { MAX_PATTERNS, type MemoryOp, type MemoryDigest, type MemoryPattern } from './memory.js'
+import { ENTRY_TYPES, DIMENSIONS } from './product.js'
 
 const MAX_TOKENS = 1024
 // insights and routine JSON run long; a 1024 cut-off truncates the object.
@@ -156,7 +157,7 @@ export class OpenRouterClient implements CompletionClient {
 }
 
 export const parseSchema = z.object({
-  type: z.enum(['money', 'move', 'rituals']),
+  type: z.enum(ENTRY_TYPES),
   amount: z.number().nullable(),
   duration: z.number().nullable(),
   category: z.string().nullable(),
@@ -167,10 +168,18 @@ export const parseSchema = z.object({
 })
 export type ParsedEntry = z.infer<typeof parseSchema>
 
+export const nutritionEstimateSchema = z.object({
+  name: z.string(),
+  calLo: z.number(),
+  calHi: z.number(),
+  confidence: z.enum(['high', 'med', 'low']).catch('low'),
+})
+export type NutritionEstimate = z.infer<typeof nutritionEstimateSchema>
+
 export const suggestSchema = z.object({ routineId: z.string(), reason: z.string() })
 export type Suggestion = z.infer<typeof suggestSchema>
 
-const colorToken = z.enum(['money', 'move', 'rituals'])
+const colorToken = z.enum(DIMENSIONS)
 export const insightsSchema = z.object({
   headline: z.string().nullable(),
   lede: z.string().nullable(),
@@ -183,7 +192,7 @@ export type Insights = z.infer<typeof insightsSchema>
 
 export const memoryPatternsSchema = z.object({
   patterns: z.array(z.object({
-    colorToken: z.enum(['money', 'move', 'rituals']).catch('money'),
+    colorToken: z.enum(DIMENSIONS).catch('money'),
     title: z.string(),
     detail: z.string(),
   })).default([]),
@@ -252,7 +261,7 @@ const SUGGESTION_ICON: Record<(typeof suggestionKinds)[number], string> = {
 }
 
 const suggestionEntry = z.object({
-  type: z.enum(['money', 'move', 'rituals']),
+  type: z.enum(ENTRY_TYPES),
   title: z.string(),
   amount: z.number().nullable().optional(),
   category: z.string().nullable().optional(),
@@ -321,6 +330,7 @@ export type PalAction =
   // The client fulfills this by calling /v1/routine with its exercise catalog,
   // then saving the result — the catalog never has to ride along on /chat.
   | { kind: 'create_routine'; goal: string; name: string | null }
+  | { kind: 'log_meal'; name: string; slot: string | null; calLo: number; calHi: number; confidence: 'high' | 'med' | 'low' }
 
 export interface ChatResult {
   reply: string
@@ -359,6 +369,14 @@ const TOOL_PARSERS: Record<string, (args: unknown) => PalAction> = {
     const p = z.object({ goal: z.string().trim().min(1), name: optStr }).parse(a)
     return { kind: 'create_routine', goal: p.goal, name: p.name ?? null }
   },
+  log_meal: (a) => {
+    const p = z.object({
+      name: z.string().trim().min(1), slot: optStr,
+      calLo: posInt, calHi: posInt,
+      confidence: z.enum(['high', 'med', 'low']).catch('low'),
+    }).parse(a)
+    return { kind: 'log_meal', name: p.name, slot: p.slot ?? null, calLo: p.calLo, calHi: Math.max(p.calLo, p.calHi), confidence: p.confidence }
+  },
 }
 
 // OpenAI-format tool specs advertised to the model on /chat.
@@ -376,6 +394,8 @@ export const CHAT_TOOLS = [
     obj({ durationMinutes: numProp('minutes of movement'), calories: numProp('kcal burned during the session, if known'), title: strProp('short label, e.g. "run"'), note: strProp('optional note') }, ['durationMinutes'])),
   tool('log_ritual', 'Record a completed ritual/routine the user did.',
     obj({ title: strProp('the ritual name, e.g. "morning pages"'), note: strProp('optional note') }, ['title'])),
+  tool('log_meal', 'Record a meal or drink the user ate, with your own calorie estimate. Use when the user says they ate or drank something (not when they only spent money on it).',
+    obj({ name: strProp('short meal name, e.g. "burrito"'), slot: strProp('Breakfast, Lunch, Dinner, Snack, or Drink'), calLo: numProp('low end of the calorie estimate'), calHi: numProp('high end of the calorie estimate'), confidence: strProp('your confidence: high, med, or low') }, ['name', 'calLo', 'calHi'])),
   tool('set_daily_budget', "Change the user's daily spending budget in dollars.",
     obj({ dailyBudget: numProp('new daily budget in dollars') }, ['dailyBudget'])),
   tool('set_move_goal', "Change the user's daily movement goal in kcal.",
@@ -438,7 +458,8 @@ export function synthReply(actions: PalAction[]): string {
       a.kind !== 'log_expense' &&
       a.kind !== 'log_income' &&
       a.kind !== 'log_movement' &&
-      a.kind !== 'log_ritual',
+      a.kind !== 'log_ritual' &&
+      a.kind !== 'log_meal',
   )
   if (ackable.length === 0) return ''
   const parts = ackable.map((a) => {
@@ -495,6 +516,14 @@ export class Pal {
   async parse(text: string): Promise<ParsedEntry> {
     const raw = await this.client.complete([{ role: 'user', content: parsePrompt(text) }], { json: true, temperature: 0 })
     return parseSchema.parse(extractJson(raw))
+  }
+
+  async estimateMeal(description: string): Promise<NutritionEstimate> {
+    const raw = await this.client.complete(
+      [{ role: 'user', content: nutritionEstimatePrompt(description) }],
+      { json: true, temperature: 0 },
+    )
+    return nutritionEstimateSchema.parse(extractJson(raw))
   }
 
   async suggestWorkout(another: boolean, ctx: SuggestContext): Promise<Suggestion> {

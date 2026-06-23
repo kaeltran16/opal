@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/models.dart';
 import '../services/services.dart';
+import 'nutrition_controller.dart';
 import 'providers.dart';
 
 /// What a chat turn's auto-applied actions need in order to be reversed: the ids
@@ -11,15 +12,17 @@ class AppliedActions {
   const AppliedActions({
     this.entryIds = const [],
     this.routineIds = const [],
+    this.mealIds = const [],
     this.priorGoals,
   });
 
   final List<String> entryIds;
   final List<String> routineIds;
+  final List<String> mealIds;
   final Goals? priorGoals;
 
   bool get isEmpty =>
-      entryIds.isEmpty && routineIds.isEmpty && priorGoals == null;
+      entryIds.isEmpty && routineIds.isEmpty && mealIds.isEmpty && priorGoals == null;
 }
 
 /// Applies the mutations Pal returned from a chat turn — logging entries,
@@ -36,6 +39,7 @@ Future<AppliedActions> applyPalActions(Ref ref, List<PalAction> actions) async {
   final goalsRepo = ref.read(goalsRepositoryProvider);
   final entryIds = <String>[];
   final routineIds = <String>[];
+  final mealIds = <String>[];
   Goals? working;
   Goals? priorGoals;
 
@@ -57,6 +61,25 @@ Future<AppliedActions> applyPalActions(Ref ref, List<PalAction> actions) async {
               .read(routineRepositoryProvider)
               .insert(routineFromDraft(draft, name: action.name));
           routineIds.add(id);
+        case LogMealAction():
+          final est = MealEstimate(
+              name: action.name, cal: action.cal, confidence: action.confidence);
+          final slot = (action.slot != null && action.slot!.trim().isNotEmpty)
+              ? action.slot!.trim()
+              : NutritionController.slotForHour(DateTime.now().hour);
+          mealIds.add(await ref.read(nutritionRepositoryProvider).insert(
+                NutritionMeal(
+                  id: '',
+                  timestamp: DateTime.now(),
+                  slot: slot,
+                  name: action.name,
+                  source: NutritionSource.manual,
+                  icon: NutritionSource.manual.icon,
+                  confidence: est.confidence,
+                  cal: est.cal,
+                  macros: est.macros,
+                ),
+              ));
       }
     }
   } catch (_) {
@@ -69,12 +92,17 @@ Future<AppliedActions> applyPalActions(Ref ref, List<PalAction> actions) async {
     for (final id in routineIds) {
       await routines.deleteById(id);
     }
+    final meals = ref.read(nutritionRepositoryProvider);
+    for (final id in mealIds) {
+      await meals.deleteById(id);
+    }
     if (priorGoals != null) await goalsRepo.upsert(priorGoals);
     rethrow;
   }
   return AppliedActions(
     entryIds: entryIds,
     routineIds: routineIds,
+    mealIds: mealIds,
     priorGoals: priorGoals,
   );
 }

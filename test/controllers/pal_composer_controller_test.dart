@@ -286,6 +286,30 @@ void main() {
     });
   });
 
+  group('meal undo', () {
+    test('undo deletes a chat-logged meal', () async {
+      final db = LoopDatabase.forTesting(NativeDatabase.memory());
+      addTearDown(db.close);
+      final pal = _FakePal(reply: 'In the bank.', actions: const [
+        LogMealAction(
+          name: 'Burrito', cal: IntRange(520, 820),
+          confidence: NutritionConfidence.med, slot: 'Lunch'),
+      ]);
+      final container = containerWith(db, pal);
+      final notifier = container.read(palComposerControllerProvider().notifier);
+
+      await notifier.send('had a burrito for lunch');
+      final repo = NutritionRepository(db);
+      expect(await repo.getMealsInRange(DateTime(2000), DateTime(2100)), hasLength(1));
+
+      // the assistant turn is the last message; undo it
+      final assistantIndex =
+          container.read(palComposerControllerProvider()).messages.length - 1;
+      await notifier.undo(assistantIndex);
+      expect(await repo.getMealsInRange(DateTime(2000), DateTime(2100)), isEmpty);
+    });
+  });
+
   group('editLog', () {
     test('reverses the entry, removes the turn, and returns the original text',
         () async {
