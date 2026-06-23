@@ -60,6 +60,7 @@ const Map<String, IconData> _sfMap = {
   // Handoff #2 additions (Pal composer, ritual routines, money utilities,
   // weekly plan, routine generator). Closest preview substitutes.
   'arrow.up': CupertinoIcons.arrow_up,
+  'arrow.down': CupertinoIcons.arrow_down,
   'arrow.clockwise': CupertinoIcons.arrow_clockwise,
   'arrow.triangle.2.circlepath': CupertinoIcons.arrow_2_circlepath,
   'sunrise.fill': CupertinoIcons.sunrise_fill,

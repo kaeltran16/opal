@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import '../models/models.dart';
+import '../util/mood_scale.dart' show moodWord, hm;
 
 /// Statistical bar for surfacing a correlation (see the design spec). A pair
 /// must clear all three: enough paired days, a strong |r|, and Holm-corrected
@@ -9,8 +10,12 @@ const int kMinPairedDays = 21;
 const double kMinAbsR = 0.4;
 const double kAlpha = 0.05;
 
-/// The four tracked dimensions whose daily series can be correlated.
-enum Dimension { money, move, rituals, nutrition }
+/// Nights below this many minutes asleep count as "short" for the sleep
+/// breakdown split (6h 30m).
+const int kShortNightMinutes = 390;
+
+/// The six tracked dimensions whose daily series can be correlated.
+enum Dimension { money, move, rituals, nutrition, sleep, mood }
 
 /// Pearson correlation of two equal-length series. Returns 0 when undefined
 /// (n < 2 or either series is constant) so callers never see NaN.
@@ -130,17 +135,21 @@ String dimensionNoun(Dimension d) => switch (d) {
       Dimension.move => 'activity',
       Dimension.rituals => 'rituals',
       Dimension.nutrition => 'calories',
+      Dimension.sleep => 'sleep',
+      Dimension.mood => 'mood',
     };
 
 String activeDayLabel(Dimension binaryDim) => switch (binaryDim) {
       Dimension.move => 'workout days',
       Dimension.rituals => 'ritual days',
+      Dimension.sleep => 'short nights',
       _ => 'active days',
     };
 
 String inactiveDayLabel(Dimension binaryDim) => switch (binaryDim) {
       Dimension.move => 'rest days',
       Dimension.rituals => 'days you skipped',
+      Dimension.sleep => 'other nights',
       _ => 'other days',
     };
 
@@ -149,6 +158,8 @@ String formatValue(Dimension d, double v) => switch (d) {
       Dimension.move => '${v.round()} kcal',
       Dimension.nutrition => '${v.round()} cal',
       Dimension.rituals => v.round().toString(),
+      Dimension.sleep => hm(v.round()),
+      Dimension.mood => '${moodWord(v)} (${v.toStringAsFixed(2)})',
     };
 
 /// One dimension's daily scalar series, keyed by day ordinal (y*10000+m*100+d).
@@ -158,9 +169,15 @@ class DailySeries {
   final Map<int, double> byDay;
 }
 
-/// Dimensions whose daily scalar is a "did / didn't" signal — eligible to drive
-/// the trust sheet's two-group breakdown.
-const _binaryDims = {Dimension.move, Dimension.rituals};
+/// Dimensions whose daily scalar drives the trust sheet's two-group breakdown.
+const _breakdownDrivers = {Dimension.move, Dimension.rituals, Dimension.sleep};
+
+/// Whether [v] (this dim's daily scalar) is the highlighted/"active" group.
+/// move/rituals: did the thing (>0). sleep: a short night (<threshold).
+bool _isActiveSignal(Dimension d, double v) => switch (d) {
+      Dimension.sleep => v > 0 && v < kShortNightMinutes,
+      _ => v > 0,
+    };
 
 class _PairStat {
   _PairStat(this.a, this.b, this.r, this.n, this.p, this.xs, this.ys, this.days);
@@ -220,13 +237,13 @@ List<Correlation> surfacedCorrelations(
 }
 
 Correlation _toCorrelation(_PairStat s) {
-  // pick the binary side (if any) to drive the two-group breakdown.
+  // pick the breakdown driver side (if any) to drive the two-group breakdown.
   Dimension? binary;
   Dimension? cont;
-  if (_binaryDims.contains(s.a) && !_binaryDims.contains(s.b)) {
+  if (_breakdownDrivers.contains(s.a) && !_breakdownDrivers.contains(s.b)) {
     binary = s.a;
     cont = s.b;
-  } else if (_binaryDims.contains(s.b) && !_binaryDims.contains(s.a)) {
+  } else if (_breakdownDrivers.contains(s.b) && !_breakdownDrivers.contains(s.a)) {
     binary = s.b;
     cont = s.a;
   }
@@ -237,7 +254,7 @@ Correlation _toCorrelation(_PairStat s) {
     var sumActive = 0.0, sumInactive = 0.0;
     var nActive = 0, nInactive = 0;
     for (var i = 0; i < binaryXs.length; i++) {
-      if (binaryXs[i] > 0) {
+      if (_isActiveSignal(binary, binaryXs[i])) {
         sumActive += contXs[i];
         nActive++;
       } else {
@@ -270,7 +287,9 @@ int _dayOrd(DateTime d) => d.year * 10000 + d.month * 100 + d.day;
 /// nothing), so its pairs naturally pair on the intersection of days.
 Map<Dimension, DailySeries> buildDailyVectors(
   List<Entry> entries,
-  List<NutritionMeal> meals, {
+  List<NutritionMeal> meals,
+  List<SleepNight> nights,
+  List<MoodCheckin> moods, {
   required DateTime now,
   int windowDays = kCorrelationWindowDays,
 }) {
@@ -318,10 +337,36 @@ Map<Dimension, DailySeries> buildDailyVectors(
     nutrition[k] = (nutrition[k] ?? 0) + meal.cal.mid.toDouble();
   }
 
+  // Sleep: minutes asleep, attributed to the NEXT calendar day so the engine's
+  // same-day pairing yields the "last night -> today" relationship. Sparse.
+  final sleep = <int, double>{};
+  for (final n in nights) {
+    final attributed = DateTime(n.night.year, n.night.month, n.night.day)
+        .add(const Duration(days: 1));
+    if (!inWindow(attributed)) continue;
+    sleep[_dayOrd(attributed)] = n.asleepMinutes.toDouble();
+  }
+
+  // Mood: mean pleasantness per day. Sparse (only days with a check-in).
+  final moodSum = <int, double>{};
+  final moodCount = <int, int>{};
+  for (final c in moods) {
+    if (!inWindow(c.timestamp)) continue;
+    final k = _dayOrd(
+        DateTime(c.timestamp.year, c.timestamp.month, c.timestamp.day));
+    moodSum[k] = (moodSum[k] ?? 0) + c.pleasantness;
+    moodCount[k] = (moodCount[k] ?? 0) + 1;
+  }
+  final mood = <int, double>{
+    for (final k in moodSum.keys) k: moodSum[k]! / moodCount[k]!
+  };
+
   return {
     Dimension.money: DailySeries(dim: Dimension.money, byDay: money),
     Dimension.move: DailySeries(dim: Dimension.move, byDay: move),
     Dimension.rituals: DailySeries(dim: Dimension.rituals, byDay: rituals),
     Dimension.nutrition: DailySeries(dim: Dimension.nutrition, byDay: nutrition),
+    Dimension.sleep: DailySeries(dim: Dimension.sleep, byDay: sleep),
+    Dimension.mood: DailySeries(dim: Dimension.mood, byDay: mood),
   };
 }

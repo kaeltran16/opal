@@ -69,6 +69,68 @@ class HttpHealthService implements HealthService {
     );
   }
 
+  @override
+  Future<List<HealthSleep>> fetchSleep(DateTime from, DateTime to) async {
+    final query = {'from': _formatDate(from), 'to': _formatDate(to)};
+
+    Future<http.Response> send() async {
+      final token = await tokens.token();
+      return _http
+          .get(
+            _base.replace(path: '/v1/health/sleep', queryParameters: query),
+            headers: {'authorization': 'Bearer $token'},
+          )
+          .timeout(timeout);
+    }
+
+    http.Response res;
+    try {
+      res = await send();
+      if (res.statusCode == 401) {
+        await tokens.clear();
+        res = await send();
+      }
+    } on TimeoutException {
+      throw const PalException('request timed out');
+    } catch (e) {
+      throw PalException('network error: $e');
+    }
+
+    if (res.statusCode < 200 || res.statusCode >= 300) {
+      throw PalException('proxy returned ${res.statusCode}');
+    }
+
+    final Map<String, dynamic> json;
+    try {
+      json = jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
+    } catch (_) {
+      throw const PalException('malformed sleep response');
+    }
+    final nights = (json['nights'] as List?) ?? const [];
+    return [
+      for (final raw in nights.whereType<Map<String, dynamic>>())
+        _sleepFromJson(raw)
+    ];
+  }
+
+  static HealthSleep _sleepFromJson(Map<String, dynamic> j) {
+    final stages = (j['stages'] as Map<String, dynamic>?) ?? const {};
+    int i(Object? v) => (v as num?)?.round() ?? 0;
+    return HealthSleep(
+      night: DateTime.parse(j['night'] as String),
+      asleepMinutes: i(j['asleepMinutes']),
+      inBedMinutes: i(j['inBedMinutes']),
+      bedtime: (j['bedtime'] as String?) ?? '',
+      wake: (j['wake'] as String?) ?? '',
+      deepMinutes: i(stages['deep']),
+      remMinutes: i(stages['rem']),
+      coreMinutes: i(stages['core']),
+      awakeMinutes: i(stages['awake']),
+      wakes: i(j['wakes']),
+      sourceRef: j['sourceRef'] as String?,
+    );
+  }
+
   /// Reads `{"value": <num>}` from a metric object, rounding to int. Missing or
   /// malformed metrics default to 0.
   static int _metricValue(Object? metric) {

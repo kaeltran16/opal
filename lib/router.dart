@@ -43,6 +43,9 @@ import 'screens/workout/routine_editor_screen.dart';
 import 'screens/workout/start_workout_screen.dart';
 import 'screens/workout/workout_detail_screen.dart';
 import 'screens/today/today_screen.dart';
+import 'screens/dimensions/dimensions_hub_screen.dart';
+import 'screens/sleep/sleep_screen.dart';
+import 'screens/mood/mood_screen.dart';
 
 /// Named routes for the whole app. Later units slot their real screens into the
 /// already-defined paths so deep links / Live Activity tap-through (U25) stay
@@ -63,6 +66,11 @@ enum AppRoute {
   spendingDetail('spendingDetail', 'spending'), // U09 -> /today/spending
   moveDetail('moveDetail', 'move-detail'), //       -> /today/move-detail
   ritualsDetail('ritualsDetail', 'rituals-detail'), //  /today/rituals-detail
+
+  // Dimensions hub (Sleep & Mood) — nested under Today so back returns to Today.
+  dimensionsHub('dimensionsHub', 'dimensions'), //      -> /today/dimensions
+  sleep('sleep', 'dimensions/sleep'), //                -> /today/dimensions/sleep
+  mood('mood', 'dimensions/mood'), //                   -> /today/dimensions/mood
 
   // Move sub-routes.
   startWorkout('startWorkout', 'start'), //   U12 -> /move/start
@@ -184,6 +192,24 @@ GoRouter createRouter({
                     name: AppRoute.ritualsDetail.name,
                     builder: (context, state) =>
                         const DetailScreen(tracker: DetailTracker.rituals),
+                  ),
+                  // Dimensions hub + the Sleep & Mood dimension screens. Flat
+                  // siblings (multi-segment paths) so deep links resolve; the
+                  // hub pushNamed's each, keeping a Today -> hub -> screen stack.
+                  GoRoute(
+                    path: AppRoute.dimensionsHub.path,
+                    name: AppRoute.dimensionsHub.name,
+                    builder: (context, state) => const DimensionsHubScreen(),
+                  ),
+                  GoRoute(
+                    path: AppRoute.sleep.path,
+                    name: AppRoute.sleep.name,
+                    builder: (context, state) => const SleepScreen(),
+                  ),
+                  GoRoute(
+                    path: AppRoute.mood.path,
+                    name: AppRoute.mood.name,
+                    builder: (context, state) => const MoodScreen(),
                   ),
                 ],
               ),

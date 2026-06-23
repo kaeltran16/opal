@@ -15,6 +15,8 @@ part 'correlations_controller.g.dart';
 Future<List<corr.Correlation>> surfacedCorrelations(Ref ref) async {
   final entryRepo = ref.watch(entryRepositoryProvider);
   final nutritionRepo = ref.watch(nutritionRepositoryProvider);
+  final sleepRepo = ref.watch(sleepRepositoryProvider);
+  final moodRepo = ref.watch(moodRepositoryProvider);
 
   final now = DateTime.now();
   final today = DateTime(now.year, now.month, now.day);
@@ -24,7 +26,11 @@ Future<List<corr.Correlation>> surfacedCorrelations(Ref ref) async {
 
   final entries = await entryRepo.getEntriesInRange(start, end);
   final meals = await nutritionRepo.getMealsInRange(start, end);
+  // include the night before the window so next-day attribution can pair.
+  final nights = await sleepRepo.getNightsInRange(
+      start.subtract(const Duration(days: 1)), end);
+  final moods = await moodRepo.getCheckinsInRange(start, end);
 
-  final vectors = corr.buildDailyVectors(entries, meals, now: now);
+  final vectors = corr.buildDailyVectors(entries, meals, nights, moods, now: now);
   return corr.surfacedCorrelations(vectors);
 }

@@ -159,8 +159,9 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // CorrelationCard footer reads "Based on N days · X link"
-    expect(find.textContaining('Based on'), findsWidgets);
+    // CorrelationCard shows the PAL NOTICED eyebrow + tap subline
+    expect(find.text('PAL NOTICED'), findsWidgets);
+    expect(find.text('Tap to see the numbers.'), findsWidgets);
 
     await flushProviderTimers(tester);
   });

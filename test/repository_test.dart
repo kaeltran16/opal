@@ -5,6 +5,20 @@ import 'package:opal/data/repositories/repositories.dart';
 import 'package:opal/data/seed/seeder.dart';
 import 'package:opal/models/models.dart';
 
+SleepNight _night(DateTime night) => SleepNight(
+    id: '',
+    night: night,
+    asleepMinutes: 420,
+    inBedMinutes: 440,
+    bedtime: '23:30',
+    wake: '7:00',
+    deepMinutes: 60,
+    remMinutes: 90,
+    coreMinutes: 260,
+    awakeMinutes: 16,
+    wakes: 1,
+    source: EntrySource.health);
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -382,6 +396,80 @@ void main() {
           await RoutineRepository(db).getExerciseById('bench');
       expect(bench?.pr, isNotNull);
       expect(bench!.pr!.weightKg, 92.5);
+    });
+  });
+
+  group('SleepRepository', () {
+    test('insert assigns a uuid when id empty; round-trips fields', () async {
+      final repo = SleepRepository(db);
+      final id = await repo.insert(SleepNight(
+          id: '',
+          night: DateTime(2026, 6, 17),
+          asleepMinutes: 432,
+          inBedMinutes: 450,
+          bedtime: '11:32',
+          wake: '7:02',
+          deepMinutes: 64,
+          remMinutes: 98,
+          coreMinutes: 270,
+          awakeMinutes: 18,
+          wakes: 2,
+          source: EntrySource.health));
+      expect(id, isNotEmpty);
+      final all = await repo.getNightsInRange(
+          DateTime(2026, 6, 1), DateTime(2026, 7, 1));
+      expect(all, hasLength(1));
+      expect(all.single.asleepMinutes, 432);
+      expect(all.single.deepMinutes, 64);
+    });
+
+    test('watchNightsInRange respects bounds and emits on change', () async {
+      final repo = SleepRepository(db);
+      final stream = repo.watchNightsInRange(
+          DateTime(2026, 6, 16), DateTime(2026, 6, 18));
+      expect(await stream.first, isEmpty);
+      await repo.insert(_night(DateTime(2026, 6, 17)));
+      expect(await stream.firstWhere((r) => r.isNotEmpty), hasLength(1));
+    });
+
+    test('upsert dedups by id', () async {
+      final repo = SleepRepository(db);
+      await repo.upsert(_night(DateTime(2026, 6, 17)).copyWith(id: 'x'));
+      await repo.upsert(
+          _night(DateTime(2026, 6, 17)).copyWith(id: 'x', asleepMinutes: 400));
+      final all =
+          await repo.getNightsInRange(DateTime(2026, 6, 1), DateTime(2026, 7, 1));
+      expect(all, hasLength(1));
+      expect(all.single.asleepMinutes, 400);
+    });
+  });
+
+  group('MoodRepository', () {
+    test('insert assigns uuid; watchCheckinsForDay returns same-day, asc',
+        () async {
+      final repo = MoodRepository(db);
+      final stream = repo.watchCheckinsForDay(DateTime(2026, 6, 17));
+      expect(await stream.first, isEmpty);
+      await repo.insert(MoodCheckin(
+          id: '',
+          timestamp: DateTime(2026, 6, 17, 8, 5),
+          pleasantness: 0.46,
+          tag: 'Tired',
+          source: EntrySource.manual));
+      await repo.insert(MoodCheckin(
+          id: '',
+          timestamp: DateTime(2026, 6, 17, 13, 40),
+          pleasantness: 0.62,
+          tag: 'Calm',
+          source: EntrySource.manual));
+      await repo.insert(MoodCheckin(
+          id: '',
+          timestamp: DateTime(2026, 6, 16, 9, 0),
+          pleasantness: 0.5,
+          source: EntrySource.manual));
+      final today = await stream.firstWhere((r) => r.length == 2);
+      expect(today.first.timestamp.hour, 8); // ascending
+      expect(today.last.pleasantness, 0.62);
     });
   });
 }
