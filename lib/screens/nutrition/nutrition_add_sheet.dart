@@ -55,7 +55,8 @@ class _NutritionAddSheet extends ConsumerStatefulWidget {
 
 class _NutritionAddSheetState extends ConsumerState<_NutritionAddSheet> {
   late String _slot;
-  final _textController = TextEditingController();
+  // single source for the meal name: what the user types is what gets saved.
+  // estimate only fills in calories/macros — it never rewrites this field.
   final _nameController = TextEditingController();
   bool _loading = false;
   MealEstimate? _estimate;
@@ -81,42 +82,44 @@ class _NutritionAddSheetState extends ConsumerState<_NutritionAddSheet> {
 
   @override
   void dispose() {
-    _textController.dispose();
     _nameController.dispose();
     super.dispose();
   }
 
   Future<void> _runEstimate() async {
-    final text = _textController.text.trim();
+    // guard re-entrancy: tapping Estimate and pressing Enter both call this, so
+    // bail while one is in flight to avoid a double request whose later reply wins.
+    if (_loading) return;
+    final text = _nameController.text.trim();
     if (text.isEmpty) return;
     setState(() => _loading = true);
     try {
       final est = await ref
           .read(nutritionControllerProvider.notifier)
           .estimateFor(text);
-      if (mounted) {
-        setState(() {
-          _estimate = est;
-          _nameController.text = est.name;
-          _loading = false;
-        });
-      }
+      // keep the user's typed name; only adopt the estimate's calories/macros.
+      if (mounted) setState(() => _estimate = est);
     } catch (_) {
+      // swallow: the field stays as-is so the user can retry or pick a common one.
+    } finally {
       if (mounted) setState(() => _loading = false);
     }
   }
 
   void _applyQuickPick(_QuickPick pick) {
-    final est = MealEstimate(
-      name: pick.name,
-      cal: pick.cal,
-      confidence: NutritionConfidence.low,
-    );
     setState(() {
-      _estimate = est;
-      _nameController.text = est.name;
+      _estimate = MealEstimate(
+        name: pick.name,
+        cal: pick.cal,
+        confidence: NutritionConfidence.low,
+      );
+      _nameController.text = pick.name;
     });
   }
+
+  // drop the estimate so the quick-pick grid returns; keeps the typed name so the
+  // user can tweak it and re-estimate or pick a common one.
+  void _clearEstimate() => setState(() => _estimate = null);
 
   Future<void> _save() async {
     final est = _estimate;
@@ -197,7 +200,7 @@ class _NutritionAddSheetState extends ConsumerState<_NutritionAddSheet> {
                       children: [
                         Expanded(
                           child: TextField(
-                            controller: _textController,
+                            controller: _nameController,
                             style: AppFonts.sf(size: 15, color: c.ink),
                             decoration: InputDecoration(
                               hintText: 'greek yogurt with berries',
@@ -251,25 +254,6 @@ class _NutritionAddSheetState extends ConsumerState<_NutritionAddSheet> {
               ),
               const SizedBox(height: Spacing.lg),
               if (est != null) ...[
-                // Editable name
-                TextField(
-                  controller: _nameController,
-                  style: AppFonts.sf(
-                      size: 17, weight: FontWeight.w600, color: c.ink),
-                  decoration: InputDecoration(
-                    hintText: 'Meal name',
-                    hintStyle: AppFonts.sf(size: 17, color: c.ink3),
-                    filled: true,
-                    fillColor: c.fill,
-                    contentPadding: const EdgeInsets.symmetric(
-                        horizontal: Spacing.md, vertical: Spacing.sm),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(Radii.md),
-                      borderSide: BorderSide.none,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: Spacing.lg),
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -280,6 +264,17 @@ class _NutritionAddSheetState extends ConsumerState<_NutritionAddSheet> {
                 ),
                 const SizedBox(height: Spacing.md),
                 MacroSplit(est.macros),
+                const SizedBox(height: Spacing.lg),
+                // back out of the estimate to the quick-pick grid
+                GestureDetector(
+                  onTap: _clearEstimate,
+                  behavior: HitTestBehavior.opaque,
+                  child: Text(
+                    'Start over',
+                    style: AppFonts.sf(
+                        size: 14, weight: FontWeight.w600, color: c.nutrition),
+                  ),
+                ),
               ] else ...[
                 // Quick picks
                 Text(

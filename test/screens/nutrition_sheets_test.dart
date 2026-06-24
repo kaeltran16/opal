@@ -16,8 +16,8 @@ import '../support/flush_provider_timers.dart';
 /// Task 13 smoke test — opens the add sheet, taps a quick pick, saves; asserts
 /// the new meal name appears in the meals list on the landing screen.
 void main() {
-  testWidgets('add sheet: tap quick pick + Save adds meal to landing',
-      (tester) async {
+  // Pumps the app on the nutrition landing and opens the add-meal sheet.
+  Future<void> openAddSheet(WidgetTester tester) async {
     SharedPreferences.setMockInitialValues({});
     final prefs = await SharedPreferences.getInstance();
     final db = LoopDatabase.forTesting(NativeDatabase.memory());
@@ -43,12 +43,8 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-
-    // Confirm landing loaded past the loading state.
     expect(find.text('TODAY'), findsOneWidget);
 
-    // The + (plus) NavIconButton may be in the sticky header; scroll until
-    // visible to be safe, then tap it.
     final scrollable = find.byType(Scrollable).first;
     await tester.scrollUntilVisible(
       find.bySemanticsLabel('Add a meal'),
@@ -57,6 +53,11 @@ void main() {
     );
     await tester.tap(find.bySemanticsLabel('Add a meal'));
     await tester.pumpAndSettle();
+  }
+
+  testWidgets('add sheet: tap quick pick + Save adds meal to landing',
+      (tester) async {
+    await openAddSheet(tester);
 
     // Sheet is open — header and quick picks visible.
     expect(find.text('Add a meal'), findsOneWidget);
@@ -83,6 +84,54 @@ void main() {
     // The meal was just added so it renders in the meals section. A simple
     // find.text works if it's in the visible or off-screen tree.
     expect(find.text('Banana'), findsWidgets);
+
+    await flushProviderTimers(tester);
+  });
+
+  testWidgets('estimate keeps the typed name (no title-cased overwrite)',
+      (tester) async {
+    await openAddSheet(tester);
+
+    // Type a lowercase description; the mock's estimate name title-cases it, so a
+    // title-cased field would prove the old overwrite bug. We expect it kept as-is.
+    await tester.enterText(find.byType(TextField).last, 'pho beef brisket');
+    await tester.tap(find.text('Estimate'));
+    await tester.pumpAndSettle();
+
+    // estimate result is showing, and the field still holds the typed text.
+    expect(find.text('pho beef brisket'), findsOneWidget);
+    expect(find.text('Pho Beef Brisket'), findsNothing);
+    expect(find.text('OR PICK A COMMON ONE'), findsNothing);
+
+    // Re-estimating must not clobber the name either.
+    await tester.tap(find.text('Estimate'));
+    await tester.pumpAndSettle();
+    expect(find.text('pho beef brisket'), findsOneWidget);
+
+    await flushProviderTimers(tester);
+  });
+
+  testWidgets('Start over returns to the quick-pick grid', (tester) async {
+    await openAddSheet(tester);
+    expect(find.text('OR PICK A COMMON ONE'), findsOneWidget);
+
+    await tester.enterText(find.byType(TextField).last, 'pho');
+    await tester.tap(find.text('Estimate'));
+    await tester.pumpAndSettle();
+    // estimate replaced the quick picks.
+    expect(find.text('OR PICK A COMMON ONE'), findsNothing);
+
+    final sheetScrollable = find.byType(Scrollable).last;
+    await tester.scrollUntilVisible(
+      find.text('Start over'),
+      200,
+      scrollable: sheetScrollable,
+    );
+    await tester.tap(find.text('Start over'));
+    await tester.pumpAndSettle();
+
+    // quick picks are back.
+    expect(find.text('OR PICK A COMMON ONE'), findsOneWidget);
 
     await flushProviderTimers(tester);
   });
