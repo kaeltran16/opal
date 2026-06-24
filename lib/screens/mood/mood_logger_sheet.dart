@@ -11,6 +11,10 @@ import 'widgets/mood_widgets.dart';
 Future<void> showMoodLogger(BuildContext context) {
   return showModalBottomSheet<void>(
     context: context,
+    // present over the shell so the sheet covers the bottom nav; without this it
+    // opens on the tab's nested navigator and the shell's nav bar paints over the
+    // sticky Log button (matches the nutrition sheets).
+    useRootNavigator: true,
     backgroundColor: context.colors.bg,
     isScrollControlled: true,
     useSafeArea: true,
