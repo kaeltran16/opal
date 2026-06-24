@@ -31,6 +31,17 @@ describe('prompts', () => {
     expect(p.toLowerCase()).toContain('log')
   })
 
+  it('chat system prompt expands magnitude suffixes and is currency-agnostic', () => {
+    const p = chatSystemPrompt({
+      userName: 'Kael', todayEntries: [], dailyBudget: 60, moveGoalKcal: 400, ritualGoal: 5,
+      spentToday: 0, movedTodayKcal: 0, ritualsDoneToday: 0, weekSpent: 0, weekBudget: 420,
+      weekMovedKcal: 0, weekRitualsDone: 0, weekRitualGoal: 35, moveStreakDays: 0, hourOfDay: 8, weekday: 6,
+    })
+    expect(p).toContain('"k" = thousand')
+    expect(p).toContain('"m" = million')
+    expect(p.toLowerCase()).toContain("user's own currency")
+  })
+
   it('parse prompt embeds the raw input', () => {
     expect(parsePrompt('coffee 5')).toContain('"coffee 5"')
     expect(parsePrompt('coffee 5')).toContain('money|move|rituals')
