@@ -87,6 +87,46 @@ void main() {
     expect(result?.headline, 'Steady day.');
   });
 
+  test('keeps a produced insight alive so a re-read does not refetch', () async {
+    final db = LoopDatabase.forTesting(NativeDatabase.memory());
+    addTearDown(db.close);
+    await _insert(EntryRepository(db), 3);
+
+    final pal = _FakePal(result: const PalInsights(headline: 'Steady day.'));
+    final container = containerWith(db, pal);
+    final provider = insightsProvider(InsightRange.day);
+
+    // resolve once under a listener, then drop it: an auto-dispose provider
+    // would tear down and recompute on the next read — keepAlive must prevent that.
+    final sub = container.listen(provider, (_, __) {});
+    await container.read(provider.future);
+    sub.close();
+    await Future<void>.delayed(Duration.zero); // let any pending dispose run
+
+    await container.read(provider.future);
+
+    expect(pal.calls, 1); // pinned in memory, not recomputed
+  });
+
+  test('does not pin the empty state (re-resolves on next read)', () async {
+    final db = LoopDatabase.forTesting(NativeDatabase.memory());
+    addTearDown(db.close);
+    await _insert(EntryRepository(db), 3); // clears the gate, so Pal is called
+
+    final pal = _FakePal(result: const PalInsights()); // empty payload → null
+    final container = containerWith(db, pal);
+    final provider = insightsProvider(InsightRange.day);
+
+    final sub = container.listen(provider, (_, __) {});
+    expect(await container.read(provider.future), isNull);
+    sub.close();
+    await Future<void>.delayed(Duration.zero); // let the un-pinned provider dispose
+
+    await container.read(provider.future);
+
+    expect(pal.calls, 2); // not kept alive → recomputed, called Pal again
+  });
+
   test('returns null when Pal throws (graceful empty state)', () async {
     final db = LoopDatabase.forTesting(NativeDatabase.memory());
     addTearDown(db.close);

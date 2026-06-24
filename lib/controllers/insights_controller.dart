@@ -53,7 +53,12 @@ Future<PalInsights?> insights(Ref ref, InsightRange range) async {
 
   try {
     final result = await pal.insights(range);
-    return result.isEmpty ? null : result;
+    if (result.isEmpty) return null;
+    // Pin a real insight in memory for the session so revisiting a surface
+    // doesn't re-resolve (no flicker, no refetch). The empty/below-gate states
+    // stay auto-disposing, so they re-resolve and pick up new data as it lands.
+    ref.keepAlive();
+    return result;
   } catch (_) {
     // Graceful-degradation boundary: an unreachable backend / timeout / bad
     // payload becomes the empty state rather than an error screen (the chosen
