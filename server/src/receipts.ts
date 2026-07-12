@@ -49,8 +49,25 @@ const NON_RECEIPT_MARKERS = [
   'shipping confirmation',
   'tracking number',
   'track your order',
+  'đã giao hàng thành công', // (vi) delivered successfully — logistics, not a charge
   // money moving the other way
   'refund',
+]
+
+// Vietnamese promotional wording, matched against the SUBJECT ONLY. Unlike the
+// markers above, these (discount/offer phrases) legitimately appear inside a
+// real receipt's body — a food-delivery receipt lists a "giảm giá" discount
+// line — so body-matching them would drop genuine receipts. In the subject they
+// are a safe promo signal. Pending/order-state wording ("đơn hàng đã được
+// nhận", "chờ xác nhận") is deliberately excluded, mirroring the English
+// payment-state exclusion above.
+const PROMO_SUBJECT_MARKERS = [
+  'khuyến mãi', // promotion
+  'giảm giá', // discount
+  'ưu đãi', // offer
+  'miễn phí', // free
+  'chăm lo', // promotional
+  'đặc biệt', // special (offer)
 ]
 
 /**
@@ -61,7 +78,9 @@ const NON_RECEIPT_MARKERS = [
  */
 export function isLikelyNonReceipt(email: { subject: string; text: string }): boolean {
   const hay = `${email.subject}\n${email.text}`.toLowerCase()
-  return NON_RECEIPT_MARKERS.some((m) => hay.includes(m))
+  if (NON_RECEIPT_MARKERS.some((m) => hay.includes(m))) return true
+  const subject = email.subject.toLowerCase()
+  return PROMO_SUBJECT_MARKERS.some((m) => subject.includes(m))
 }
 
 const MONTHS: Record<string, number> = {
@@ -70,13 +89,19 @@ const MONTHS: Record<string, number> = {
 }
 
 // Day-first ("06 Jan 26 11:27", "8 November 2025 18:38") and month-first
-// ("Jan 06, 2026 11:27") alpha-month dates. Only alpha months are parsed:
-// numeric "05/06/2025" is locale-ambiguous (May 6 vs June 5) and left to the
-// envelope date. A 24h time is optional.
+// ("Jan 06, 2026 11:27") alpha-month dates, plus numeric day-first dates that
+// carry a time ("05/06/2025 14:30", the common Shopee/VN receipt format). A
+// bare numeric date with no time stays unparsed — locale-ambiguous (May 6 vs
+// June 5) — and falls back to the envelope date. A 24h time is optional for
+// alpha-month dates.
 const MONTH = 'jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec'
 const TIME = '(?:[\\s,]+(\\d{1,2}):(\\d{2}))?'
 const DAY_FIRST = new RegExp(`\\b(\\d{1,2})\\s+(${MONTH})[a-z]*\\.?\\s+(\\d{4}|\\d{2})${TIME}`, 'i')
 const MONTH_FIRST = new RegExp(`\\b(${MONTH})[a-z]*\\.?\\s+(\\d{1,2})(?:st|nd|rd|th)?,?\\s+(\\d{4}|\\d{2})${TIME}`, 'i')
+// Numeric DD/MM/YYYY (or DD-MM-YYYY) day-first, time required. Day-first is
+// assumed for the VN market; a month field > 12 is rejected rather than guessed
+// (so an accidental US MM/DD value falls through to the envelope date).
+const NUMERIC_DAY_FIRST = /\b(\d{1,2})[/-](\d{1,2})[/-](\d{4})[\s,]+(\d{1,2}):(\d{2})/
 
 function toDate(year: number, monthIndex: number, day: number, h?: string, mi?: string): { date: Date; hasTime: boolean } {
   const yyyy = year < 100 ? 2000 + year : year
@@ -90,14 +115,23 @@ function toDate(year: number, monthIndex: number, day: number, h?: string, mi?: 
 /**
  * Best-effort extraction of the transaction date from an email body (#3).
  * Returns the parsed date and whether it carried a time, or null when no
- * unambiguous alpha-month date is present. Interpreted as UTC — no locale
- * timezone is assumed (unlike the reference impl's hardcoded +07:00).
+ * unambiguous date is present. Interpreted as UTC — no locale timezone is
+ * assumed (unlike the reference impl's hardcoded +07:00), including for the
+ * numeric day-first form.
  */
 export function extractTxnDate(text: string): { date: Date; hasTime: boolean } | null {
   const df = text.match(DAY_FIRST)
   if (df) return toDate(Number(df[3]), MONTHS[df[2].toLowerCase()], Number(df[1]), df[4], df[5])
   const mf = text.match(MONTH_FIRST)
   if (mf) return toDate(Number(mf[3]), MONTHS[mf[1].toLowerCase()], Number(mf[2]), mf[4], mf[5])
+  const nm = text.match(NUMERIC_DAY_FIRST)
+  if (nm) {
+    const day = Number(nm[1])
+    const month = Number(nm[2])
+    if (month >= 1 && month <= 12 && day >= 1 && day <= 31) {
+      return toDate(Number(nm[3]), month - 1, day, nm[4], nm[5])
+    }
+  }
   return null
 }
 

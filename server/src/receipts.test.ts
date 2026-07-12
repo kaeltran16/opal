@@ -162,6 +162,24 @@ describe('isLikelyNonReceipt', () => {
     // payment-state wording is intentionally left to the model, not the filter.
     expect(isLikelyNonReceipt({ subject: 'Order confirmation', text: 'We charged your card $59.00' })).toBe(false)
   })
+
+  it('drops Vietnamese promotional subjects and a delivered-successfully marker', () => {
+    const cases = [
+      { subject: 'Khuyến mãi cuối tuần', text: '' },
+      { subject: 'Giảm giá 50% hôm nay', text: '' },
+      { subject: 'Ưu đãi đặc biệt cho bạn', text: '' },
+      { subject: 'Đơn hàng của bạn đã giao hàng thành công', text: '' },
+    ]
+    for (const c of cases) expect(isLikelyNonReceipt(c)).toBe(true)
+  })
+
+  it('does NOT drop a real receipt whose body mentions a discount line', () => {
+    // promo wording is matched in the subject only; a "giảm giá" discount line
+    // in a paid receipt body must not drop it.
+    expect(
+      isLikelyNonReceipt({ subject: 'Hóa đơn GrabFood', text: 'Tạm tính 120.000đ\nGiảm giá -20.000đ\nTổng cộng 100.000đ' }),
+    ).toBe(false)
+  })
 })
 
 describe('extractTxnDate', () => {
@@ -182,7 +200,18 @@ describe('extractTxnDate', () => {
     expect(r?.hasTime).toBe(false)
   })
 
-  it('returns null for ambiguous numeric dates and when absent', () => {
+  it('parses a numeric day-first date that carries a time (Shopee/VN style)', () => {
+    // 05/06/2025 14:30 → 5 June 2025 (day-first), UTC.
+    expect(extractTxnDate('Thời gian đặt: 05/06/2025 14:30')?.date.toISOString()).toBe('2025-06-05T14:30:00.000Z')
+    expect(extractTxnDate('Ngày 5-6-2025 09:00')?.date.toISOString()).toBe('2025-06-05T09:00:00.000Z')
+  })
+
+  it('rejects a numeric date whose month field exceeds 12 rather than guessing', () => {
+    // a US-style 06/13/2025 has month=13 under day-first → left to the envelope date.
+    expect(extractTxnDate('paid 06/13/2025 08:00')).toBeNull()
+  })
+
+  it('returns null for a bare numeric date (no time) and when absent', () => {
     expect(extractTxnDate('charged on 05/06/2025')).toBeNull()
     expect(extractTxnDate('Total $10, thanks')).toBeNull()
   })
