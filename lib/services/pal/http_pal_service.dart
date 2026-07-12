@@ -79,9 +79,8 @@ class HttpPalService implements PalService {
     String path,
     Map<String, Object?> ctx, {
     Map<String, Object?> extra = const {},
-    String? cacheKey,
   }) async {
-    final key = '$kind:${cacheKey ?? jsonEncode(ctx)}';
+    final key = '$kind:${jsonEncode(ctx)}';
     final hit = await cache.get(key);
     if (hit != null) {
       try {
@@ -93,14 +92,6 @@ class HttpPalService implements PalService {
     final json = await _post(path, {'context': ctx, ...extra});
     await cache.put(key, jsonEncode(json));
     return json;
-  }
-
-  // Local calendar day as YYYY-MM-DD, the cache bucket for the day insight.
-  static String _dayStamp() {
-    final n = DateTime.now();
-    final mm = n.month.toString().padLeft(2, '0');
-    final dd = n.day.toString().padLeft(2, '0');
-    return '${n.year}-$mm-$dd';
   }
 
   Future<Map<String, dynamic>> _post(String path, Map<String, Object?> body) =>
@@ -252,12 +243,11 @@ class HttpPalService implements PalService {
 
   @override
   Future<PalInsights> insights(InsightRange range) async {
-    // The day insight pins to the calendar day: generate once, then serve the
-    // same reply as today's data changes rather than re-billing an LLM call on
-    // every log. Week/month stay keyed by context — a closed period self-stabilizes.
-    final cacheKey = range == InsightRange.day ? 'day:${_dayStamp()}' : null;
+    // Keyed by context for every range: an unchanged window hits the cache (no
+    // re-bill on a plain re-view), and a new log changes the context so the day
+    // card re-notices instead of freezing on the first (often empty) reply.
     final json = await _cachedPost('insights', '/v1/insights',
-        await context.insights(range), cacheKey: cacheKey);
+        await context.insights(range));
     List<T> mapList<T>(String key, T Function(Map<String, dynamic>) f) =>
         ((json[key] as List?) ?? const [])
             .cast<Map<String, dynamic>>()

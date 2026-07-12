@@ -273,7 +273,7 @@ void main() {
     expect(second.headline, 'Steady week.');
   });
 
-  test('day insights pin to the calendar day (one call despite a changed context)', () async {
+  test('day insights refetch when today\'s context changes (a new log re-notices)', () async {
     var calls = 0;
     var spent = 100;
     final service = HttpPalService(
@@ -299,9 +299,36 @@ void main() {
     spent = 250; // a new log changes today's context
     final second = await service.insights(InsightRange.day);
 
-    expect(calls, 1); // pinned by calendar day, not context — second hit cache
+    expect(calls, 2); // content-keyed like week/month — a changed day refetches
     expect(first.headline, 'h1');
-    expect(second.headline, 'h1'); // same pinned reply
+    expect(second.headline, 'h2'); // reflects the new log, not a frozen reply
+  });
+
+  test('day insights hit the cache when today\'s context is unchanged', () async {
+    var calls = 0;
+    final service = HttpPalService(
+      baseUrl: 'https://pal.test',
+      httpClient: MockClient((req) async {
+        calls++;
+        return http.Response(jsonEncode({'headline': 'h$calls'}), 200,
+            headers: {'content-type': 'application/json; charset=utf-8'});
+      }),
+      tokens: tokenProvider(),
+      context: PalContextSource(
+        chat: () async => const {},
+        review: (_, _) async => const {},
+        insights: (_) async => const {'range': 'day', 'spent': 100},
+        suggest: (_, _) async => const {},
+        postWorkout: (_) async => const {},
+        resolveRoutineTitle: (_) async => null,
+      ),
+      cache: _MapCache(),
+    );
+
+    await service.insights(InsightRange.day);
+    await service.insights(InsightRange.day);
+
+    expect(calls, 1); // identical context dedups — no re-bill on a plain re-view
   });
 
   test('insights refetches when the context changes (new key misses)', () async {

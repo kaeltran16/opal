@@ -24,8 +24,10 @@ String insightIcon(String colorToken) => switch (colorToken) {
 /// (or Pal is unreachable) — in which case the surfaces render an empty state.
 ///
 /// One-shot (not a stream): an LLM call shouldn't fire on every entry edit. The
-/// gate window is the data each surface's insight draws on — Today (day) looks
-/// back two weeks for streak/patterns; week/month use their own period.
+/// gate window is the data each surface's insight draws on, and must match the
+/// window the context builder sends — the Today card is a *today* card, so its
+/// gate looks at today only (an empty today shows the encouraging empty state
+/// rather than asking Pal to comment on nothing); week/month use their period.
 @riverpod
 Future<PalInsights?> insights(Ref ref, InsightRange range) async {
   final repo = ref.watch(entryRepositoryProvider);
@@ -34,10 +36,7 @@ Future<PalInsights?> insights(Ref ref, InsightRange range) async {
   final now = DateTime.now();
   final today = DateTime(now.year, now.month, now.day);
   final (DateTime start, DateTime end) = switch (range) {
-    InsightRange.day => (
-        today.subtract(const Duration(days: 13)),
-        today.add(const Duration(days: 1)),
-      ),
+    InsightRange.day => (today, today.add(const Duration(days: 1))),
     InsightRange.week => (
         startOfWeek(now),
         today.add(const Duration(days: 1)),

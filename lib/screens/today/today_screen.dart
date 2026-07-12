@@ -167,7 +167,8 @@ class _TodayBody extends ConsumerWidget {
           ),
         ),
 
-        // Pal insight hero (static copy until U16 wires the real Pal note).
+        // Pal insight hero: today's Pal observation, or the empty-state copy
+        // when nothing's logged today yet (gate returns null → _palEmptyCopy).
         Padding(
           padding: const EdgeInsets.fromLTRB(Spacing.lg, 0, Spacing.lg, Spacing.xl),
           child: PressScale(

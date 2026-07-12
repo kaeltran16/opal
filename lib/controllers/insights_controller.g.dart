@@ -12,8 +12,10 @@ part of 'insights_controller.dart';
 /// (or Pal is unreachable) — in which case the surfaces render an empty state.
 ///
 /// One-shot (not a stream): an LLM call shouldn't fire on every entry edit. The
-/// gate window is the data each surface's insight draws on — Today (day) looks
-/// back two weeks for streak/patterns; week/month use their own period.
+/// gate window is the data each surface's insight draws on, and must match the
+/// window the context builder sends — the Today card is a *today* card, so its
+/// gate looks at today only (an empty today shows the encouraging empty state
+/// rather than asking Pal to comment on nothing); week/month use their period.
 
 @ProviderFor(insights)
 const insightsProvider = InsightsFamily._();
@@ -22,8 +24,10 @@ const insightsProvider = InsightsFamily._();
 /// (or Pal is unreachable) — in which case the surfaces render an empty state.
 ///
 /// One-shot (not a stream): an LLM call shouldn't fire on every entry edit. The
-/// gate window is the data each surface's insight draws on — Today (day) looks
-/// back two weeks for streak/patterns; week/month use their own period.
+/// gate window is the data each surface's insight draws on, and must match the
+/// window the context builder sends — the Today card is a *today* card, so its
+/// gate looks at today only (an empty today shows the encouraging empty state
+/// rather than asking Pal to comment on nothing); week/month use their period.
 
 final class InsightsProvider
     extends
@@ -37,8 +41,10 @@ final class InsightsProvider
   /// (or Pal is unreachable) — in which case the surfaces render an empty state.
   ///
   /// One-shot (not a stream): an LLM call shouldn't fire on every entry edit. The
-  /// gate window is the data each surface's insight draws on — Today (day) looks
-  /// back two weeks for streak/patterns; week/month use their own period.
+  /// gate window is the data each surface's insight draws on, and must match the
+  /// window the context builder sends — the Today card is a *today* card, so its
+  /// gate looks at today only (an empty today shows the encouraging empty state
+  /// rather than asking Pal to comment on nothing); week/month use their period.
   const InsightsProvider._({
     required InsightsFamily super.from,
     required InsightRange super.argument,
@@ -83,14 +89,16 @@ final class InsightsProvider
   }
 }
 
-String _$insightsHash() => r'ec059776cd35904205bab28a258fbd56dab23a10';
+String _$insightsHash() => r'2b50316a9d092d7e3189c8a6ecb5ebeb488f7ebc';
 
 /// Structured Pal insights for a [range], or null when there isn't enough data
 /// (or Pal is unreachable) — in which case the surfaces render an empty state.
 ///
 /// One-shot (not a stream): an LLM call shouldn't fire on every entry edit. The
-/// gate window is the data each surface's insight draws on — Today (day) looks
-/// back two weeks for streak/patterns; week/month use their own period.
+/// gate window is the data each surface's insight draws on, and must match the
+/// window the context builder sends — the Today card is a *today* card, so its
+/// gate looks at today only (an empty today shows the encouraging empty state
+/// rather than asking Pal to comment on nothing); week/month use their period.
 
 final class InsightsFamily extends $Family
     with $FunctionalFamilyOverride<FutureOr<PalInsights?>, InsightRange> {
@@ -107,8 +115,10 @@ final class InsightsFamily extends $Family
   /// (or Pal is unreachable) — in which case the surfaces render an empty state.
   ///
   /// One-shot (not a stream): an LLM call shouldn't fire on every entry edit. The
-  /// gate window is the data each surface's insight draws on — Today (day) looks
-  /// back two weeks for streak/patterns; week/month use their own period.
+  /// gate window is the data each surface's insight draws on, and must match the
+  /// window the context builder sends — the Today card is a *today* card, so its
+  /// gate looks at today only (an empty today shows the encouraging empty state
+  /// rather than asking Pal to comment on nothing); week/month use their period.
 
   InsightsProvider call(InsightRange range) =>
       InsightsProvider._(argument: range, from: this);

@@ -47,6 +47,22 @@ Future<void> _insert(EntryRepository repo, int count) async {
   }
 }
 
+/// Inserts [count] entries stamped at 9am on [day], for gate-window tests that
+/// need entries on a specific calendar day rather than "recently".
+Future<void> _insertOn(EntryRepository repo, DateTime day, int count) async {
+  for (var i = 0; i < count; i++) {
+    await repo.insert(Entry(
+      id: '${day.year}${day.month}${day.day}-e$i',
+      timestamp: DateTime(day.year, day.month, day.day, 9).add(Duration(minutes: i)),
+      type: EntryType.money,
+      title: 'Spend $i',
+      amount: -10,
+      category: 'Food',
+      source: EntrySource.manual,
+    ));
+  }
+}
+
 void main() {
   ProviderContainer containerWith(LoopDatabase db, _FakePal pal) {
     final c = ProviderContainer(overrides: [
@@ -70,6 +86,23 @@ void main() {
 
     expect(result, isNull);
     expect(pal.calls, 0); // gate short-circuited before the call
+  });
+
+  test('day gate is scoped to today — a full history but empty today skips Pal', () async {
+    final db = LoopDatabase.forTesting(NativeDatabase.memory());
+    addTearDown(db.close);
+    final now = DateTime.now();
+    // Plenty of entries yesterday, nothing logged today yet.
+    await _insertOn(EntryRepository(db), now.subtract(const Duration(days: 1)), 5);
+
+    final pal = _FakePal();
+    final container = containerWith(db, pal);
+
+    final result =
+        await container.read(insightsProvider(InsightRange.day).future);
+
+    expect(result, isNull); // empty today → placeholder, never "nothing today"
+    expect(pal.calls, 0); // gate looks at today, not a 14-day window
   });
 
   test('calls Pal and returns insights once enough data exists', () async {
