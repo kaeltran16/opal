@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../controllers/budget_recommendations_controller.dart';
 import '../../controllers/budgets_controller.dart';
 import '../../controllers/providers.dart';
 import '../../theme/theme.dart';
@@ -227,6 +228,9 @@ class _Body extends StatelessWidget {
           ),
         ),
 
+        // --- Suggested caps (read-only advisory) ---
+        _SuggestedCaps(currency: currency),
+
         // --- Actions ---
         InsetSection(
           footer: 'Adjust caps anytime — Pal nudges you before an envelope runs dry.',
@@ -312,6 +316,46 @@ class _PaceBar extends StatelessWidget {
           );
         },
       ),
+    );
+  }
+}
+
+/// Read-only "Suggested caps" section: watches [budgetRecommendationsProvider]
+/// and lists each category's suggested monthly cap with a short reasoning line.
+/// Renders nothing while loading, on error, or when there's nothing to suggest.
+class _SuggestedCaps extends ConsumerWidget {
+  const _SuggestedCaps({required this.currency});
+
+  final Currency currency;
+
+  static String _trendWord(SpendTrend trend) => switch (trend) {
+        SpendTrend.increasing => 'trending up',
+        SpendTrend.decreasing => 'trending down',
+        SpendTrend.stable => 'steady',
+      };
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final recs = ref.watch(budgetRecommendationsProvider).asData?.value ?? const [];
+    if (recs.isEmpty) return const SizedBox.shrink();
+
+    final c = context.colors;
+    return InsetSection(
+      header: 'Suggested caps',
+      footer: 'From your spending over the last 3 months.',
+      children: [
+        for (var i = 0; i < recs.length; i++)
+          ListRow(
+            title: recs[i].category,
+            subtitle: '${formatCurrency(recs[i].monthlyAverage, currency)}/mo'
+                ' · ${_trendWord(recs[i].trend)}'
+                ' · +${(recs[i].bufferFraction * 100).round()}% buffer',
+            value: formatCurrency(recs[i].suggestedCap, currency),
+            valueColor: c.money,
+            chevron: false,
+            last: i == recs.length - 1,
+          ),
+      ],
     );
   }
 }
