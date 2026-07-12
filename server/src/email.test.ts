@@ -41,6 +41,25 @@ describe('EmailWorker.sync', () => {
     expect((await worker.sync(creds, [], new Date(0))).items).toHaveLength(0)
   })
 
+  it('skips obvious non-receipts before the LLM call (#1)', async () => {
+    let calls = 0
+    const counting: TextCompleter = {
+      complete: async (msgs) => { calls++; return completion.complete(msgs) },
+    }
+    const promo = { ...raw('m1', 'receipts@amazon.com'), subject: 'Your order is out for delivery' }
+    const worker = new EmailWorker(mailbox([promo]), counting)
+    const { items } = await worker.sync(creds, [], new Date(0))
+    expect(items).toHaveLength(0)
+    expect(calls).toBe(0) // filtered out, never reached the model
+  })
+
+  it('stamps the transaction date from the body when present (#3)', async () => {
+    const withDate = { ...raw('m1', 'receipts@amazon.com'), text: 'total $10 on 06 Jan 26 11:27' }
+    const worker = new EmailWorker(mailbox([withDate]), completion)
+    const { items } = await worker.sync(creds, [], new Date(0))
+    expect(items[0].receivedAt).toBe('2026-01-06T11:27:00.000Z')
+  })
+
   it('applies the sender allowlist before extraction', async () => {
     const worker = new EmailWorker(
       mailbox([raw('m1', 'receipts@amazon.com'), raw('m2', 'receipts@amazon.com')]),

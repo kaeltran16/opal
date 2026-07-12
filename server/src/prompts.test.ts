@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { chatSystemPrompt, reviewPrompt, insightsPrompt, parsePrompt, suggestPrompt, postWorkoutPrompt, routinePrompt, receiptsBatchPrompt, memoryBlock, agendaPrompt, memoryPatternsPrompt, nutritionEstimatePrompt } from './prompts.js'
+import { RECEIPT_CATEGORIES } from './receipts.js'
 
 describe('prompts', () => {
   it('chat system prompt substitutes user data', () => {
@@ -208,7 +209,22 @@ describe('prompts', () => {
     expect(p).toContain('receipts@amazon.com')
     expect(p).toContain('Order total $42.99')
     expect(p).toContain('"results": [{"index": number')
-    expect(p).toContain('Shopping, Food, Transport, Bills, Entertainment, Health, Travel, Other')
+    expect(p).toContain('Food & Drink, Groceries, Bills & Utilities, Shopping, Transport, Entertainment, Health')
+  })
+
+  it('receipts batch prompt lists every category the schema accepts (drift guard)', () => {
+    const p = receiptsBatchPrompt([{ from: 'a@b.com', subject: 's', text: 't' }])
+    for (const c of RECEIPT_CATEGORIES) expect(p).toContain(c)
+  })
+
+  it('receipts batch prompt rejects pending/delivery/tracking/refund/review emails', () => {
+    const p = receiptsBatchPrompt([{ from: 'a@b.com', subject: 's', text: 't' }]).toLowerCase()
+    expect(p).toContain('charged')
+    expect(p).toContain('pending')
+    expect(p).toContain('delivery')
+    expect(p).toContain('tracking')
+    expect(p).toContain('refund')
+    expect(p).toContain('review')
   })
 
   it('receipts batch prompt instructs the model to treat email content as untrusted data', () => {

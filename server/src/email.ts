@@ -1,6 +1,6 @@
 import type { TextCompleter } from './pal.js'
 import type { ImapCreds, MailboxClient, RawEmail } from './imap.js'
-import { filterBySender, extractReceipts, BATCH_SIZE } from './receipts.js'
+import { filterBySender, extractReceipts, isLikelyNonReceipt, resolveReceivedAt, BATCH_SIZE } from './receipts.js'
 
 /** Wire shape returned to the client; maps 1:1 onto `EmailImportItem`. */
 export interface EmailImportDto {
@@ -58,13 +58,16 @@ export class EmailWorker {
     const truncated = emails.length >= MAX_SCAN
 
     // dedupe by messageId before extraction so a repeated non-receipt id is
-    // never sent to the model twice (Bug B).
+    // never sent to the model twice (Bug B), then drop emails that are almost
+    // certainly not purchases (#1) so they never reach the (paid) LLM call.
     const seen = new Set<string>()
-    const candidates = filterBySender(emails, senderFilters).filter((e) => {
-      if (seen.has(e.messageId)) return false
-      seen.add(e.messageId)
-      return true
-    })
+    const candidates = filterBySender(emails, senderFilters)
+      .filter((e) => {
+        if (seen.has(e.messageId)) return false
+        seen.add(e.messageId)
+        return true
+      })
+      .filter((e) => !isLikelyNonReceipt(e))
 
     // chunk into batches (one LLM call each), then run those through a bounded
     // pool with per-batch failure tolerance: one upstream error skips that
@@ -90,7 +93,9 @@ export class EmailWorker {
               id: email.messageId,
               merchant: f.merchant,
               amount: -Math.abs(f.amount), // receipts are expenses
-              receivedAt: email.date.toISOString(),
+              // prefer the transaction date from the body, falling back to the
+              // envelope date (#3).
+              receivedAt: resolveReceivedAt(email.text, email.date).toISOString(),
               category: f.category,
             }
           })

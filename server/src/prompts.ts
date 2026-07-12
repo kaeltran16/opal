@@ -278,10 +278,10 @@ ${blocks}
 
 Return strictly: {"results": [{"index": number, "isReceipt": boolean, "merchant": string|null, "amount": number|null, "category": string|null}]}
 - Return exactly one result per email, in order, with index 0 for Email 1, 1 for Email 2, and so on.
-- isReceipt: true only if that email is a receipt/order confirmation for something the user paid for.
+- isReceipt: true ONLY when the email confirms money was actually charged to the user (a paid receipt or a paid order confirmation). Set it false for pending or unconfirmed orders, order/booking confirmations awaiting payment, delivery or shipping status updates, tracking notifications, refunds, and review or feedback requests.
 - merchant: the store/brand name (not the email sender domain).
 - amount: the total charged as a positive number, no currency symbol. null if not found.
-- category: one of Shopping, Food, Transport, Bills, Entertainment, Health, Travel, Other.
+- category: one of Food & Drink, Groceries, Bills & Utilities, Shopping, Transport, Entertainment, Health. Use "Food & Drink" for prepared food or drinks (restaurants, cafes, food delivery) and "Groceries" for supermarket purchases.
 No prose. Output only the JSON object.`
 }
 

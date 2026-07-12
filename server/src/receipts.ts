@@ -23,17 +23,121 @@ export function filterBySender(emails: RawEmail[], filters: string[]): RawEmail[
   })
 }
 
-// off-list categories coerce to null, mirroring routineSchema.tag's catch();
-// the client treats a null category fine, so an unknown one never crashes.
+// Subjects/bodies that are NEVER a completed purchase regardless of body
+// content. Kept deliberately narrow so a real receipt is never dropped — in
+// particular, payment-state wording ("order confirmation", "awaiting payment")
+// is left OUT because a paid order-confirmation IS a receipt; the model judges
+// those with full context via the prompt's isReceipt rules (#2). Matched
+// case-insensitively as substrings.
+const NON_RECEIPT_MARKERS = [
+  // promotional
+  'unsubscribe',
+  'refer a friend',
+  'invite friends',
+  '% off',
+  'sale ends',
+  // review / feedback requests
+  'rate your',
+  'how was your',
+  'share your feedback',
+  'leave a review',
+  // fulfilment / logistics status, not a charge
+  'out for delivery',
+  'has been delivered',
+  'delivery completed',
+  'has shipped',
+  'shipping confirmation',
+  'tracking number',
+  'track your order',
+  // money moving the other way
+  'refund',
+]
+
+/**
+ * Deterministic pre-LLM gate (#1): true when an email is almost certainly not a
+ * completed purchase (promotional, pending order, delivery/tracking status,
+ * refund). Lets the worker skip it before the batch LLM call, cutting cost and
+ * false-positive receipts. Deliberately narrow — the model still judges the rest.
+ */
+export function isLikelyNonReceipt(email: { subject: string; text: string }): boolean {
+  const hay = `${email.subject}\n${email.text}`.toLowerCase()
+  return NON_RECEIPT_MARKERS.some((m) => hay.includes(m))
+}
+
+const MONTHS: Record<string, number> = {
+  jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5,
+  jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11,
+}
+
+// Day-first ("06 Jan 26 11:27", "8 November 2025 18:38") and month-first
+// ("Jan 06, 2026 11:27") alpha-month dates. Only alpha months are parsed:
+// numeric "05/06/2025" is locale-ambiguous (May 6 vs June 5) and left to the
+// envelope date. A 24h time is optional.
+const MONTH = 'jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec'
+const TIME = '(?:[\\s,]+(\\d{1,2}):(\\d{2}))?'
+const DAY_FIRST = new RegExp(`\\b(\\d{1,2})\\s+(${MONTH})[a-z]*\\.?\\s+(\\d{4}|\\d{2})${TIME}`, 'i')
+const MONTH_FIRST = new RegExp(`\\b(${MONTH})[a-z]*\\.?\\s+(\\d{1,2})(?:st|nd|rd|th)?,?\\s+(\\d{4}|\\d{2})${TIME}`, 'i')
+
+function toDate(year: number, monthIndex: number, day: number, h?: string, mi?: string): { date: Date; hasTime: boolean } {
+  const yyyy = year < 100 ? 2000 + year : year
+  const hasTime = h !== undefined && mi !== undefined
+  return {
+    date: new Date(Date.UTC(yyyy, monthIndex, day, hasTime ? Number(h) : 0, hasTime ? Number(mi) : 0)),
+    hasTime,
+  }
+}
+
+/**
+ * Best-effort extraction of the transaction date from an email body (#3).
+ * Returns the parsed date and whether it carried a time, or null when no
+ * unambiguous alpha-month date is present. Interpreted as UTC — no locale
+ * timezone is assumed (unlike the reference impl's hardcoded +07:00).
+ */
+export function extractTxnDate(text: string): { date: Date; hasTime: boolean } | null {
+  const df = text.match(DAY_FIRST)
+  if (df) return toDate(Number(df[3]), MONTHS[df[2].toLowerCase()], Number(df[1]), df[4], df[5])
+  const mf = text.match(MONTH_FIRST)
+  if (mf) return toDate(Number(mf[3]), MONTHS[mf[1].toLowerCase()], Number(mf[2]), mf[4], mf[5])
+  return null
+}
+
+/**
+ * The timestamp to stamp on an imported receipt (#3): the transaction date from
+ * the body when confidently parsed, else the email's envelope date. A body date
+ * without a time keeps the envelope's time-of-day so meal-slot inference (which
+ * buckets by hour) stays sensible.
+ */
+export function resolveReceivedAt(text: string, envelope: Date): Date {
+  const t = extractTxnDate(text)
+  if (!t) return envelope
+  if (t.hasTime) return t.date
+  return new Date(Date.UTC(
+    t.date.getUTCFullYear(), t.date.getUTCMonth(), t.date.getUTCDate(),
+    envelope.getUTCHours(), envelope.getUTCMinutes(), envelope.getUTCSeconds(),
+  ))
+}
+
+// the receipt categories the model may assign. Kept identical to the client's
+// canonical `kSpendCategories` (lib/models/spend_category.dart) so an imported
+// receipt's category lines up with a budget envelope and, for 'Food & Drink',
+// feeds the nutrition "expense looks like a meal" prompt. off-list values coerce
+// to null, mirroring routineSchema.tag's catch(); the client treats null fine.
+export const RECEIPT_CATEGORIES = [
+  'Food & Drink',
+  'Groceries',
+  'Bills & Utilities',
+  'Shopping',
+  'Transport',
+  'Entertainment',
+  'Health',
+] as const
+
 const receiptResultSchema = z.object({
   index: z.number(),
   isReceipt: z.boolean(),
   merchant: z.string().nullable(),
   amount: z.number().nullable(),
-  category: z
-    .enum(['Shopping', 'Food', 'Transport', 'Bills', 'Entertainment', 'Health', 'Travel', 'Other'])
-    .nullable()
-    .catch(null),
+  category: z.enum(RECEIPT_CATEGORIES).nullable().catch(null),
 })
 
 const receiptsBatchSchema = z.object({ results: z.array(receiptResultSchema) })
