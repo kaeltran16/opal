@@ -1,0 +1,26 @@
+name = "opal-spike"
+main = "src/worker.ts"
+compatibility_date = "2026-07-01"
+compatibility_flags = ["nodejs_compat"]
+
+# pal.ts -> memory.ts value-imports MAX_PATTERNS; memory.ts imports the native
+# better-sqlite3. Alias it to an empty stub so the Worker bundles (the class is
+# dead code here). node:crypto (randomBytes in the same dead code) is covered by
+# nodejs_compat above.
+# zod: the reused server/src modules import 'zod', but they live outside this
+# project's node_modules; server/ has no node_modules here. Resolve their 'zod' to
+# the spike's own installed copy (same ^3.24 line) so the bundle finds one instance.
+alias = { "better-sqlite3" = "./stubs/better-sqlite3.js", "zod" = "./node_modules/zod/index.js" }
+
+[vars]
+OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
+PAL_MODEL = "deepseek/deepseek-v4-flash"
+PAL_REQUEST_TIMEOUT_MS = "30000"
+CORS_ORIGINS = ""
+STUB_LLM = "1"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "opal-spike"
+database_id = "PLACEHOLDER_SET_BY_WRANGLER_D1_CREATE"
+migrations_dir = "migrations"
