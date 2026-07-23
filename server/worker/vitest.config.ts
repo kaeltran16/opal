@@ -12,7 +12,10 @@ const abs = (p: string) => fileURLToPath(new URL(p, import.meta.url))
 
 export default defineConfig({
   resolve: {
-    alias: [{ find: /^zod$/, replacement: abs('./node_modules/zod/index.js') }],
+    alias: [
+      { find: /^zod$/, replacement: abs('./node_modules/zod/index.js') },
+      { find: /^better-sqlite3$/, replacement: abs('./stubs/better-sqlite3.js') },
+    ],
   },
   plugins: [
     cloudflareTest({

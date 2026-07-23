@@ -1,3 +1,5 @@
+import type { MemoryOp } from '../../../src/memory.js'
+
 // Async D1 port of server/src/memory.ts MemoryStore. Prepared statements; Web Crypto for ids.
 const MAX_FACTS = 20   // server/src/memory.ts
 const MAX_PATTERNS = 5 // server/src/memory.ts
@@ -53,6 +55,13 @@ export class D1MemoryStore {
 
   async digest(token: string): Promise<MemoryDigest> {
     return { facts: await this.listFacts(token), patterns: await this.getPatterns(token) }
+  }
+
+  async applyOps(token: string, ops: MemoryOp[]): Promise<void> {
+    for (const op of ops) {
+      if (op.op === 'remember') await this.addFact(token, op.text)
+      else await this.forgetFact(token, op.id)
+    }
   }
 
   async wipe(token: string): Promise<void> {
