@@ -12,7 +12,9 @@ export function makePal(env: Env): Pal {
     env.OPENROUTER_API_KEY,
     env.PAL_MODEL ?? 'deepseek/deepseek-v4-flash',
     env.OPENROUTER_BASE_URL ?? 'https://openrouter.ai/api/v1',
-    fetch,
+    // bind to globalThis: OpenRouterClient calls fetchImpl as a method, and workerd
+    // throws "Illegal invocation" if fetch runs with a non-global `this` (Node tolerates it).
+    fetch.bind(globalThis),
     Number(env.PAL_REQUEST_TIMEOUT_MS ?? 30_000),
     usageLogger,
   )
