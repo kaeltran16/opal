@@ -9,7 +9,7 @@ CORS_ORIGINS = ""
 [[d1_databases]]
 binding = "DB"
 database_name = "opal"
-database_id = "PLACEHOLDER_SET_BY_WRANGLER_D1_CREATE"
+database_id = "495d49f3-d132-44db-ac41-d159d2c363d1"
 migrations_dir = "migrations"
 
 [[ratelimits]]
