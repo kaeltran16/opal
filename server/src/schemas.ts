@@ -11,8 +11,8 @@ export const currencyDescriptor = z.object({
 export const nutritionEstimateBody = z.object({ text: z.string() })
 
 export const registerBody = z.object({
-  provisioningKey: z.string().min(1),
-  deviceId: z.string().min(1),
+  provisioningKey: z.string().min(1).max(500),
+  deviceId: z.string().min(1).max(200),
 })
 
 export const chatContext = z.object({
