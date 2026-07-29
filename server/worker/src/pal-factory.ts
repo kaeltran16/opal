@@ -6,9 +6,9 @@ const usageLogger: CompletionLogger = {
   info: (obj, msg) => console.log(JSON.stringify({ msg, ...(obj as Record<string, unknown>) })),
 }
 
-// a fresh Pal per request; the OpenRouterClient holds only config, no per-request state.
-export function makePal(env: Env): Pal {
-  const client = new OpenRouterClient(
+// a fresh OpenRouter client per request; it holds only config, no per-request state.
+export function makeClient(env: Env): OpenRouterClient {
+  return new OpenRouterClient(
     env.OPENROUTER_API_KEY,
     env.PAL_MODEL ?? 'deepseek/deepseek-v4-flash',
     env.OPENROUTER_BASE_URL ?? 'https://openrouter.ai/api/v1',
@@ -18,5 +18,8 @@ export function makePal(env: Env): Pal {
     Number(env.PAL_REQUEST_TIMEOUT_MS ?? 30_000),
     usageLogger,
   )
-  return new Pal(client)
+}
+
+export function makePal(env: Env): Pal {
+  return new Pal(makeClient(env))
 }
