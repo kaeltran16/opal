@@ -10,8 +10,9 @@ import { D1TokenStore } from './stores/tokens.js'
 import { D1MemoryStore } from './stores/memory.js'
 import { D1HealthStore } from './stores/health.js'
 import { D1WidgetStore } from './stores/widget.js'
-import { makePal } from './pal-factory.js'
-import { OpenRouterError, type Pal } from '../../src/pal.js'
+import { makePal, makeClient } from './pal-factory.js'
+import { OpenRouterError, type Pal, type TextCompleter } from '../../src/pal.js'
+import { emailExtractBody, extractFromCandidates } from './email.js'
 
 export interface Env {
   DB: D1Database
@@ -31,7 +32,7 @@ export default {
 }
 
 // exported so tests can inject a stub Pal without a network. production passes no overrides.
-export async function handle(request: Request, env: Env, overrides?: { pal?: Pal }): Promise<Response> {
+export async function handle(request: Request, env: Env, overrides?: { pal?: Pal; completer?: TextCompleter }): Promise<Response> {
   const origins = parseOrigins(env.CORS_ORIGINS)
   if (request.method === 'OPTIONS') return preflight(request, origins)
   let res: Response
@@ -44,7 +45,7 @@ export async function handle(request: Request, env: Env, overrides?: { pal?: Pal
   return withCors(res, request, origins)
 }
 
-async function route(request: Request, env: Env, overrides?: { pal?: Pal }): Promise<Response> {
+async function route(request: Request, env: Env, overrides?: { pal?: Pal; completer?: TextCompleter }): Promise<Response> {
   const url = new URL(request.url)
   const { pathname } = url
   const method = request.method
@@ -81,7 +82,7 @@ async function route(request: Request, env: Env, overrides?: { pal?: Pal }): Pro
 }
 
 async function routeAuthed(
-  request: Request, env: Env, url: URL, method: string, token: string, overrides?: { pal?: Pal },
+  request: Request, env: Env, url: URL, method: string, token: string, overrides?: { pal?: Pal; completer?: TextCompleter },
 ): Promise<Response> {
   const { pathname } = url
   const memory = new D1MemoryStore(env.DB)
@@ -124,6 +125,16 @@ async function routeAuthed(
     const snapshot = await store.get()
     if (!snapshot) return error('not_found', 'no snapshot yet', 404)
     return json(snapshot)
+  }
+
+  if (pathname === '/v1/email/extract' && method === 'POST') {
+    const raw = await request.json().catch(() => null)
+    const parsed = emailExtractBody.safeParse(raw)
+    if (!parsed.success) return badRequest(parsed.error, raw)
+    // stateless: one request == one batch == one LLM call. The client owns the
+    // sync loop, concurrency, and per-batch failure isolation.
+    const completer = overrides?.completer ?? makeClient(env)
+    return runPal(async () => ({ items: await extractFromCandidates(parsed.data.candidates, completer) }))
   }
 
   const pal = overrides?.pal ?? makePal(env)
