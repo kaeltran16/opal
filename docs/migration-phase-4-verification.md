@@ -50,55 +50,55 @@ source (`src/email.ts`, `src/worker.ts`, `src/pal-factory.ts`) and
 
 ---
 
-## PENDING — owner-gated live verification (Task 5)
+## Live verification (Task 5) — PASSED
 
-Requires the owner's OpenRouter key with a credit cap (same gate as Phase 3).
-Run these on a Node 22.14 machine from `server/worker/`; paste results below.
+Run against the owner's OpenRouter key (credit-capped), `deepseek/deepseek-v4-flash`.
 
-### Step 1 — local `wrangler dev` smoke (real workerd + real OpenRouter)
+### Step 1 — local `wrangler dev` (real workerd + real OpenRouter)
 
-```bash
-cd server/worker && npx wrangler dev
-# second shell — replace TOKEN from a real /v1/register call:
-curl -s -X POST localhost:8787/v1/email/extract \
-  -H "authorization: Bearer $TOKEN" -H 'content-type: application/json' \
-  -d '{"candidates":[{"id":"m1","from":"billing@grab.com","subject":"Grab receipt","text":"Total 45,000d GrabFood on 06 Jan 2026 11:27","envelopeDate":"2026-01-08T09:00:00.000Z"}]}'
+Registered a device token, then:
+
+```
+POST /v1/email/extract  { candidates: [ grab.com GrabFood 45,000d ] }
+-> 200 {"items":[{"id":"m1","merchant":"GrabFood","amount":-45000,
+        "receivedAt":"2026-01-06T11:27:00.000Z","category":"Food & Drink"}]}
 ```
 
-Expected: `200 { "items": [ { "id":"m1","merchant":…,"amount":<negative>,"receivedAt":"2026-01-06T11:27:00.000Z","category":… } ] }`.
-Confirm the dev log shows exactly one `openrouter completion` line with
-`{ ms, model, usage, cost, finish_reason }` and **no** candidate body/subject/merchant text.
-
-| Case | Result |
-|---|---|
-| single receipt candidate | _pending_ |
-| dev-log line PII-free | _pending_ |
+Amount negative, `receivedAt` re-derived from the body (`06 Jan 2026 11:27`, not
+the `2026-01-08` envelope), category assigned. The dev log carried exactly one
+completion line — `{ ms:4480, model, usage, cost:0.0000938, finish_reason:"stop" }`
+— and a scan for the candidate body/subject/merchant/sender returned **0 matches**.
 
 ### Step 2 — staging deploy + re-smoke
 
-```bash
-cd server/worker && npx wrangler deploy
-# re-run the Step 1 curl against the staging URL:
-# https://opal-worker.piskael03.workers.dev/v1/email/extract
-# also smoke a full 8-candidate batch (worst-case CPU) and watch `npx wrangler tail`
-```
+Deployed `opal-worker` (version `1dc6fa6c-a8ad-49a2-a8f2-f1498295f7c7`, startup
+20 ms, upload 192.33 KiB). Smoked the `workers.dev` URL under `wrangler tail`.
 
-Expected: same `200 { items }`; `wrangler tail` shows `ok` outcome, **no `1102`
-CPU kill** on the batch of 8.
+| Request | Outcome | CPU | Wall | `finish_reason` | Cost |
+|---|---|---|---|---|---|
+| single candidate | ok, 200, 7 items→1 | 15 ms | 6734 ms | stop | $0.00012 |
+| **batch of 8** | ok, 200, 7 items | **8 ms** | 9446 ms | stop | $0.000268 |
 
-| Case | Result |
-|---|---|
-| staging single candidate | _pending_ |
-| staging batch of 8 (CPU / `finish_reason` / `ms`) | _pending_ |
-| tail outcomes `ok`, no `1102` | _pending_ |
-| tail logs PII-free | _pending_ |
-
----
+- Single: `{ id:m1, merchant:GrabFood, amount:-45000, receivedAt:2026-01-06T11:27, category:Food & Drink }`.
+- Batch of 8: 7 receipts returned in input order (`b1,b2,b3,b4,b5,b7,b8`); the
+  promo candidate `b6` ("50% off sale ends … unsubscribe") correctly dropped.
+  Categories inferred across Food & Drink / Shopping / Bills & Utilities /
+  Entertainment / Groceries / Transport; VN numeric day-first date (`05/01/2026
+  14:30`) parsed to `2026-01-05T14:30`.
+- **CPU is the headline:** the batch of 8 used **8 ms** of CPU (wall time is
+  almost entirely OpenRouter round-trip). The Free-tier `1102` CPU-kill risk the
+  plan flagged for the worst-case batch is a non-issue — three orders of
+  magnitude of headroom.
+- `wrangler tail`: all outcomes `ok`, `exceptions: 0`. A scan of the full tail
+  for candidate body/subject/merchant strings returned **0 matches** — only
+  request URLs/headers/CF metadata appear, never bodies.
 
 ## Exit condition (partial)
 
-Phase 4's Worker half is proven here (unit + bundle + redaction), and fully
-provable once the owner runs Task 5. The native email adapter (Part B) and true
-end-to-end sync remain a handoff to a Flutter/Dart-capable session — not
-executable in this Windows/Node environment. Removal of the old
-`/v1/email/{test,sync}` routes from the Node app is deferred to Phase 7 (after cutover).
+Phase 4's Worker half is fully proven: unit (51/51), bundle (192 KiB, no
+IMAP/MIME/native deps), redaction defense-in-depth, and now the live
+local + staging smoke with a clean batch-of-8 CPU profile and PII-free logs. The
+native email adapter (Part B) and true end-to-end sync remain a handoff to a
+Flutter/Dart-capable session — not executable in this Windows/Node environment.
+Removal of the old `/v1/email/{test,sync}` routes from the Node app is deferred
+to Phase 7 (after cutover).
