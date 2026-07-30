@@ -399,11 +399,21 @@ HealthService healthService(Ref ref) {
   );
 }
 
-/// Real IMAP-backed sync (U24) when `PAL_BASE_URL` is set; [MockEmailSyncService]
-/// otherwise (tests, backend-less preview). Shares the proxy's http client +
-/// device-token store with [palService].
+/// Native on-device IMAP sync (migration phase 4B) when `PAL_BASE_URL` is set;
+/// [MockEmailSyncService] otherwise (tests, backend-less preview).
+///
+/// Web gets [UnavailableEmailSyncService]: browsers cannot open the raw TCP
+/// socket IMAP needs, and the app password stays on-device by design rather
+/// than being proxied. The Worker only ever receives sanitized candidates, so
+/// it shares the proxy's http client + device-token store with [palService].
 @Riverpod(keepAlive: true)
 EmailSyncService emailSyncService(Ref ref) {
+  if (!isEmailSyncAvailable) {
+    final service = UnavailableEmailSyncService();
+    ref.onDispose(service.dispose);
+    return service;
+  }
+
   if (_palBaseUrl.isEmpty) {
     final service = MockEmailSyncService();
     ref.onDispose(service.dispose);
@@ -415,9 +425,10 @@ EmailSyncService emailSyncService(Ref ref) {
     token: () => _deviceTokens(httpClient).token(),
     clear: () => _deviceTokens(httpClient).clear(),
   );
-  final service = RealEmailSyncService(
+  final service = NativeEmailSyncService(
     baseUrl: _palBaseUrl,
     httpClient: httpClient,
+    mailbox: createMailboxClient(),
     tokens: tokens,
     secure: const FlutterTokenSecureStore(),
     prefs: ref.watch(sharedPreferencesProvider),
