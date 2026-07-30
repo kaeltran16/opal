@@ -22,5 +22,5 @@ STUB_LLM = "1"
 [[d1_databases]]
 binding = "DB"
 database_name = "opal-spike"
-database_id = "PLACEHOLDER_SET_BY_WRANGLER_D1_CREATE"
+database_id = "b0569841-0978-4be7-a437-dbc844e8fcf9"
 migrations_dir = "migrations"

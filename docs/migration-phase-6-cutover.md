@@ -5,6 +5,10 @@ Prepared 2026-07-30. **Not executed.** This is the ordered procedure for moving
 Every command below was checked against the installed wrangler surface; none were
 run against production.
 
+Steps 2–4 were rehearsed end-to-end on 2026-07-30 against a stand-in SQLite
+database and a throwaway local D1 — see [Dry run](#dry-run-2026-07-30). The
+commands and the export script below are the rehearsed ones.
+
 ## Preconditions
 
 - [ ] Phase 4 Part B (native email adapter) verified on device, or an accepted
@@ -18,6 +22,13 @@ run against production.
       it recoverable but the pull is still outstanding
       (`docs/migration-phase-0-findings.md`, section 4 item 1).
 - [ ] `kael.life` active as a Cloudflare zone.
+- [ ] Worker runtime secrets present: `npx wrangler secret list` shows
+      `OPENROUTER_API_KEY` and `PAL_PROVISIONING_KEY`. The provisioning key must be
+      the **same value** the droplet uses, or every client re-registration fails.
+- [ ] `CORS_ORIGINS` in `server/worker/wrangler.toml` set to the droplet's live
+      value. It currently ships as `""`, which disables CORS entirely — the web
+      build breaks at cutover if this is not copied across from
+      `/opt/opal-api/.env`. This is a `vars` change, so it deploys with the Worker.
 
 ## Schema parity (verified 2026-07-30)
 
@@ -39,52 +50,75 @@ Do not skip this — a write landing after the export is silently lost.
 
 ## Step 2 — export data only
 
-The migration creates the schema, so export rows without DDL. `.mode insert` is
-used rather than `.dump` because it emits exactly the five tables and no
-`sqlite_sequence`, index, or transaction noise:
+The migration creates the schema, so export rows without DDL. Use the export
+script — it needs no `sqlite3` CLI on the droplet (`better-sqlite3` is already an
+API dependency), emits data only, and writes **one file per table** so a large
+`health_metrics` never has to be split by hand:
 
 ```
-sqlite3 /opt/opal-api/loop.sqlite <<'SQL' > data.sql
-.mode insert device_tokens
-SELECT * FROM device_tokens;
-.mode insert pal_facts
-SELECT * FROM pal_facts;
-.mode insert pal_patterns
-SELECT * FROM pal_patterns;
-.mode insert health_metrics
-SELECT * FROM health_metrics;
-.mode insert widget_snapshot
-SELECT * FROM widget_snapshot;
-SQL
+cd /opt/opal-api
+node scripts/export-loop-sqlite.mjs ./loop.sqlite ./d1-import
 ```
 
-**`data.sql` contains live bearer device tokens.** Treat it as a credential file:
-never commit it, keep it out of the repo tree, and delete it once the import is
-verified.
+The script reaches the droplet with the next `server/**` deploy (`deploy.yml`
+rsyncs the whole `server/` tree). If the merge that adds it has not been deployed,
+`scp` it across instead — it depends only on `better-sqlite3`, already installed
+there.
 
-Record the source-side counts for comparison:
+It prints the source-side row counts — record them, they are the Step 4
+comparison. The equivalent with the CLI, if it is installed and preferred, is
+`.mode insert` per table (not `.dump`, which drags in DDL, `sqlite_sequence`, and
+transaction noise).
 
-```
-sqlite3 /opt/opal-api/loop.sqlite < server/worker/scripts/counts.sql
-```
+**`d1-import/data-device_tokens.sql` contains live bearer device tokens.** Treat
+the whole directory as a credential file: never commit it, keep it out of the repo
+tree, and delete it once the import is verified.
 
-## Step 3 — apply the migration, then import
-
-```
-cd server/worker
-npm run migrate:remote                                   # schema first
-npx wrangler d1 execute opal --remote --file=./data.sql
-```
-
-If `execute` rejects `data.sql` for size, split it per table and run them in the
-order above. `health_metrics` is the only table likely to be large.
+## Step 3 — apply the migration, clear staging rows, then import
 
 Note the pre-import Time Travel bookmark first — it is the rollback for a bad
 import:
 
 ```
+cd server/worker
 npx wrangler d1 time-travel info opal
 ```
+
+Then the schema:
+
+```
+npm run migrate:remote
+```
+
+**Check what is already in the remote database before importing.** Phases 2–4 ran
+live verification against this same `opal` D1, so it holds test device tokens and
+possibly test Pal/Health rows. An import on top of them fails on the
+`device_tokens` primary key or the `device_id` unique index:
+
+```
+npx wrangler d1 execute opal --remote --file=./scripts/counts.sql
+```
+
+If any count is non-zero, those rows are staging artifacts with nothing to
+preserve — clear them, in the maintenance window, right before the import:
+
+```
+npx wrangler d1 execute opal --remote --command \
+  "DELETE FROM device_tokens; DELETE FROM pal_facts; DELETE FROM pal_patterns; DELETE FROM health_metrics; DELETE FROM widget_snapshot;"
+```
+
+Then import, one file per table (order is free — the schema has no foreign keys):
+
+```
+for t in device_tokens pal_facts pal_patterns health_metrics widget_snapshot; do
+  npx wrangler d1 execute opal --remote --file=/opt/opal-api/d1-import/data-$t.sql
+done
+```
+
+A file that hits an error leaves **no** rows behind — verified locally: a file
+whose second statement violated a primary key rolled back its first, successful
+insert. So a failed table is retryable as-is; a *succeeded* one is not, since the
+inserts are plain `INSERT` and re-running conflicts. Retry the failing file only.
 
 ## Step 4 — validate
 
@@ -96,6 +130,10 @@ npx wrangler d1 execute opal --remote --file=./scripts/counts.sql
 comparable to Step 2's. All five counts must match. Then spot-check one real row
 per table — a device token resolving, a `pal_facts` row for that token, the current
 `widget_snapshot`, and a recent `health_metrics` day.
+
+Include at least one `pal_facts` row containing an apostrophe or non-ASCII text in
+the spot-check. Quoting is where a hand-rolled dump usually breaks, and it is the
+one class of corruption the counts cannot see.
 
 ## Step 5 — attach the custom domain
 
@@ -140,9 +178,39 @@ intact. Phase 7 removes it.
 | Worker broken after cutover | Revert the `[[routes]]` commit and deploy; re-`systemctl start opal-api` on the droplet |
 | Data unrecoverable | Initialize D1 empty. Clients recover auth through the existing 401-clear-and-register path; server-only Pal memory and Health history are lost — this is the roadmap's accepted worst case |
 
+## Dry run (2026-07-30)
+
+Steps 2–4 rehearsed with no production access and no network. A stand-in SQLite
+database was built with the Node schema and deliberately awkward values — an
+apostrophe, Vietnamese diacritics, `₫`, an embedded newline, a backslash — plus 800
+`health_metrics` rows (two metrics a day for 400 days) as a plausible worst case for
+the largest table. `wrangler d1 migrations apply --local --persist-to <tmp>` created
+a throwaway D1, and the export ran through `scripts/export-loop-sqlite.mjs`.
+
+| Check | Result |
+|---|---|
+| Migration applies to an empty D1 | 7 commands, `0001_init.sql` ✅ |
+| Export emits five data-only files | 2 / 3 / 1 / 800 / 1 rows |
+| Per-table import into fresh D1 | all five succeeded |
+| `counts.sql` parity, source vs D1 | 2 / 3 / 1 / 800 / 1 — exact match |
+| Awkward values round-trip | apostrophe, diacritics, `₫`, newline, backslash all byte-identical after import |
+| `counts.sql` runs on D1 unchanged | yes, via `--file` |
+| Re-import of an already-imported table | fails `UNIQUE constraint failed: pal_facts.id`, row count unchanged |
+| Partial failure inside one file | first insert rolled back — the file is all-or-nothing |
+| `[[routes]] custom_domain` block | `wrangler deploy --dry-run` accepts it; 192.33 KiB / gzip 38.75 KiB unchanged. Reverted, not committed — merging it is the cutover trigger |
+
+Not covered by the dry run: anything `--remote`. Every result above is local
+(miniflare D1), on wrangler 4.113.0. Also unverified is the real shape of the
+production data — the stand-in matches the schema, not the row counts.
+
 ## Open items
 
 1. The `loop.sqlite` pull is still outstanding and gates Steps 2–4.
 2. Whether to cut over before Phase 4 Part B — see Preconditions.
-3. Exact size limit for `wrangler d1 execute --file` is unverified here; treat
-   Step 3's split instruction as the contingency rather than a prediction.
+3. `wrangler d1 import` does not exist in wrangler 4.113.0 (`d1 execute --file` is
+   the only file ingest path), and the size ceiling for `--file` is undocumented in
+   its help output. Per-table files keep each one small; if `health_metrics` still
+   trips a limit, split it by date range.
+4. Whether the remote `opal` D1 currently holds staging rows is unknown from here —
+   Step 3 checks it. If it holds anything worth keeping (it should not), the DELETE
+   there is destructive.
