@@ -1,0 +1,60 @@
+name: opal-worker CI/CD
+
+# Cloudflare Worker deployment path (migration phase 5). Runs independently of
+# deploy.yml so the DigitalOcean path stays available until phase 6 cutover.
+#
+# D1 migrations are deliberately NOT applied here. See
+# docs/migration-phase-5-deployment.md.
+
+on:
+  push:
+    branches: [main]
+    paths: ['server/worker/**', '.github/workflows/worker.yml']
+  pull_request:
+    paths: ['server/worker/**', '.github/workflows/worker.yml']
+
+defaults:
+  run:
+    working-directory: server/worker
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: server/worker/package-lock.json
+      - run: npm ci
+      - run: npm test
+      - name: Build bundle
+        run: npm run size
+
+  deploy:
+    needs: test
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: server/worker/package-lock.json
+      - run: npm ci
+      - name: Deploy worker
+        run: npx wrangler deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      - name: Healthcheck
+        if: vars.WORKER_BASE_URL != ''
+        run: |
+          for i in $(seq 1 15); do
+            curl -fsS "${{ vars.WORKER_BASE_URL }}/healthz" && exit 0
+            sleep 2
+          done
+          echo "healthcheck failed"
+          exit 1
