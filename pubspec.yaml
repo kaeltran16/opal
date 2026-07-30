@@ -67,6 +67,13 @@ dependencies:
   timezone: ^0.10.0
   flutter_timezone: ^3.0.1
 
+  # Native email sync (migration phase 4B): pure-Dart IMAP transport + MIME
+  # parsing. The app password never leaves the device — the Worker only receives
+  # sanitized receipt candidates. Pulls dart:io, so it is imported only behind a
+  # conditional import and is absent from the web build (see
+  # lib/services/email/imap_mailbox_client_web.dart).
+  enough_mail: ^2.1.7
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
