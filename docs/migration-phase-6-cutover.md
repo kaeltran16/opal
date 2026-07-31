@@ -1,143 +1,113 @@
-# Phase 6 — Data migration and cutover runbook
+# Phase 6 — Cutover runbook (empty-start)
 
-Prepared 2026-07-30. **Not executed.** This is the ordered procedure for moving
-`loop.sqlite` into D1 and moving `opal.kael.life` from the droplet to the Worker.
-Every command below was checked against the installed wrangler surface; none were
-run against production.
+Revised 2026-07-31. **Not executed.** This is the ordered procedure for pointing
+`opal.kael.life` at the Cloudflare Worker.
 
-Steps 2–4 were rehearsed end-to-end on 2026-07-30 against a stand-in SQLite
-database and a throwaway local D1 — see [Dry run](#dry-run-2026-07-30). The
-commands and the export script below are the rehearsed ones.
+**The DigitalOcean droplet has been destroyed and no backup was kept.** The owner
+accepted the data loss — single-user app, nothing worth recovering. That decision
+removes the entire data-migration half of this phase and, more importantly, removes
+the rollback target. Read [What changed](#what-changed-from-the-data-migration-version)
+before following any step.
+
+## What changed from the data-migration version
+
+The previous revision of this runbook (2026-07-30) assumed a running droplet: freeze
+writes, export `loop.sqlite`, import per table into D1, compare row counts, flip the
+domain, keep the droplet stopped-but-intact as a fallback. Four of those steps no
+longer have a subject.
+
+| Previous step | Now |
+|---|---|
+| Freeze writes (`systemctl stop opal-api`) | Gone — nothing is running |
+| Export via `server/scripts/export-loop-sqlite.mjs` | Gone — no host to run it on. The script is now dead code; remove in Phase 7 |
+| Per-table import into D1 | Gone — D1 starts empty |
+| Source-vs-D1 row-count parity check | Gone — no source to compare against |
+| Rollback by restarting the old API | **Gone — this is the significant one** |
+
+Two consequences worth stating plainly:
+
+1. **The app is already down.** `opal.kael.life` resolves to a destroyed host, so every
+   Pal call, Health ingest, and widget refresh is failing right now. This is a service
+   restore, not a scheduled swap. There is no maintenance window to protect.
+2. **There is no floor under a bad deploy.** If the Worker misbehaves after the domain
+   is attached, the only recovery is fixing the Worker. That makes the green CI deploy
+   in the preconditions a hard gate rather than a nicety.
+
+## What is permanently lost
+
+| Table | Loss | Recovery |
+|---|---|---|
+| `device_tokens` | All device tokens | Self-healing. The client clears its stored token on a 401 and re-registers (`lib/controllers/providers.dart`), so the cost is one extra round trip on first use |
+| `pal_facts`, `pal_patterns` | All Pal memory | None. Pal starts with no learned facts or patterns |
+| `health_metrics` | Server-side Health history | Partial. Apple Health on the phone is the origin — re-running the Health Shortcut backfills whatever range the Shortcut supports |
+| `widget_snapshot` | One row | Rewritten on the next widget refresh |
 
 ## Preconditions
 
-- [ ] Phase 4 Part B (native email adapter) verified on device, or an accepted
-      decision to cut over with email sync still served by the old routes. Cutover
-      moves the domain, so the Node `/v1/email/{test,sync}` routes stop being
-      reachable at `opal.kael.life` the moment the route flips.
-- [ ] A green run of `.github/workflows/worker.yml`, including the `/healthz`
-      healthcheck, with `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, and
-      `WORKER_BASE_URL` configured.
-- [ ] `loop.sqlite` pulled from DigitalOcean and openable locally. Phase 0 confirmed
-      it recoverable but the pull is still outstanding
-      (`docs/migration-phase-0-findings.md`, section 4 item 1).
-- [ ] `kael.life` active as a Cloudflare zone.
-- [ ] Worker runtime secrets present: `npx wrangler secret list` shows
-      `OPENROUTER_API_KEY` and `PAL_PROVISIONING_KEY`. The provisioning key must be
-      the **same value** the droplet uses, or every client re-registration fails.
-- [ ] `CORS_ORIGINS` in `server/worker/wrangler.toml` set to the droplet's live
-      value. It currently ships as `""`, which disables CORS entirely — the web
-      build breaks at cutover if this is not copied across from
-      `/opt/opal-api/.env`. This is a `vars` change, so it deploys with the Worker.
+- [ ] **Web origin allowlist set.** `CORS_ORIGINS` in `server/worker/wrangler.toml`
+      currently ships as `""`, which rejects every browser origin. The Node
+      `server/.env.example` documented `http://localhost:8080` for the web preview, and
+      no CI workflow publishes the Flutter web build anywhere, so localhost is the
+      likely correct value — confirm before setting it. This is a `vars` entry, so it
+      deploys with the Worker.
+- [ ] **Device enrollment key set on the Worker.** `npx wrangler secret list` shows
+      `PAL_PROVISIONING_KEY` and `OPENROUTER_API_KEY`. The enrollment key must equal the
+      value compiled into the app and widget via
+      `--dart-define=PAL_PROVISIONING_KEY=...` (read at
+      `lib/controllers/providers.dart:138`). The droplet was never the authority here.
+      If the value is unknown, choose a new one, set it on the Worker, and rebuild the
+      app and widget with the matching `--dart-define`.
+- [ ] **A green run of the Worker deploy workflow** (`.github/workflows/worker.yml`:
+      test → bundle-size check → `wrangler deploy` → `/healthz` healthcheck), with
+      `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, and `WORKER_BASE_URL` configured
+      in the repository. Never yet run.
+- [ ] **`kael.life` active as a Cloudflare zone.**
+- [ ] **Stale DNS cleared.** `opal.kael.life` most likely still has an A record pointing
+      at the destroyed droplet's IP. Expect the custom-domain attach to refuse a
+      conflicting record; delete it in the Cloudflare dashboard first.
 
-## Schema parity (verified 2026-07-30)
+Native email sync (Phase 4B) is no longer a precondition. It was one only because
+attaching the domain would kill the old Node `/v1/email/{test,sync}` routes — those
+routes died with the droplet, so there is nothing left to preserve by waiting.
 
-The Node schema (`server/src/store.ts`, `memory.ts`, `health.ts`, `widget.ts`) and
-`server/worker/migrations/0001_init.sql` match exactly: same five tables, same
-columns, types, NOT NULLs, primary keys, the `widget_snapshot` `id = 1` check, and
-`idx_pal_facts_token`. No transform is needed — the import is data-only.
-
-## Step 1 — freeze writes
-
-On the droplet:
-
-```
-sudo systemctl stop opal-api
-```
-
-The window is personal-use only; the app surfaces its normal offline/error paths.
-Do not skip this — a write landing after the export is silently lost.
-
-## Step 2 — export data only
-
-The migration creates the schema, so export rows without DDL. Use the export
-script — it needs no `sqlite3` CLI on the droplet (`better-sqlite3` is already an
-API dependency), emits data only, and writes **one file per table** so a large
-`health_metrics` never has to be split by hand:
-
-```
-cd /opt/opal-api
-node scripts/export-loop-sqlite.mjs ./loop.sqlite ./d1-import
-```
-
-The script reaches the droplet with the next `server/**` deploy (`deploy.yml`
-rsyncs the whole `server/` tree). If the merge that adds it has not been deployed,
-`scp` it across instead — it depends only on `better-sqlite3`, already installed
-there.
-
-It prints the source-side row counts — record them, they are the Step 4
-comparison. The equivalent with the CLI, if it is installed and preferred, is
-`.mode insert` per table (not `.dump`, which drags in DDL, `sqlite_sequence`, and
-transaction noise).
-
-**`d1-import/data-device_tokens.sql` contains live bearer device tokens.** Treat
-the whole directory as a credential file: never commit it, keep it out of the repo
-tree, and delete it once the import is verified.
-
-## Step 3 — apply the migration, clear staging rows, then import
-
-Note the pre-import Time Travel bookmark first — it is the rollback for a bad
-import:
+## Step 1 — apply the schema migration
 
 ```
 cd server/worker
 npx wrangler d1 time-travel info opal
-```
-
-Then the schema:
-
-```
 npm run migrate:remote
 ```
 
-**Check what is already in the remote database before importing.** Phases 2–4 ran
-live verification against this same `opal` D1, so it holds test device tokens and
-possibly test Pal/Health rows. An import on top of them fails on the
-`device_tokens` primary key or the `device_id` unique index:
+Record the Time Travel bookmark first. It is the only rollback for a database mistake,
+and the free recovery window is 7 days.
+
+`migrate:remote` runs `wrangler d1 migrations apply opal --remote` against the single
+production D1 database (`opal`, id `495d49f3-…`). One migration file exists,
+`server/worker/migrations/0001_init.sql`, creating the five tables.
+
+## Step 2 — clear leftover test rows
+
+Phases 2 through 4 ran live verification against this same production D1 database, so
+it holds test device tokens and possibly test Pal and Health rows. Nothing in it is
+worth keeping, but leftover rows would leave the app reading stale test state.
 
 ```
 npx wrangler d1 execute opal --remote --file=./scripts/counts.sql
 ```
 
-If any count is non-zero, those rows are staging artifacts with nothing to
-preserve — clear them, in the maintenance window, right before the import:
+If any count is non-zero:
 
 ```
 npx wrangler d1 execute opal --remote --command \
   "DELETE FROM device_tokens; DELETE FROM pal_facts; DELETE FROM pal_patterns; DELETE FROM health_metrics; DELETE FROM widget_snapshot;"
 ```
 
-Then import, one file per table (order is free — the schema has no foreign keys):
+Re-run `counts.sql` and confirm all five report zero. That zeroed output is the
+expected starting state — not a failure.
 
-```
-for t in device_tokens pal_facts pal_patterns health_metrics widget_snapshot; do
-  npx wrangler d1 execute opal --remote --file=/opt/opal-api/d1-import/data-$t.sql
-done
-```
+## Step 3 — attach the custom domain
 
-A file that hits an error leaves **no** rows behind — verified locally: a file
-whose second statement violated a primary key rolled back its first, successful
-insert. So a failed table is retryable as-is; a *succeeded* one is not, since the
-inserts are plain `INSERT` and re-running conflicts. Retry the failing file only.
-
-## Step 4 — validate
-
-```
-npx wrangler d1 execute opal --remote --file=./scripts/counts.sql
-```
-
-`scripts/counts.sql` runs unchanged on both databases, so this output is directly
-comparable to Step 2's. All five counts must match. Then spot-check one real row
-per table — a device token resolving, a `pal_facts` row for that token, the current
-`widget_snapshot`, and a recent `health_metrics` day.
-
-Include at least one `pal_facts` row containing an apostrophe or non-ASCII text in
-the spot-check. Quoting is where a hand-rolled dump usually breaks, and it is the
-one class of corruption the counts cannot see.
-
-## Step 5 — attach the custom domain
-
-Declarative and reviewable, in `server/worker/wrangler.toml`:
+In `server/worker/wrangler.toml`:
 
 ```toml
 [[routes]]
@@ -145,72 +115,75 @@ pattern = "opal.kael.life"
 custom_domain = true
 ```
 
-**This is the cutover trigger.** Merging that change makes the next CI
-`wrangler deploy` claim the production hostname — the same
-migration-before-merge ordering hazard recorded in
-`docs/migration-phase-5-deployment.md`. Land it only after Step 4 passes, during
-the maintenance window, with the merge watched.
+**This is the cutover trigger.** Merging it makes the next CI `wrangler deploy` claim
+the production hostname. `wrangler deploy --dry-run` accepted this block during the
+2026-07-30 rehearsal with no bundle-size change, but it was reverted and never merged.
 
-## Step 6 — live checks against `opal.kael.life`
+Land it only after Steps 1 and 2 pass and the deploy workflow has gone green at least
+once. Watch the merge.
+
+## Step 4 — live checks against `opal.kael.life`
 
 - [ ] `GET /healthz`
-- [ ] App launch with an existing device token (no re-register prompt)
+- [ ] App launch — expect **one** re-registration, since the device token store was
+      wiped with the droplet. A second launch should not re-register.
 - [ ] Pal chat, parse, nutrition estimate, insights, routine
-- [ ] Memory read / add / delete
-- [ ] Health ingest from the Shortcut, then the day read
+- [ ] Memory add, then read, then delete — starting from empty
+- [ ] Health ingest from the Shortcut, then the day read. Backfill as far as the
+      Shortcut allows if the history matters
 - [ ] iOS widget snapshot POST and GET
-- [ ] Native email sync end-to-end, if Part B shipped
-- [ ] CORS from the web build
+- [ ] CORS from the web build, against whatever origin was set in the preconditions
+- [ ] Native on-device email sync (Phase 4B) — committed in `e16834b` and `0d7e04c`
+      with unit coverage, but never run against a real Gmail account. First real
+      exercise happens here
 
-## Step 7 — monitor before dismantling
+## Step 5 — monitor
 
-Watch for at least a normal usage cycle: `wrangler tail` outcomes and exceptions,
-CPU per request (Phase 4 measured 8–15 ms against the 10 ms Free budget for the
-heaviest route — this is the number to keep an eye on), D1 read/write counts
-against the free daily limits, and OpenRouter spend. Leave the droplet stopped but
-intact. Phase 7 removes it.
+Watch a normal usage cycle before declaring the migration done: `wrangler tail`
+outcomes and exceptions, CPU time per request (Phase 4 measured 8–15 ms against the
+10 ms Free-tier budget on the heaviest route — the number to keep an eye on), D1
+read/write counts against the free daily limits, and OpenRouter spend.
 
 ## Rollback
 
 | Failure | Action |
 |---|---|
-| Bad import | `wrangler d1 time-travel restore opal --bookmark <Step 3 bookmark>` |
-| Worker broken after cutover | Revert the `[[routes]]` commit and deploy; re-`systemctl start opal-api` on the droplet |
-| Data unrecoverable | Initialize D1 empty. Clients recover auth through the existing 401-clear-and-register path; server-only Pal memory and Health history are lost — this is the roadmap's accepted worst case |
+| Bad schema migration or accidental data deletion | `wrangler d1 time-travel restore opal --bookmark <Step 1 bookmark>`, within 7 days |
+| Worker broken after cutover | **Fix forward.** Reverting the `[[routes]]` block only un-claims the hostname; it restores nothing, because the old API no longer exists. The app stays down until the Worker works |
 
-## Dry run (2026-07-30)
+## Rehearsal record (2026-07-30)
 
-Steps 2–4 rehearsed with no production access and no network. A stand-in SQLite
-database was built with the Node schema and deliberately awkward values — an
-apostrophe, Vietnamese diacritics, `₫`, an embedded newline, a backslash — plus 800
-`health_metrics` rows (two metrics a day for 400 days) as a plausible worst case for
-the largest table. `wrangler d1 migrations apply --local --persist-to <tmp>` created
-a throwaway D1, and the export ran through `scripts/export-loop-sqlite.mjs`.
+Local only — miniflare D1 on wrangler 4.113.0, no network, no `--remote`. Most of this
+rehearsal covered the export/import path that the teardown made moot. The rows that
+still apply to an empty start:
 
 | Check | Result |
 |---|---|
-| Migration applies to an empty D1 | 7 commands, `0001_init.sql` ✅ |
-| Export emits five data-only files | 2 / 3 / 1 / 800 / 1 rows |
-| Per-table import into fresh D1 | all five succeeded |
-| `counts.sql` parity, source vs D1 | 2 / 3 / 1 / 800 / 1 — exact match |
-| Awkward values round-trip | apostrophe, diacritics, `₫`, newline, backslash all byte-identical after import |
-| `counts.sql` runs on D1 unchanged | yes, via `--file` |
-| Re-import of an already-imported table | fails `UNIQUE constraint failed: pal_facts.id`, row count unchanged |
-| Partial failure inside one file | first insert rolled back — the file is all-or-nothing |
-| `[[routes]] custom_domain` block | `wrangler deploy --dry-run` accepts it; 192.33 KiB / gzip 38.75 KiB unchanged. Reverted, not committed — merging it is the cutover trigger |
+| `0001_init.sql` applies to an empty D1 | 7 commands, clean |
+| `scripts/counts.sql` runs on D1 unchanged, via `--file` | yes |
+| `[[routes]] custom_domain` block accepted by `wrangler deploy --dry-run` | yes; 192.33 KiB / gzip 38.75 KiB, unchanged. Reverted, not committed |
 
-Not covered by the dry run: anything `--remote`. Every result above is local
-(miniflare D1), on wrangler 4.113.0. Also unverified is the real shape of the
-production data — the stand-in matches the schema, not the row counts.
+Superseded by the teardown, retained only as evidence the schema and tooling behave:
+data-only export produced five per-table files (2 / 3 / 1 / 800 / 1 rows); per-table
+import into a fresh D1 succeeded for all five; awkward values (apostrophe, Vietnamese
+diacritics, `₫`, embedded newline, backslash) round-tripped byte-identical; a file that
+errors mid-way rolls back whole; re-importing an already-imported table fails on the
+primary key.
+
+Schema parity between the Node SQLite schema (`server/src/store.ts`, `memory.ts`,
+`health.ts`, `widget.ts`) and `0001_init.sql` was verified exact on 2026-07-30. That
+finding no longer matters for import, but it does confirm the Worker's D1 stores were
+built against the same shape the Node app used.
 
 ## Open items
 
-1. The `loop.sqlite` pull is still outstanding and gates Steps 2–4.
-2. Whether to cut over before Phase 4 Part B — see Preconditions.
-3. `wrangler d1 import` does not exist in wrangler 4.113.0 (`d1 execute --file` is
-   the only file ingest path), and the size ceiling for `--file` is undocumented in
-   its help output. Per-table files keep each one small; if `health_metrics` still
-   trips a limit, split it by date range.
-4. Whether the remote `opal` D1 currently holds staging rows is unknown from here —
-   Step 3 checks it. If it holds anything worth keeping (it should not), the DELETE
-   there is destructive.
+1. Confirm the web origin for `CORS_ORIGINS`, or accept `http://localhost:8080`.
+2. Confirm or rotate the device enrollment key (`PAL_PROVISIONING_KEY`) — see
+   Preconditions.
+3. Configure the three repository settings the Worker deploy workflow needs and get one
+   green run.
+4. `.github/workflows/deploy.yml`, the SSH/rsync deploy to the droplet, now targets a
+   host that does not exist and will fail on any `server/**` push outside
+   `server/worker/**`. It was retained purely as the cutover rollback path; that reason
+   is gone. Delete it in Phase 7, or sooner if a failing workflow becomes noise.
+5. `server/scripts/export-loop-sqlite.mjs` is dead code — remove in Phase 7.
