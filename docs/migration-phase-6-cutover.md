@@ -1,7 +1,7 @@
 # Phase 6 — Cutover runbook (empty-start)
 
-Revised 2026-07-31. **Not executed.** This is the ordered procedure for pointing
-`opal.kael.life` at the Cloudflare Worker.
+Revised 2026-07-31. **Executed 2026-08-01** — see [Execution record](#execution-record-2026-08-01).
+This is the ordered procedure for pointing `opal.kael.life` at the Cloudflare Worker.
 
 **The DigitalOcean droplet has been destroyed and no backup was kept.** The owner
 accepted the data loss — single-user app, nothing worth recovering. That decision
@@ -175,15 +175,61 @@ Schema parity between the Node SQLite schema (`server/src/store.ts`, `memory.ts`
 finding no longer matters for import, but it does confirm the Worker's D1 stores were
 built against the same shape the Node app used.
 
+## Execution record (2026-08-01)
+
+Cutover completed. `opal.kael.life` serves the Worker.
+
+Preconditions, as found rather than as assumed:
+
+- **`CORS_ORIGINS`** — set to `http://localhost:8080`, the value the droplet used
+  (`server/.env`). Confirmed no CI workflow publishes the Flutter web build, so no
+  hosted browser origin needed preserving. Open item 1 closed.
+- **`PAL_PROVISIONING_KEY`** — verified equal to `dart_defines/prod.json` by registering
+  a throwaway device against the `workers.dev` staging URL before arming the cutover
+  (HTTP 200). No rotation and no app rebuild needed. Open item 2 closed.
+- **Repository settings** — `CLOUDFLARE_ACCOUNT_ID` and `WORKER_BASE_URL` were unset and
+  were added. `WORKER_BASE_URL` points at the `workers.dev` URL, not `opal.kael.life`, so
+  the post-deploy healthcheck does not race DNS propagation on the deploy that creates
+  the record. Open item 3 closed by the green run below.
+- **Stale DNS** — `opal.kael.life` still had an `A` record at the destroyed droplet's
+  `178.128.81.14`. Deleted before deploying, as this runbook anticipated.
+
+Steps as run:
+
+| Step | Result |
+|---|---|
+| 1 — schema | Already applied; all five tables resolved. Pre-clear bookmark `00000005-00000002-000050ba-e53d7b9e7b72128efed2a987caf47680` |
+| 2 — clear test rows | Found 8 `device_tokens`, 2 `health_metrics`, 1 `widget_snapshot`; `pal_facts` and `pal_patterns` empty. Cleared; all five re-read as 0 |
+| 3 — attach domain | `[[routes]]` committed in `f03e5a5`; CI run `30701867068` green (test → size → deploy → healthcheck) in 27s |
+| 4 — live checks | Partial — see below |
+| 5 — monitor | Outstanding |
+
+Live checks against `opal.kael.life`:
+
+| Check | Result |
+|---|---|
+| DNS | Resolves to Cloudflare anycast, no longer the droplet IP |
+| `GET /healthz` | 200 `ok` |
+| `POST /v1/register` | 200, 64-char token issued from an empty `device_tokens` |
+| `GET /v1/memory` | 200 `{"facts":[],"patterns":[]}` — correct empty start |
+| `GET /v1/memory` unauthenticated | 401, as expected |
+| CORS preflight from `http://localhost:8080` | 204 with matching `Allow-Origin`, `Allow-Headers`, `Allow-Methods` |
+| `POST /v1/parse` (live OpenRouter) | 200, `pho 45k and a coffee 25k` → `{money, 70000, Dining, "Pho and Coffee", expense}` |
+
+The device token minted for these checks was deleted afterwards; `device_tokens` is back
+to 0 rows.
+
+Still unverified, all device-side and none reachable from a Windows/Node session: app
+launch and its single expected re-registration, Pal chat/nutrition/insights/routine,
+Health ingest from the Shortcut, the iOS widget snapshot round trip, and the first real
+Gmail run of native on-device email sync (Phase 4B). Step 5 monitoring has not started.
+
 ## Open items
 
-1. Confirm the web origin for `CORS_ORIGINS`, or accept `http://localhost:8080`.
-2. Confirm or rotate the device enrollment key (`PAL_PROVISIONING_KEY`) — see
-   Preconditions.
-3. Configure the three repository settings the Worker deploy workflow needs and get one
-   green run.
-4. `.github/workflows/deploy.yml`, the SSH/rsync deploy to the droplet, now targets a
+1. `.github/workflows/deploy.yml`, the SSH/rsync deploy to the droplet, now targets a
    host that does not exist and will fail on any `server/**` push outside
    `server/worker/**`. It was retained purely as the cutover rollback path; that reason
    is gone. Delete it in Phase 7, or sooner if a failing workflow becomes noise.
-5. `server/scripts/export-loop-sqlite.mjs` is dead code — remove in Phase 7.
+2. `server/scripts/export-loop-sqlite.mjs` is dead code — remove in Phase 7.
+3. Run the device-side live checks listed in the execution record, then Step 5
+   monitoring, before declaring the migration done and starting Phase 7.
