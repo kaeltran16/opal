@@ -39,7 +39,7 @@ final class MoodControllerProvider
   MoodController create() => MoodController();
 }
 
-String _$moodControllerHash() => r'9e1c65b8f5af693ea77ea5f0efda5b243dc9de66';
+String _$moodControllerHash() => r'87b7c9a5787d456b6854e1dcc6ffcf4ce928415a';
 
 /// Streams the Mood view model and owns check-in logging. Mirrors
 /// [NutritionController]'s stream-build pattern.

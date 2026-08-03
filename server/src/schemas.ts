@@ -86,8 +86,8 @@ export const postWorkoutBody = z.object({ context: postWorkoutContext })
 export const agendaBody = z.object({ context: chatContext })
 
 export const suggestionsBody = z.object({
-  surface: z.enum(['composer', 'newEntry', 'routineGoal']),
-  // composer/newEntry send chat context; routineGoal sends suggest context.
+  surface: z.enum(['composer', 'routineGoal']),
+  // composer sends chat context; routineGoal sends suggest context.
   context: z.union([chatContext, suggestContext]),
 })
 

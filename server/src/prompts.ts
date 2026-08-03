@@ -214,7 +214,7 @@ No prose, no code fence. Output only the JSON object.`
 }
 
 export function suggestionsPrompt(
-  surface: 'composer' | 'newEntry' | 'routineGoal',
+  surface: 'composer' | 'routineGoal',
   c: ChatContext | SuggestContext,
 ): string {
   const shape = `{"suggestions":[{"kind":"log_money"|"log_move"|"log_ritual"|"ask"|"routine_goal"|"generic","colorToken":"money"|"move"|"rituals"|"accent","label":string,"entry":{"type":"money"|"move"|"rituals","title":string,"amount":number|null,"category":string|null,"minutes":number|null}|null}]}`
@@ -234,13 +234,6 @@ Today is ${sc.dayOfWeek}. Vary muscle groups vs recent volume; keep each label u
   const entries = cc.todayEntries.length ? cc.todayEntries.join('\n') : '(none yet)'
   const name = cc.userName || 'the user'
   const numbers = `Daily budget $${cc.dailyBudget}, move goal ${cc.moveGoalKcal}kcal, ritual goal ${cc.ritualGoal}. So far today: $${cc.spentToday} spent, ${cc.movedTodayKcal}kcal moved, ${cc.ritualsDoneToday}/${cc.ritualGoal} rituals. Local hour ${cc.hourOfDay}, weekday ${cc.weekday} (1=Mon). ${cc.moveStreakDays}-day move streak.`
-
-  if (surface === 'newEntry') {
-    return `You are Pal in a money/movement/rituals app. Propose up to 6 one-tap LOG presets for ${name} to record quickly — this surface has no chat, so NO questions. Today's entries:
-${entries}
-${numbers}
-Ground each in what is NOT yet logged today, recent categories, and the time of day. Each chip MUST carry an "entry": pick "kind" log_money / log_move / log_ritual to match entry.type (money/move/rituals), set colorToken to the matching pillar (money/move/rituals), and a short "label". For money, entry.amount is SIGNED (negative = expense); set category; minutes null. For move, set minutes; amount/category null. For rituals, amount/category/minutes null.${tail}`
-  }
 
   // composer
   return `You are Pal in a money/movement/rituals app. Propose exactly 3 quick chips for ${name}: a mix of one-tap LOGS and short ASKS, grounded in time of day, what is not yet logged today, recent categories, and budget pace. Today's entries:

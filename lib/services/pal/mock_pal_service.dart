@@ -553,35 +553,6 @@ class MockPalService implements PalService {
             colorToken: 'accent',
           ),
         ];
-      case SuggestionSurface.newEntry:
-        return const [
-          PalSuggestion(
-            label: 'Verve Coffee',
-            icon: 'cup.and.saucer.fill',
-            colorToken: 'money',
-            entry: StarterEntry(
-                type: EntryType.money, title: 'Verve Coffee', amount: -5, category: 'Food & Drink'),
-          ),
-          PalSuggestion(
-            label: 'Lunch',
-            icon: 'fork.knife',
-            colorToken: 'money',
-            entry: StarterEntry(
-                type: EntryType.money, title: 'Lunch', amount: -14, category: 'Food & Drink'),
-          ),
-          PalSuggestion(
-            label: 'Run',
-            icon: 'figure.run',
-            colorToken: 'move',
-            entry: StarterEntry(type: EntryType.move, title: 'Run', durationMinutes: 30),
-          ),
-          PalSuggestion(
-            label: 'Morning pages',
-            icon: 'sparkles',
-            colorToken: 'rituals',
-            entry: StarterEntry(type: EntryType.rituals, title: 'Morning pages'),
-          ),
-        ];
       case SuggestionSurface.routineGoal:
         return const [
           PalSuggestion(label: '45-min push for strength', icon: 'flame.fill', colorToken: 'move'),

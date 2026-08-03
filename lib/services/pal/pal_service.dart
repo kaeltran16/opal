@@ -618,7 +618,7 @@ class StarterEntry {
 
 /// Which surface a [PalSuggestion] set is generated for. Tunes the server prompt
 /// and selects the context the client sends.
-enum SuggestionSurface { composer, newEntry, routineGoal }
+enum SuggestionSurface { composer, routineGoal }
 
 /// One Pal-generated quick-pick chip (the `/suggestions` seam). [label] is both
 /// the display text and the action text (chat message or routine goal). [icon]

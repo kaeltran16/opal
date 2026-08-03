@@ -36,7 +36,7 @@ const int kMaxUnusual = 3;
 /// keeping the two surfaces on one clock.
 enum SpendDaypart { morning, midday, evening, night }
 
-SpendDaypart _daypartFor(int hour) {
+SpendDaypart daypartFor(int hour) {
   if (hour < 11) return SpendDaypart.morning;
   if (hour < 15) return SpendDaypart.midday;
   if (hour < 21) return SpendDaypart.evening;
@@ -140,7 +140,7 @@ SpendAggregates aggregateSpend(
     expenses.add(e);
     windowTotal += amount;
     dayTotals[e.timestamp.weekday - 1] += amount;
-    daypartTotals[_daypartFor(e.timestamp.hour).index] += amount;
+    daypartTotals[daypartFor(e.timestamp.hour).index] += amount;
     final ord = _dayOrd(e.timestamp);
     dailyTotals[ord] = (dailyTotals[ord] ?? 0) + amount;
     final raw = normalizeCategory(e.category);

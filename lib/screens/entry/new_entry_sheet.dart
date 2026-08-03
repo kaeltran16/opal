@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../analysis/spend_habits.dart';
 import '../../controllers/budget_alert_controller.dart';
-import '../../controllers/pal_suggestions_controller.dart';
 import '../../controllers/providers.dart';
+import '../../controllers/spend_habits_controller.dart';
 import '../../models/models.dart';
 import '../../services/services.dart';
 import '../../theme/theme.dart';
@@ -62,7 +63,6 @@ class _QuickPick {
     this.amount,
     this.minutes,
     this.category,
-    this.detail,
   });
 
   final _Kind kind;
@@ -72,7 +72,6 @@ class _QuickPick {
   final double? amount; // positive magnitude; sign applied on save
   final int? minutes;
   final String? category;
-  final String? detail;
 }
 
 class _NewEntrySheetState extends ConsumerState<NewEntrySheet> {
@@ -115,24 +114,10 @@ class _NewEntrySheetState extends ConsumerState<NewEntrySheet> {
     }
   }
 
+  /// Defaults for the kinds with no mined equivalent. Expense picks are not
+  /// listed here: an invented merchant is worse than no chip at all, so that
+  /// tab shows only what [spendHabitsProvider] found in the user's own history.
   static const _picks = <_QuickPick>[
-    _QuickPick(
-      kind: _Kind.expense,
-      icon: 'cup.and.saucer.fill',
-      title: 'Verve Coffee',
-      label: '\$5',
-      amount: 5,
-      category: 'Food & Drink',
-      detail: 'Coffee',
-    ),
-    _QuickPick(
-      kind: _Kind.expense,
-      icon: 'fork.knife',
-      title: 'Lunch',
-      label: '\$14',
-      amount: 14,
-      category: 'Food & Drink',
-    ),
     _QuickPick(
       kind: _Kind.workout,
       icon: 'figure.run',
@@ -284,7 +269,6 @@ class _NewEntrySheetState extends ConsumerState<NewEntrySheet> {
               (p.amount ?? 0) % 1 == 0 ? 0 : 2);
           _categoryCtrl.text = _canonicalCategory(p.category) ?? '';
           _titleCtrl.text = p.title;
-          if (p.detail != null) _noteCtrl.text = p.detail!;
         case _Kind.workout:
           _buffer = (p.minutes ?? 0).toString();
           _titleCtrl.text = p.title;
@@ -424,6 +408,7 @@ class _NewEntrySheetState extends ConsumerState<NewEntrySheet> {
   Widget build(BuildContext context) {
     final c = context.colors;
     final typeColor = c.forType(_kind.typeColorKey());
+    final picks = _currentPicks();
 
     return Scaffold(
       backgroundColor: c.bg,
@@ -506,17 +491,19 @@ class _NewEntrySheetState extends ConsumerState<NewEntrySheet> {
                   ),
                   const SizedBox(height: Spacing.xl),
 
-                  Text(
-                    'CATEGORY',
-                    style: AppType.caption.copyWith(
-                      fontWeight: FontWeight.w600,
-                      color: c.ink3,
-                      letterSpacing: 0.3,
+                  if (picks.isNotEmpty) ...[
+                    Text(
+                      'CATEGORY',
+                      style: AppType.caption.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: c.ink3,
+                        letterSpacing: 0.3,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: Spacing.sm),
-                  _buildQuickPicks(c),
-                  const SizedBox(height: Spacing.xl),
+                    const SizedBox(height: Spacing.sm),
+                    _buildQuickPicks(c, picks),
+                    const SizedBox(height: Spacing.xl),
+                  ],
 
                   // Category picker (expense) + optional calories / note.
                   if (_kind == _Kind.expense) ...[
@@ -686,55 +673,39 @@ class _NewEntrySheetState extends ConsumerState<NewEntrySheet> {
     );
   }
 
-  _Kind _kindForEntryType(EntryType t) => switch (t) {
-        EntryType.money => _Kind.expense,
-        EntryType.move => _Kind.workout,
-        EntryType.rituals => _Kind.ritual,
-      };
-
-  /// Maps a Pal suggestion's entry to the sheet's quick-pick tile. Suggestions
-  /// without an entry can't pre-fill the form, so they are skipped.
-  _QuickPick? _pickFromSuggestion(PalSuggestion s) {
-    final e = s.entry;
-    if (e == null) return null;
-    final kind = _kindForEntryType(e.type);
+  /// Maps a mined habit to the sheet's quick-pick tile.
+  _QuickPick _pickFromHabit(HabitPick h) {
     final currency = ref.read(appSettingsControllerProvider).currency;
-    final label = switch (e.type) {
-      EntryType.money when e.amount != null =>
-        formatCurrency(e.amount!.abs(), currency),
-      EntryType.move when e.durationMinutes != null => '${e.durationMinutes} min',
-      _ => 'Routine',
-    };
     return _QuickPick(
-      kind: kind,
-      icon: s.icon,
-      title: e.title,
-      label: label,
-      amount: e.amount?.abs(),
-      minutes: e.durationMinutes,
-      category: e.category,
-      detail: e.category,
+      kind: _Kind.expense,
+      icon: kHabitPickIcon,
+      title: h.title,
+      label: formatCurrency(h.averageAmount, currency),
+      amount: h.averageAmount,
+      category: h.category,
     );
   }
 
-  Widget _buildQuickPicks(AppColors c) {
-    // Pal-generated picks when available; the static list is the fallback for
-    // loading / offline / empty. Picks are filtered to the active kind tab.
-    final palPicks = ref
-        .watch(palSuggestionsProvider(SuggestionSurface.newEntry))
-        .maybeWhen(
-          data: (list) {
-            final mapped = list.map(_pickFromSuggestion).whereType<_QuickPick>().toList();
-            return mapped.isEmpty ? null : mapped;
-          },
-          orElse: () => null,
+  /// Picks for the active kind: expenses are mined from what the user actually
+  /// logs in this daypart, the other kinds use the static defaults. Empty on
+  /// the expense tab until the history holds a habit, and the caller drops the
+  /// whole section rather than showing a bare heading.
+  List<_QuickPick> _currentPicks() {
+    final habits = ref.watch(spendHabitsProvider).maybeWhen(
+          data: (list) => list.map(_pickFromHabit).toList(),
+          orElse: () => const <_QuickPick>[],
         );
-    final picks = palPicks ?? _picks;
+    return _kind == _Kind.expense
+        ? habits
+        : _picks.where((p) => p.kind == _kind).toList();
+  }
+
+  Widget _buildQuickPicks(AppColors c, List<_QuickPick> picks) {
     return Wrap(
       spacing: Spacing.sm,
       runSpacing: Spacing.sm,
       children: [
-        for (final p in picks.where((p) => p.kind == _kind))
+        for (final p in picks)
           _QuickPickTile(
             pick: p,
             currency: ref.read(appSettingsControllerProvider).currency,

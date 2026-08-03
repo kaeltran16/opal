@@ -106,7 +106,7 @@ final class EmailSetupControllerProvider
 }
 
 String _$emailSetupControllerHash() =>
-    r'd22cfa66d49feaa7ee11c67af9514ecb3e297897';
+    r'a6b1a7070c24937f5f398cbb8f7a42732642c03c';
 
 /// Drives the Setup screen's Test-connection + Save. Delegates to
 /// [EmailSyncService]; holds no credentials itself (the screen passes them in).
@@ -173,7 +173,7 @@ final class EmailDashboardControllerProvider
 }
 
 String _$emailDashboardControllerHash() =>
-    r'c492b9523cfa368c7b3ab49627b5ff2e7761f75e';
+    r'49cdea12f4c508eb34bb98b8730402ba3389fa95';
 
 /// Owns the Dashboard: reads the connected account, runs Sync-now (which the
 /// service stages over [syncStatusProvider]) and surfaces the returned imports,

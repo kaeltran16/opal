@@ -566,7 +566,7 @@ export class Pal {
     }
   }
 
-  async suggestions(surface: 'composer' | 'newEntry' | 'routineGoal', ctx: ChatContext | SuggestContext): Promise<SuggestionsResult> {
+  async suggestions(surface: 'composer' | 'routineGoal', ctx: ChatContext | SuggestContext): Promise<SuggestionsResult> {
     const raw = await this.client.complete(
       [{ role: 'user', content: suggestionsPrompt(surface, ctx) }],
       { json: true, maxTokens: INSIGHTS_MAX_TOKENS, temperature: 0 },

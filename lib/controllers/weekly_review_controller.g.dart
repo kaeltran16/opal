@@ -53,7 +53,7 @@ final class WeeklyStatsProvider
   }
 }
 
-String _$weeklyStatsHash() => r'9c871e2b0e02f424171bcc7316b130f195c28796';
+String _$weeklyStatsHash() => r'aacaeba02be26757ceff1a2e2755bebfbe5f5892';
 
 /// Drives the Pal-written weekly narrative: holds the review text with a loading
 /// state, and re-requests it on [regenerate]. Mirrors [MonthlyReviewController]

@@ -53,4 +53,4 @@ final class BudgetsDataProvider
   }
 }
 
-String _$budgetsDataHash() => r'91a609e59d387ee53c1f9e876ff045277950bd5d';
+String _$budgetsDataHash() => r'cf4fde2555ac1063c161d05aac2b86be2667df01';

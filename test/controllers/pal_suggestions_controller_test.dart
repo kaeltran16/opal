@@ -32,7 +32,7 @@ void main() {
   test('returns the service list on success', () async {
     final c = ProviderContainer(overrides: [palServiceProvider.overrideWithValue(_OkPal())]);
     addTearDown(c.dispose);
-    final out = await c.read(palSuggestionsProvider(SuggestionSurface.newEntry).future);
+    final out = await c.read(palSuggestionsProvider(SuggestionSurface.routineGoal).future);
     expect(out, hasLength(1));
   });
 }

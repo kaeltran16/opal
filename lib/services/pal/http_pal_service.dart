@@ -406,15 +406,14 @@ class HttpPalService implements PalService {
 
   static String _surfaceWire(SuggestionSurface s) => switch (s) {
         SuggestionSurface.composer => 'composer',
-        SuggestionSurface.newEntry => 'newEntry',
         SuggestionSurface.routineGoal => 'routineGoal',
       };
 
   @override
   Future<List<PalSuggestion>> suggestions(SuggestionSurface surface) async {
     final wire = _surfaceWire(surface);
-    // composer/newEntry are grounded in the chat context; routineGoal in the
-    // suggest context (recent workouts + day of week).
+    // composer is grounded in the chat context; routineGoal in the suggest
+    // context (recent workouts + day of week).
     final ctx = surface == SuggestionSurface.routineGoal
         ? await context.suggest(false, null)
         : await context.chat();
