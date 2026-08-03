@@ -8,7 +8,6 @@ import 'package:opal/controllers/providers.dart';
 import 'package:opal/data/db/database.dart';
 import 'package:opal/screens/mood/mood_logger_sheet.dart';
 import 'package:opal/screens/mood/widgets/mood_widgets.dart';
-import 'package:opal/services/pal/mock_pal_service.dart';
 import 'package:opal/services/services.dart';
 import 'package:opal/theme/app_colors.dart';
 import 'package:opal/util/mood_scale.dart';

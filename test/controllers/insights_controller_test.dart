@@ -131,7 +131,7 @@ void main() {
 
     // resolve once under a listener, then drop it: an auto-dispose provider
     // would tear down and recompute on the next read — keepAlive must prevent that.
-    final sub = container.listen(provider, (_, __) {});
+    final sub = container.listen(provider, (_, _) {});
     await container.read(provider.future);
     sub.close();
     await Future<void>.delayed(Duration.zero); // let any pending dispose run
@@ -150,7 +150,7 @@ void main() {
     final container = containerWith(db, pal);
     final provider = insightsProvider(InsightRange.day);
 
-    final sub = container.listen(provider, (_, __) {});
+    final sub = container.listen(provider, (_, _) {});
     expect(await container.read(provider.future), isNull);
     sub.close();
     await Future<void>.delayed(Duration.zero); // let the un-pinned provider dispose
