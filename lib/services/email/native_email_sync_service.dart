@@ -14,7 +14,7 @@ import 'receipt_filters.dart';
 /// Native [EmailSyncService] (migration phase 4B): IMAP runs on-device and only
 /// sanitized receipt candidates reach the Worker.
 ///
-/// Replaces [RealEmailSyncService]'s server-side scan. The app password is read
+/// Replaces the retired server-side IMAP scan. The app password is read
 /// from the keychain per sync and handed to the [MailboxClient] only — it is
 /// never sent to the Worker, which in turn never returns the OpenRouter key.
 /// Account metadata (minus password) lives in [SharedPreferences] so
@@ -259,8 +259,7 @@ class NativeEmailSyncService implements EmailSyncService {
         category: json['category'] as String?,
       );
 
-  // Bearer-authed POST with one 401 retry (re-register), mirroring
-  // HttpPalService and RealEmailSyncService.
+  // Bearer-authed POST with one 401 retry (re-register), mirroring HttpPalService.
   Future<Map<String, dynamic>> _post(
     String path,
     Map<String, Object?> body,

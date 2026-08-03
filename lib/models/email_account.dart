@@ -67,7 +67,7 @@ class EmailAccount {
   }
 
   /// Serialise for local persistence (the password is never included — only
-  /// [appPasswordRef], the secure-storage key). Used by `RealEmailSyncService`
+  /// [appPasswordRef], the secure-storage key). Used by `NativeEmailSyncService`
   /// to survive app restarts.
   Map<String, Object?> toJson() => {
         'address': address,

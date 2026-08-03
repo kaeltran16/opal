@@ -11,7 +11,7 @@ function apply(headers: Headers, request: Request, origins: string[]): void {
   }
 }
 
-// 204 preflight for unmatched OPTIONS (matches app.ts: preflight never reaches routes).
+// 204 preflight for unmatched OPTIONS; preflight never reaches a route handler.
 export function preflight(request: Request, origins: string[]): Response {
   const headers = new Headers()
   apply(headers, request, origins)

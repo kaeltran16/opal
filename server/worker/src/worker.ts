@@ -52,7 +52,7 @@ async function route(request: Request, env: Env, overrides?: { pal?: Pal; comple
 
   if (pathname === '/healthz') return new Response('ok') // unlimited: monitoring
 
-  // rate limit everything else by token, else by client IP (matches app.ts keyGenerator).
+  // rate limit everything else by token, else by client IP.
   const rlKey = extractBearer(request.headers.get('authorization') ?? undefined)
     ?? request.headers.get('cf-connecting-ip') ?? 'anon'
   const { success } = await env.RL.limit({ key: rlKey })
@@ -141,8 +141,8 @@ async function routeAuthed(
   return routePal(request, env, url, method, token, pal, memory)
 }
 
-// map a Pal handler's result to JSON, preserving the app.ts status contract:
-// OpenRouterError -> 502, anything else -> 500, both as the `upstream` envelope.
+// map a Pal handler's result to JSON, preserving the status contract the client
+// expects: OpenRouterError -> 502, anything else -> 500, both as `upstream`.
 async function runPal(fn: () => Promise<unknown>): Promise<Response> {
   try {
     return json(await fn())

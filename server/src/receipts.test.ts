@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { filterBySender, extractReceipts, isLikelyNonReceipt, extractTxnDate, resolveReceivedAt } from './receipts.js'
-import type { RawEmail } from './imap.js'
+import { filterBySender, extractReceipts, isLikelyNonReceipt, extractTxnDate, resolveReceivedAt, type RawEmail } from './receipts.js'
 import type { TextCompleter } from './pal.js'
 
 function email(overrides: Partial<RawEmail> = {}): RawEmail {

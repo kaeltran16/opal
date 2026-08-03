@@ -13,7 +13,6 @@ export 'email/imap_mailbox_client_web.dart'
 export 'email/mailbox_client.dart';
 export 'email/mock_email_sync_service.dart';
 export 'email/native_email_sync_service.dart';
-export 'email/real_email_sync_service.dart';
 export 'email/unavailable_email_sync_service.dart';
 export 'haptics/haptics_service.dart';
 export 'health/health_service.dart';

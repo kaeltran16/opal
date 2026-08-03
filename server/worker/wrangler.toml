@@ -2,7 +2,7 @@ name = "opal-worker"
 main = "src/worker.ts"
 compatibility_date = "2026-07-01"
 compatibility_flags = ["nodejs_compat"]
-alias = { "better-sqlite3" = "./stubs/better-sqlite3.js", "zod" = "./node_modules/zod/index.js" }
+alias = { "zod" = "./node_modules/zod/index.js" }
 
 [vars]
 CORS_ORIGINS = "http://localhost:8080"

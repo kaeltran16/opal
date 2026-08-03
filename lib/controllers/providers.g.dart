@@ -981,16 +981,24 @@ final class HealthServiceProvider
 
 String _$healthServiceHash() => r'06754b758929c0ec6678354ee640ade2d04654e7';
 
-/// Real IMAP-backed sync (U24) when `PAL_BASE_URL` is set; [MockEmailSyncService]
-/// otherwise (tests, backend-less preview). Shares the proxy's http client +
-/// device-token store with [palService].
+/// Native on-device IMAP sync (migration phase 4B) when `PAL_BASE_URL` is set;
+/// [MockEmailSyncService] otherwise (tests, backend-less preview).
+///
+/// Web gets [UnavailableEmailSyncService]: browsers cannot open the raw TCP
+/// socket IMAP needs, and the app password stays on-device by design rather
+/// than being proxied. The Worker only ever receives sanitized candidates, so
+/// it shares the proxy's http client + device-token store with [palService].
 
 @ProviderFor(emailSyncService)
 const emailSyncServiceProvider = EmailSyncServiceProvider._();
 
-/// Real IMAP-backed sync (U24) when `PAL_BASE_URL` is set; [MockEmailSyncService]
-/// otherwise (tests, backend-less preview). Shares the proxy's http client +
-/// device-token store with [palService].
+/// Native on-device IMAP sync (migration phase 4B) when `PAL_BASE_URL` is set;
+/// [MockEmailSyncService] otherwise (tests, backend-less preview).
+///
+/// Web gets [UnavailableEmailSyncService]: browsers cannot open the raw TCP
+/// socket IMAP needs, and the app password stays on-device by design rather
+/// than being proxied. The Worker only ever receives sanitized candidates, so
+/// it shares the proxy's http client + device-token store with [palService].
 
 final class EmailSyncServiceProvider
     extends
@@ -1000,9 +1008,13 @@ final class EmailSyncServiceProvider
           EmailSyncService
         >
     with $Provider<EmailSyncService> {
-  /// Real IMAP-backed sync (U24) when `PAL_BASE_URL` is set; [MockEmailSyncService]
-  /// otherwise (tests, backend-less preview). Shares the proxy's http client +
-  /// device-token store with [palService].
+  /// Native on-device IMAP sync (migration phase 4B) when `PAL_BASE_URL` is set;
+  /// [MockEmailSyncService] otherwise (tests, backend-less preview).
+  ///
+  /// Web gets [UnavailableEmailSyncService]: browsers cannot open the raw TCP
+  /// socket IMAP needs, and the app password stays on-device by design rather
+  /// than being proxied. The Worker only ever receives sanitized candidates, so
+  /// it shares the proxy's http client + device-token store with [palService].
   const EmailSyncServiceProvider._()
     : super(
         from: null,
@@ -1036,7 +1048,7 @@ final class EmailSyncServiceProvider
   }
 }
 
-String _$emailSyncServiceHash() => r'e7031bbc411bd2af7fd24f4e49ac479cec7f82df';
+String _$emailSyncServiceHash() => r'8a092f9f8618e75942374f47247d1797394ff224';
 
 /// Real `flutter_local_notifications` on iOS (U27); no-op elsewhere. Requires
 /// the timezone DB to be initialized in `main()` before any [schedule] call.

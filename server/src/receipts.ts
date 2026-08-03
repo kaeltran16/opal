@@ -2,7 +2,20 @@ import { z } from 'zod'
 import { extractJson, type TextCompleter } from './pal.js'
 import { receiptsBatchPrompt } from './prompts.js'
 import { redactPii } from './redact.js'
-import type { RawEmail } from './imap.js'
+
+/**
+ * One fetched email, reduced to the fields receipt parsing needs. The native
+ * client owns IMAP and MIME parsing and submits sanitized candidates, so this
+ * is the shape the Worker maps those onto — not a transport type.
+ */
+export interface RawEmail {
+  messageId: string
+  from: string
+  fromName: string
+  subject: string
+  date: Date
+  text: string
+}
 
 // emails per LLM call; bounds prompt size at BATCH_SIZE x ~4k body chars.
 export const BATCH_SIZE = 8

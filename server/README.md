@@ -1,121 +1,165 @@
-# Loop Pal proxy (U22) + email IMAP worker (U24)
+# Opal backend — Cloudflare Worker + D1
 
-Stateless backend for the Loop app. Two concerns:
+The trusted backend for the Opal app, iOS widget, and Health Shortcut. It serves
+`https://opal.kael.life` from a single Cloudflare Worker with a D1 database.
 
-- **Pal LLM proxy** — forwards to **OpenRouter** (OpenAI-compatible chat
-  completions) with the handoff prompts (`PalService`). See
-  `docs/superpowers/specs/2026-06-10-backend-llm-proxy-design.md`.
-- **Email receipt import** — a live IMAP scan + LLM receipt extraction
-  (`EmailSyncService`). **Pull model**: the client holds the IMAP app-password in
-  the device keychain and sends it per request; the server stores **no
-  credentials and no email state** (dedup is the client's job, by `sourceRef`).
-  Sender filtering + Message-ID dedup are deterministic; field extraction is the
-  model. A scheduled background scan + APNs push is intentionally **out of
-  scope** here (device/Mac-gated, like the native HealthKit work).
+Two things it exists to hold that a client cannot: the **OpenRouter API key**, and
+the small amount of **server-side state** (device tokens, Pal memory, Health
+metrics, the widget snapshot).
 
-Per-device bearer tokens (SQLite) gate every `/v1/*` endpoint except `/v1/register`.
+## Layout
 
-The model is configurable via `PAL_MODEL` (any OpenRouter slug). The default is a
-cheap, fast model; `/parse` and `/suggest-workout` ask the model for JSON and the
-server validates it with zod, so it works across models without relying on
-provider-specific structured-output support.
+| Path | What |
+| --- | --- |
+| `worker/` | The deployable. Routing, CORS, D1 stores, email extraction, wrangler config. |
+| `src/` | Shared pure TypeScript the Worker imports: Pal, prompts, product vocabulary, zod schemas, receipt extraction, PII redaction, bearer parsing. No I/O, no platform APIs. |
+
+`src/` is a library, not a service — it has no entry point. It stays a separate
+package so its pure unit tests run under plain Vitest without the Workers pool.
+The Worker reaches it via relative imports (`../../src/pal.js`).
 
 ## Local dev
 
 ```bash
-cp .env.example .env   # fill OPENROUTER_API_KEY + PAL_PROVISIONING_KEY
+cd worker
+cp .env.example .env      # OPENROUTER_API_KEY + PAL_PROVISIONING_KEY
 npm install
-npm run dev            # tsx watch on PORT (default 8080)
-npm test               # Vitest, no network
+npm run dev               # wrangler dev
+npm test                  # Vitest on workerd, local D1, no network
+npm run size              # dry-run build; check the bundle against the 3 MB limit
 ```
 
-## Deploy (DigitalOcean droplet)
+Shared modules:
 
-opal-api runs as a systemd service (`opal-api.service`) on the host, bound to
-`0.0.0.0:8080`. TLS and public routing for `https://opal.kael.life` are handled
-by the droplet's existing nginx reverse proxy (the co-hosted `krypton` stack),
-which proxies to the host at `172.18.0.1:8080` (the nginx network's gateway).
+```bash
+cd server
+npm install
+npm test                  # pure unit tests, no network
+npm run typecheck
+```
 
-Deploys are automated via GitHub Actions (`.github/workflows/deploy.yml`): every
-push to `main` touching `server/**` runs tests, then rsyncs the source to the
-droplet and runs `npm ci && npm run build && systemctl restart opal-api`.
+## Deploy
 
-First-time droplet setup (run once):
+`.github/workflows/worker.yml` runs on any push to `main` touching
+`server/worker/**`: test → bundle-size build → `wrangler deploy` → `/healthz`
+check. Repository config: secrets `CLOUDFLARE_API_TOKEN` and
+`CLOUDFLARE_ACCOUNT_ID`, variable `WORKER_BASE_URL`.
 
-1. **Host service** — copy `server/scripts/bootstrap.sh` to the droplet and run
-   it as root. It installs Node 24 + build tools, creates the `opal` user and
-   `/opt/opal-api`, installs the systemd unit, and writes `.env`.
-2. **nginx wiring** — issue a cert for `opal.kael.life` via the existing certbot,
-   add the `server` block from `nginx-opal.conf.example` to the nginx config and
-   reload, and let the container subnet reach the host service:
-   `ufw allow from 172.18.0.0/16 to any port 8080 proto tcp`.
+`WORKER_BASE_URL` points at the `workers.dev` URL rather than `opal.kael.life`
+so the post-deploy healthcheck does not race DNS.
 
-Verify: `curl https://opal.kael.life/healthz` → `ok`.
+Note the path filter: changes under `server/src/**` alone do **not** trigger a
+deploy, even though the Worker bundles them. Touch something in `server/worker/`
+or dispatch the workflow manually when shipping a shared-module change.
+
+### D1 migrations are a manual gate
+
+Migrations are deliberately not applied by CI, so a schema change is never a
+side effect of a deploy:
+
+```bash
+cd worker
+npx wrangler d1 time-travel info opal    # record the bookmark first
+npm run migrate:remote
+```
+
+Time Travel is the only rollback for a bad migration, and the free recovery
+window is 7 days. `npm run migrate:local` does the same against local D1.
+
+## Configuration
+
+Non-secret values live in `worker/wrangler.toml` under `[vars]` and deploy with
+the Worker: `CORS_ORIGINS`, `OPENROUTER_BASE_URL`, `PAL_MODEL`,
+`PAL_REQUEST_TIMEOUT_MS`.
+
+Secrets are set out of band and are never in the repo:
+
+```bash
+npx wrangler secret put OPENROUTER_API_KEY
+npx wrangler secret put PAL_PROVISIONING_KEY
+```
+
+- `OPENROUTER_API_KEY` — give it its own credit cap on OpenRouter. The Worker's
+  rate limiter is traffic control; the credit cap is the actual spending bound.
+- `PAL_PROVISIONING_KEY` — gates `POST /v1/register`. It ships inside the app and
+  widget builds, so treat it as an enrollment gate, not a strong secret. It must
+  match the `--dart-define` value (`dart_defines/prod.json`).
+
+Bindings: `DB` (D1, database `opal`) and `RL` (rate limit, 60 req/60 s).
+
+## Endpoints
+
+`GET /healthz` → `ok`. Unauthenticated and not rate limited.
+
+`POST /v1/register` takes `{ provisioningKey, deviceId }` and returns `{ token }`.
+Every other `/v1/*` route requires that token as `Authorization: Bearer`, and
+answers 401 when it is missing or unknown — the client clears its stored token
+and re-registers on a 401.
+
+| Route | Method |
+| --- | --- |
+| `/v1/chat` | POST |
+| `/v1/parse`, `/v1/nutrition/estimate` | POST |
+| `/v1/review`, `/v1/insights`, `/v1/agenda`, `/v1/suggestions` | POST |
+| `/v1/suggest-workout`, `/v1/post-workout-note`, `/v1/routine` | POST |
+| `/v1/memory` | GET, DELETE |
+| `/v1/memory/fact/:id` | DELETE |
+| `/v1/memory/refresh` | POST |
+| `/v1/health/ingest` | POST |
+| `/v1/health/day` | GET |
+| `/v1/widget/snapshot` | POST, GET |
+| `/v1/email/extract` | POST |
+
+`POST /v1/chat` returns `{ reply, actions[] }`. Pal can call tools to mutate data
+(`log_expense`/`log_income`/`log_movement`/`log_ritual`, `set_daily_budget`/
+`set_move_goal`/`set_ritual_goal`, `create_routine`); each call is validated
+server-side and returned as an `action` the client applies and can undo.
+`create_routine` carries only the goal — the client fulfills it by calling
+`/v1/routine` with its exercise catalog, so the catalog never rides on `/chat`.
+Unknown or invalid tool calls are dropped.
+
+Structured endpoints request strict JSON (`response_format`); `extractJson`
+remains a tolerant fallback, so the model slug stays swappable.
+
+Upstream failures map to 502 (`OpenRouterError`) or 500, both as an `upstream`
+error envelope.
+
+## Email runs on the device
+
+IMAP is **not** in the Worker. The native client owns the app password, the IMAP
+connection, MIME parsing, sender filtering, Message-ID dedup, non-receipt
+filtering, body bounds, and PII redaction. It posts already-sanitized candidates
+to `POST /v1/email/extract` in batches of at most `BATCH_SIZE` (8), one LLM call
+per request, and the client loops across batches so one failed batch cannot
+discard the others.
+
+So the Worker never sees the Gmail app password, and the client never sees the
+OpenRouter key. Flutter **web** cannot sync email at all — browsers have no raw
+TCP socket — and gets an explicit unavailable state rather than a silent no-op.
+
+The old server-side `/v1/email/test` and `/v1/email/sync` routes were removed
+with the DigitalOcean backend.
+
+## CORS
+
+Browser calls are rejected unless the origin is listed in `CORS_ORIGINS`
+(comma-separated, scheme + host + optional port, no trailing slash). Currently
+`http://localhost:8080` for the local web preview. Empty means no browser origin
+is allowed. Native builds are unaffected — CORS only constrains browsers.
 
 ## Client wiring
 
-Build the Flutter app with:
-
 ```
 --dart-define=PAL_BASE_URL=https://opal.kael.life
---dart-define=PAL_PROVISIONING_KEY=<same as server PAL_PROVISIONING_KEY>
+--dart-define=PAL_PROVISIONING_KEY=<same value as the Worker secret>
 ```
 
 Without `PAL_BASE_URL` the app stays on `MockPalService`.
 
-## Environment
+## Free-tier budget
 
-| Var | Required | Notes |
-| --- | --- | --- |
-| `OPENROUTER_API_KEY` | yes | OpenRouter API key (`sk-or-...`). Server-side only. |
-| `PAL_PROVISIONING_KEY` | yes | Gates `POST /v1/register`; ships in the app build. |
-| `PAL_MODEL` | no | OpenRouter model slug. Default: a cheap/fast model. |
-| `PAL_REQUEST_TIMEOUT_MS` | no | Per-request timeout to OpenRouter. Default `30000`. |
-| `OPENROUTER_BASE_URL` | no | Defaults to `https://openrouter.ai/api/v1`. |
-| `PORT` | no | Default `8080`. |
-| `SQLITE_PATH` | no | Default `./loop.sqlite`. |
-| `CORS_ORIGINS` | no | Comma-separated allowed browser origins. |
-
-## Endpoints
-
-`POST /v1/{chat,parse,review,suggest-workout,post-workout-note,routine}` (Bearer token),
-`POST /v1/register` (provisioning key → token), `GET /healthz`.
-
-`POST /v1/chat` returns `{ reply, actions[] }`. Pal can call tools to mutate
-data (`log_expense`/`log_income`/`log_movement`/`log_ritual`,
-`set_daily_budget`/`set_move_goal`/`set_ritual_goal`, `create_routine`); each
-tool call is validated server-side and returned as an `action` the client
-applies (and can undo). `create_routine` carries only the goal — the client
-fulfills it by calling `/v1/routine` with its exercise catalog, so the catalog
-never rides along on `/chat`. Unknown/invalid tool calls are dropped.
-
-The structured endpoints (`parse`, `insights`, `suggest-workout`, `routine`,
-email receipt extraction) request strict JSON output (`response_format`) for
-reliability; `extractJson` remains as a tolerant fallback.
-
-**Email (Bearer token):**
-
-- `POST /v1/email/test` — `{ host, port, address, appPassword }` → `{ ok }`.
-  Verifies the IMAP login. A rejected app-password returns `{ ok: false }` (not an error).
-- `POST /v1/email/sync` — `{ host, port, address, appPassword, senderFilters[], since }`
-  (`since` = epoch ms of the client's last sync, or `null` for a default 7-day
-  window) → `{ items: [{ id, merchant, amount, receivedAt, category }] }`.
-  `amount` is negative (expense); `id` is the email Message-ID. A bad
-  app-password mid-sync returns **422** (distinct from the bearer-token **401**,
-  which the client retries by re-registering).
-
-Email creds are never persisted server-side; the same `OPENROUTER_API_KEY`
-powers receipt extraction.
-
-## CORS
-
-The Flutter **web** build calls the API from the browser, so the server must
-echo CORS headers for the web app's origin. Browser calls are blocked unless the
-requesting origin is in `CORS_ORIGINS`. This is **off by default** (empty list).
-
-In production, set `CORS_ORIGINS` to the exact origin(s) the web app is served
-from — comma-separated, scheme + host + optional port, **no trailing slash**
-(e.g. `CORS_ORIGINS=https://app.kael.life,http://localhost:5173`). Then rebuild
-and restart so the running process picks up the new env: `npm run build &&
-systemctl restart opal-api`. Native (mobile) builds are unaffected — CORS only
-matters for browsers.
+The binding constraint is **10 ms CPU per invocation**. `/v1/chat` is the
+critical path; Phase 1 measured p90 ≈ 7 ms and Phase 4 saw 8–15 ms on the
+heaviest route, with zero enforced CPU kills. See
+`docs/migration-phase-1-benchmark.md`. The bundle is ~39 KiB gzip against a 3 MB
+limit. Watch CPU time if prompt or catalog sizes grow.

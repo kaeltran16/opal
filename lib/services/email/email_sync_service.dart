@@ -3,9 +3,9 @@ import '../../models/models.dart';
 /// The email/IMAP receipt-import seam (screens 16–18, U20).
 ///
 /// Defined in U03 so the Email Sync screens can build entirely against the
-/// staged [SyncStatus] stream + fake imports. The real IMAP worker
-/// (`RealEmailSyncService`, U24) emits the same stream so the UI choreography
-/// is unchanged. [SyncStatus] already exists in `lib/models/enums.dart`.
+/// staged [SyncStatus] stream + fake imports. `NativeEmailSyncService` emits the
+/// same stream so the UI choreography is unchanged. [SyncStatus] already exists
+/// in `lib/models/enums.dart`.
 
 /// One receipt parsed from an inbox during a sync (becomes an [Entry] on import).
 class EmailImportItem {

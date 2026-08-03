@@ -1,6 +1,22 @@
 # Roadmap: Cloudflare Workers + D1 backend migration
 
-Status: deferred / not scheduled. Captured 2026-07-17.
+Status: **complete**. Captured 2026-07-17, cut over 2026-08-01, cleanup finished
+2026-08-02. `opal.kael.life` serves the Worker; the DigitalOcean backend and every
+dependency specific to it are gone.
+
+Phase records: [phase 0](migration-phase-0-findings.md) ·
+[phase 1 benchmark](migration-phase-1-benchmark.md) ·
+[phase 2](migration-phase-2-verification.md) ·
+[phase 3](migration-phase-3-verification.md) ·
+[phase 4](migration-phase-4-verification.md) ·
+[phase 5](migration-phase-5-deployment.md) ·
+[phase 6 cutover](migration-phase-6-cutover.md).
+
+One item is deliberately still open: the device-side live checks listed at the end
+of the phase 6 runbook. They need a phone, the Health Shortcut, and a real Gmail
+account, so they could not be run from a desktop session.
+
+The text below is the original plan, kept as the record of intent.
 
 ## Decision summary
 
@@ -301,7 +317,7 @@ memory and Health history cannot be reconstructed without a backup.
 
 Exit condition: all current consumers use the Worker through the existing production URL.
 
-### Phase 7 — cleanup
+### Phase 7 — cleanup — done 2026-08-02
 
 - Remove Fastify, `@fastify/rate-limit`, `better-sqlite3`, `imapflow`, and `mailparser` only
   after the Worker and native replacements are verified.
@@ -310,6 +326,34 @@ Exit condition: all current consumers use the Worker through the existing produc
 - Keep reusable pure TypeScript tests and add Worker/D1 contract coverage.
 
 Exit condition: no dormant DigitalOcean deployment path or server-only dependency remains.
+
+**As executed.** `server/src/` kept only the pure modules the Worker imports; the
+Fastify app, Node listener, `process.env` config, the three `better-sqlite3` stores,
+and the server-side IMAP path were deleted with their tests (204 → 131 shared tests,
+the 73 removed all covering deleted code). Two files straddled the boundary and were
+split rather than deleted:
+
+- `memory.ts` — `pal.ts` imports the *value* `MAX_PATTERNS`, which dragged
+  `better-sqlite3` into the Worker bundle and was the reason the alias stub existed.
+  The `MemoryStore` class went; constants and types stayed. The
+  `worker/stubs/better-sqlite3.js` alias is gone, and `worker/src/stores/memory.ts`
+  now imports those constants instead of duplicating them.
+- `imap.ts` — only `type RawEmail` was still needed, by `receipts.ts`. The interface
+  moved there and the file went, taking `imapflow` and `mailparser` with it.
+
+Also removed: `.github/workflows/deploy.yml`, `scripts/bootstrap.sh`,
+`export-loop-sqlite.mjs`, the systemd and nginx examples, the Node-era
+`.env.example` (replaced by `worker/.env.example`), the dead Dart
+`RealEmailSyncService` and its test, and the Phase 1 spike — whose benchmark
+results were rescued to [migration-phase-1-benchmark.md](migration-phase-1-benchmark.md)
+first, having never been committed.
+
+`nodejs_compat` was left on the Worker. No bundled module imports a `node:` builtin
+any more, but dropping a compatibility flag on a live Worker is runtime risk for no
+measurable gain.
+
+Verified: shared 131/131, Worker 51/51, bundle 191.71 KiB / 38.58 KiB gzip (down from
+192.33 / 38.75), `flutter analyze` clean of new issues.
 
 ## Verification strategy
 
@@ -328,9 +372,10 @@ Test behavior rather than Cloudflare implementation details:
 - Run end-to-end staging checks from Flutter, the iOS widget, and the Health Shortcut.
 - Re-run the CPU feasibility suite against the final production bundle before cutover.
 
-The current Windows environment does not have the Flutter/Dart toolchain and should not be
-modified to install it. Flutter analysis and tests remain a handoff for the user's normal
-verification machine.
+~~The current Windows environment does not have the Flutter/Dart toolchain and should not be
+modified to install it.~~ Stale as of 2026-08-02: Flutter 3.44.1 / Dart 3.12.1 are installed,
+so `flutter analyze` and `flutter test` run locally. What still needs a real device is
+unchanged — app launch, the iOS widget, the Health Shortcut, and live Gmail sync.
 
 ## Security boundaries
 

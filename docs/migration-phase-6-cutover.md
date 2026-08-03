@@ -226,10 +226,36 @@ Gmail run of native on-device email sync (Phase 4B). Step 5 monitoring has not s
 
 ## Open items
 
-1. `.github/workflows/deploy.yml`, the SSH/rsync deploy to the droplet, now targets a
+1. ~~`.github/workflows/deploy.yml`, the SSH/rsync deploy to the droplet, now targets a
    host that does not exist and will fail on any `server/**` push outside
-   `server/worker/**`. It was retained purely as the cutover rollback path; that reason
-   is gone. Delete it in Phase 7, or sooner if a failing workflow becomes noise.
-2. `server/scripts/export-loop-sqlite.mjs` is dead code — remove in Phase 7.
-3. Run the device-side live checks listed in the execution record, then Step 5
-   monitoring, before declaring the migration done and starting Phase 7.
+   `server/worker/**`.~~ **Closed 2026-08-02** — deleted in Phase 7 cleanup.
+2. ~~`server/scripts/export-loop-sqlite.mjs` is dead code.~~ **Closed 2026-08-02** —
+   deleted in Phase 7 cleanup.
+3. **Still open.** Run the device-side live checks listed in the execution record, then
+   Step 5 monitoring. These need a phone, the Health Shortcut, and a real Gmail account,
+   so they cannot be run from a desktop session.
+
+   Phase 7 cleanup went ahead without them, which is a deliberate call worth stating:
+   the cleanup deletes code that was already unreachable — the droplet is destroyed, so
+   the Node backend had no host and the `/v1/email/{test,sync}` routes it served no
+   longer answered. Keeping it would not have provided a rollback. **But if the first
+   real Gmail sync fails, the reference implementation of the server-side scan is now
+   only in git history** (`server/src/{imap,email,receipts}.ts` at `797fe23`). The
+   deterministic logic was ported to Dart in `e16834b`/`0d7e04c` with unit coverage, so
+   the port is testable without it — that is the reason this was judged acceptable
+   rather than merely convenient.
+
+## Remaining device-side checks
+
+Carried forward from Step 4. Nothing below has been exercised against production:
+
+- [ ] App launch — expect **one** re-registration (the token store started empty).
+      A second launch must not re-register.
+- [ ] Pal chat, nutrition estimate, insights, routine on device
+- [ ] Memory add → read → delete, from empty
+- [ ] Health ingest from the Shortcut, then the day read; backfill as far as the
+      Shortcut allows
+- [ ] iOS widget snapshot POST and GET
+- [ ] Native on-device email sync against a real Gmail account (first ever real run)
+- [ ] Step 5 monitoring across a normal usage cycle: `wrangler tail` exceptions, CPU
+      time per request against the 10 ms budget, D1 read/write counts, OpenRouter spend

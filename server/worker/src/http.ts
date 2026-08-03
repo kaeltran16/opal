@@ -6,7 +6,7 @@ export const json = (data: unknown, status = 200): Response =>
 export const error = (code: string, message: string, status: number, details?: string[]): Response =>
   json({ error: details ? { code, message, details } : { code, message } }, status)
 
-// mirrors server/src/app.ts badRequest: name the failing path + the received value.
+// name the failing path + the received value, so a 400 is actionable client-side.
 export function badRequest(err: z.ZodError, body: unknown): Response {
   const valueAtPath = (obj: unknown, path: (string | number)[]): unknown =>
     path.reduce<unknown>((o, k) => (o == null ? o : (o as Record<string, unknown>)[k]), obj)

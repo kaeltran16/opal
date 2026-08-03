@@ -1,18 +1,16 @@
-import type { MemoryOp } from '../../../src/memory.js'
+import {
+  MAX_FACTS, MAX_PATTERNS,
+  type MemoryOp, type MemoryFact, type MemoryPattern, type MemoryDigest,
+} from '../../../src/memory.js'
 
-// Async D1 port of server/src/memory.ts MemoryStore. Prepared statements; Web Crypto for ids.
-const MAX_FACTS = 20   // server/src/memory.ts
-const MAX_PATTERNS = 5 // server/src/memory.ts
-
+// D1-backed per-device memory. Prepared statements; Web Crypto for ids.
 function hex(bytes: number): string {
   const b = new Uint8Array(bytes)
   crypto.getRandomValues(b)
   return Array.from(b, (x) => x.toString(16).padStart(2, '0')).join('')
 }
 
-export interface MemoryFact { id: string; text: string }
-export interface MemoryPattern { colorToken: string; title: string; detail: string }
-export interface MemoryDigest { facts: MemoryFact[]; patterns: MemoryPattern[] }
+export type { MemoryFact, MemoryPattern, MemoryDigest }
 
 export class D1MemoryStore {
   constructor(private readonly db: D1Database) {}
