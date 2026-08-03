@@ -77,7 +77,10 @@ String _sleepRead(int asleep, int usual, int wakes) {
   return 'broken';
 }
 
-SleepState _deriveState(List<SleepNight> nights, DateTime now) {
+/// Derives the Sleep view model from [nights], ascending by night (the
+/// repository's guarantee). Pure: the 30-day window is applied by the caller's
+/// query, so this needs no clock — which is what keeps its tests from rotting.
+SleepState deriveSleepState(List<SleepNight> nights) {
   if (nights.isEmpty) {
     return const SleepState(
       lastNight: null,
@@ -147,7 +150,7 @@ class SleepController extends _$SleepController {
     final windowStart = startOfDay(now).subtract(const Duration(days: 30));
     final tomorrow = startOfDay(now).add(const Duration(days: 1));
     await for (final nights in repo.watchNightsInRange(windowStart, tomorrow)) {
-      yield _deriveState(nights, now);
+      yield deriveSleepState(nights);
     }
   }
 }
