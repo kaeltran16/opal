@@ -7966,6 +7966,375 @@ class MoodCheckinsCompanion extends UpdateCompanion<MoodCheckinRow> {
   }
 }
 
+class $SavedFoodsTable extends SavedFoods
+    with TableInfo<$SavedFoodsTable, SavedFoodRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $SavedFoodsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _nameKeyMeta = const VerificationMeta(
+    'nameKey',
+  );
+  @override
+  late final GeneratedColumn<String> nameKey = GeneratedColumn<String>(
+    'name_key',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _calLoMeta = const VerificationMeta('calLo');
+  @override
+  late final GeneratedColumn<int> calLo = GeneratedColumn<int>(
+    'cal_lo',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _calHiMeta = const VerificationMeta('calHi');
+  @override
+  late final GeneratedColumn<int> calHi = GeneratedColumn<int>(
+    'cal_hi',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _confidenceMeta = const VerificationMeta(
+    'confidence',
+  );
+  @override
+  late final GeneratedColumn<String> confidence = GeneratedColumn<String>(
+    'confidence',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    nameKey,
+    name,
+    calLo,
+    calHi,
+    confidence,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'saved_foods';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<SavedFoodRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('name_key')) {
+      context.handle(
+        _nameKeyMeta,
+        nameKey.isAcceptableOrUnknown(data['name_key']!, _nameKeyMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameKeyMeta);
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('cal_lo')) {
+      context.handle(
+        _calLoMeta,
+        calLo.isAcceptableOrUnknown(data['cal_lo']!, _calLoMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_calLoMeta);
+    }
+    if (data.containsKey('cal_hi')) {
+      context.handle(
+        _calHiMeta,
+        calHi.isAcceptableOrUnknown(data['cal_hi']!, _calHiMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_calHiMeta);
+    }
+    if (data.containsKey('confidence')) {
+      context.handle(
+        _confidenceMeta,
+        confidence.isAcceptableOrUnknown(data['confidence']!, _confidenceMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_confidenceMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {nameKey};
+  @override
+  SavedFoodRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return SavedFoodRow(
+      nameKey: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name_key'],
+      )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      calLo: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}cal_lo'],
+      )!,
+      calHi: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}cal_hi'],
+      )!,
+      confidence: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}confidence'],
+      )!,
+    );
+  }
+
+  @override
+  $SavedFoodsTable createAlias(String alias) {
+    return $SavedFoodsTable(attachedDatabase, alias);
+  }
+}
+
+class SavedFoodRow extends DataClass implements Insertable<SavedFoodRow> {
+  /// Normalized lookup key (see `normalizeFoodKey`).
+  final String nameKey;
+
+  /// The description as Pal named it, shown when the cached estimate is used.
+  final String name;
+  final int calLo;
+  final int calHi;
+
+  /// [NutritionConfidence.wire] as originally estimated. Never upgraded on a
+  /// cache hit — a remembered guess is no more accurate than the guess was.
+  final String confidence;
+  const SavedFoodRow({
+    required this.nameKey,
+    required this.name,
+    required this.calLo,
+    required this.calHi,
+    required this.confidence,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['name_key'] = Variable<String>(nameKey);
+    map['name'] = Variable<String>(name);
+    map['cal_lo'] = Variable<int>(calLo);
+    map['cal_hi'] = Variable<int>(calHi);
+    map['confidence'] = Variable<String>(confidence);
+    return map;
+  }
+
+  SavedFoodsCompanion toCompanion(bool nullToAbsent) {
+    return SavedFoodsCompanion(
+      nameKey: Value(nameKey),
+      name: Value(name),
+      calLo: Value(calLo),
+      calHi: Value(calHi),
+      confidence: Value(confidence),
+    );
+  }
+
+  factory SavedFoodRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return SavedFoodRow(
+      nameKey: serializer.fromJson<String>(json['nameKey']),
+      name: serializer.fromJson<String>(json['name']),
+      calLo: serializer.fromJson<int>(json['calLo']),
+      calHi: serializer.fromJson<int>(json['calHi']),
+      confidence: serializer.fromJson<String>(json['confidence']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'nameKey': serializer.toJson<String>(nameKey),
+      'name': serializer.toJson<String>(name),
+      'calLo': serializer.toJson<int>(calLo),
+      'calHi': serializer.toJson<int>(calHi),
+      'confidence': serializer.toJson<String>(confidence),
+    };
+  }
+
+  SavedFoodRow copyWith({
+    String? nameKey,
+    String? name,
+    int? calLo,
+    int? calHi,
+    String? confidence,
+  }) => SavedFoodRow(
+    nameKey: nameKey ?? this.nameKey,
+    name: name ?? this.name,
+    calLo: calLo ?? this.calLo,
+    calHi: calHi ?? this.calHi,
+    confidence: confidence ?? this.confidence,
+  );
+  SavedFoodRow copyWithCompanion(SavedFoodsCompanion data) {
+    return SavedFoodRow(
+      nameKey: data.nameKey.present ? data.nameKey.value : this.nameKey,
+      name: data.name.present ? data.name.value : this.name,
+      calLo: data.calLo.present ? data.calLo.value : this.calLo,
+      calHi: data.calHi.present ? data.calHi.value : this.calHi,
+      confidence: data.confidence.present
+          ? data.confidence.value
+          : this.confidence,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SavedFoodRow(')
+          ..write('nameKey: $nameKey, ')
+          ..write('name: $name, ')
+          ..write('calLo: $calLo, ')
+          ..write('calHi: $calHi, ')
+          ..write('confidence: $confidence')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(nameKey, name, calLo, calHi, confidence);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is SavedFoodRow &&
+          other.nameKey == this.nameKey &&
+          other.name == this.name &&
+          other.calLo == this.calLo &&
+          other.calHi == this.calHi &&
+          other.confidence == this.confidence);
+}
+
+class SavedFoodsCompanion extends UpdateCompanion<SavedFoodRow> {
+  final Value<String> nameKey;
+  final Value<String> name;
+  final Value<int> calLo;
+  final Value<int> calHi;
+  final Value<String> confidence;
+  final Value<int> rowid;
+  const SavedFoodsCompanion({
+    this.nameKey = const Value.absent(),
+    this.name = const Value.absent(),
+    this.calLo = const Value.absent(),
+    this.calHi = const Value.absent(),
+    this.confidence = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  SavedFoodsCompanion.insert({
+    required String nameKey,
+    required String name,
+    required int calLo,
+    required int calHi,
+    required String confidence,
+    this.rowid = const Value.absent(),
+  }) : nameKey = Value(nameKey),
+       name = Value(name),
+       calLo = Value(calLo),
+       calHi = Value(calHi),
+       confidence = Value(confidence);
+  static Insertable<SavedFoodRow> custom({
+    Expression<String>? nameKey,
+    Expression<String>? name,
+    Expression<int>? calLo,
+    Expression<int>? calHi,
+    Expression<String>? confidence,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (nameKey != null) 'name_key': nameKey,
+      if (name != null) 'name': name,
+      if (calLo != null) 'cal_lo': calLo,
+      if (calHi != null) 'cal_hi': calHi,
+      if (confidence != null) 'confidence': confidence,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  SavedFoodsCompanion copyWith({
+    Value<String>? nameKey,
+    Value<String>? name,
+    Value<int>? calLo,
+    Value<int>? calHi,
+    Value<String>? confidence,
+    Value<int>? rowid,
+  }) {
+    return SavedFoodsCompanion(
+      nameKey: nameKey ?? this.nameKey,
+      name: name ?? this.name,
+      calLo: calLo ?? this.calLo,
+      calHi: calHi ?? this.calHi,
+      confidence: confidence ?? this.confidence,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (nameKey.present) {
+      map['name_key'] = Variable<String>(nameKey.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (calLo.present) {
+      map['cal_lo'] = Variable<int>(calLo.value);
+    }
+    if (calHi.present) {
+      map['cal_hi'] = Variable<int>(calHi.value);
+    }
+    if (confidence.present) {
+      map['confidence'] = Variable<String>(confidence.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SavedFoodsCompanion(')
+          ..write('nameKey: $nameKey, ')
+          ..write('name: $name, ')
+          ..write('calLo: $calLo, ')
+          ..write('calHi: $calHi, ')
+          ..write('confidence: $confidence, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$LoopDatabase extends GeneratedDatabase {
   _$LoopDatabase(QueryExecutor e) : super(e);
   $LoopDatabaseManager get managers => $LoopDatabaseManager(this);
@@ -7989,6 +8358,7 @@ abstract class _$LoopDatabase extends GeneratedDatabase {
   late final $NutritionMealsTable nutritionMeals = $NutritionMealsTable(this);
   late final $SleepNightsTable sleepNights = $SleepNightsTable(this);
   late final $MoodCheckinsTable moodCheckins = $MoodCheckinsTable(this);
+  late final $SavedFoodsTable savedFoods = $SavedFoodsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -8010,6 +8380,7 @@ abstract class _$LoopDatabase extends GeneratedDatabase {
     nutritionMeals,
     sleepNights,
     moodCheckins,
+    savedFoods,
   ];
 }
 
@@ -12093,6 +12464,208 @@ typedef $$MoodCheckinsTableProcessedTableManager =
       MoodCheckinRow,
       PrefetchHooks Function()
     >;
+typedef $$SavedFoodsTableCreateCompanionBuilder =
+    SavedFoodsCompanion Function({
+      required String nameKey,
+      required String name,
+      required int calLo,
+      required int calHi,
+      required String confidence,
+      Value<int> rowid,
+    });
+typedef $$SavedFoodsTableUpdateCompanionBuilder =
+    SavedFoodsCompanion Function({
+      Value<String> nameKey,
+      Value<String> name,
+      Value<int> calLo,
+      Value<int> calHi,
+      Value<String> confidence,
+      Value<int> rowid,
+    });
+
+class $$SavedFoodsTableFilterComposer
+    extends Composer<_$LoopDatabase, $SavedFoodsTable> {
+  $$SavedFoodsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get nameKey => $composableBuilder(
+    column: $table.nameKey,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get calLo => $composableBuilder(
+    column: $table.calLo,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get calHi => $composableBuilder(
+    column: $table.calHi,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get confidence => $composableBuilder(
+    column: $table.confidence,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$SavedFoodsTableOrderingComposer
+    extends Composer<_$LoopDatabase, $SavedFoodsTable> {
+  $$SavedFoodsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get nameKey => $composableBuilder(
+    column: $table.nameKey,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get calLo => $composableBuilder(
+    column: $table.calLo,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get calHi => $composableBuilder(
+    column: $table.calHi,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get confidence => $composableBuilder(
+    column: $table.confidence,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$SavedFoodsTableAnnotationComposer
+    extends Composer<_$LoopDatabase, $SavedFoodsTable> {
+  $$SavedFoodsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get nameKey =>
+      $composableBuilder(column: $table.nameKey, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<int> get calLo =>
+      $composableBuilder(column: $table.calLo, builder: (column) => column);
+
+  GeneratedColumn<int> get calHi =>
+      $composableBuilder(column: $table.calHi, builder: (column) => column);
+
+  GeneratedColumn<String> get confidence => $composableBuilder(
+    column: $table.confidence,
+    builder: (column) => column,
+  );
+}
+
+class $$SavedFoodsTableTableManager
+    extends
+        RootTableManager<
+          _$LoopDatabase,
+          $SavedFoodsTable,
+          SavedFoodRow,
+          $$SavedFoodsTableFilterComposer,
+          $$SavedFoodsTableOrderingComposer,
+          $$SavedFoodsTableAnnotationComposer,
+          $$SavedFoodsTableCreateCompanionBuilder,
+          $$SavedFoodsTableUpdateCompanionBuilder,
+          (
+            SavedFoodRow,
+            BaseReferences<_$LoopDatabase, $SavedFoodsTable, SavedFoodRow>,
+          ),
+          SavedFoodRow,
+          PrefetchHooks Function()
+        > {
+  $$SavedFoodsTableTableManager(_$LoopDatabase db, $SavedFoodsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$SavedFoodsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$SavedFoodsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$SavedFoodsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> nameKey = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<int> calLo = const Value.absent(),
+                Value<int> calHi = const Value.absent(),
+                Value<String> confidence = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => SavedFoodsCompanion(
+                nameKey: nameKey,
+                name: name,
+                calLo: calLo,
+                calHi: calHi,
+                confidence: confidence,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String nameKey,
+                required String name,
+                required int calLo,
+                required int calHi,
+                required String confidence,
+                Value<int> rowid = const Value.absent(),
+              }) => SavedFoodsCompanion.insert(
+                nameKey: nameKey,
+                name: name,
+                calLo: calLo,
+                calHi: calHi,
+                confidence: confidence,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$SavedFoodsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$LoopDatabase,
+      $SavedFoodsTable,
+      SavedFoodRow,
+      $$SavedFoodsTableFilterComposer,
+      $$SavedFoodsTableOrderingComposer,
+      $$SavedFoodsTableAnnotationComposer,
+      $$SavedFoodsTableCreateCompanionBuilder,
+      $$SavedFoodsTableUpdateCompanionBuilder,
+      (
+        SavedFoodRow,
+        BaseReferences<_$LoopDatabase, $SavedFoodsTable, SavedFoodRow>,
+      ),
+      SavedFoodRow,
+      PrefetchHooks Function()
+    >;
 
 class $LoopDatabaseManager {
   final _$LoopDatabase _db;
@@ -12129,4 +12702,6 @@ class $LoopDatabaseManager {
       $$SleepNightsTableTableManager(_db, _db.sleepNights);
   $$MoodCheckinsTableTableManager get moodCheckins =>
       $$MoodCheckinsTableTableManager(_db, _db.moodCheckins);
+  $$SavedFoodsTableTableManager get savedFoods =>
+      $$SavedFoodsTableTableManager(_db, _db.savedFoods);
 }

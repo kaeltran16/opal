@@ -41,6 +41,61 @@ Macros macrosFromCal(IntRange cal) {
   return Macros(protein: mk(0.22, 4), carbs: mk(0.50, 4), fat: mk(0.28, 9));
 }
 
+/// AI calorie + macro estimate for a free-text meal description.
+///
+/// [macros] is derived from [cal] via [macrosFromCal] — no separate wire field
+/// needed; the getter recomputes on every access.
+///
+/// Re-exported by `pal_service.dart`, which is how callers normally reach it.
+class MealEstimate {
+  const MealEstimate({
+    required this.name,
+    required this.cal,
+    required this.confidence,
+  });
+
+  final String name;
+  final IntRange cal;
+  final NutritionConfidence confidence;
+
+  Macros get macros => macrosFromCal(cal);
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is MealEstimate &&
+          other.name == name &&
+          other.cal == cal &&
+          other.confidence == confidence;
+
+  @override
+  int get hashCode => Object.hash(name, cal, confidence);
+}
+
+// Unicode-aware on purpose: `\w` is ASCII-only in Dart, so an `[^\w\s]` strip
+// would delete every accented letter — turning "phở bò" into "ph b" and letting
+// unrelated dishes collide on one key. Matching punctuation and symbols directly
+// leaves letters, marks and digits of any script intact.
+final _foodPunctuation = RegExp(r'[\p{P}\p{S}]', unicode: true);
+final _whitespaceRun = RegExp(r'\s+');
+
+/// Lookup key for a meal description: lower-cased, punctuation folded to spaces,
+/// with runs of whitespace collapsed. The key the saved-food estimate cache is
+/// stored under, so "Pho bo!", "pho-bo" and "  pho   bo " reuse one estimate.
+///
+/// Deliberately exact after normalizing — no fuzzy or substring matching. The
+/// cache exists so the same meal reads the same every time; a near-match that
+/// silently answered with a different dish's calories would trade that away.
+///
+/// Unicode composition is not normalized, so a precomposed "ở" and a decomposed
+/// "ơ" + tone mark key separately. Both round-trip correctly; they just don't
+/// share a cache entry.
+String normalizeFoodKey(String description) => description
+    .toLowerCase()
+    .replaceAll(_foodPunctuation, ' ')
+    .replaceAll(_whitespaceRun, ' ')
+    .trim();
+
 /// A logged meal/drink. Everything is an AI estimate (ranges + confidence).
 class NutritionMeal {
   const NutritionMeal({

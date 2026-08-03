@@ -1,5 +1,11 @@
 import '../../models/models.dart';
 
+// MealEstimate is a domain value (an IntRange + a confidence), so it lives in
+// `models/nutrition_meal.dart` where the saved-estimate cache in the data layer
+// can use it without importing a service. Re-exported here because it is part of
+// this interface's contract and every existing caller reaches it through Pal.
+export '../../models/models.dart' show MealEstimate;
+
 /// The Pal AI seam: chat, NL parse, monthly review, and workout suggestion.
 ///
 /// Defined in U03 so every later consumer (U12 Start-Workout, U16 Chat, U18
@@ -643,35 +649,6 @@ class PalSuggestion {
 
   @override
   int get hashCode => Object.hash(label, icon, colorToken, entry);
-}
-
-/// AI calorie + macro estimate for a free-text meal description.
-///
-/// [macros] is derived from [cal] via [macrosFromCal] — no separate wire field
-/// needed; the getter recomputes on every access.
-class MealEstimate {
-  const MealEstimate({
-    required this.name,
-    required this.cal,
-    required this.confidence,
-  });
-
-  final String name;
-  final IntRange cal;
-  final NutritionConfidence confidence;
-
-  Macros get macros => macrosFromCal(cal);
-
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is MealEstimate &&
-          other.name == name &&
-          other.cal == cal &&
-          other.confidence == confidence;
-
-  @override
-  int get hashCode => Object.hash(name, cal, confidence);
 }
 
 /// The Pal AI interface. All methods are async to model network latency.

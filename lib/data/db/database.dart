@@ -28,6 +28,7 @@ part 'database.g.dart';
     NutritionMeals,
     SleepNights,
     MoodCheckins,
+    SavedFoods,
   ],
 )
 class LoopDatabase extends _$LoopDatabase {
@@ -38,7 +39,7 @@ class LoopDatabase extends _$LoopDatabase {
   LoopDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 9;
+  int get schemaVersion => 10;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -114,6 +115,9 @@ class LoopDatabase extends _$LoopDatabase {
           if (from < 9) {
             await m.createTable(sleepNights);
             await m.createTable(moodCheckins);
+          }
+          if (from < 10) {
+            await m.createTable(savedFoods);
           }
         },
         beforeOpen: (details) async {

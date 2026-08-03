@@ -61,4 +61,33 @@ class NutritionRepository {
           t.timestamp.isSmallerThanValue(to));
     return (await q.get()).map((r) => r.linkedEntryId!).toSet();
   }
+
+  /// The remembered estimate for [description], or null when it has not been
+  /// estimated before. Matched on [normalizeFoodKey], so punctuation and spacing
+  /// don't cause a miss.
+  Future<MealEstimate?> cachedEstimate(String description) async {
+    final key = normalizeFoodKey(description);
+    if (key.isEmpty) return null;
+    final row = await (_db.select(_db.savedFoods)
+          ..where((t) => t.nameKey.equals(key)))
+        .getSingleOrNull();
+    return row?.toEstimate();
+  }
+
+  /// Remembers [est] as the estimate for [description] so the next identical
+  /// description reuses it instead of re-asking Pal.
+  ///
+  /// Upserts: only reached on a cache miss, but two concurrent misses for one
+  /// description must not collide.
+  Future<void> rememberEstimate(String description, MealEstimate est) async {
+    final key = normalizeFoodKey(description);
+    if (key.isEmpty) return;
+    await _db.into(_db.savedFoods).insertOnConflictUpdate(SavedFoodsCompanion(
+          nameKey: Value(key),
+          name: Value(est.name),
+          calLo: Value(est.cal.lo),
+          calHi: Value(est.cal.hi),
+          confidence: Value(est.confidence.wire),
+        ));
+  }
 }

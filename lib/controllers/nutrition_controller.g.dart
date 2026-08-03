@@ -37,7 +37,7 @@ final class NutritionControllerProvider
 }
 
 String _$nutritionControllerHash() =>
-    r'823fe45038f8abe02b0e5044a0aaf0e9f56810b9';
+    r'76e417588f0b0ad7d6d588c709870a2a6f3fcf83';
 
 /// Streams the Nutrition view model and owns meal logging actions.
 

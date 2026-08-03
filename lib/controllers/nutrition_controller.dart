@@ -266,8 +266,28 @@ class NutritionController extends _$NutritionController {
       }
     }
     if (candidate == null) return null;
-    final guess = await pal.estimateMeal('${candidate.title} takeout');
+    final guess =
+        await _estimate(repo, pal, '${candidate.title} takeout');
     return NutritionPending(expense: candidate, guess: guess);
+  }
+
+  /// Pal's estimate for [description], served from the saved-food cache when the
+  /// same description has been estimated before and remembered otherwise.
+  ///
+  /// The cache is for consistency first, cost second: a repeat meal must not
+  /// come back with different calories than last time. The remembered
+  /// confidence is returned as-is — being cached makes a guess repeatable, not
+  /// more accurate.
+  Future<MealEstimate> _estimate(
+    NutritionRepository repo,
+    PalService pal,
+    String description,
+  ) async {
+    final cached = await repo.cachedEstimate(description);
+    if (cached != null) return cached;
+    final est = await pal.estimateMeal(description);
+    await repo.rememberEstimate(description, est);
+    return est;
   }
 
   // only the money pattern is computed from real data; the former move /
@@ -405,7 +425,11 @@ class NutritionController extends _$NutritionController {
   Future<void> deleteMeal(String id) =>
       ref.read(nutritionRepositoryProvider).deleteById(id);
 
-  /// Pal's calorie/macro estimate for a free-text meal [description].
-  Future<MealEstimate> estimateFor(String description) =>
-      ref.read(palServiceProvider).estimateMeal(description);
+  /// Pal's calorie/macro estimate for a free-text meal [description], reusing a
+  /// remembered estimate when this description has been seen before.
+  Future<MealEstimate> estimateFor(String description) => _estimate(
+        ref.read(nutritionRepositoryProvider),
+        ref.read(palServiceProvider),
+        description,
+      );
 }

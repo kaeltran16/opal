@@ -356,3 +356,32 @@ class BudgetEnvelopes extends Table {
   @override
   Set<Column> get primaryKey => {id};
 }
+
+/// Cache of Pal's calorie estimates, keyed by the normalized meal description.
+///
+/// Lets a repeat meal reuse the estimate it got the first time instead of
+/// re-asking the model. The point is consistency: the same bowl of pho reading
+/// the same numbers every time matters more to a user than either estimate
+/// being closer to the truth.
+///
+/// [nameKey] is the primary key, so a description can only be cached once and an
+/// upsert needs no lookup. Macros are not stored — [macrosFromCal] derives them
+/// from the calorie range, so persisting them would be a second source of truth.
+@DataClassName('SavedFoodRow')
+class SavedFoods extends Table {
+  /// Normalized lookup key (see `normalizeFoodKey`).
+  TextColumn get nameKey => text()();
+
+  /// The description as Pal named it, shown when the cached estimate is used.
+  TextColumn get name => text()();
+
+  IntColumn get calLo => integer()();
+  IntColumn get calHi => integer()();
+
+  /// [NutritionConfidence.wire] as originally estimated. Never upgraded on a
+  /// cache hit — a remembered guess is no more accurate than the guess was.
+  TextColumn get confidence => text()();
+
+  @override
+  Set<Column> get primaryKey => {nameKey};
+}

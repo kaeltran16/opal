@@ -19,3 +19,8 @@ const kSpendCategories = <String>[
 /// breakdowns both bucket through this so they agree on what matches what.
 String normalizeCategory(String? category) =>
     (category ?? '').trim().toLowerCase();
+
+/// Bucket key for expenses carrying no category, so they are tallied rather
+/// than dropped. Deliberately outside [kSpendCategories]: it is a catch-all, not
+/// a category the user can pick or budget.
+const kUncategorizedKey = 'uncategorized';

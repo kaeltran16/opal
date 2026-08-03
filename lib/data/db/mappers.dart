@@ -451,3 +451,16 @@ extension MoodCheckinModelMapper on MoodCheckin {
         source: Value(source.wire),
       );
 }
+
+// ---------------------------------------------------------------------------
+// SavedFood (cached Pal calorie estimate)
+// ---------------------------------------------------------------------------
+
+extension SavedFoodRowMapper on SavedFoodRow {
+  /// The cached estimate. Macros are derived, never stored.
+  MealEstimate toEstimate() => MealEstimate(
+        name: name,
+        cal: IntRange(calLo, calHi),
+        confidence: NutritionConfidence.fromWire(confidence),
+      );
+}

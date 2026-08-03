@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../controllers/nutrition_controller.dart';
 import '../../models/models.dart';
-import '../../services/pal/pal_service.dart';
 import '../../theme/theme.dart';
 import '../../widgets/app_icon.dart';
 import 'widgets/nutrition_widgets.dart';
