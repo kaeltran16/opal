@@ -1,7 +1,8 @@
 name: opal-worker CI/CD
 
-# Cloudflare Worker deployment path (migration phase 5). Runs independently of
-# deploy.yml so the DigitalOcean path stays available until phase 6 cutover.
+# Cloudflare Worker deployment path — the sole backend since the phase 6
+# cutover retired the DigitalOcean droplet. The Flutter app has its own
+# workflow (app.yml); path filters keep one change from firing both.
 #
 # D1 migrations are deliberately NOT applied here. See
 # docs/migration-phase-5-deployment.md.

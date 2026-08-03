@@ -1,0 +1,64 @@
+name: opal-app CI
+
+# Flutter app gate. The Worker has its own workflow (worker.yml); the two are
+# path-filtered so no single change fires both.
+#
+# Goldens are excluded: test/golden/ is a machine-local visual baseline
+# captured with the Ahem test font, so glyph metrics differ on a Linux runner.
+# See the header comment in test/golden/design_system_golden_test.dart.
+#
+# No deploy job: iOS builds are produced locally by scripts/build_ipa.sh and
+# sideloaded via AltStore, so there is nothing here to deploy.
+
+on:
+  push:
+    branches: [main]
+    # Spelled out rather than shared via a YAML anchor: GitHub Actions does not
+    # support anchors/aliases in workflow files. These two lists MUST stay
+    # identical — edit both or neither.
+    paths:
+      - 'lib/**'
+      - 'test/**'
+      - 'pubspec.yaml'
+      - 'pubspec.lock'
+      - 'analysis_options.yaml'
+      - 'dart_test.yaml'
+      - '.github/workflows/app.yml'
+  pull_request:
+    paths:
+      - 'lib/**'
+      - 'test/**'
+      - 'pubspec.yaml'
+      - 'pubspec.lock'
+      - 'analysis_options.yaml'
+      - 'dart_test.yaml'
+      - '.github/workflows/app.yml'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          # Pinned, not `stable`: an unpinned channel lets a Flutter release
+          # turn CI red on a day nothing in this repo changed.
+          flutter-version: 3.44.1
+          channel: stable
+          cache: true
+
+      - run: flutter pub get
+
+      # Codegen before analyze/test, so a stale .g.dart reports as stale
+      # codegen rather than as a confusing downstream failure.
+      - run: dart run build_runner build --delete-conflicting-outputs
+
+      # --ignore-cr-at-eol: the repo is CRLF (core.autocrlf=true, no
+      # .gitattributes) while build_runner writes LF, so a plain diff flags
+      # every generated file on a Windows checkout.
+      - name: Verify generated files are up to date
+        run: git diff --ignore-cr-at-eol --exit-code
+
+      - run: flutter analyze --fatal-infos
+
+      - run: flutter test --exclude-tags golden
