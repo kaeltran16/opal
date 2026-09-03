@@ -291,19 +291,21 @@ class _CompactBody extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final c = context.colors;
+    final suggestions = ref.watch(palSuggestionsProvider(SuggestionSurface.composer));
     // Pal-generated starters when available; the static list is the fallback for
-    // loading / offline / empty, preserving the original offline quick-logs.
-    final palStarters = ref
-        .watch(palSuggestionsProvider(SuggestionSurface.composer))
-        .maybeWhen(
-          data: (list) => list.isEmpty
-              ? null
-              : list
-                  .map((s) => _Starter(s.icon, s.colorToken, s.label, payload: s.entry))
-                  .toList(),
-          orElse: () => null,
-        );
+    // offline / empty, preserving the original offline quick-logs. Loading gets
+    // its own skeleton rather than the fallback: the two are indistinguishable
+    // on screen, so a pending fetch used to read as "Pal answered".
+    final palStarters = suggestions.maybeWhen(
+      data: (list) => list.isEmpty
+          ? null
+          : list
+              .map((s) => _Starter(s.icon, s.colorToken, s.label, payload: s.entry))
+              .toList(),
+      orElse: () => null,
+    );
     final starters = palStarters ?? _starters;
+    final loadingStarters = suggestions.isLoading && palStarters == null;
     return Padding(
       padding: const EdgeInsets.fromLTRB(Spacing.md, Spacing.xs, Spacing.md, Spacing.md),
       child: Column(
@@ -377,13 +379,16 @@ class _CompactBody extends ConsumerWidget {
               ),
             ),
           ),
-          for (var i = 0; i < starters.length; i++) ...[
-            if (i > 0) const SizedBox(height: Spacing.sm),
-            _StarterChip(
-              starter: starters[i],
-              onTap: () => onSendStarter(starters[i]),
-            ),
-          ],
+          if (loadingStarters)
+            const _StarterSkeletons(key: Key('starter-skeleton'))
+          else
+            for (var i = 0; i < starters.length; i++) ...[
+              if (i > 0) const SizedBox(height: Spacing.sm),
+              _StarterChip(
+                starter: starters[i],
+                onTap: () => onSendStarter(starters[i]),
+              ),
+            ],
         ],
       ),
     );
@@ -438,6 +443,62 @@ class _StarterChip extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Chip-shaped placeholders while the first suggestions fetch is in flight.
+///
+/// Shimmer-less, matching Today's Brief. Deliberately not the static starters:
+/// those are the *offline* answer, and rendering them here made a pending fetch
+/// look like Pal had already replied.
+class _StarterSkeletons extends StatelessWidget {
+  const _StarterSkeletons({super.key});
+
+  /// Ragged widths so the placeholder reads as text, not as three equal bars.
+  static const _widths = [0.72, 0.54, 0.63];
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    Widget bar(double width, double height) => Container(
+          width: width,
+          height: height,
+          decoration: BoxDecoration(
+            color: c.fill,
+            borderRadius: BorderRadius.circular(Radii.xs),
+          ),
+        );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (var i = 0; i < _widths.length; i++) ...[
+          if (i > 0) const SizedBox(height: Spacing.sm),
+          Container(
+            padding: const EdgeInsets.symmetric(
+                horizontal: Spacing.md, vertical: Spacing.md),
+            decoration: BoxDecoration(
+              color: c.surface,
+              borderRadius: BorderRadius.circular(Radii.md),
+              border: Border.all(color: c.hair, width: 0.5),
+            ),
+            child: Row(
+              children: [
+                bar(15, 15),
+                const SizedBox(width: Spacing.md),
+                Expanded(
+                  child: FractionallySizedBox(
+                    alignment: Alignment.centerLeft,
+                    widthFactor: _widths[i],
+                    child: bar(double.infinity, 13),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ],
     );
   }
 }

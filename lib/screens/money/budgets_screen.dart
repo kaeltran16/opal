@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../controllers/budget_advisories_controller.dart';
 import '../../controllers/budget_recommendations_controller.dart';
 import '../../controllers/budgets_controller.dart';
 import '../../controllers/providers.dart';
@@ -231,6 +232,9 @@ class _Body extends StatelessWidget {
         // --- Suggested caps (read-only advisory) ---
         _SuggestedCaps(currency: currency),
 
+        // --- Uncovered spend / overprovisioned caps (read-only advisory) ---
+        _BudgetAdvisories(currency: currency),
+
         // --- Actions ---
         InsetSection(
           footer: 'Adjust caps anytime — Pal nudges you before an envelope runs dry.',
@@ -354,6 +358,66 @@ class _SuggestedCaps extends ConsumerWidget {
             valueColor: c.money,
             chevron: false,
             last: i == recs.length - 1,
+          ),
+      ],
+    );
+  }
+}
+
+/// Read-only advisory sections: categories drawing real money with no envelope,
+/// and envelopes carrying more headroom than the category actually uses.
+/// Watches [budgetAdvisoriesProvider]; renders nothing while loading, on error,
+/// or when there's nothing to say — same boundary as [_SuggestedCaps].
+class _BudgetAdvisories extends ConsumerWidget {
+  const _BudgetAdvisories({required this.currency});
+
+  final Currency currency;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final advisories = ref.watch(budgetAdvisoriesProvider).asData?.value;
+    if (advisories == null || advisories.isEmpty) return const SizedBox.shrink();
+
+    final c = context.colors;
+    final unbudgeted = advisories.unbudgeted;
+    final savings = advisories.savings;
+
+    return Column(
+      children: [
+        if (unbudgeted.isNotEmpty)
+          InsetSection(
+            header: 'No envelope yet',
+            footer: 'Categories you are spending on without a cap.',
+            children: [
+              for (var i = 0; i < unbudgeted.length; i++)
+                ListRow(
+                  title: unbudgeted[i].category,
+                  subtitle:
+                      '${formatCurrency(unbudgeted[i].monthSpend, currency)} this month',
+                  value: formatCurrency(unbudgeted[i].suggestedCap, currency),
+                  valueColor: c.money,
+                  chevron: false,
+                  last: i == unbudgeted.length - 1,
+                ),
+            ],
+          ),
+        if (savings.isNotEmpty)
+          InsetSection(
+            header: 'Room to trim',
+            footer: 'Envelopes with more headroom than the last 3 months used.',
+            children: [
+              for (var i = 0; i < savings.length; i++)
+                ListRow(
+                  title: savings[i].category,
+                  subtitle:
+                      '${formatCurrency(savings[i].monthlyAverage, currency)}/mo'
+                      ' of ${formatCurrency(savings[i].cap, currency)}',
+                  value: formatCurrency(savings[i].suggestedCap, currency),
+                  valueColor: c.move,
+                  chevron: false,
+                  last: i == savings.length - 1,
+                ),
+            ],
           ),
       ],
     );

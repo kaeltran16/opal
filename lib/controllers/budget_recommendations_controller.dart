@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../analysis/spend_alerts.dart';
 import '../models/models.dart';
 import 'providers.dart';
 
@@ -67,10 +68,6 @@ const double _trendBand = 0.10;
 // Confidence from transaction count over the 3-month window (≈3/month = high).
 const int _highConfidenceTxns = 9;
 const int _lowConfidenceTxns = 3;
-
-// Base rounding unit in USD-scale; multiplied by the currency's budgetScale so
-// caps round to 50,000₫ / $50 — clean numbers in either currency.
-const double _roundingBaseUnit = 50;
 
 // Number of completed months the recommendation is based on.
 const int _windowMonths = 3;
@@ -187,7 +184,7 @@ Stream<List<BudgetRecommendation>> budgetRecommendations(Ref ref) async* {
   final now = DateTime.now();
   final windowStart = DateTime(now.year, now.month - _windowMonths);
   final windowEnd = DateTime(now.year, now.month);
-  final roundTo = _roundingBaseUnit * currency.budgetScale;
+  final roundTo = kBudgetRoundingBaseUnit * currency.budgetScale;
 
   await for (final entries
       in entriesRepo.watchEntriesInRange(windowStart, windowEnd)) {

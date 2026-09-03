@@ -46,6 +46,8 @@ class SettingsRepository {
   static const _kReminderTime = 'settings.reminderTimeMinutes';
   static const _kBudgetAlerts = 'settings.budgetAlerts';
   static const _kBudgetAlertDate = 'settings.budgetAlertDate';
+  static const _kVelocityAlertWeek = 'settings.velocityAlertWeek';
+  static const _kSpikeAlertMonth = 'settings.spikeAlertMonth';
   static const _kDisplayName = 'settings.displayName';
   static const _kSyncCadence = 'settings.email.syncCadenceMinutes';
   static const _kImportNotifications = 'settings.email.importNotifications';
@@ -142,6 +144,22 @@ class SettingsRepository {
 
   Future<void> setBudgetAlertDate(String date) =>
       _prefs.setString(_kBudgetAlertDate, date);
+
+  /// Week-start date ('YYYY-MM-DD') of the last spending-pace alert, or null if
+  /// never. The pace compares two 7-day windows, so re-firing inside the same
+  /// week would just restate the same comparison.
+  String? get velocityAlertWeek => _prefs.getString(_kVelocityAlertWeek);
+
+  Future<void> setVelocityAlertWeek(String weekStart) =>
+      _prefs.setString(_kVelocityAlertWeek, weekStart);
+
+  /// Month ('YYYY-MM') of the last category-spike alert, or null if never. The
+  /// spike is a month-over-month comparison, so once a month is the natural
+  /// cadence.
+  String? get spikeAlertMonth => _prefs.getString(_kSpikeAlertMonth);
+
+  Future<void> setSpikeAlertMonth(String month) =>
+      _prefs.setString(_kSpikeAlertMonth, month);
 
   // --- Email sync preferences ---------------------------------------------
 

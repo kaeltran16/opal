@@ -16,6 +16,12 @@ abstract final class NotificationIds {
 
   /// Over-budget alert (one-shot, re-fired at most once per day).
   static const int budgetAlert = 2;
+
+  /// Week-over-week spending-pace alert (at most once per week).
+  static const int spendVelocity = 3;
+
+  /// Month-over-month category-spike alert (at most once per month).
+  static const int categorySpike = 4;
 }
 
 /// Default time-of-day for the daily ritual reminder when the user hasn't

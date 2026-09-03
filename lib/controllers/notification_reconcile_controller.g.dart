@@ -14,8 +14,12 @@ part of 'notification_reconcile_controller.dart';
 /// toggle is the source of truth — a reminder time changed while the app was
 /// closed, or a reschedule that never landed, would drift. So on init: if
 /// `ritualReminders` is on, (re)schedule the daily reminder at the configured
-/// time; if off, cancel it. Budget alerts are event-driven and need no startup
-/// scheduling.
+/// time; if off, cancel it.
+///
+/// Also runs [BudgetAlertController.checkPeriodic]. The over-budget alert stays
+/// event-driven (it fires on the entry that crosses the line), but the pace and
+/// category-spike signals compare whole weeks and months, so they have no
+/// triggering entry — startup is where they get looked at.
 ///
 /// Instantiated once at app start (see `app.dart`), mirroring
 /// [HealthSyncController] / [WidgetSyncController]. Fire-and-forget: a failed
@@ -31,8 +35,12 @@ const notificationReconcileControllerProvider =
 /// toggle is the source of truth — a reminder time changed while the app was
 /// closed, or a reschedule that never landed, would drift. So on init: if
 /// `ritualReminders` is on, (re)schedule the daily reminder at the configured
-/// time; if off, cancel it. Budget alerts are event-driven and need no startup
-/// scheduling.
+/// time; if off, cancel it.
+///
+/// Also runs [BudgetAlertController.checkPeriodic]. The over-budget alert stays
+/// event-driven (it fires on the entry that crosses the line), but the pace and
+/// category-spike signals compare whole weeks and months, so they have no
+/// triggering entry — startup is where they get looked at.
 ///
 /// Instantiated once at app start (see `app.dart`), mirroring
 /// [HealthSyncController] / [WidgetSyncController]. Fire-and-forget: a failed
@@ -45,8 +53,12 @@ final class NotificationReconcileControllerProvider
   /// toggle is the source of truth — a reminder time changed while the app was
   /// closed, or a reschedule that never landed, would drift. So on init: if
   /// `ritualReminders` is on, (re)schedule the daily reminder at the configured
-  /// time; if off, cancel it. Budget alerts are event-driven and need no startup
-  /// scheduling.
+  /// time; if off, cancel it.
+  ///
+  /// Also runs [BudgetAlertController.checkPeriodic]. The over-budget alert stays
+  /// event-driven (it fires on the entry that crosses the line), but the pace and
+  /// category-spike signals compare whole weeks and months, so they have no
+  /// triggering entry — startup is where they get looked at.
   ///
   /// Instantiated once at app start (see `app.dart`), mirroring
   /// [HealthSyncController] / [WidgetSyncController]. Fire-and-forget: a failed
@@ -79,7 +91,7 @@ final class NotificationReconcileControllerProvider
 }
 
 String _$notificationReconcileControllerHash() =>
-    r'16badbcd066f11ac02faef39f53c7f69b5f17982';
+    r'd366b24b7050055ddc2250092d34fe33df169e8a';
 
 /// Brings scheduled notifications in line with persisted toggle state on launch.
 ///
@@ -87,8 +99,12 @@ String _$notificationReconcileControllerHash() =>
 /// toggle is the source of truth — a reminder time changed while the app was
 /// closed, or a reschedule that never landed, would drift. So on init: if
 /// `ritualReminders` is on, (re)schedule the daily reminder at the configured
-/// time; if off, cancel it. Budget alerts are event-driven and need no startup
-/// scheduling.
+/// time; if off, cancel it.
+///
+/// Also runs [BudgetAlertController.checkPeriodic]. The over-budget alert stays
+/// event-driven (it fires on the entry that crosses the line), but the pace and
+/// category-spike signals compare whole weeks and months, so they have no
+/// triggering entry — startup is where they get looked at.
 ///
 /// Instantiated once at app start (see `app.dart`), mirroring
 /// [HealthSyncController] / [WidgetSyncController]. Fire-and-forget: a failed

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../services/pal/pal_service.dart';
@@ -14,7 +15,12 @@ Future<List<PalSuggestion>> palSuggestions(Ref ref, SuggestionSurface surface) a
   final pal = ref.watch(palServiceProvider);
   try {
     return await pal.suggestions(surface);
-  } catch (_) {
+  } catch (e) {
+    // The empty list is the contract, but it is also what a healthy backend
+    // returns when it has nothing to say — so without this a persistently
+    // failing seam is indistinguishable from a quiet one. Debug-only: the
+    // graceful degradation itself is unchanged.
+    debugPrint('palSuggestions(${surface.name}) failed: $e');
     return const [];
   }
 }

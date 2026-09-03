@@ -79,7 +79,7 @@ final class PalSuggestionsProvider
   }
 }
 
-String _$palSuggestionsHash() => r'13f4ccd67930218e118e4a57370ed63123448507';
+String _$palSuggestionsHash() => r'7cf325fbf19e4af56d732d34c6206bfa29655564';
 
 /// Pal-generated quick-pick chips for [surface] (the `/suggestions` seam).
 /// One-shot, family-keyed by surface. An unreachable backend / timeout /

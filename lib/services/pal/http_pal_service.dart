@@ -74,13 +74,18 @@ class HttpPalService implements PalService {
   /// POSTs [path] with [ctx], serving from / storing into [cache] keyed by the
   /// context. A changed (open) period produces a new key and refetches; a stable
   /// (closed) one hits. [kind] namespaces keys across endpoints.
+  ///
+  /// [cacheKey] overrides the context-derived key for endpoints whose context
+  /// is not period-stable — see [_suggestionsCacheKey]. The request still
+  /// carries the full [ctx]; only what counts as "the same request" changes.
   Future<Map<String, dynamic>> _cachedPost(
     String kind,
     String path,
     Map<String, Object?> ctx, {
     Map<String, Object?> extra = const {},
+    String? cacheKey,
   }) async {
-    final key = '$kind:${jsonEncode(ctx)}';
+    final key = '$kind:${cacheKey ?? jsonEncode(ctx)}';
     final hit = await cache.get(key);
     if (hit != null) {
       try {
@@ -418,12 +423,34 @@ class HttpPalService implements PalService {
         ? await context.suggest(false, null)
         : await context.chat();
     final json = await _cachedPost('suggestions:$wire', '/v1/suggestions', ctx,
-        extra: {'surface': wire});
+        extra: {'surface': wire},
+        cacheKey: _suggestionsCacheKey(surface, ctx));
     return ((json['suggestions'] as List?) ?? const [])
         .cast<Map<String, dynamic>>()
         .map(_suggestionFromWire)
         .whereType<PalSuggestion>()
         .toList();
+  }
+
+  /// Coarse cache key for `/v1/suggestions`.
+  ///
+  /// The other cached endpoints (insights, review) key on the whole context
+  /// because theirs is period-stable. This one is not: the chat context carries
+  /// spend-so-far, streak and formatted entry lines, so keying on it misses on
+  /// nearly every open — and the composer is the surface you open *to log
+  /// something*, which changes that context by definition. The chips then never
+  /// arrive before the sheet is dismissed and the static fallback is all you see.
+  ///
+  /// Bucketing on the day, the hour and how much is logged keeps the chips
+  /// responsive to what should change them while making a repeat open instant.
+  String _suggestionsCacheKey(SuggestionSurface surface, Map<String, Object?> ctx) {
+    final now = DateTime.now();
+    final day = '${now.year}-${now.month}-${now.day}';
+    int len(String key) => (ctx[key] as List?)?.length ?? 0;
+    return switch (surface) {
+      SuggestionSurface.composer => '$day:${now.hour}:${len('todayEntries')}',
+      SuggestionSurface.routineGoal => '$day:${len('recentWorkouts')}',
+    };
   }
 
   /// Decodes one wire suggestion. Returns null when the required [label] is
