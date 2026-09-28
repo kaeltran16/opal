@@ -79,6 +79,25 @@ void main() {
     await flushProviderTimers(tester);
   });
 
+  testWidgets('moved-route redirects keep the query string', (tester) async {
+    await bootApp(tester);
+    final router = _router(tester);
+    const cases = {
+      '/rituals?from=widget': '/today/rituals?from=widget',
+      '/rituals/manage?from=widget': '/today/rituals/manage?from=widget',
+      '/sleep?from=siri': '/today/sleep?from=siri',
+      '/mood?from=siri': '/today/mood?from=siri',
+      '/sleep': '/today/sleep',
+    };
+    for (final MapEntry(key: from, value: to) in cases.entries) {
+      router.go(from);
+      await tester.pumpAndSettle();
+      expect(router.routerDelegate.currentConfiguration.uri.toString(), to,
+          reason: 'go($from)');
+    }
+    await flushProviderTimers(tester);
+  });
+
   testWidgets('a moved route opened from another tab shows Today with Back',
       (tester) async {
     await bootApp(tester);

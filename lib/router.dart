@@ -360,26 +360,26 @@ GoRouter createRouter({
         path: AppRoute.rituals.path,
         name: AppRoute.rituals.name,
         redirect: (context, state) => state.uri.path == AppRoute.rituals.path
-            ? _todayChild(AppRoute.todayRituals)
+            ? _todayChild(AppRoute.todayRituals, state)
             : null,
         routes: [
           GoRoute(
             path: AppRoute.manageRituals.path,
             name: AppRoute.manageRituals.name,
-            redirect: (context, state) =>
-                '${_todayChild(AppRoute.todayRituals)}/${AppRoute.todayManageRituals.path}',
+            redirect: (context, state) => _todayChild(AppRoute.todayRituals,
+                state, '/${AppRoute.todayManageRituals.path}'),
           ),
         ],
       ),
       GoRoute(
         path: AppRoute.sleep.path,
         name: AppRoute.sleep.name,
-        redirect: (context, state) => _todayChild(AppRoute.todaySleep),
+        redirect: (context, state) => _todayChild(AppRoute.todaySleep, state),
       ),
       GoRoute(
         path: AppRoute.mood.path,
         name: AppRoute.mood.name,
-        redirect: (context, state) => _todayChild(AppRoute.todayMood),
+        redirect: (context, state) => _todayChild(AppRoute.todayMood, state),
       ),
 
       // --- Modal / focus routes above the shell (full-screen for now) ---
@@ -559,7 +559,11 @@ GoRouter createRouter({
 /// stand-alone use) the app behaves as if onboarding is already done.
 bool _alwaysComplete() => true;
 
-String _todayChild(AppRoute child) => '${AppRoute.today.path}/${child.path}';
+String _todayChild(AppRoute child, GoRouterState state, [String suffix = '']) {
+  final query = state.uri.query;
+  final path = '${AppRoute.today.path}/${child.path}$suffix';
+  return query.isEmpty ? path : '$path?$query';
+}
 
 /// Maps the Recap `?range=` query value to an [InsightRange]; anything other
 /// than `week`/`month` (including absent) opens on Day.
