@@ -53,7 +53,7 @@ final class WeeklyStatsProvider
   }
 }
 
-String _$weeklyStatsHash() => r'aacaeba02be26757ceff1a2e2755bebfbe5f5892';
+String _$weeklyStatsHash() => r'9e416d9394d0f9e3cac1192eaead0c551b6f9caf';
 
 /// Drives the Pal-written weekly narrative: holds the review text with a loading
 /// state, and re-requests it on [regenerate]. Mirrors [MonthlyReviewController]
@@ -90,7 +90,7 @@ final class WeeklyReviewControllerProvider
 }
 
 String _$weeklyReviewControllerHash() =>
-    r'a58e7cc0c002230c1c52e007612d3228ccb3adf6';
+    r'392d07fef69a8584180d01ae341a4b8580836b94';
 
 /// Drives the Pal-written weekly narrative: holds the review text with a loading
 /// state, and re-requests it on [regenerate]. Mirrors [MonthlyReviewController]

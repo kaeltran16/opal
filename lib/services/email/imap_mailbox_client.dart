@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart';
 import 'package:enough_mail/enough_mail.dart';
 
 import 'mailbox_client.dart';
@@ -87,7 +88,7 @@ class ImapMailboxClient implements MailboxClient {
       from: sender?.email ?? '',
       fromName: sender?.personalName ?? '',
       subject: m.decodeSubject() ?? '',
-      date: date ?? DateTime.now().toUtc(),
+      date: date ?? clock.now().toUtc(),
       text: m.decodeTextPlainPart() ?? m.decodeTextHtmlPart() ?? '',
     );
   }

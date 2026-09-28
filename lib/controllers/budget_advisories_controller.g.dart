@@ -68,4 +68,4 @@ final class BudgetAdvisoriesProvider
   }
 }
 
-String _$budgetAdvisoriesHash() => r'00f2bee0b6e32da2a6eec0b5d01277cbdc43cca7';
+String _$budgetAdvisoriesHash() => r'b1704725181184b2225e8ae851bfdb11111c9761';

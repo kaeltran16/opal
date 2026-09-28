@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 // prefixed so the provider function `envelopeForecasts` does not collide with
@@ -17,7 +18,7 @@ Stream<List<fc.EnvelopeForecast>> envelopeForecasts(Ref ref) async* {
   final entriesRepo = ref.watch(entryRepositoryProvider);
   final envelopeRepo = ref.watch(budgetEnvelopeRepositoryProvider);
 
-  final now = DateTime.now();
+  final now = clock.now();
   final start = DateTime(now.year, now.month);
   final end = DateTime(now.year, now.month + 1);
 

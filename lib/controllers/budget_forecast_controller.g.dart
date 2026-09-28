@@ -64,4 +64,4 @@ final class EnvelopeForecastsProvider
   }
 }
 
-String _$envelopeForecastsHash() => r'1db54deea4cd36fcf7c7e138d35190f2a29ae899';
+String _$envelopeForecastsHash() => r'eaaa556ff8c5451dcafdfc2640a463a0523ef25a';

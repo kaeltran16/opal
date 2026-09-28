@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../data/repositories/repositories.dart';
@@ -24,7 +25,7 @@ class SleepSyncController extends _$SleepSyncController {
     try {
       final service = ref.read(healthServiceProvider);
       final repo = ref.read(sleepRepositoryProvider);
-      final now = DateTime.now();
+      final now = clock.now();
       final today = DateTime(now.year, now.month, now.day);
       final from = today.subtract(const Duration(days: _windowDays - 1));
       final to = today.add(const Duration(days: 1));

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:clock/clock.dart';
 import 'package:http/http.dart' as http;
 
 import '../../models/models.dart';
@@ -444,7 +445,7 @@ class HttpPalService implements PalService {
   /// Bucketing on the day, the hour and how much is logged keeps the chips
   /// responsive to what should change them while making a repeat open instant.
   String _suggestionsCacheKey(SuggestionSurface surface, Map<String, Object?> ctx) {
-    final now = DateTime.now();
+    final now = clock.now();
     final day = '${now.year}-${now.month}-${now.day}';
     int len(String key) => (ctx[key] as List?)?.length ?? 0;
     return switch (surface) {

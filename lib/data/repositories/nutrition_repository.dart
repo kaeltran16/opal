@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart';
 import 'package:drift/drift.dart';
 import 'package:uuid/uuid.dart';
 
@@ -14,7 +15,7 @@ class NutritionRepository {
   final Uuid _uuid;
 
   Stream<List<NutritionMeal>> watchMealsForDay([DateTime? day]) {
-    final d = day ?? DateTime.now();
+    final d = day ?? clock.now();
     final start = DateTime(d.year, d.month, d.day);
     return watchMealsInRange(start, start.add(const Duration(days: 1)));
   }

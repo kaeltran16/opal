@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:clock/clock.dart';
 import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -175,7 +176,7 @@ class EmailDashboardController extends _$EmailDashboardController {
     if (!ref.mounted) return;
     final emailEntries =
         entries.where((e) => e.source == EntrySource.email).toList();
-    final now = DateTime.now();
+    final now = clock.now();
     final monthStart = DateTime(now.year, now.month);
     final thisMonth = emailEntries
         .where((e) => !e.timestamp.isBefore(monthStart))
@@ -221,7 +222,7 @@ class EmailDashboardController extends _$EmailDashboardController {
       state = state.copyWith(
         imports: items,
         account: service.account,
-        lastSyncAt: DateTime.now(),
+        lastSyncAt: clock.now(),
       );
       await _refreshCounts();
       await ref.read(hapticsServiceProvider).success(); // sync complete

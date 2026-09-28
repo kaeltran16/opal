@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:clock/clock.dart';
 import 'package:flutter/cupertino.dart' show CupertinoActivityIndicator;
 import 'package:flutter/material.dart' show ScaffoldMessenger, SnackBar;
 import 'package:flutter/widgets.dart';
@@ -48,7 +49,7 @@ class EmailDashboardScreen extends ConsumerWidget {
 
   static String _lastSyncLabel(DateTime? at) {
     if (at == null) return 'Never synced';
-    final mins = DateTime.now().difference(at).inMinutes;
+    final mins = clock.now().difference(at).inMinutes;
     if (mins < 1) return 'Last sync just now';
     return 'Last sync $mins min ago';
   }

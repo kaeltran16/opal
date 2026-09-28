@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:clock/clock.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../models/models.dart';
@@ -132,7 +133,7 @@ class MoodController extends _$MoodController {
     final repo = ref.watch(moodRepositoryProvider);
 
     await for (final today in repo.watchCheckinsForDay()) {
-      final now = DateTime.now();
+      final now = clock.now();
       final todayStart = startOfDay(now);
       // fetch the 7-day window [6 days ago midnight .. tomorrow midnight) so
       // each emission rebuilds the full week strip with up-to-date data.
@@ -152,7 +153,7 @@ class MoodController extends _$MoodController {
     final haptics = ref.read(hapticsServiceProvider);
     await repo.insert(MoodCheckin(
           id: '',
-          timestamp: DateTime.now(),
+          timestamp: clock.now(),
           pleasantness: pleasantness,
           tag: tag,
           source: EntrySource.manual,

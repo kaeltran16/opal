@@ -53,4 +53,4 @@ final class InsightsDataProvider
   }
 }
 
-String _$insightsDataHash() => r'37dc8663d2eb086d842a9ea921ffb14d56b49421';
+String _$insightsDataHash() => r'e663887075ab158124bbec005c0d8b542fffe251';

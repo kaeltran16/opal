@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart';
 import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -83,7 +84,7 @@ class BudgetsData {
   /// day-of-month when now is inside [month], a full month when now is past it,
   /// and the first day when now precedes it.
   int get _elapsedDays {
-    final now = DateTime.now();
+    final now = clock.now();
     final isThisMonth = now.year == month.year && now.month == month.month;
     if (isThisMonth) return now.day;
     final nowMonth = DateTime(now.year, now.month);
@@ -146,7 +147,7 @@ BudgetsData buildBudgetsData(
       EnvelopeSpend(envelope: _uncategorizedEnvelope, spent: uncategorized),
   ];
 
-  final anchor = now ?? DateTime.now();
+  final anchor = now ?? clock.now();
   final month = DateTime(anchor.year, anchor.month);
   final daysInMonth = DateTime(month.year, month.month + 1, 0).day;
   return BudgetsData(
@@ -165,7 +166,7 @@ Stream<BudgetsData> budgetsData(Ref ref) async* {
   // watched (not one-shot) so a daily-budget edit re-emits the monthly target.
   final goals = ref.watch(goalsStreamProvider).asData?.value ?? const Goals();
 
-  final now = DateTime.now();
+  final now = clock.now();
   final start = DateTime(now.year, now.month);
   final end = DateTime(now.year, now.month + 1);
 

@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -34,7 +35,7 @@ class WeeklyPlanScreen extends ConsumerWidget {
   /// model only carries day-of-month, so the month comes from the current
   /// week's Monday (the same anchor the controller uses).
   static String _weekOfLabel() {
-    final monday = startOfWeek(DateTime.now());
+    final monday = startOfWeek(clock.now());
     return 'WEEK OF ${kMonthsShort[monday.month - 1].toUpperCase()} ${monday.day}';
   }
 

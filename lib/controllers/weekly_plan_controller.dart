@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart';
 import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -218,7 +219,7 @@ Stream<WeeklyPlan> weeklyPlanController(Ref ref) async* {
       routines: routines,
       exercisesById: {for (final e in exercises) e.id: e},
       workouts: workouts,
-      now: DateTime.now(),
+      now: clock.now(),
     );
   }
 }

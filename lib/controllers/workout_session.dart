@@ -1,3 +1,5 @@
+import 'package:clock/clock.dart';
+
 import '../models/exercise.dart';
 import '../models/routine.dart';
 import '../models/set_log.dart';
@@ -28,7 +30,7 @@ class WorkoutSession {
           id: workoutId,
           routineId: routine.id,
           name: routine.name,
-          startedAt: startedAt ?? DateTime.now(),
+          startedAt: startedAt ?? clock.now(),
           sets: _seedSets(routine),
         );
 
@@ -173,7 +175,7 @@ class WorkoutSession {
   /// Finalizes the session: stamps [Workout.endedAt] and returns the completed
   /// workout. Computed `totalVolumeKg`/`prCount` cover the done sets.
   Workout finish({DateTime? endedAt}) {
-    _workout = _workout.copyWith(endedAt: endedAt ?? DateTime.now());
+    _workout = _workout.copyWith(endedAt: endedAt ?? clock.now());
     return _workout;
   }
 

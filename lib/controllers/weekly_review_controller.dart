@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:clock/clock.dart';
 import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -129,7 +130,7 @@ WeeklyStats buildWeeklyStats(
   List<RitualRoutine> routines = const [],
   DateTime? now,
 }) {
-  final weekStart = weekStartFor(now ?? DateTime.now());
+  final weekStart = weekStartFor(now ?? clock.now());
   var spent = 0.0;
   var moveKcal = 0;
   for (final e in entries) {
@@ -162,7 +163,7 @@ Stream<WeeklyStats> weeklyStats(Ref ref) async* {
   final ritualRepo = ref.watch(ritualRepositoryProvider);
   final goals = ref.watch(goalsStreamProvider).asData?.value ?? const Goals();
 
-  final now = DateTime.now();
+  final now = clock.now();
   final start = weekStartFor(now);
   final end = start.add(const Duration(days: 7));
 
@@ -177,7 +178,7 @@ Stream<WeeklyStats> weeklyStats(Ref ref) async* {
 /// — reuses the [PalService.review] seam, passing the current week's start.
 @riverpod
 class WeeklyReviewController extends _$WeeklyReviewController {
-  DateTime get _weekStart => weekStartFor(DateTime.now());
+  DateTime get _weekStart => weekStartFor(clock.now());
 
   @override
   Future<String> build() {

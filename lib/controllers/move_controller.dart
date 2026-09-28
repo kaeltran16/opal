@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:clock/clock.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../models/models.dart';
@@ -159,7 +160,7 @@ Stream<MoveState> moveState(Ref ref) async* {
         if (r.tag == RoutineTag.cardio) r.id,
     };
 
-    final now = DateTime.now();
+    final now = clock.now();
     final recent = workouts
         .take(3)
         .map((w) => RecentSession(

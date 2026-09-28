@@ -65,4 +65,4 @@ final class SpendPatternsProvider
   }
 }
 
-String _$spendPatternsHash() => r'11da05766ca6358d45c23d9ba0471f22a495b4dc';
+String _$spendPatternsHash() => r'6bfc13821bc9e70e85ddeb82855160f9f693e5a2';

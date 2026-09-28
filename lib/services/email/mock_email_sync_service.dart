@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:clock/clock.dart';
+
 import '../../models/models.dart';
 import 'email_sync_service.dart';
 
@@ -42,7 +44,7 @@ class MockEmailSyncService implements EmailSyncService {
     // the service owns the keychain reference; the screen no longer hardcodes it
     _account = account.copyWith(
       appPasswordRef: 'mock-keychain-ref',
-      lastSyncedAt: DateTime.now(),
+      lastSyncedAt: clock.now(),
     );
   }
 
@@ -60,7 +62,7 @@ class MockEmailSyncService implements EmailSyncService {
     _controller.add(SyncStatus.categorizing);
     await Future<void>.delayed(stageDelay);
 
-    final now = DateTime.now();
+    final now = clock.now();
     final items = <EmailImportItem>[
       EmailImportItem(
         id: 'mock-email-1',

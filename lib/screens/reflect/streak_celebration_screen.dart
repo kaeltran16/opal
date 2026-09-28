@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:clock/clock.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -75,7 +76,7 @@ class StreakCelebrationScreen extends ConsumerWidget {
       sinceLine = 'Move on any day to start a streak.';
     } else {
       // unlocked implies streak >= 1, so streakStartDate is never null here.
-      final start = streakStartDate(streak, DateTime.now())!;
+      final start = streakStartDate(streak, clock.now())!;
       sinceLine = "You haven't missed a day since "
           '${kMonthsShort[start.month - 1]} ${start.day}.\n'
           'Your current streak.';

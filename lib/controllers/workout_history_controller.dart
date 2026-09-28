@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:clock/clock.dart';
 import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -433,6 +434,6 @@ Stream<WorkoutHistoryState> workoutHistory(
   final routines = await ref.watch(workoutRoutinesStreamProvider.future);
 
   await for (final all in repo.watchWorkouts()) {
-    yield buildWorkoutHistory(range, all, catalog, routines, DateTime.now());
+    yield buildWorkoutHistory(range, all, catalog, routines, clock.now());
   }
 }

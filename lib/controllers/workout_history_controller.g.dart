@@ -73,7 +73,7 @@ final class WorkoutHistoryProvider
   }
 }
 
-String _$workoutHistoryHash() => r'c80678beed7ee963ffd61aced5298edddb80608b';
+String _$workoutHistoryHash() => r'a6814dda6b6450ec53d70cfbeaa139b758f2730c';
 
 /// Streams the [WorkoutHistoryState] for [range]: re-emits when the workout
 /// store changes. The catalog and routines are awaited once via `.future`.

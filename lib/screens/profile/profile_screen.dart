@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -72,7 +73,7 @@ class ProfileScreen extends ConsumerWidget {
   /// entry date. Returns an honest placeholder when there's no entry history.
   static String _tenure(DateTime? memberSince, {DateTime? now}) {
     if (memberSince == null) return 'Just getting started';
-    final today = now ?? DateTime.now();
+    final today = now ?? clock.now();
     final month = kMonths[memberSince.month - 1];
     final start = startOfDay(memberSince);
     final end = startOfDay(today);

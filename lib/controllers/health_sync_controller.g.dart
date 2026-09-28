@@ -60,7 +60,7 @@ final class HealthSyncControllerProvider
 }
 
 String _$healthSyncControllerHash() =>
-    r'6f181816c68a694e6eee461b16e3f9df5c0f67e8';
+    r'b010c25023ee4e59d009c15041966fabcbd5ada1';
 
 /// Pulls today's active energy from the server and upserts ONE health-sourced
 /// move [Entry] so it feeds the move ring.

@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -626,7 +627,7 @@ class _PrRow extends StatelessWidget {
                     ],
                     _dot(c),
                     Flexible(
-                      child: Text(relativeDateLabel(pr.achievedAt, DateTime.now()),
+                      child: Text(relativeDateLabel(pr.achievedAt, clock.now()),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: _meta(c)),
@@ -735,7 +736,7 @@ class _SessionCard extends StatelessWidget {
                                     padding: const EdgeInsets.only(top: 1),
                                     child: Text(
                                         relativeDateLabel(
-                                            row.startedAt, DateTime.now()),
+                                            row.startedAt, clock.now()),
                                         style: AppType.caption2.copyWith(
                                             color: c.ink3, letterSpacing: -0.08)),
                                   ),

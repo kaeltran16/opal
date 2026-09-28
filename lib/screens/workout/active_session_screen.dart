@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -258,7 +259,7 @@ class _Header extends StatelessWidget {
   }
 
   static String _elapsed(DateTime startedAt) {
-    final d = DateTime.now().difference(startedAt);
+    final d = clock.now().difference(startedAt);
     final m = d.inMinutes.remainder(60).toString().padLeft(2, '0');
     final s = d.inSeconds.remainder(60).toString().padLeft(2, '0');
     final h = d.inHours;

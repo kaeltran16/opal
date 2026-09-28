@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 // prefixed so the provider function `spendPatterns` does not collide with the
@@ -17,7 +18,7 @@ part 'spend_patterns_controller.g.dart';
 Stream<sp.SpendPatterns> spendPatterns(Ref ref) async* {
   final entriesRepo = ref.watch(entryRepositoryProvider);
 
-  final now = DateTime.now();
+  final now = clock.now();
   final today = DateTime(now.year, now.month, now.day);
   final start = today.subtract(const Duration(days: sp.kSpendWindowDays - 1));
   final end = today.add(const Duration(days: 1));

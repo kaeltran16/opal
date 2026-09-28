@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:clock/clock.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../models/models.dart';
@@ -168,7 +169,7 @@ Stream<TodayState> todayState(Ref ref) async* {
   final goals = ref.watch(goalsStreamProvider).asData?.value ?? const Goals();
   final mode = ref.watch(timelineModeControllerProvider);
 
-  final now = DateTime.now();
+  final now = clock.now();
   final today = DateTime(now.year, now.month, now.day);
   // Week runs Monday → end of today (half-open upper bound = tomorrow 00:00).
   final weekStart = startOfWeek(now);

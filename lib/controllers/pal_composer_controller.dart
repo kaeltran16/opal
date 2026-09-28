@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../models/models.dart';
@@ -79,7 +80,7 @@ class PalComposerController extends _$PalComposerController {
     final userMessage = PalMessage(
       role: PalRole.user,
       text: trimmedSeed,
-      timestamp: DateTime.now(),
+      timestamp: clock.now(),
     );
     Future.microtask(() => _reply(const [], trimmedSeed));
     return PalComposerState(
@@ -101,7 +102,7 @@ class PalComposerController extends _$PalComposerController {
     final userMessage = PalMessage(
       role: PalRole.user,
       text: trimmed,
-      timestamp: DateTime.now(),
+      timestamp: clock.now(),
     );
     state = state.copyWith(
       messages: [...history, userMessage],
@@ -128,7 +129,7 @@ class PalComposerController extends _$PalComposerController {
         PalMessage(
           role: PalRole.user,
           text: trimmed,
-          timestamp: DateTime.now(),
+          timestamp: clock.now(),
         ),
       ],
       isLoading: true,
@@ -192,7 +193,7 @@ class PalComposerController extends _$PalComposerController {
   /// sheet's `_add` (negative money amounts, minutes as duration).
   Entry _entryFor(StarterEntry payload) => Entry(
         id: '',
-        timestamp: DateTime.now(),
+        timestamp: clock.now(),
         type: payload.type,
         title: payload.title,
         amount: payload.amount,
@@ -220,7 +221,7 @@ class PalComposerController extends _$PalComposerController {
         PalMessage(
           role: PalRole.assistant,
           text: text,
-          timestamp: DateTime.now(),
+          timestamp: clock.now(),
           actions: actions,
         ),
       ],

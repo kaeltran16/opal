@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:clock/clock.dart';
 import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -167,7 +168,7 @@ RecapData buildRecapData(
   double? monthlyBudget,
   DateTime? now,
 }) {
-  final n = now ?? DateTime.now();
+  final n = now ?? clock.now();
   final days = _periodDays(range, n);
   final periodStart = _periodStart(range, n);
   // single budget basis for every range: dailyBudget * days (month =
@@ -207,7 +208,7 @@ Stream<RecapData> recapData(Ref ref, InsightRange range) async* {
   final ritualRepo = ref.watch(ritualRepositoryProvider);
   final goals = ref.watch(goalsStreamProvider).asData?.value ?? const Goals();
 
-  final now = DateTime.now();
+  final now = clock.now();
   final start = _periodStart(range, now);
   final end = switch (range) {
     InsightRange.day => start.add(const Duration(days: 1)),

@@ -79,7 +79,7 @@ final class WorkoutDetailProvider
   }
 }
 
-String _$workoutDetailHash() => r'2875cb6720a518b2ab6f671c4bca0cbe38859af6';
+String _$workoutDetailHash() => r'763697c766209042ef1c176e0a5da962024c6369';
 
 /// Streams the [WorkoutDetailState] for [workoutId]: the session aggregate, its
 /// per-exercise set groups (names resolved via the catalog), and the trailing

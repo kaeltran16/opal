@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:clock/clock.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'http_pal_service.dart';
@@ -35,14 +36,14 @@ class PrefsPalCache extends PalResponseCache {
   Future<void> put(String key, String value) async {
     await _prefs.setString(
       '$_prefix$key',
-      jsonEncode({'v': value, 't': DateTime.now().millisecondsSinceEpoch}),
+      jsonEncode({'v': value, 't': clock.now().millisecondsSinceEpoch}),
     );
     await _evictStale();
   }
 
   // >= so a zero ttl means "don't cache" and an entry exactly at the ttl is stale.
   bool _isExpired(int storedAtMs) =>
-      DateTime.now().millisecondsSinceEpoch - storedAtMs >= ttl.inMilliseconds;
+      clock.now().millisecondsSinceEpoch - storedAtMs >= ttl.inMilliseconds;
 
   ({String v, int t})? _decode(String raw) {
     try {

@@ -39,7 +39,7 @@ final class SleepControllerProvider
   SleepController create() => SleepController();
 }
 
-String _$sleepControllerHash() => r'3b8bc120b2c43bde202f9fc7f62697aa367a3fe9';
+String _$sleepControllerHash() => r'5db09d47737ce17e3368191d674a86b165ed9723';
 
 /// Streams the Sleep view model. Read-only; sleep nights are written only by
 /// the health sync. Mirrors [NutritionController]'s stream-build pattern.

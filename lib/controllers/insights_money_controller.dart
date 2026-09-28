@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart';
 import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -127,7 +128,7 @@ InsightsData buildInsightsData(
   List<BudgetEnvelope> envelopes, {
   DateTime? now,
 }) {
-  final anchor = now ?? DateTime.now();
+  final anchor = now ?? clock.now();
 
   // --- 6-month trend ---------------------------------------------------------
   // The six calendar months ending at the anchor's month, oldest-first.
@@ -218,7 +219,7 @@ Stream<InsightsData> insightsData(Ref ref) async* {
   final entriesRepo = ref.watch(entryRepositoryProvider);
   final envelopeRepo = ref.watch(budgetEnvelopeRepositoryProvider);
 
-  final now = DateTime.now();
+  final now = clock.now();
   final start = DateTime(now.year, now.month - 5);
   final end = DateTime(now.year, now.month + 1);
 

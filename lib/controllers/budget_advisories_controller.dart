@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart';
 import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -43,7 +44,7 @@ Stream<BudgetAdvisories> budgetAdvisories(Ref ref) async* {
   final envelopeRepo = ref.watch(budgetEnvelopeRepositoryProvider);
   final currency = ref.watch(appSettingsControllerProvider).currency;
 
-  final now = DateTime.now();
+  final now = clock.now();
   final windowStart = DateTime(now.year, now.month - kSavingsWindowMonths);
   final windowEnd = DateTime(now.year, now.month + 1);
   final roundTo = kBudgetRoundingBaseUnit * currency.budgetScale;

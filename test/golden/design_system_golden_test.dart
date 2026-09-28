@@ -9,158 +9,66 @@ import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:opal/analysis/spend_habits.dart';
-import 'package:opal/app.dart';
 import 'package:opal/controllers/providers.dart';
 import 'package:opal/controllers/spend_habits_controller.dart';
 import 'package:opal/data/db/database.dart';
 import 'package:opal/data/seed/seeder.dart';
 import 'package:opal/screens/entry/new_entry_sheet.dart';
-import 'package:opal/services/pal/mock_pal_service.dart';
 import 'package:opal/theme/app_colors.dart';
-import 'package:opal/widgets/loop_tab_bar.dart';
 
-import '../support/flush_provider_timers.dart';
+import '../support/golden_harness.dart';
 
-/// Task 7 — PRE-migration golden baseline for five key screens.
+/// Golden baseline: one capture per main screen per theme.
 ///
-/// Local visual-verification harness only (not wired into CI). Each test pins a
-/// fixed surface so the captured PNGs are stable, boots the seeded app exactly
-/// like `widget_test.dart`, navigates to the target screen, and captures one
-/// golden. Re-running without `--update-goldens` must match these captures.
+/// Local visual-verification harness only (machine-local Ahem rendering, not
+/// wired into CI). Every test runs under the harness's fixed clock and boots
+/// the seeded app, so re-running without `--update-goldens` must match.
 void main() {
-  // Golden tests render with the Ahem test font, whose glyphs are taller than
-  // the real SF font the layouts were tuned for, so a few fixed-height tiles
-  // (e.g. SummaryTile) report a cosmetic RenderFlex overflow that would
-  // otherwise fail the test. These are debug-only layout warnings, not real
-  // crashes; swallow just those so the baseline can still be captured. (Per the
-  // task, the baseline only needs to be self-consistent on this machine.)
-  //
-  // Must be installed from inside the test body: the test binding resets
-  // FlutterError.onError when each test starts, so a setUp override is undone
-  // before the first pump.
-  void ignoreOverflowErrors() {
-    final inner = FlutterError.onError;
-    FlutterError.onError = (details) {
-      if (details.exception.toString().contains('A RenderFlex overflowed')) {
-        return;
-      }
-      inner?.call(details);
-    };
-  }
+  goldenTest('today', (tester, dark) async {
+    await bootApp(tester, dark: dark);
+    // a stray DateTime.now() would show today's real date here instead of
+    // silently drifting the capture.
+    expect(
+      find.textContaining(RegExp('september 28', caseSensitive: false)),
+      findsWidgets,
+    );
+  });
 
-  // Pins the test surface so golden geometry is deterministic.
-  void pinSurface(WidgetTester tester) {
-    tester.view.physicalSize = const Size(390, 844);
-    tester.view.devicePixelRatio = 1.0;
-    addTearDown(tester.view.reset);
-  }
-
-  /// Boots the full seeded app (onboardingComplete=true) and settles the first
-  /// frame, mirroring `widget_test.dart`.
-  Future<void> bootApp(WidgetTester tester, {MockPalService? palService}) async {
-    ignoreOverflowErrors();
-    SharedPreferences.setMockInitialValues({
-      'settings.onboardingComplete': true,
+  // shell branches and pushed full-screen routes: go() lands on them directly.
+  const goScreens = {
+    'move': '/move',
+    'nutrition': '/nutrition',
+    'rituals': '/rituals',
+    'sleep': '/sleep',
+    'mood': '/mood',
+    'profile': '/you',
+    'spending_detail': '/today/spending',
+  };
+  for (final MapEntry(key: name, value: path) in goScreens.entries) {
+    goldenTest(name, (tester, dark) async {
+      await bootApp(tester, dark: dark);
+      appRouter(tester).go(path);
+      await tester.pumpAndSettle();
     });
-    final prefs = await SharedPreferences.getInstance();
-    final db = LoopDatabase.forTesting(NativeDatabase.memory());
-    await Seeder(db).seedIfNeeded();
-    addTearDown(db.close);
-
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          sharedPreferencesProvider.overrideWithValue(prefs),
-          loopDatabaseProvider.overrideWithValue(db),
-          if (palService != null)
-            palServiceProvider.overrideWithValue(palService),
-        ],
-        child: const LoopApp(),
-      ),
-    );
-    await tester.pumpAndSettle();
   }
 
-  testWidgets('golden: today', (tester) async {
-    pinSurface(tester);
-    await bootApp(tester);
+  // non-opaque overlays: push() keeps Today underneath, as the app shows them.
+  const pushScreens = {
+    'pal': '/pal',
+    'pal_composer': '/pal-composer',
+  };
+  for (final MapEntry(key: name, value: path) in pushScreens.entries) {
+    goldenTest(name, (tester, dark) async {
+      await bootApp(tester, dark: dark);
+      appRouter(tester).push(path);
+      await tester.pumpAndSettle();
+    });
+  }
 
-    await expectLater(
-      find.byType(MaterialApp),
-      matchesGoldenFile('goldens/today.png'),
-    );
-
-    await flushProviderTimers(tester);
-  });
-
-  testWidgets('golden: move', (tester) async {
-    pinSurface(tester);
-    // The Start CTA watches the Pal-pick seam; a zero-latency mock resolves it
-    // before capture and leaves no pending timer at teardown.
-    await bootApp(tester, palService: MockPalService(latency: Duration.zero));
-
-    // The Move tab's nav label is "Workout"; scope the finder to the tab bar so
-    // it doesn't collide with the Today summary tile's "Workout" text.
-    await tester.tap(find.descendant(
-      of: find.byType(LoopTabBar),
-      matching: find.text('Workout'),
-    ));
-    await tester.pumpAndSettle();
-
-    await expectLater(
-      find.byType(MaterialApp),
-      matchesGoldenFile('goldens/move.png'),
-    );
-
-    await flushProviderTimers(tester);
-  });
-
-  testWidgets('golden: rituals', (tester) async {
-    pinSurface(tester);
-    await bootApp(tester);
-
-    // Routines is no longer a top-level tab — it's reached from the More tab's
-    // menu. Open More, then tap the Routines row.
-    await tester.tap(find.descendant(
-      of: find.byType(LoopTabBar),
-      matching: find.text('More'),
-    ));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Routines'));
-    await tester.pumpAndSettle();
-
-    await expectLater(
-      find.byType(MaterialApp),
-      matchesGoldenFile('goldens/rituals.png'),
-    );
-
-    await flushProviderTimers(tester);
-  });
-
-  testWidgets('golden: profile', (tester) async {
-    pinSurface(tester);
-    // Profile watches the Pal agenda seam; a zero-latency mock keeps the badge
-    // deterministic and leaves no pending timer at capture time.
-    await bootApp(tester, palService: MockPalService(latency: Duration.zero));
-
-    // You is no longer a tab; it's pushed from the Today-header avatar
-    // (semanticLabel 'You').
-    await tester.tap(find.bySemanticsLabel('You'));
-    await tester.pumpAndSettle();
-
-    await expectLater(
-      find.byType(MaterialApp),
-      matchesGoldenFile('goldens/profile.png'),
-    );
-
-    await flushProviderTimers(tester);
-  });
-
-  // The in-app FAB now opens the Pal composer (not the entry sheet), so the
-  // New Entry sheet is reached the same way `new_entry_test.dart` does: a
+  // The in-app FAB opens the Pal composer (not the entry sheet), so the New
+  // Entry sheet is reached the same way `new_entry_test.dart` does: a
   // self-contained router that navigates straight to the sheet route.
-  testWidgets('golden: new_entry', (tester) async {
-    pinSurface(tester);
+  goldenTest('new_entry', (tester, dark) async {
     ignoreOverflowErrors();
 
     final db = LoopDatabase.forTesting(NativeDatabase.memory());
@@ -191,8 +99,7 @@ void main() {
           loopDatabaseProvider.overrideWithValue(db),
           sharedPreferencesProvider.overrideWithValue(prefs),
           // Fixed habit picks: the real provider mines seeded entries against
-          // DateTime.now(), so the golden would otherwise shift with the
-          // daypart the suite happens to run in.
+          // the current daypart, so the golden would otherwise depend on it.
           spendHabitsProvider.overrideWith(
             (ref) => Stream.value(const [
               HabitPick(
@@ -206,9 +113,13 @@ void main() {
         ],
         child: MaterialApp.router(
           debugShowCheckedModeBanner: false,
-          theme: ThemeData.light().copyWith(
-            extensions: [AppColors.light(AppAccent.blue)],
-          ),
+          theme: dark
+              ? ThemeData.dark().copyWith(
+                  extensions: [AppColors.dark(AppAccent.blue)],
+                )
+              : ThemeData.light().copyWith(
+                  extensions: [AppColors.light(AppAccent.blue)],
+                ),
           routerConfig: router,
         ),
       ),
@@ -217,12 +128,5 @@ void main() {
 
     router.go('/host/new');
     await tester.pumpAndSettle();
-
-    await expectLater(
-      find.byType(MaterialApp),
-      matchesGoldenFile('goldens/new_entry.png'),
-    );
-
-    await flushProviderTimers(tester);
   });
 }

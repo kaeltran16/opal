@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:clock/clock.dart';
 import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -38,7 +39,7 @@ class StartWorkoutState {
   int? daysSinceLastDone(String routineId) {
     final at = lastDone[routineId];
     if (at == null) return null;
-    final now = DateTime.now();
+    final now = clock.now();
     final today = DateTime(now.year, now.month, now.day);
     final then = DateTime(at.year, at.month, at.day);
     return today.difference(then).inDays;

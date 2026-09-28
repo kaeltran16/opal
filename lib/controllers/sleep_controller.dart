@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../models/models.dart';
@@ -144,7 +145,7 @@ class SleepController extends _$SleepController {
   @override
   Stream<SleepState> build() async* {
     final repo = ref.watch(sleepRepositoryProvider);
-    final now = DateTime.now();
+    final now = clock.now();
     // 30-day window: from midnight 30 days ago to tomorrow midnight so today's
     // nights are included regardless of the exact time build() is called.
     final windowStart = startOfDay(now).subtract(const Duration(days: 30));

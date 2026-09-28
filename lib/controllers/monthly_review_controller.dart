@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:clock/clock.dart';
 import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -245,7 +246,7 @@ Stream<MonthlyStats> monthlyStats(Ref ref) async* {
   final ritualRepo = ref.watch(ritualRepositoryProvider);
   final currency = ref.watch(appSettingsControllerProvider).currency;
 
-  final now = DateTime.now();
+  final now = clock.now();
   final start = DateTime(now.year, now.month);
   final end = DateTime(now.year, now.month + 1);
   final prevStart = DateTime(now.year, now.month - 1);
@@ -277,7 +278,7 @@ class MonthlyReviewController extends _$MonthlyReviewController {
   @override
   Future<String> build() {
     final pal = ref.watch(palServiceProvider);
-    final now = DateTime.now();
+    final now = clock.now();
     return pal.review(DateTime(now.year, now.month), ReviewRange.month);
   }
 
@@ -285,7 +286,7 @@ class MonthlyReviewController extends _$MonthlyReviewController {
   /// state while the new text is fetched (so the card can spin).
   Future<void> regenerate() async {
     final pal = ref.read(palServiceProvider);
-    final now = DateTime.now();
+    final now = clock.now();
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(
       () => pal.review(DateTime(now.year, now.month), ReviewRange.month),

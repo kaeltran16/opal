@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart';
 import 'package:flutter/widgets.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -239,7 +240,7 @@ DetailData buildDetailData(
   // below keeps full history. Without scoping, the fold summed every day — e.g.
   // the move tracker showed ~2 weeks of active energy against the daily kcal
   // goal (3012 / 500), reading as 100% off a monthly number on a daily label.
-  final n = now ?? DateTime.now();
+  final n = now ?? clock.now();
   bool isToday(DateTime t) =>
       t.year == n.year && t.month == n.month && t.day == n.day;
   final todayIncluded = included.where((e) => isToday(e.timestamp)).toList();

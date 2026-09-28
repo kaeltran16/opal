@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart';
 import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -115,7 +116,7 @@ List<BudgetRecommendation> buildBudgetRecommendations(
   required double roundTo,
   DateTime? now,
 }) {
-  final anchor = now ?? DateTime.now();
+  final anchor = now ?? clock.now();
   final currentMonthOrdinal = anchor.year * 12 + anchor.month;
 
   final capByCategory = <String, double>{
@@ -181,7 +182,7 @@ Stream<List<BudgetRecommendation>> budgetRecommendations(Ref ref) async* {
   final envelopeRepo = ref.watch(budgetEnvelopeRepositoryProvider);
   final currency = ref.watch(appSettingsControllerProvider).currency;
 
-  final now = DateTime.now();
+  final now = clock.now();
   final windowStart = DateTime(now.year, now.month - _windowMonths);
   final windowEnd = DateTime(now.year, now.month);
   final roundTo = kBudgetRoundingBaseUnit * currency.budgetScale;

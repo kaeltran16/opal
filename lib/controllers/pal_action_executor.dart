@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/models.dart';
@@ -66,11 +67,11 @@ Future<AppliedActions> applyPalActions(Ref ref, List<PalAction> actions) async {
               name: action.name, cal: action.cal, confidence: action.confidence);
           final slot = (action.slot != null && action.slot!.trim().isNotEmpty)
               ? action.slot!.trim()
-              : NutritionController.slotForHour(DateTime.now().hour);
+              : NutritionController.slotForHour(clock.now().hour);
           mealIds.add(await ref.read(nutritionRepositoryProvider).insert(
                 NutritionMeal(
                   id: '',
-                  timestamp: DateTime.now(),
+                  timestamp: clock.now(),
                   slot: slot,
                   name: action.name,
                   source: NutritionSource.manual,
@@ -109,7 +110,7 @@ Future<AppliedActions> applyPalActions(Ref ref, List<PalAction> actions) async {
 
 Entry _entryFor(LogEntryAction a) => Entry(
       id: '',
-      timestamp: DateTime.now(),
+      timestamp: clock.now(),
       type: a.type,
       title: a.title,
       amount: a.type == EntryType.money ? a.amount : null,

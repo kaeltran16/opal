@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:clock/clock.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -112,7 +113,7 @@ class NativeEmailSyncService implements EmailSyncService {
     _controller.add(SyncStatus.scanning);
     try {
       final since =
-          account.lastSyncedAt ?? DateTime.now().subtract(_defaultWindow);
+          account.lastSyncedAt ?? clock.now().subtract(_defaultWindow);
       final emails = await mailbox.fetchSince(
         _creds(account, appPassword),
         since,
@@ -127,7 +128,7 @@ class NativeEmailSyncService implements EmailSyncService {
       await Future<void>.delayed(stageDelay);
       final items = await _extractAll(candidates);
 
-      final synced = account.copyWith(lastSyncedAt: DateTime.now());
+      final synced = account.copyWith(lastSyncedAt: clock.now());
       _account = synced;
       await prefs.setString(_accountKey, jsonEncode(synced.toJson()));
 

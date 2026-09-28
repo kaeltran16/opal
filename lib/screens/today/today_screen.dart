@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -60,7 +61,7 @@ class _TodayBody extends ConsumerWidget {
   final TodayState today;
 
   String get _dateSubtitle {
-    final now = DateTime.now();
+    final now = clock.now();
     return '${kWeekdays[now.weekday - 1]}, ${kMonths[now.month - 1]} ${now.day}';
   }
 

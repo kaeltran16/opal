@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -321,7 +322,7 @@ class _NoteCard extends ConsumerWidget {
 /// Compact relative time: "2m ago" / "2h ago" / "Yesterday" / weekday within a
 /// week / "Apr 18" beyond that.
 String _relativeTime(DateTime when) {
-  final now = DateTime.now();
+  final now = clock.now();
   final diff = now.difference(when);
 
   if (diff.inMinutes < 1) return 'now';

@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -344,7 +345,7 @@ class _NewEntrySheetState extends ConsumerState<NewEntrySheet> {
     setState(() => _saving = true);
 
     final repo = ref.read(entryRepositoryProvider);
-    final now = DateTime.now();
+    final now = clock.now();
     final title = _titleCtrl.text.trim();
     final category = _categoryCtrl.text.trim();
     final note = _noteCtrl.text.trim();

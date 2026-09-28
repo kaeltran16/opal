@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -47,10 +48,10 @@ class EveningCloseOutScreen extends ConsumerWidget {
     final async = ref.watch(ritualsControllerProvider);
     final state = async.value;
 
-    final now = DateTime.now();
-    final clock =
+    final now = clock.now();
+    final time =
         '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
-    final dayLabel = '$clock · ${kWeekdays[now.weekday - 1]}';
+    final dayLabel = '$time · ${kWeekdays[now.weekday - 1]}';
 
     // Drive the checklist from the Evening wind-down routine only.
     RitualRoutine? evening;

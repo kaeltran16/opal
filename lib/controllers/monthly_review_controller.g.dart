@@ -56,7 +56,7 @@ final class MonthlyStatsProvider
   }
 }
 
-String _$monthlyStatsHash() => r'a63e67ed4feafd558bcf639b5d2baff3f26c8dfc';
+String _$monthlyStatsHash() => r'1c56432f13687afa50b858688d50d0e6c83d09fc';
 
 /// Drives the narrative card: holds the Pal-written review text with a loading
 /// state, and re-requests it on [regenerate]. The narrative is the only async,
@@ -93,7 +93,7 @@ final class MonthlyReviewControllerProvider
 }
 
 String _$monthlyReviewControllerHash() =>
-    r'41799f609cba17275ae28f70ccd3e5073d0ca098';
+    r'89bcf8a7ccf07def114f223eb77b36cdde34f2f6';
 
 /// Drives the narrative card: holds the Pal-written review text with a loading
 /// state, and re-requests it on [regenerate]. The narrative is the only async,

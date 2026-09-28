@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../services/pal/pal_service.dart';
@@ -33,7 +34,7 @@ Future<PalInsights?> insights(Ref ref, InsightRange range) async {
   final repo = ref.watch(entryRepositoryProvider);
   final pal = ref.watch(palServiceProvider);
 
-  final now = DateTime.now();
+  final now = clock.now();
   final today = DateTime(now.year, now.month, now.day);
   final (DateTime start, DateTime end) = switch (range) {
     InsightRange.day => (today, today.add(const Duration(days: 1))),

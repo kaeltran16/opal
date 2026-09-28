@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:clock/clock.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../models/models.dart';
@@ -136,7 +137,7 @@ class RitualsController extends _$RitualsController {
     await ref.read(entryRepositoryProvider).insert(
           Entry(
             id: '',
-            timestamp: DateTime.now(),
+            timestamp: clock.now(),
             type: EntryType.rituals,
             title: step.title,
             detail: routine.name,

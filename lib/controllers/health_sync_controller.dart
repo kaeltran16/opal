@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../data/repositories/repositories.dart';
@@ -26,7 +27,7 @@ class HealthSyncController extends _$HealthSyncController {
   Future<void> _sync(HealthService service, EntryRepository entries) async {
     // best-effort: a failed health pull must not crash startup.
     try {
-      final now = DateTime.now();
+      final now = clock.now();
       final today = DateTime(now.year, now.month, now.day);
       final day = await service.fetchDay(today);
       if (day.activeEnergyKcal == 0) return; // no data yet

@@ -89,7 +89,7 @@ final class InsightsProvider
   }
 }
 
-String _$insightsHash() => r'2b50316a9d092d7e3189c8a6ecb5ebeb488f7ebc';
+String _$insightsHash() => r'b9fe001e92a0f6c21e7af3442edc19a9c2e06ac3';
 
 /// Structured Pal insights for a [range], or null when there isn't enough data
 /// (or Pal is unreachable) — in which case the surfaces render an empty state.

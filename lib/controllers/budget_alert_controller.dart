@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../analysis/spend_alerts.dart';
@@ -32,7 +33,7 @@ class BudgetAlertController extends _$BudgetAlertController {
     final settings = ref.read(settingsRepositoryProvider);
     if (!settings.budgetAlerts) return;
 
-    final now = DateTime.now();
+    final now = clock.now();
     final today = _formatDate(now);
     if (settings.budgetAlertDate == today) return; // already alerted today
 
@@ -86,7 +87,7 @@ class BudgetAlertController extends _$BudgetAlertController {
     final settings = ref.read(settingsRepositoryProvider);
     if (!settings.budgetAlerts) return;
 
-    final now = DateTime.now();
+    final now = clock.now();
     // Start-of-last-month is always at least 28 days back, so this window
     // covers the 14 days velocity needs and both months a spike compares.
     final entries = await ref

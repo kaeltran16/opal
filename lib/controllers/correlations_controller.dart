@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 // prefixed so the provider function `surfacedCorrelations` does not collide
@@ -18,7 +19,7 @@ Future<List<corr.Correlation>> surfacedCorrelations(Ref ref) async {
   final sleepRepo = ref.watch(sleepRepositoryProvider);
   final moodRepo = ref.watch(moodRepositoryProvider);
 
-  final now = DateTime.now();
+  final now = clock.now();
   final today = DateTime(now.year, now.month, now.day);
   final start =
       today.subtract(const Duration(days: corr.kCorrelationWindowDays - 1));

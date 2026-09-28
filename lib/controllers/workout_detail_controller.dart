@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:clock/clock.dart';
 import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -114,7 +115,7 @@ Stream<WorkoutDetailState> workoutDetail(Ref ref, String workoutId) async* {
     yield WorkoutDetailState(
       workout: workout,
       exercises: buildExerciseGroups(workout, catalog),
-      weeklyVolume: buildWeeklyVolume(all, DateTime.now()),
+      weeklyVolume: buildWeeklyVolume(all, clock.now()),
     );
   }
 }

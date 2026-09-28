@@ -1,3 +1,5 @@
+import 'package:clock/clock.dart';
+
 import '../../models/models.dart';
 
 /// First-run seed content, migrated from the legacy display-only
@@ -14,20 +16,20 @@ class SeedData {
 
   /// Helper: today at the given wall-clock [hour]:[minute].
   static DateTime _todayAt(int hour, int minute) {
-    final now = DateTime.now();
+    final now = clock.now();
     return DateTime(now.year, now.month, now.day, hour, minute);
   }
 
   /// Helper: [daysAgo] days back at [hour]:[minute].
   static DateTime _daysAgoAt(int daysAgo, int hour, int minute) {
-    final now = DateTime.now();
+    final now = clock.now();
     final d = DateTime(now.year, now.month, now.day, hour, minute);
     return d.subtract(Duration(days: daysAgo));
   }
 
   /// Helper: [minutesAgo] minutes back from now (for Pal-note timestamps).
   static DateTime _minutesAgo(int minutesAgo) =>
-      DateTime.now().subtract(Duration(minutes: minutesAgo));
+      clock.now().subtract(Duration(minutes: minutesAgo));
 
   /// The default daily targets (matches handoff / `Goals` defaults).
   static const Goals goals = Goals(

@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart';
 import 'package:flutter/cupertino.dart' show showCupertinoDialog, CupertinoAlertDialog, CupertinoDialogAction;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -437,7 +438,7 @@ class _DayGroupCard extends StatelessWidget {
   final Future<void> Function(Entry) onDelete;
 
   String get _dayLabel {
-    final today = startOfDay(DateTime.now());
+    final today = startOfDay(clock.now());
     final diff = today.difference(group.day).inDays;
     if (diff == 0) return 'Today';
     if (diff == 1) return 'Yesterday';

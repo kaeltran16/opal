@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -286,7 +287,7 @@ class _Hero extends StatelessWidget {
   final bool loading;
 
   String get _greeting {
-    final h = DateTime.now().hour;
+    final h = clock.now().hour;
     if (h < 12) return 'Good morning';
     if (h < 18) return 'Good afternoon';
     return 'Good evening';

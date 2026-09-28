@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:clock/clock.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -195,7 +196,7 @@ PalService palService(Ref ref) {
 
   final context = PalContextSource(
     chat: () async {
-      final now = DateTime.now();
+      final now = clock.now();
       final today = await entries.watchToday(now).first;
       final week = await entries
           .watchEntriesInRange(
@@ -214,7 +215,7 @@ PalService palService(Ref ref) {
       );
     },
     review: (anchor, range) async {
-      final now = DateTime.now();
+      final now = clock.now();
       final (DateTime start, DateTime end, DateTime prevStart, int periodDays) =
           switch (range) {
         ReviewRange.week => (
@@ -301,7 +302,7 @@ PalService palService(Ref ref) {
         // a correlation-compute failure must not suppress the rest of insights
         surfaced = const [];
       }
-      final now = DateTime.now();
+      final now = clock.now();
       final today = startOfDay(now);
       final weekStart = startOfWeek(now);
       final (DateTime start, DateTime end, int periodDays) = switch (range) {
@@ -343,7 +344,7 @@ PalService palService(Ref ref) {
           : all.where((r) => r.id != excludeRoutineId).toList();
       return buildSuggestContext(
         recentWorkouts: recent.take(5).toList(),
-        dayOfWeek: kWeekdays[DateTime.now().weekday - 1],
+        dayOfWeek: kWeekdays[clock.now().weekday - 1],
         availableRoutines: candidates.isEmpty ? all : candidates,
         exercisesById: {for (final e in catalog) e.id: e},
       );
@@ -357,7 +358,7 @@ PalService palService(Ref ref) {
       if (priors.isNotEmpty) {
         priors.sort((a, b) => b.startedAt.compareTo(a.startedAt));
         lastVol = priors.first.totalVolumeKg;
-        daysAgo = DateTime.now().difference(priors.first.startedAt).inDays;
+        daysAgo = clock.now().difference(priors.first.startedAt).inDays;
       }
       return buildPostWorkoutContext(
         workout: workout,

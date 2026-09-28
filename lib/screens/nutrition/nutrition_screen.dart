@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -367,7 +368,7 @@ class _MealsSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    final now = DateTime.now();
+    final now = clock.now();
     // DateTime weekday: 1=Mon … 7=Sun, kWeekdays is Mon-first
     final dayLabel = kWeekdays[now.weekday - 1];
 

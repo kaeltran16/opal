@@ -54,7 +54,7 @@ final class SleepSyncControllerProvider
 }
 
 String _$sleepSyncControllerHash() =>
-    r'b4b9364e97d231ae05efbf82e6a767dc51b0ef46';
+    r'097e56104b1764f0085c4087c41e080203d53483';
 
 /// Pulls recent nights from Health and upserts them into [SleepRepository].
 /// Deterministic id (`health:sleep:<date>` or the Health sourceRef) so a

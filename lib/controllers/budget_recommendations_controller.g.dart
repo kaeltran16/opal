@@ -56,4 +56,4 @@ final class BudgetRecommendationsProvider
 }
 
 String _$budgetRecommendationsHash() =>
-    r'8f64076f04845dbfa716a478bd030e9e62ae642c';
+    r'd1250254bd67e2810908fce03189192aed2f24ff';

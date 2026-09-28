@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:clock/clock.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../data/repositories/repositories.dart';
@@ -111,7 +112,7 @@ class NutritionController extends _$NutritionController {
     final entryRepo = ref.watch(entryRepositoryProvider);
     final pal = ref.watch(palServiceProvider);
 
-    final now = DateTime.now();
+    final now = clock.now();
     final todayStart = startOfDay(now);
     final todayEnd = todayStart.add(const Duration(days: 1));
     final weekStart = startOfWeek(now);
@@ -342,7 +343,7 @@ class NutritionController extends _$NutritionController {
     await ref.read(nutritionRepositoryProvider).insert(
           NutritionMeal(
             id: '',
-            timestamp: DateTime.now(),
+            timestamp: clock.now(),
             slot: slot,
             name: name,
             source: NutritionSource.manual,

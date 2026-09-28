@@ -66,7 +66,7 @@ final class RecapDataProvider
   }
 }
 
-String _$recapDataHash() => r'5551646462ddd55bdbf22a8b33188bc20d05f9de';
+String _$recapDataHash() => r'01ac6297301b82d274e2a69858c77a2d5c209065';
 
 /// Streams the [RecapData] for [range] over the current period. Reactive:
 /// re-emits when the period's entries or the goals change.

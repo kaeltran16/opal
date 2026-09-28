@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart';
 import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -58,7 +59,7 @@ class ProfileStats {
 
   /// Year the user joined (earliest entry's year, else the current year).
   /// Kept for callers that only need the year; derived from [memberSince].
-  int get memberSinceYear => memberSince?.year ?? DateTime.now().year;
+  int get memberSinceYear => memberSince?.year ?? clock.now().year;
 
   @override
   bool operator ==(Object other) =>
@@ -112,7 +113,7 @@ ProfileStats buildProfileStats(
   List<RitualRoutine> routines, {
   DateTime? now,
 }) {
-  final today = now ?? DateTime.now();
+  final today = now ?? clock.now();
   final year = today.year;
 
   var totalSpent = 0.0;

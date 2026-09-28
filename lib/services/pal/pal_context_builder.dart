@@ -1,3 +1,5 @@
+import 'package:clock/clock.dart';
+
 import '../../models/models.dart';
 import '../../util/dates.dart' show startOfWeek;
 import '../../util/format.dart';
@@ -40,7 +42,7 @@ Map<String, Object?> buildChatContext({
   Currency currency = Currency.usd,
   DateTime? now,
 }) {
-  final clock = now ?? DateTime.now();
+  final current = now ?? clock.now();
   final ritualTarget = effectiveDailyRitualTarget(routines.length, goals);
   return {
     'userName': userName,
@@ -50,16 +52,16 @@ Map<String, Object?> buildChatContext({
     'ritualGoal': ritualTarget,
     'spentToday': _spent(todayEntries),
     'movedTodayKcal': _movedKcal(todayEntries),
-    'ritualsDoneToday': completedRoutines(todayEntries, routines, day: clock),
+    'ritualsDoneToday': completedRoutines(todayEntries, routines, day: current),
     'weekSpent': _spent(weekEntries),
     'weekBudget': goals.dailyBudget * 7,
     'weekMovedKcal': _movedKcal(weekEntries),
     'weekRitualsDone': completedRoutinesInPeriod(weekEntries, routines,
-        start: startOfWeek(clock), days: 7),
+        start: startOfWeek(current), days: 7),
     'weekRitualGoal': ritualTarget * 7,
     'moveStreakDays': moveStreakDays,
-    'hourOfDay': clock.hour,
-    'weekday': clock.weekday,
+    'hourOfDay': current.hour,
+    'weekday': current.weekday,
     'currency': currency.toWire(),
   };
 }
@@ -122,7 +124,7 @@ int ritualStreakDays(List<Entry> entries, {DateTime? now}) =>
 /// entry yet) over entries of [type]. Shared by [moveStreakDays] and
 /// [ritualStreakDays].
 int _streakDays(List<Entry> entries, EntryType type, {DateTime? now}) {
-  final today = now ?? DateTime.now();
+  final today = now ?? clock.now();
   final days = <int>{};
   for (final e in entries) {
     if (e.type != type) continue;

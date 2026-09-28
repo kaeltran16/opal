@@ -12,7 +12,7 @@ part of 'spend_habits_controller.dart';
 /// New Entry's quick picks.
 ///
 /// Reactive: re-emits whenever in-window entries change, so logging something
-/// feeds straight back into the picks. [now] is captured per subscription, so
+/// feeds straight back into the picks. `now` is captured per subscription, so
 /// the daypart is the one in force when the surface opened.
 
 @ProviderFor(spendHabits)
@@ -22,7 +22,7 @@ const spendHabitsProvider = SpendHabitsProvider._();
 /// New Entry's quick picks.
 ///
 /// Reactive: re-emits whenever in-window entries change, so logging something
-/// feeds straight back into the picks. [now] is captured per subscription, so
+/// feeds straight back into the picks. `now` is captured per subscription, so
 /// the daypart is the one in force when the surface opened.
 
 final class SpendHabitsProvider
@@ -39,7 +39,7 @@ final class SpendHabitsProvider
   /// New Entry's quick picks.
   ///
   /// Reactive: re-emits whenever in-window entries change, so logging something
-  /// feeds straight back into the picks. [now] is captured per subscription, so
+  /// feeds straight back into the picks. `now` is captured per subscription, so
   /// the daypart is the one in force when the surface opened.
   const SpendHabitsProvider._()
     : super(
@@ -67,4 +67,4 @@ final class SpendHabitsProvider
   }
 }
 
-String _$spendHabitsHash() => r'2a95b15617b203487c0684a205824129e672394b';
+String _$spendHabitsHash() => r'3a4f1e7ac9659771de7182d3dc03a96af66cef7c';

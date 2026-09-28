@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:clock/clock.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -70,7 +71,7 @@ class _LoopAppState extends ConsumerState<LoopApp> {
     // A warm Siri intent both pushes the path over the channel AND re-opens the
     // app with the same `opal://` URL (forwarded by SceneDelegate), so an
     // identical path can arrive twice within a beat — swallow the duplicate.
-    final now = DateTime.now();
+    final now = clock.now();
     if (_lastDeepLink == path &&
         _lastDeepLinkAt != null &&
         now.difference(_lastDeepLinkAt!) < const Duration(milliseconds: 1200)) {

@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart';
 import 'package:drift/drift.dart';
 import 'package:uuid/uuid.dart';
 
@@ -25,7 +26,7 @@ class EntryRepository {
   /// Entries whose timestamp falls on the same calendar day as [day]
   /// (defaults to now), newest first.
   Stream<List<Entry>> watchToday([DateTime? day]) {
-    final d = day ?? DateTime.now();
+    final d = day ?? clock.now();
     final start = DateTime(d.year, d.month, d.day);
     final end = start.add(const Duration(days: 1));
     return watchEntriesInRange(start, end);

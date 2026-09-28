@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -75,7 +76,7 @@ class _NutritionAddSheetState extends ConsumerState<_NutritionAddSheet> {
       _nameController.text = meal.name;
     } else {
       // adding: default the slot to the current time of day.
-      _slot = NutritionController.slotForHour(DateTime.now().hour);
+      _slot = NutritionController.slotForHour(clock.now().hour);
     }
   }
 

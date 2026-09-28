@@ -77,7 +77,7 @@ final class WorkoutSessionControllerProvider
 }
 
 String _$workoutSessionControllerHash() =>
-    r'd10284e5792a1262641cb4b44a9b452d371d35e2';
+    r'0d12dda1d32fbb49584f2523479729620d625571';
 
 /// Wraps the pure [WorkoutSession] engine in a Riverpod Notifier for screen 09.
 ///

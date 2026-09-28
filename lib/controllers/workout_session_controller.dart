@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:clock/clock.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../models/models.dart';
@@ -146,7 +147,7 @@ class WorkoutSessionController extends _$WorkoutSessionController {
         : null;
     unawaited(service.update(
       activityId: id,
-      elapsed: DateTime.now().difference(w.startedAt),
+      elapsed: clock.now().difference(w.startedAt),
       currentExercise: exId == null ? null : _catalog[exId]?.name,
       completedSets: w.sets.where((set) => set.done).length,
       restRemaining: s.isResting ? Duration(seconds: s.restRemaining) : null,
