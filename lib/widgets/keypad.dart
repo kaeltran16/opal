@@ -104,7 +104,7 @@ class _Key extends StatelessWidget {
     final c = context.colors;
     if (_isInert) {
       // Keep the grid balanced but render nothing tappable.
-      return const SizedBox(height: 52);
+      return const SizedBox(height: 52); // kept literal: matches the 52 key height below
     }
     return Semantics(
       button: true,
@@ -124,7 +124,7 @@ class _Key extends StatelessWidget {
               : Text(
                   token,
                   style: AppFonts.sfr(
-                    size: 26,
+                    size: 26, // kept literal: 26pt rounded key digit, no matching type token
                     weight: FontWeight.w500,
                     color: c.ink,
                   ),

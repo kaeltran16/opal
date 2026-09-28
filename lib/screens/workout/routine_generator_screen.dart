@@ -50,7 +50,7 @@ class _RoutineGeneratorScreenState
         _QuickGoal('Quick full-body, no barbell', 'figure.mixed.cardio', c.accent),
         _QuickGoal('Pull day focused on back', 'figure.pullup', c.rituals),
         _QuickGoal('Short HIIT cardio', 'bolt.fill', c.money),
-        // decorative per-goal accent, not the money token
+        // kept literal: decorative per-goal accent, not the money token
         _QuickGoal('Legs — glutes and hams', 'figure.walk', const Color(0xFFFF9500)),
         _QuickGoal('Home workout, no gear', 'house.fill', c.red),
       ];
@@ -108,7 +108,7 @@ class _RoutineGeneratorScreenState
           label: 'Cancel',
           onTap: () => context.pop(),
         ),
-        // bottom: 110 scroll-tail clearance for floating actions → keep literal
+        // kept literal: bottom 110 is scroll-tail clearance for floating actions
         padding: const EdgeInsets.only(bottom: 110),
         children: [
           // The idle form is hidden while loading so the loading pill renders
@@ -214,7 +214,7 @@ class _HeroCard extends StatelessWidget {
                 const SizedBox(height: Spacing.md),
                 Text('Describe what you want.\nPal picks the exercises.',
                     style: AppFonts.sfr(
-                        size: 22,
+                        size: 22, // kept literal: 22pt rounded figure, no matching type token
                         weight: FontWeight.w700,
                         color: c.onAccent,
                         letterSpacing: -0.4,
@@ -346,7 +346,7 @@ class _GenerateButton extends StatelessWidget {
       onTap: onTap,
       semanticLabel: 'Generate',
       child: Container(
-        // vertical: 9 off-grid (CTA pill height) → keep literal
+        // kept literal: vertical 9 keeps the CTA pill height
         padding: const EdgeInsets.symmetric(horizontal: Spacing.lg, vertical: 9),
         decoration: BoxDecoration(
           color: enabled ? c.move : c.fill,
@@ -589,7 +589,7 @@ class _ResultHeader extends StatelessWidget {
           const SizedBox(height: Spacing.sm),
           Text(draft.name,
               style: AppFonts.sfr(
-                  size: 24,
+                  size: 24, // kept literal: 24pt rounded figure, no matching type token
                   weight: FontWeight.w700,
                   color: c.onAccent,
                   letterSpacing: -0.5,
@@ -736,7 +736,7 @@ class _ExerciseRow extends StatelessWidget {
               ),
               const SizedBox(height: Spacing.sm),
               Padding(
-                // left: 42 aligns set chips under the title (past the 32 icon + gap) → keep literal
+                // kept literal: left 42 aligns set chips under the title (past the 32 icon + gap)
                 padding: const EdgeInsets.only(left: 42),
                 child: Wrap(
                   spacing: Spacing.xs,
@@ -752,7 +752,7 @@ class _ExerciseRow extends StatelessWidget {
                         ),
                         child: Text(_setLabel(s),
                             style: AppFonts.sfr(
-                                size: 11,
+                                size: 11, // kept literal: 11pt rounded chip figure, no matching type token
                                 weight: FontWeight.w600,
                                 color: c.ink2,
                                 letterSpacing: -0.08)),
@@ -793,7 +793,7 @@ class _ResultActions extends StatelessWidget {
             onTap: onTryAgain,
             semanticLabel: 'Try again',
             child: Container(
-              // vertical: 13 off-grid (CTA button height) → keep literal
+              // kept literal: vertical 13 keeps the CTA button height
               padding: const EdgeInsets.symmetric(vertical: 13),
               decoration: BoxDecoration(
                 color: c.surface,
@@ -822,7 +822,7 @@ class _ResultActions extends StatelessWidget {
             onTap: onSave,
             semanticLabel: 'Save routine',
             child: Container(
-              // vertical: 13 off-grid (CTA button height) → keep literal
+              // kept literal: vertical 13 keeps the CTA button height
               padding: const EdgeInsets.symmetric(vertical: 13),
               decoration: BoxDecoration(
                 color: c.move,

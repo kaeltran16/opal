@@ -53,7 +53,7 @@ class EmailIntroScreen extends ConsumerWidget {
     return ColoredBox(
       color: c.bg,
       child: ListView(
-        padding: const EdgeInsets.only(bottom: 48),
+        padding: const EdgeInsets.only(bottom: 48), // kept literal: 48 scroll tail below the last section
         children: [
           EmailNavBar(
             title: 'Email sync',

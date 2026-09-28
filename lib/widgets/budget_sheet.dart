@@ -222,7 +222,7 @@ class _PeriodSegmented extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: Spacing.sm),
           decoration: BoxDecoration(
-            color: active ? c.surface : const Color(0x00000000),
+            color: active ? c.surface : const Color(0x00000000), // kept literal: transparent, no colour token
             borderRadius: BorderRadius.circular(Radii.sm),
             boxShadow: active ? Elevation.sm(c.shadow) : null,
           ),
@@ -267,7 +267,7 @@ class _AmountStepper extends StatelessWidget {
           children: [
             Text(formatCurrency(amount, currency),
                 style: AppFonts.sfr(
-                    size: 54, weight: FontWeight.w700, color: c.money, letterSpacing: -1.8)),
+                    size: 54, weight: FontWeight.w700, color: c.money, letterSpacing: -1.8)), // kept literal: 54pt hero amount, above the type ramp
             Text(caption,
                 style: AppType.caption.copyWith(
                     fontWeight: FontWeight.w600, color: c.ink3, letterSpacing: 0.3)),
@@ -333,7 +333,7 @@ class _PresetChips extends StatelessWidget {
               ),
               child: Text(formatCurrency(p, currency),
                   style: AppFonts.sfr(
-                      size: 15,
+                      size: 15, // kept literal: 15pt w600 rounded, no matching type token
                       weight: FontWeight.w600,
                       color: p == selected ? c.money : c.ink2)),
             ),
@@ -359,7 +359,7 @@ class _Footnote extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.only(top: 1),
+            padding: const EdgeInsets.only(top: 1), // kept literal: 1px optical nudge aligning the icon with the text
             child: AppIcon('sparkles', size: 15, color: c.accent),
           ),
           const SizedBox(width: Spacing.md),

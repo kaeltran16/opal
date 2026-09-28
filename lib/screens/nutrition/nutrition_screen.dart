@@ -62,7 +62,7 @@ class _NutritionBody extends StatelessWidget {
         semanticLabel: 'Add a meal',
         onTap: () => showNutritionAddSheet(context),
       ),
-      padding: const EdgeInsets.only(bottom: 110),
+      padding: const EdgeInsets.only(bottom: 110), // kept literal: 110 scroll-tail clearance for floating actions
       children: [
         _TodayHero(state: state),
         if (state.pending != null) _PendingCard(pending: state.pending!),
@@ -128,7 +128,7 @@ class _TodayHero extends StatelessWidget {
                   width: 170,
                   height: 170,
                   decoration: const BoxDecoration(
-                    color: Color(0x1AFFFFFF),
+                    color: Color(0x1AFFFFFF), // kept literal: white wash on the nutrition hero in both themes
                     shape: BoxShape.circle,
                   ),
                 ),
@@ -154,7 +154,7 @@ class _TodayHero extends StatelessWidget {
                                 'TODAY',
                                 style: AppType.caption2.copyWith(
                                   fontWeight: FontWeight.w700,
-                                  color: const Color(0xD9FFFFFF),
+                                  color: const Color(0xD9FFFFFF), // kept literal: white text on the nutrition hero in both themes
                                   letterSpacing: 1.3,
                                 ),
                               ),
@@ -169,7 +169,7 @@ class _TodayHero extends StatelessWidget {
                           padding: const EdgeInsets.symmetric(
                               horizontal: Spacing.sm, vertical: 5),
                           decoration: BoxDecoration(
-                            color: const Color(0x33FFFFFF),
+                            color: const Color(0x33FFFFFF), // kept literal: white wash on the nutrition hero in both themes
                             borderRadius: BorderRadius.circular(Radii.pill),
                           ),
                           child: Row(
@@ -180,7 +180,7 @@ class _TodayHero extends StatelessWidget {
                               Text(
                                 state.day.feel,
                                 style: AppFonts.sf(
-                                  size: 12,
+                                  size: 12, // kept literal: 12pt, no matching type token
                                   weight: FontWeight.w600,
                                   color: Colors.white,
                                 ),
@@ -193,7 +193,7 @@ class _TodayHero extends StatelessWidget {
                     const SizedBox(height: Spacing.md),
                     // Divider
                     Container(
-                        height: 0.5, color: const Color(0x4DFFFFFF)),
+                        height: 0.5, color: const Color(0x4DFFFFFF)), // kept literal: white divider on the nutrition hero in both themes
                     const SizedBox(height: Spacing.md),
                     // Macro split
                     MacroSplit(state.day.macros, light: true),
@@ -205,7 +205,7 @@ class _TodayHero extends StatelessWidget {
                       '${state.day.home} home · '
                       '${state.day.note}',
                       style: AppType.subhead.copyWith(
-                        color: const Color(0xE6FFFFFF),
+                        color: const Color(0xE6FFFFFF), // kept literal: white text on the nutrition hero in both themes
                         letterSpacing: -0.1,
                       ),
                     ),
@@ -225,7 +225,7 @@ class _HatchPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = const Color(0x0AFFFFFF)
+      ..color = const Color(0x0AFFFFFF) // kept literal: faint white texture on the nutrition hero
       ..strokeWidth = 1;
     const spacing = 25.0;
     final extent = size.width + size.height;
@@ -312,11 +312,11 @@ class _PendingCard extends StatelessWidget {
                       Text(
                         guess.name,
                         style: AppFonts.sf(
-                            size: 16,
+                            size: 16, // kept literal: 16pt, no matching type token
                             weight: FontWeight.w600,
                             color: c.ink),
                       ),
-                      const SizedBox(height: 2),
+                      const SizedBox(height: Spacing.xxs),
                       Text(
                         '${e.title} · $amount · $time',
                         style:
@@ -343,7 +343,7 @@ class _PendingCard extends StatelessWidget {
                     child: Text(
                       'Add meal',
                       style: AppFonts.sf(
-                        size: 13,
+                        size: 13, // kept literal: 13pt, no matching type token
                         weight: FontWeight.w700,
                         color: Colors.white,
                       ),
@@ -388,7 +388,7 @@ class _MealsSection extends StatelessWidget {
                 Text(
                   'Meals',
                   style: AppFonts.sf(
-                    size: 22,
+                    size: 22, // kept literal: 22pt, no matching type token
                     weight: FontWeight.w700,
                     color: c.ink,
                     letterSpacing: 0.35,
@@ -397,7 +397,7 @@ class _MealsSection extends StatelessWidget {
                 const Spacer(),
                 Text(
                   dayLabel,
-                  style: AppFonts.sf(size: 13, color: c.ink3),
+                  style: AppType.footnote.copyWith(color: c.ink3),
                 ),
               ],
             ),
@@ -479,7 +479,7 @@ class _WeekSection extends StatelessWidget {
                 Text(
                   'This week',
                   style: AppFonts.sf(
-                      size: 15,
+                      size: 15, // kept literal: 15pt, no matching type token
                       weight: FontWeight.w700,
                       color: c.ink,
                       letterSpacing: -0.2),
@@ -487,7 +487,7 @@ class _WeekSection extends StatelessWidget {
                 const Spacer(),
                 Text(
                   '$weekTakeout takeout · $weekHome home so far',
-                  style: AppFonts.sf(size: 11.5, color: c.ink3),
+                  style: AppFonts.sf(size: 11.5, color: c.ink3), // kept literal: 11.5pt, no matching type token
                 ),
               ],
             ),
@@ -573,7 +573,7 @@ class _WeekBar extends StatelessWidget {
                 )
               : const SizedBox.shrink(),
         ),
-        const SizedBox(height: 2),
+        const SizedBox(height: Spacing.xxs),
         // Bar or dashed box for future days
         if (isFuture)
           DottedBorderBox(
@@ -597,7 +597,7 @@ class _WeekBar extends StatelessWidget {
         Text(
           wd.day,
           style: AppFonts.sf(
-            size: 11,
+            size: 11, // kept literal: 11pt, no matching type token
             weight: wd.today ? FontWeight.w700 : FontWeight.w400,
             color: wd.today ? c.nutrition : c.ink3,
           ),
@@ -635,7 +635,7 @@ class _ConnectionsSection extends StatelessWidget {
             child: Text(
               'Connections',
               style: AppFonts.sf(
-                  size: 22,
+                  size: 22, // kept literal: 22pt, no matching type token
                   weight: FontWeight.w700,
                   color: c.ink,
                   letterSpacing: 0.35),
@@ -688,7 +688,7 @@ class _ConnectionsSection extends StatelessWidget {
                   Text(
                     featured.body,
                     style: AppFonts.sf(
-                      size: 17,
+                      size: 17, // kept literal: 17pt, no matching type token
                       color: c.ink,
                       letterSpacing: -0.3,
                       height: 1.38,
@@ -728,14 +728,14 @@ class _ConnectionsSection extends StatelessWidget {
                   Text(
                     'See all patterns',
                     style: AppFonts.sf(
-                        size: 17,
+                        size: 17, // kept literal: 17pt, no matching type token
                         weight: FontWeight.w400,
                         color: c.ink),
                   ),
                   const Spacer(),
                   Text(
                     '${state.patterns.length}',
-                    style: AppFonts.sf(size: 15, color: c.ink3),
+                    style: AppFonts.sf(size: 15, color: c.ink3), // kept literal: 15pt untracked, subhead is tracked
                   ),
                   const SizedBox(width: Spacing.sm),
                   AppIcon('chevron.right', size: 14, color: c.ink4),

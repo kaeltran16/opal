@@ -107,7 +107,7 @@ class _ListRowState extends State<ListRow> {
         // brief highlight (theme.fill) that fades over 180ms on release
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 180),
-          color: _down ? c.fill : const Color(0x00000000),
+          color: _down ? c.fill : const Color(0x00000000), // kept literal: transparent, no colour token
           child: Stack(
             children: [
               Padding(
@@ -142,7 +142,7 @@ class _ListRowState extends State<ListRow> {
                             ),
                             if (widget.subtitle != null)
                               Padding(
-                                padding: const EdgeInsets.only(top: 1),
+                                padding: const EdgeInsets.only(top: 1), // kept literal: 1px optical gap under the title
                                 child: Text(
                                   widget.subtitle!,
                                   style: AppType.footnote

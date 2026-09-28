@@ -35,7 +35,7 @@ class EmailNavBar extends StatelessWidget {
     final c = context.colors;
     return Container(
       color: c.bg,
-      padding: const EdgeInsets.fromLTRB(Spacing.xs, 48, Spacing.xs, Spacing.xs),
+      padding: const EdgeInsets.fromLTRB(Spacing.xs, 48, Spacing.xs, Spacing.xs), // kept literal: 48 top clears the status bar
       child: SizedBox(
         height: 44, // tap-target height — keep literal
         child: Stack(

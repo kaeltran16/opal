@@ -28,7 +28,7 @@ class ConfidenceChip extends StatelessWidget {
       children: [
         // 3 ascending bars: heights 4, 7, 10 px
         for (var i = 0; i < 3; i++) ...[
-          if (i > 0) const SizedBox(width: 2),
+          if (i > 0) const SizedBox(width: Spacing.xxs),
           Container(
             width: 3,
             height: 4 + i * 3.0,
@@ -36,7 +36,7 @@ class ConfidenceChip extends StatelessWidget {
               color: i < bars
                   ? c.nutrition
                   : c.nutrition.withValues(alpha: 0.20),
-              borderRadius: BorderRadius.circular(1.5),
+              borderRadius: BorderRadius.circular(1.5), // kept literal: pip corner, below the smallest radius
             ),
           ),
         ],
@@ -44,7 +44,7 @@ class ConfidenceChip extends StatelessWidget {
         Text(
           label,
           style: AppFonts.sf(
-            size: 12,
+            size: 12, // kept literal: 12pt, no matching type token
             weight: FontWeight.w500,
             color: plain ? c.ink3 : c.nutrition,
           ),
@@ -111,7 +111,7 @@ class CalRange extends StatelessWidget {
                 color: dimColor,
               ),
             ),
-            const SizedBox(width: 3),
+            const SizedBox(width: 3), // kept literal: 3 gap is off the spacing grid
             Text(
               mid,
               style: AppFonts.sfr(
@@ -121,7 +121,7 @@ class CalRange extends StatelessWidget {
                 height: 0.95,
               ),
             ),
-            const SizedBox(width: 3),
+            const SizedBox(width: 3), // kept literal: 3 gap is off the spacing grid
             Text(
               'cal',
               style: AppFonts.sf(
@@ -132,10 +132,10 @@ class CalRange extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(height: 2),
+        const SizedBox(height: Spacing.xxs),
         Text(
           '${range.lo}–${range.hi} estimated',
-          style: AppFonts.sf(size: 12.5, color: dimColor),
+          style: AppFonts.sf(size: 12.5, color: dimColor), // kept literal: 12.5pt, no matching type token
         ),
       ],
     );
@@ -196,7 +196,7 @@ class MacroSplit extends StatelessWidget {
           child: Row(
             children: [
               for (var i = 0; i < segments.length; i++) ...[
-                if (i > 0) const SizedBox(width: 2),
+                if (i > 0) const SizedBox(width: Spacing.xxs),
                 Expanded(
                   flex: segments[i].flex,
                   child: Container(
@@ -255,14 +255,14 @@ class _MacroLegendItem extends StatelessWidget {
           height: 7,
           decoration: BoxDecoration(
             color: segment.color,
-            borderRadius: BorderRadius.circular(2),
+            borderRadius: BorderRadius.circular(2), // kept literal: bar corner, below the smallest radius
           ),
         ),
         const SizedBox(width: Spacing.xxs),
         Text(
           segment.label,
           style: AppFonts.sf(
-            size: 11,
+            size: 11, // kept literal: 11pt, no matching type token
             weight: FontWeight.w600,
             letterSpacing: 0.4,
             color: textColor,
@@ -271,7 +271,7 @@ class _MacroLegendItem extends StatelessWidget {
         const SizedBox(width: Spacing.xxs),
         Text(
           '${segment.range.lo}–${segment.range.hi}g',
-          style: AppFonts.sfr(size: 14, color: textColor),
+          style: AppFonts.sfr(size: 14, color: textColor), // kept literal: 14pt rounded figure, no matching type token
         ),
       ],
     );
@@ -303,11 +303,11 @@ class SourceTag extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           AppIcon(source.icon, size: 11, color: c.nutrition),
-          const SizedBox(width: 3),
+          const SizedBox(width: 3), // kept literal: 3 gap is off the spacing grid
           Text(
             source.label,
             style: AppFonts.sf(
-              size: 11,
+              size: 11, // kept literal: 11pt, no matching type token
               weight: FontWeight.w500,
               color: c.nutrition,
             ),
@@ -357,7 +357,7 @@ class MealRow extends StatelessWidget {
                   child: Text(
                     meal.time,
                     style: AppFonts.sfr(
-                      size: 13,
+                      size: 13, // kept literal: 13pt rounded figure, no matching type token
                       weight: FontWeight.w500,
                       color: c.ink3,
                     ),
@@ -386,20 +386,20 @@ class MealRow extends StatelessWidget {
                       Text(
                         meal.name,
                         style: AppFonts.sf(
-                          size: 15,
+                          size: 15, // kept literal: 15pt, no matching type token
                           weight: FontWeight.w500,
                           color: c.ink,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      const SizedBox(height: 2),
+                      const SizedBox(height: Spacing.xxs),
                       Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
                             meal.slot,
-                            style: AppFonts.sf(size: 12, color: c.ink3),
+                            style: AppType.caption.copyWith(color: c.ink3),
                           ),
                           const SizedBox(width: Spacing.xs),
                           Text('·',
@@ -422,12 +422,12 @@ class MealRow extends StatelessWidget {
                     Text(
                       '${meal.cal.lo}–${meal.cal.hi}',
                       style: AppFonts.sfr(
-                        size: 14,
+                        size: 14, // kept literal: 14pt rounded figure, no matching type token
                         weight: FontWeight.w600,
                         color: c.ink,
                       ),
                     ),
-                    const SizedBox(height: 2),
+                    const SizedBox(height: Spacing.xxs),
                     ConfidenceChip(meal.confidence, plain: true),
                   ],
                 ),
@@ -515,7 +515,7 @@ class SheetShell extends StatelessWidget {
                     height: 4,
                     decoration: BoxDecoration(
                       color: c.hair,
-                      borderRadius: BorderRadius.circular(2),
+                      borderRadius: BorderRadius.circular(2), // kept literal: handle corner, below the smallest radius
                     ),
                   ),
                   const SizedBox(height: Spacing.sm),
@@ -532,11 +532,7 @@ class SheetShell extends StatelessWidget {
                           onTap: onClose,
                           child: Text(
                             'Cancel',
-                            style: AppFonts.sf(
-                              size: 16,
-                              weight: FontWeight.w400,
-                              color: c.nutrition,
-                            ),
+                            style: AppType.callout.copyWith(color: c.nutrition),
                           ),
                         ),
                         // Title
@@ -546,7 +542,7 @@ class SheetShell extends StatelessWidget {
                                   title!,
                                   textAlign: TextAlign.center,
                                   style: AppFonts.sf(
-                                    size: 16,
+                                    size: 16, // kept literal: 16pt, no matching type token
                                     weight: FontWeight.w600,
                                     color: c.ink,
                                   ),
@@ -560,7 +556,7 @@ class SheetShell extends StatelessWidget {
                             child: Text(
                               primaryLabel!,
                               style: AppFonts.sf(
-                                size: 16,
+                                size: 16, // kept literal: 16pt, no matching type token
                                 weight: FontWeight.w600,
                                 color:
                                     primaryEnabled ? c.nutrition : c.ink4,
@@ -568,7 +564,7 @@ class SheetShell extends StatelessWidget {
                             ),
                           )
                         else
-                          const SizedBox(width: 48), // balance Cancel width
+                          const SizedBox(width: 48), // kept literal: balances the Cancel width
                       ],
                     ),
                   ),
@@ -623,7 +619,7 @@ class ChipRow extends StatelessWidget {
               child: Text(
                 option,
                 style: AppFonts.sf(
-                  size: 14,
+                  size: 14, // kept literal: 14pt, no matching type token
                   weight: FontWeight.w500,
                   color: option == value ? Colors.white : c.ink,
                 ),

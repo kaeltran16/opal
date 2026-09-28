@@ -338,7 +338,7 @@ class _ExerciseRow extends StatelessWidget {
                             letterSpacing: -0.24),
                       ),
                       Padding(
-                        padding: const EdgeInsets.only(top: 1), // hairline gap
+                        padding: const EdgeInsets.only(top: 1), // kept literal: hairline gap
                         child: Text(
                           _meta,
                           maxLines: 1,

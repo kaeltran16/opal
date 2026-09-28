@@ -51,7 +51,7 @@ class WeeklyPlanScreen extends ConsumerWidget {
     return ColoredBox(
       color: c.bg,
       child: ListView(
-        padding: const EdgeInsets.only(bottom: 110), // scroll bottom inset
+        padding: const EdgeInsets.only(bottom: 110), // kept literal: 110 scroll bottom inset
       children: [
         // Nav: back "Move" + trailing ellipsis.
         Padding(
@@ -195,7 +195,7 @@ Future<void> _showPlanMenu(BuildContext context) {
     backgroundColor: c.bg,
     builder: (sheetContext) => SafeArea(
       child: Padding(
-        padding: const EdgeInsets.only(top: 8, bottom: 8),
+        padding: const EdgeInsets.only(top: Spacing.sm, bottom: Spacing.sm),
         child: InsetSection(
           children: [
             ListRow(
@@ -249,7 +249,7 @@ Future<void> _showAssignSheet(
     backgroundColor: c.bg,
     builder: (sheetContext) => SafeArea(
       child: Padding(
-        padding: const EdgeInsets.only(top: 8, bottom: 8),
+        padding: const EdgeInsets.only(top: Spacing.sm, bottom: Spacing.sm),
         child: InsetSection(
           header: 'Assign routine',
           children: [
@@ -365,7 +365,7 @@ class _WeekChip extends StatelessWidget {
             child: Text(
               '${day.date}',
               style: AppFonts.sfr(
-                  size: 14,
+                  size: 14, // kept literal: 14pt rounded figure, no matching type token
                   weight: FontWeight.w700,
                   color: dateColor,
                   letterSpacing: -0.3),
@@ -378,7 +378,7 @@ class _WeekChip extends StatelessWidget {
           height: 6,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: day.done ? color : const Color(0x00000000),
+            color: day.done ? color : const Color(0x00000000), // kept literal: transparent, no colour token
             border: (day.done || isRest)
                 ? null
                 : Border.all(color: color, width: 1),
@@ -414,7 +414,7 @@ class _TodaySpotlight extends StatelessWidget {
                 gradient: RadialGradient(
                   center: const Alignment(-1, -1),
                   radius: 1.1,
-                  colors: [color.withValues(alpha: 0.12), const Color(0x00000000)],
+                  colors: [color.withValues(alpha: 0.12), const Color(0x00000000)], // kept literal: transparent, no colour token
                 ),
               ),
             ),
@@ -427,7 +427,7 @@ class _TodaySpotlight extends StatelessWidget {
                 // Today pill.
                 Container(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: Spacing.sm, vertical: 3),
+                      const EdgeInsets.symmetric(horizontal: Spacing.sm, vertical: 3), // kept literal: 3 keeps the chip compact, off-grid
                   decoration: BoxDecoration(
                     color: color.withValues(alpha: 0.13),
                     borderRadius: BorderRadius.circular(Radii.pill),
@@ -462,7 +462,7 @@ class _TodaySpotlight extends StatelessWidget {
                           Text(
                             '${day.type} · ${day.routine}',
                             style: AppFonts.sfr(
-                                size: 22,
+                                size: 22, // kept literal: 22pt rounded figure, no matching type token
                                 weight: FontWeight.w700,
                                 color: c.ink,
                                 letterSpacing: -0.3,
@@ -540,7 +540,7 @@ class _ScheduleRow extends StatelessWidget {
       onTap: onTap,
       child: Container(
       decoration: BoxDecoration(
-        color: day.today ? color.withValues(alpha: 0.06) : const Color(0x00000000),
+        color: day.today ? color.withValues(alpha: 0.06) : const Color(0x00000000), // kept literal: transparent, no colour token
         border: last
             ? null
             : Border(bottom: BorderSide(color: c.hair, width: 0.5)),
@@ -557,7 +557,7 @@ class _ScheduleRow extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: color,
                   borderRadius:
-                      const BorderRadius.horizontal(right: Radius.circular(2)),
+                      const BorderRadius.horizontal(right: Radius.circular(2)), // kept literal: bar end, below the smallest radius
                 ),
               ),
             ),
@@ -581,7 +581,7 @@ class _ScheduleRow extends StatelessWidget {
                       Text(
                         '${day.date}',
                         style: AppFonts.sfr(
-                            size: 20,
+                            size: 20, // kept literal: 20pt rounded figure, no matching type token
                             weight: FontWeight.w700,
                             color: c.ink,
                             letterSpacing: -0.3,
@@ -639,7 +639,7 @@ class _ScheduleRow extends StatelessWidget {
                         ],
                       ),
                       Padding(
-                        padding: const EdgeInsets.only(top: 1), // hairline gap
+                        padding: const EdgeInsets.only(top: 1), // kept literal: hairline gap
                         child: Text(
                           isRest
                               ? 'Recovery · stretch optional'

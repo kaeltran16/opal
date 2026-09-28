@@ -24,7 +24,7 @@ class LargeTitleNavBar extends StatelessWidget {
     final c = context.colors;
     return Container(
       color: c.bg,
-      padding: const EdgeInsets.fromLTRB(Spacing.lg, 56, Spacing.lg, Spacing.sm),
+      padding: const EdgeInsets.fromLTRB(Spacing.lg, 56, Spacing.lg, Spacing.sm), // kept literal: 56 top clears the status bar
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

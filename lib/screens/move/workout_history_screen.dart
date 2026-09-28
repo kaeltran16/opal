@@ -50,7 +50,7 @@ class _WorkoutHistoryScreenState extends ConsumerState<WorkoutHistoryScreen> {
         name: 'square.and.arrow.up',
         semanticLabel: 'Share',
       ),
-      padding: const EdgeInsets.only(bottom: 48),
+      padding: const EdgeInsets.only(bottom: 48), // kept literal: 48 scroll tail below the last section
       children: [
         // Range control — always available, even while the data loads.
         Padding(
@@ -242,7 +242,7 @@ class _SummaryTile extends StatelessWidget {
     final c = context.colors;
     final color = c.forType(data.token);
     return Container(
-      padding: const EdgeInsets.fromLTRB(Spacing.lg, 13, Spacing.lg, 13),
+      padding: const EdgeInsets.fromLTRB(Spacing.lg, 13, Spacing.lg, 13), // kept literal: 13 row padding, off-grid
       decoration: BoxDecoration(
           color: c.surface, borderRadius: BorderRadius.circular(Radii.card)),
       child: Column(
@@ -275,7 +275,7 @@ class _SummaryTile extends StatelessWidget {
             children: [
               Text(data.value,
                   style: AppFonts.sfr(
-                      size: 26,
+                      size: 26, // kept literal: 26pt rounded stat, no matching type token
                       weight: FontWeight.w700,
                       color: color,
                       letterSpacing: -0.5)),
@@ -331,7 +331,7 @@ class _VolumeTrend extends StatelessWidget {
                   children: [
                     Text(totalT.toStringAsFixed(1),
                         style: AppFonts.sfr(
-                            size: 22,
+                            size: 22, // kept literal: 22pt rounded stat, no matching type token
                             weight: FontWeight.w700,
                             color: c.ink,
                             letterSpacing: -0.4)),
@@ -391,7 +391,7 @@ class _Bar extends StatelessWidget {
                   ),
                   child: Text('${(bar.volumeKg / 1000).toStringAsFixed(1)}t',
                       style: AppFonts.sfr(
-                          size: 9,
+                          size: 9, // kept literal: 9pt rounded badge, below the type ramp
                           weight: FontWeight.w700,
                           color: c.move,
                           letterSpacing: -0.08)),
@@ -407,8 +407,8 @@ class _Bar extends StatelessWidget {
               decoration: BoxDecoration(
                 color: last ? c.move : c.move.withValues(alpha: 0.27),
                 borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(6),
-                  bottom: Radius.circular(3),
+                  top: Radius.circular(6), // kept literal: decorative chart-bar cap, sub-token geometry
+                  bottom: Radius.circular(3), // kept literal: decorative chart-bar foot, sub-token geometry
                 ),
               ),
             ),
@@ -435,7 +435,7 @@ class _TrendPill extends StatelessWidget {
     final up = pct >= 0;
     final color = up ? c.move : c.red;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: Spacing.xs),
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: Spacing.xs), // kept literal: horizontal 9 off-grid
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(Radii.pill),
@@ -484,7 +484,7 @@ class _Balance extends StatelessWidget {
             child: Row(
               children: [
                 for (var i = 0; i < slices.length; i++) ...[
-                  if (i > 0) const SizedBox(width: 2),
+                  if (i > 0) const SizedBox(width: Spacing.xxs),
                   Expanded(
                     flex: slices[i].pct,
                     child: ColoredBox(color: c.forType(slices[i].colorToken)),
@@ -509,7 +509,7 @@ class _Balance extends StatelessWidget {
                       height: 8,
                       decoration: BoxDecoration(
                         color: c.forType(s.colorToken),
-                        borderRadius: BorderRadius.circular(2),
+                        borderRadius: BorderRadius.circular(2), // kept literal: segment corner, below the smallest radius
                       ),
                     ),
                     const SizedBox(width: Spacing.sm),
@@ -519,7 +519,7 @@ class _Balance extends StatelessWidget {
                     const Spacer(),
                     Text('${s.pct}%',
                         style: AppFonts.sfr(
-                            size: 13,
+                            size: 13, // kept literal: 13pt rounded figure, no matching type token
                             weight: FontWeight.w600,
                             color: c.ink,
                             letterSpacing: -0.08)),
@@ -558,7 +558,7 @@ class _Balance extends StatelessWidget {
                             fontWeight: FontWeight.w700,
                             color: c.accent,
                             letterSpacing: 0.5)),
-                    const SizedBox(height: 2),
+                    const SizedBox(height: Spacing.xxs),
                     Text(nudge,
                         style: AppType.footnote.copyWith(
                             color: c.ink, letterSpacing: -0.1, height: 1.45)),
@@ -615,7 +615,7 @@ class _PrRow extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: AppType.subhead.copyWith(
                         fontWeight: FontWeight.w600, color: c.ink)),
-                const SizedBox(height: 1),
+                const SizedBox(height: 1), // kept literal: 1px gap under the title
                 Row(
                   children: [
                     Text(pr.group, style: _meta(c)),
@@ -642,7 +642,7 @@ class _PrRow extends StatelessWidget {
             TextSpan(
               text: pr.bodyweight ? '${pr.reps}' : _kg(pr.weightKg),
               style: AppFonts.sfr(
-                  size: 17,
+                  size: 17, // kept literal: 17pt rounded figure, no matching type token
                   weight: FontWeight.w700,
                   color: c.ink,
                   letterSpacing: -0.2),
@@ -733,7 +733,7 @@ class _SessionCard extends StatelessWidget {
                                           color: c.ink,
                                           letterSpacing: -0.24)),
                                   Padding(
-                                    padding: const EdgeInsets.only(top: 1),
+                                    padding: const EdgeInsets.only(top: 1), // kept literal: 1px gap under the title
                                     child: Text(
                                         relativeDateLabel(
                                             row.startedAt, clock.now()),
@@ -748,7 +748,7 @@ class _SessionCard extends StatelessWidget {
                         ),
                         const SizedBox(height: Spacing.sm),
                         Padding(
-                          padding: const EdgeInsets.only(left: 42),
+                          padding: const EdgeInsets.only(left: 42), // kept literal: 42 aligns under the title
                           child: Row(
                             children: [
                               _Stat(value: '${row.minutes}', label: 'min'),
@@ -799,7 +799,7 @@ class _Stat extends StatelessWidget {
       children: [
         Text(value,
             style: AppFonts.sfr(
-                size: 14,
+                size: 14, // kept literal: 14pt rounded figure, no matching type token
                 weight: FontWeight.w700,
                 color: c.ink,
                 letterSpacing: -0.2)),
@@ -822,7 +822,7 @@ class _PrBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: Spacing.sm, vertical: 3),
+      padding: const EdgeInsets.symmetric(horizontal: Spacing.sm, vertical: 3), // kept literal: 3 keeps the chip compact, off-grid
       decoration: BoxDecoration(
           color: c.money, borderRadius: BorderRadius.circular(Radii.pill)),
       child: Row(

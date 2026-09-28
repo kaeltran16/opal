@@ -30,10 +30,10 @@ class RingStat extends StatelessWidget {
         Row(
           children: [
             Container(width: 7, height: 7, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
-            const SizedBox(width: 6),
+            const SizedBox(width: 6), // kept literal: 6 dot gap is off the spacing grid
             Text(
               label.toUpperCase(),
-              style: AppFonts.sf(size: 12, weight: FontWeight.w700, color: color, letterSpacing: 0.5),
+              style: AppFonts.sf(size: 12, weight: FontWeight.w700, color: color, letterSpacing: 0.5), // kept literal: 12pt w700 tracked eyebrow, caption is w400 untracked
             ),
           ],
         ),
@@ -44,12 +44,12 @@ class RingStat extends StatelessWidget {
             Text(
               value,
               style: AppFonts.sf(
-                  size: 22, weight: FontWeight.w700, color: c.ink, letterSpacing: -0.3, tabular: true),
+                  size: 22, weight: FontWeight.w700, color: c.ink, letterSpacing: -0.3, tabular: true), // kept literal: 22pt w700 tracked tabular, title2 is untracked
             ),
-            const SizedBox(width: 3),
+            const SizedBox(width: 3), // kept literal: 3 baseline gap is off the spacing grid
             Text(
               goal,
-              style: AppFonts.sf(size: 12, weight: FontWeight.w600, color: c.ink3, letterSpacing: 0.5),
+              style: AppFonts.sf(size: 12, weight: FontWeight.w600, color: c.ink3, letterSpacing: 0.5), // kept literal: 12pt w600 tracked, caption is w400 untracked
             ),
           ],
         ),

@@ -122,7 +122,7 @@ class _NutritionConfirmSheetState
               Text(
                 'FROM YOUR SPENDING',
                 style: AppFonts.sf(
-                    size: 11.5,
+                    size: 11.5, // kept literal: 11.5pt, no matching type token
                     weight: FontWeight.w700,
                     color: c.ink3,
                     letterSpacing: 0.4),
@@ -155,11 +155,11 @@ class _NutritionConfirmSheetState
                           Text(
                             e.title,
                             style: AppFonts.sf(
-                                size: 16,
+                                size: 16, // kept literal: 16pt, no matching type token
                                 weight: FontWeight.w600,
                                 color: c.ink),
                           ),
-                          const SizedBox(height: 2),
+                          const SizedBox(height: Spacing.xxs),
                           Text(
                             time,
                             style: AppType.footnote.copyWith(color: c.ink3),
@@ -171,7 +171,7 @@ class _NutritionConfirmSheetState
                     Text(
                       amount,
                       style: AppFonts.sfr(
-                          size: 17, weight: FontWeight.w700, color: c.ink),
+                          size: 17, weight: FontWeight.w700, color: c.ink), // kept literal: 17pt w700 rounded, no matching type token
                     ),
                   ],
                 ),
@@ -185,7 +185,7 @@ class _NutritionConfirmSheetState
                   Text(
                     'PAL THINKS THIS WAS',
                     style: AppFonts.sf(
-                        size: 11.5,
+                        size: 11.5, // kept literal: 11.5pt, no matching type token
                         weight: FontWeight.w700,
                         color: c.nutrition,
                         letterSpacing: 0.4),
@@ -196,10 +196,10 @@ class _NutritionConfirmSheetState
               TextField(
                 controller: _nameController,
                 style: AppFonts.sf(
-                    size: 17, weight: FontWeight.w500, color: c.ink),
+                    size: 17, weight: FontWeight.w500, color: c.ink), // kept literal: 17pt w500, no matching type token
                 decoration: InputDecoration(
                   hintText: 'Meal name',
-                  hintStyle: AppFonts.sf(size: 17, color: c.ink3),
+                  hintStyle: AppFonts.sf(size: 17, color: c.ink3), // kept literal: 17pt untracked, body is tracked
                   filled: true,
                   fillColor: c.surface,
                   contentPadding: const EdgeInsets.symmetric(
@@ -226,7 +226,7 @@ class _NutritionConfirmSheetState
               Text(
                 'PORTION',
                 style: AppFonts.sf(
-                    size: 11.5,
+                    size: 11.5, // kept literal: 11.5pt, no matching type token
                     weight: FontWeight.w700,
                     color: c.ink3,
                     letterSpacing: 0.4),
@@ -282,7 +282,7 @@ class _NutritionConfirmSheetState
                   child: Text(
                     'Not a meal — keep as expense only',
                     style: AppFonts.sf(
-                        size: 14,
+                        size: 14, // kept literal: 14pt, no matching type token
                         weight: FontWeight.w400,
                         color: c.ink3),
                   ),

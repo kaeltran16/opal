@@ -36,7 +36,7 @@ class _InsightsScreenState extends ConsumerState<InsightsScreen> {
       color: c.bg,
       child: LargeTitleScrollView(
         title: 'Insights',
-        padding: const EdgeInsets.only(bottom: 40),
+        padding: const EdgeInsets.only(bottom: 40), // kept literal: 40 scroll tail below the last section
         leading: NavAction(
           icon: 'chevron.left',
           label: 'You',
@@ -255,11 +255,11 @@ class _StatTile extends StatelessWidget {
           const SizedBox(height: Spacing.xs),
           Text(value,
               style: AppFonts.sfr(
-                  size: 26,
+                  size: 26, // kept literal: 26pt rounded figure, no matching type token
                   weight: FontWeight.w700,
                   color: valueColor,
                   letterSpacing: -0.6)),
-          const SizedBox(height: 1),
+          const SizedBox(height: 1), // kept literal: 1px gap under the figure
           Text(sub,
               style: AppType.caption
                   .copyWith(color: c.ink3, letterSpacing: -0.08)),
@@ -322,7 +322,7 @@ class _ChangeRow extends StatelessWidget {
                 children: [
                   Text(change.title,
                       style: AppType.body.copyWith(color: c.ink)),
-                  const SizedBox(height: 1),
+                  const SizedBox(height: 1), // kept literal: 1px gap under the title
                   Text(change.subtitle,
                       style: AppType.footnote
                           .copyWith(color: c.ink3, letterSpacing: -0.08)),
@@ -382,13 +382,13 @@ class _CategoriesTab extends StatelessWidget {
                               formatCurrency(data.currentTotal, currency),
                               maxLines: 1,
                               style: AppFonts.sfr(
-                                  size: 22,
+                                  size: 22, // kept literal: 22pt rounded figure, no matching type token
                                   weight: FontWeight.w700,
                                   color: c.ink,
                                   letterSpacing: -0.5)),
                         ),
                       ),
-                      const SizedBox(height: 1),
+                      const SizedBox(height: 1), // kept literal: 1px gap under the figure
                       Text('$monthLabel TOTAL',
                           style: AppType.caption2.copyWith(
                               fontWeight: FontWeight.w600,
@@ -449,7 +449,7 @@ class _LegendRow extends StatelessWidget {
           height: 9,
           decoration: BoxDecoration(
               color: c.forType(cat.colorToken),
-              borderRadius: BorderRadius.circular(3)),
+              borderRadius: BorderRadius.circular(3)), // kept literal: swatch corner, below the smallest radius
         ),
         const SizedBox(width: Spacing.sm),
         Expanded(
@@ -537,7 +537,7 @@ class _CategoryRow extends StatelessWidget {
                           fontFeatures: const [FontFeature.tabularFigures()])),
                   if (deltaText.isNotEmpty)
                     Padding(
-                      padding: const EdgeInsets.only(top: 1),
+                      padding: const EdgeInsets.only(top: 1), // kept literal: 1px gap under the title
                       child: Text(deltaText,
                           style: AppType.caption.copyWith(
                               fontWeight: FontWeight.w600,
@@ -550,7 +550,7 @@ class _CategoryRow extends StatelessWidget {
           ),
           const SizedBox(height: Spacing.sm),
           Padding(
-            // align under the name, past the 29 icon + 12 gap.
+            // kept literal: 41 aligns under the name, past the 29 icon + 12 gap.
             padding: const EdgeInsets.only(left: 41),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(Radii.pill),

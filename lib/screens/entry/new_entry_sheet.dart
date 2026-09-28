@@ -631,7 +631,7 @@ class _NewEntrySheetState extends ConsumerState<NewEntrySheet> {
     final symbol = Text(
       currency.symbol,
       style: AppFonts.sfr(
-        size: 46, // no sfr token for 46; keep inline
+        size: 46, // kept literal: no sfr token for 46
         weight: FontWeight.w300,
         color: c.ink4,
         letterSpacing: -1,
@@ -650,7 +650,7 @@ class _NewEntrySheetState extends ConsumerState<NewEntrySheet> {
         Text(
           number,
           style: AppFonts.sfr(
-            size: 72, // hero display > 54; keep inline
+            size: 72, // kept literal: hero display above 54
             weight: FontWeight.w700,
             color: numberColor,
             letterSpacing: -2,

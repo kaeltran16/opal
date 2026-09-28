@@ -214,19 +214,19 @@ class _Hero extends StatelessWidget {
                       children: [
                         _HeroStat(
                             value: timeValue, label: 'Time', unit: timeUnit),
-                        const SizedBox(width: 1),
+                        const SizedBox(width: 1), // kept literal: 1px divider gap between cells
                         _HeroStat(
                           value: volValue,
                           label: 'Volume',
                           unit: volUnit,
                         ),
-                        const SizedBox(width: 1),
+                        const SizedBox(width: 1), // kept literal: 1px divider gap between cells
                         _HeroStat(
                           value: '$setCount',
                           label: setCount == 1 ? 'Set' : 'Sets',
                           unit: '$totalReps reps',
                         ),
-                        const SizedBox(width: 1),
+                        const SizedBox(width: 1), // kept literal: 1px divider gap between cells
                         _HeroStat(
                             value: '$prs',
                             label: prs == 1 ? 'PR' : 'PRs',
@@ -326,7 +326,7 @@ class _HeroStat extends StatelessWidget {
     final c = context.colors;
     return Expanded(
       child: Container(
-        color: const Color(0x24000000),
+        color: const Color(0x24000000), // kept literal: fixed dark wash over the accent hero in both themes
         padding: const EdgeInsets.symmetric(
             vertical: Spacing.md, horizontal: Spacing.sm),
         child: Column(
@@ -334,7 +334,7 @@ class _HeroStat extends StatelessWidget {
             Text(
               value,
               style: AppFonts.sfr(
-                  size: 24, color: c.onAccent, letterSpacing: -0.4, height: 1),
+                  size: 24, color: c.onAccent, letterSpacing: -0.4, height: 1), // kept literal: 24pt rounded stat, no matching type token
             ),
             const SizedBox(height: Spacing.xs),
             Text(
@@ -345,7 +345,7 @@ class _HeroStat extends StatelessWidget {
                 letterSpacing: 0.5,
               ),
             ),
-            const SizedBox(height: 1),
+            const SizedBox(height: 1), // kept literal: 1px gap under the stat
             Text(
               unit,
               style: AppType.caption2.copyWith(
@@ -418,7 +418,7 @@ class _PrCard extends StatelessWidget {
                 const SizedBox(height: Spacing.xxs),
                 Text('${pr.exercise} · ${weight}kg × ${pr.reps}',
                     style: AppFonts.sfr(
-                        size: 17,
+                        size: 17, // kept literal: 17pt rounded figure, no matching type token
                         weight: FontWeight.w700,
                         color: c.ink,
                         letterSpacing: -0.3)),
@@ -514,11 +514,11 @@ class _MuscleRow extends StatelessWidget {
             const Spacer(),
             Text('${volumeKg.round()} kg',
                 style:
-                    AppFonts.sfr(size: 12, color: c.ink3, letterSpacing: -0.08)),
+                    AppFonts.sfr(size: 12, color: c.ink3, letterSpacing: -0.08)), // kept literal: 12pt rounded figure, no matching type token
             const SizedBox(width: Spacing.sm),
             Text('$percent%',
                 style: AppFonts.sfr(
-                    size: 13,
+                    size: 13, // kept literal: 13pt rounded figure, no matching type token
                     weight: FontWeight.w700,
                     color: color,
                     letterSpacing: -0.1)),
@@ -637,7 +637,7 @@ class _ExerciseRow extends StatelessWidget {
                 TextSpan(
                   text: '${total.round()}',
                   style: AppFonts.sfr(
-                      size: 13,
+                      size: 13, // kept literal: 13pt rounded figure, no matching type token
                       weight: FontWeight.w600,
                       color: c.ink2,
                       letterSpacing: -0.08),
@@ -712,7 +712,7 @@ class _SetBar extends StatelessWidget {
                       color: pr ? c.money : c.move.withValues(alpha: 0.53),
                       borderRadius: const BorderRadius.vertical(
                         top: Radius.circular(Radii.xs),
-                        // decorative chart-bar foot; sub-token geometry, keep literal
+                        // kept literal: decorative chart-bar foot, sub-token geometry
                         bottom: Radius.circular(2),
                       ),
                     ),
@@ -744,7 +744,7 @@ class _SetBar extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.clip,
             style: AppFonts.sfr(
-                size: 10,
+                size: 10, // kept literal: 10pt rounded chart label, below the type ramp
                 weight: FontWeight.w600,
                 color: pr ? c.money : c.ink3,
                 letterSpacing: -0.08)),
@@ -932,7 +932,7 @@ class _NoSession extends StatelessWidget {
               const SizedBox(height: Spacing.md),
               Text('No active session',
                   style:
-                      AppFonts.sfr(size: 18, color: c.ink, letterSpacing: -0.3)),
+                      AppFonts.sfr(size: 18, color: c.ink, letterSpacing: -0.3)), // kept literal: 18pt rounded title, no matching type token
               const SizedBox(height: Spacing.xs),
               Text('Your last summary is no longer available.',
                   textAlign: TextAlign.center,

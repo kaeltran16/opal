@@ -13,11 +13,11 @@ class GmailGlyph extends StatelessWidget {
 }
 
 class _GmailGlyphPainter extends CustomPainter {
-  static const _white = Color(0xFFE8EAED);
-  static const _red = Color(0xFFEA4335);
-  static const _green = Color(0xFF34A853);
-  static const _blue = Color(0xFF4285F4);
-  static const _yellow = Color(0xFFFBBC04);
+  static const _white = Color(0xFFE8EAED); // kept literal: Gmail brand colour, not a theme token
+  static const _red = Color(0xFFEA4335); // kept literal: Gmail brand colour, not a theme token
+  static const _green = Color(0xFF34A853); // kept literal: Gmail brand colour, not a theme token
+  static const _blue = Color(0xFF4285F4); // kept literal: Gmail brand colour, not a theme token
+  static const _yellow = Color(0xFFFBBC04); // kept literal: Gmail brand colour, not a theme token
 
   @override
   void paint(Canvas canvas, Size size) {

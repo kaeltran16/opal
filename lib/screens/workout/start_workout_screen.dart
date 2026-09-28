@@ -109,7 +109,7 @@ class _Body extends ConsumerWidget {
         onTap: () => Navigator.of(context).maybePop(),
         semanticLabel: 'Back',
       ),
-      padding: const EdgeInsets.only(bottom: 110), // scroll-tail inset, off-grid
+      padding: const EdgeInsets.only(bottom: 110), // kept literal: scroll-tail inset, off-grid
       children: [
         // --- Pal's pick gradient card ---------------------------------------
         Padding(
@@ -322,7 +322,7 @@ class _PalPickCard extends ConsumerWidget {
                 width: 22,
                 height: 22,
                 decoration: const BoxDecoration(
-                    shape: BoxShape.circle, color: Color(0x33FFFFFF)),
+                    shape: BoxShape.circle, color: Color(0x33FFFFFF)), // kept literal: white wash on the accent hero in both themes
                 alignment: Alignment.center,
                 child: AppIcon('sparkles', size: 11, color: c.onAccent),
               ),
@@ -342,7 +342,7 @@ class _PalPickCard extends ConsumerWidget {
                 ? 'Thinking…'
                 : suggestion?.title ?? 'Freestyle session',
             style: AppFonts.sfr(
-                size: 26,
+                size: 26, // kept literal: 26pt rounded figure, no matching type token
                 weight: FontWeight.w700,
                 color: c.onAccent,
                 letterSpacing: -0.5,
@@ -502,9 +502,9 @@ class _AnotherButton extends StatelessWidget {
         padding: const EdgeInsets.symmetric(
             horizontal: Spacing.lg, vertical: Spacing.md),
         decoration: BoxDecoration(
-          color: const Color(0x1AFFFFFF),
+          color: const Color(0x1AFFFFFF), // kept literal: white wash on the accent hero in both themes
           borderRadius: BorderRadius.circular(Radii.pill),
-          border: Border.all(color: const Color(0x33FFFFFF), width: 0.5),
+          border: Border.all(color: const Color(0x33FFFFFF), width: 0.5), // kept literal: white wash on the accent hero in both themes
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -557,9 +557,9 @@ class _ExercisePreviewChips extends StatelessWidget {
         padding: const EdgeInsets.symmetric(
             horizontal: Spacing.md, vertical: Spacing.xs),
         decoration: BoxDecoration(
-          color: const Color(0x1FFFFFFF),
+          color: const Color(0x1FFFFFFF), // kept literal: white wash on the accent hero in both themes
           borderRadius: BorderRadius.circular(Radii.pill),
-          border: Border.all(color: const Color(0x26FFFFFF), width: 0.5),
+          border: Border.all(color: const Color(0x26FFFFFF), width: 0.5), // kept literal: white wash on the accent hero in both themes
         ),
         child: Text(label,
             style: AppType.caption.copyWith(
@@ -652,7 +652,7 @@ class _RoutineCard extends StatelessWidget {
                       width: 28,
                       height: 28,
                       decoration: const BoxDecoration(
-                          shape: BoxShape.circle, color: Color(0x38FFFFFF)),
+                          shape: BoxShape.circle, color: Color(0x38FFFFFF)), // kept literal: white wash on the accent hero in both themes
                       alignment: Alignment.center,
                       child: AppIcon('play.fill', size: 11, color: c.onAccent),
                     ),
@@ -693,7 +693,7 @@ class _RoutineCard extends StatelessWidget {
                           const Spacer(),
                           if (lastDone != null)
                             Padding(
-                              padding: const EdgeInsets.only(bottom: 1),
+                              padding: const EdgeInsets.only(bottom: 1), // kept literal: 1px baseline nudge, below the smallest token
                               child: Text(lastDone,
                                   style: AppType.caption2.copyWith(
                                       fontWeight: FontWeight.w600,
@@ -779,7 +779,7 @@ class _CardioRow extends StatelessWidget {
                                     ? _trimKm(routine.distanceKm!)
                                     : '${_displayEstMinutes(routine)}',
                                 style: AppFonts.sfr(
-                                    size: 16,
+                                    size: 16, // kept literal: 16pt rounded figure, no matching type token
                                     weight: FontWeight.w700,
                                     color: c.ink,
                                     letterSpacing: -0.2)), // sfr 16: no token
@@ -876,8 +876,8 @@ class _MiniStat extends StatelessWidget {
                 weight: FontWeight.w700,
                 color: c.ink,
                 letterSpacing: -0.2,
-                height: 1)), // sfr 15: no token
-        const SizedBox(height: 1), // hairline gap, off-grid
+                height: 1)), // kept literal: sfr 15 has no type token
+        const SizedBox(height: 1), // kept literal: hairline gap, off-grid
         Text(label,
             style: AppType.caption2.copyWith(
                 fontWeight: FontWeight.w600,

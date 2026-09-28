@@ -91,7 +91,7 @@ class _Body extends ConsumerWidget {
         onTap: () => context.pop(),
         semanticLabel: 'Back to Nutrition',
       ),
-      padding: const EdgeInsets.only(bottom: 48),
+      padding: const EdgeInsets.only(bottom: 48), // kept literal: 48 scroll tail below the last section
       children: [
         // ── source tag + slot · time ──────────────────────────────────────
         Padding(
@@ -103,7 +103,7 @@ class _Body extends ConsumerWidget {
               const SizedBox(width: Spacing.sm),
               Text(
                 '${meal.slot} · ${meal.time}',
-                style: AppFonts.sf(size: 13, color: c.ink3),
+                style: AppType.footnote.copyWith(color: c.ink3),
               ),
             ],
           ),
@@ -148,7 +148,7 @@ class _Body extends ConsumerWidget {
                         "${meal.source == NutritionSource.takeout ? 'the order' : 'what you logged'}"
                         ". These are guesses — adjust anytime.",
                         style:
-                            AppFonts.sf(size: 12, color: c.ink3, height: 1.4),
+                            AppType.caption.copyWith(color: c.ink3, height: 1.4),
                       ),
                     ),
                   ],
@@ -242,7 +242,7 @@ class _TagChip extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: AppFonts.sf(size: 12, weight: FontWeight.w500, color: c.ink2),
+        style: AppFonts.sf(size: 12, weight: FontWeight.w500, color: c.ink2), // kept literal: 12pt w500, no matching type token
       ),
     );
   }
@@ -272,7 +272,7 @@ class _AdjustButton extends ConsumerWidget {
         child: Text(
           'Adjust estimate',
           style: AppFonts.sf(
-              size: 15, weight: FontWeight.w600, color: c.nutrition),
+              size: 15, weight: FontWeight.w600, color: c.nutrition), // kept literal: 15pt w600, no matching type token
         ),
       ),
     );
@@ -296,11 +296,11 @@ class _RemoveButton extends ConsumerWidget {
       child: Container(
         width: double.infinity,
         alignment: Alignment.center,
-        // off-grid tap-target padding — keep literal.
+        // kept literal: off-grid tap-target padding.
         padding: const EdgeInsets.symmetric(vertical: 13),
         child: Text(
           'Remove',
-          style: AppFonts.sf(size: 15, weight: FontWeight.w500, color: c.red),
+          style: AppFonts.sf(size: 15, weight: FontWeight.w500, color: c.red), // kept literal: 15pt w500, no matching type token
         ),
       ),
     );

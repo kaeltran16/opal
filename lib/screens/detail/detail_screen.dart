@@ -107,7 +107,7 @@ class _DetailBody extends ConsumerWidget {
     return Stack(
       children: [
         ListView(
-          padding: const EdgeInsets.only(bottom: 96), // bottom-pill clearance; keep literal
+          padding: const EdgeInsets.only(bottom: 96), // kept literal: bottom-pill clearance
           children: [
             _NavBar(title: data.tracker.title, color: color),
             _HeroCard(data: data, color: color, fmt: fmt),
@@ -123,7 +123,7 @@ class _DetailBody extends ConsumerWidget {
             ],
             if (data.categories.isEmpty && data.days.isEmpty)
               Padding(
-                padding: const EdgeInsets.fromLTRB(Spacing.lg, 40, Spacing.lg, 0),
+                padding: const EdgeInsets.fromLTRB(Spacing.lg, 40, Spacing.lg, 0), // kept literal: 40 top gap for the empty state
                 child: Center(
                   child: Text('Nothing logged yet.',
                       style: AppType.subhead
@@ -155,7 +155,7 @@ class _NavBar extends StatelessWidget {
     final c = context.colors;
     return Container(
       color: c.bg,
-      padding: const EdgeInsets.fromLTRB(Spacing.sm, 52, Spacing.sm, Spacing.sm),
+      padding: const EdgeInsets.fromLTRB(Spacing.sm, 52, Spacing.sm, Spacing.sm), // kept literal: 52 top clears the status bar
       child: Row(
         children: [
           NavAction(
@@ -235,7 +235,7 @@ class _HeroCard extends StatelessWidget {
                     child: Text(fmt(data.total),
                         maxLines: 1,
                         style: AppFonts.sfr(
-                            size: 40, // no sfr token for 40; keep inline
+                            size: 40, // kept literal: no sfr token for 40
                             weight: FontWeight.w700,
                             color: c.ink,
                             letterSpacing: -1,
@@ -417,7 +417,7 @@ class _CategoryRow extends StatelessWidget {
         const SizedBox(height: Spacing.sm),
         Padding(
           // align bar under the label, past the icon tile (29 + 12)
-          padding: const EdgeInsets.only(left: 41), // alignment offset; keep literal
+          padding: const EdgeInsets.only(left: 41), // kept literal: alignment offset
           child: ProgressBar(value: row.fraction, color: color),
         ),
       ],
@@ -601,7 +601,7 @@ class _EntryRow extends StatelessWidget {
                         letterSpacing: -0.24)),
                 if (entry.detail != null)
                   Padding(
-                    padding: const EdgeInsets.only(top: 1),
+                    padding: const EdgeInsets.only(top: 1), // kept literal: 1px gap under the title
                     child: Text(entry.detail!,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,

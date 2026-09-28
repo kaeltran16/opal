@@ -124,7 +124,7 @@ class Segmented<T> extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     final selectedBg =
-        c.brightness == Brightness.dark ? const Color(0xFF636366) : const Color(0xFFFFFFFF);
+        c.brightness == Brightness.dark ? const Color(0xFF636366) : const Color(0xFFFFFFFF); // kept literal: iOS segmented thumb colours, not a theme pair
     return Container(
       padding: const EdgeInsets.all(Spacing.xxs),
       decoration: BoxDecoration(color: c.fill, borderRadius: BorderRadius.circular(Radii.sm)),
@@ -139,7 +139,7 @@ class Segmented<T> extends StatelessWidget {
                   duration: const Duration(milliseconds: 150),
                   padding: const EdgeInsets.symmetric(vertical: Spacing.sm, horizontal: Spacing.md),
                   decoration: BoxDecoration(
-                    color: val == value ? selectedBg : const Color(0x00000000),
+                    color: val == value ? selectedBg : const Color(0x00000000), // kept literal: transparent, no colour token
                     borderRadius: BorderRadius.circular(Radii.sm),
                     boxShadow: val == value ? Elevation.sm(c.shadow) : null,
                   ),

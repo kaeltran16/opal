@@ -92,7 +92,7 @@ class _Body extends ConsumerWidget {
         workoutSessionControllerProvider(routineId).notifier;
 
     return ListView(
-      padding: const EdgeInsets.only(bottom: 100), // scroll tail past finish CTA
+      padding: const EdgeInsets.only(bottom: 100), // kept literal: scroll tail past finish CTA
       children: [
         _Header(
           state: state,
@@ -183,7 +183,7 @@ class _Header extends StatelessWidget {
     final volume = state.activeWorkout.totalVolumeKg;
 
     return Container(
-      padding: const EdgeInsets.fromLTRB(Spacing.lg, 54, Spacing.lg, Spacing.xl), // 54: status-bar inset
+      padding: const EdgeInsets.fromLTRB(Spacing.lg, 54, Spacing.lg, Spacing.xl), // kept literal: 54 is the status-bar inset
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topCenter,
@@ -207,7 +207,7 @@ class _Header extends StatelessWidget {
                     Text(
                       '● ${name.toUpperCase()}',
                       style: AppFonts.mono(
-                        size: 10,
+                        size: 10, // kept literal: 10pt mono, below the eyebrow size
                         weight: FontWeight.w700,
                         color: c.onAccent.withValues(alpha: 0.75),
                         letterSpacing: 1.8,
@@ -217,7 +217,7 @@ class _Header extends StatelessWidget {
                     Text(
                       _elapsed(state.activeWorkout.startedAt),
                       style: AppFonts.sfr(
-                        size: 32,
+                        size: 32, // kept literal: 32pt rounded timer, no matching type token
                         color: c.onAccent,
                         letterSpacing: -0.6,
                       ),
@@ -228,7 +228,7 @@ class _Header extends StatelessWidget {
               GestureDetector(
                 onTap: onFinish,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: Spacing.lg, vertical: 9), // 9: keep pill height
+                  padding: const EdgeInsets.symmetric(horizontal: Spacing.lg, vertical: 9), // kept literal: 9 keeps the pill height
                   decoration: BoxDecoration(
                     color: c.onAccent,
                     borderRadius: BorderRadius.circular(Radii.pill),
@@ -280,7 +280,7 @@ class _ProgressDots extends StatelessWidget {
       children: [
         for (var i = 0; i < count; i++)
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 2.5),
+            padding: const EdgeInsets.symmetric(horizontal: 2.5), // kept literal: 2.5 progress-segment gap, below the smallest token
             child: Container(
               width: i == current ? 24 : 6,
               height: 4,
@@ -312,14 +312,14 @@ class _HeaderStats extends StatelessWidget {
     final c = context.colors;
     Widget cell(String value, String label) => Expanded(
           child: Container(
-            color: const Color(0x1F000000),
+            color: const Color(0x1F000000), // kept literal: fixed dark wash over the accent header in both themes
             padding: const EdgeInsets.symmetric(horizontal: Spacing.md, vertical: Spacing.sm),
             child: Column(
               children: [
                 Text(
                   value,
                   style: AppFonts.sfr(
-                      size: 16, color: c.onAccent, letterSpacing: -0.2, height: 1),
+                      size: 16, color: c.onAccent, letterSpacing: -0.2, height: 1), // kept literal: 16pt rounded stat, no matching type token
                 ),
                 const SizedBox(height: Spacing.xxs),
                 Text(
@@ -344,9 +344,9 @@ class _HeaderStats extends StatelessWidget {
       child: Row(
         children: [
           cell(exerciseLabel, 'Exercise'),
-          const SizedBox(width: 1),
+          const SizedBox(width: 1), // kept literal: 1px divider gap between cells
           cell(setsLabel, 'Sets'),
-          const SizedBox(width: 1),
+          const SizedBox(width: 1), // kept literal: 1px divider gap between cells
           cell(volumeLabel, 'Volume'),
         ],
       ),
@@ -450,7 +450,7 @@ class _RestBannerState extends State<_RestBanner>
                   Text(
                     '$m:$s',
                     style: AppFonts.sfr(
-                        size: 22, color: c.onAccent, letterSpacing: -0.3),
+                        size: 22, color: c.onAccent, letterSpacing: -0.3), // kept literal: 22pt rounded stat, no matching type token
                   ),
                 ],
               ),
@@ -589,7 +589,7 @@ class _CurrentExerciseCard extends StatelessWidget {
                     Text(
                       exercise?.name ?? 'Exercise',
                       style: AppFonts.sfr(
-                          size: 22, color: c.ink, letterSpacing: -0.4),
+                          size: 22, color: c.ink, letterSpacing: -0.4), // kept literal: 22pt rounded stat, no matching type token
                     ),
                     const SizedBox(height: Spacing.xs),
                     Text(
@@ -652,7 +652,7 @@ class _PrChip extends StatelessWidget {
           const SizedBox(width: Spacing.sm),
           Text('${formatWeight(pr.weightKg)}kg × ${pr.reps}',
               style: AppFonts.sfr(
-                  size: 13, color: c.ink, letterSpacing: -0.1)),
+                  size: 13, color: c.ink, letterSpacing: -0.1)), // kept literal: 13pt rounded figure, no matching type token
           const Spacer(),
           Text('Beat it today?',
               style: AppType.caption2.copyWith(
@@ -714,7 +714,7 @@ class _SetRow extends StatelessWidget {
             Text(
               '${formatWeight(set.weightKg)}kg × ${set.reps}',
               style: AppFonts.sfr(
-                  size: 17, color: c.ink, letterSpacing: -0.2),
+                  size: 17, color: c.ink, letterSpacing: -0.2), // kept literal: 17pt rounded figure, no matching type token
             ),
           ],
         ),
@@ -777,7 +777,7 @@ class _SetRow extends StatelessWidget {
               onTap: onLog,
               semanticLabel: 'Complete set',
               child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 11), // 11: keep CTA height
+                padding: const EdgeInsets.symmetric(vertical: 11), // kept literal: 11 keeps the CTA height
                 decoration: BoxDecoration(
                   color: c.accent,
                   borderRadius: BorderRadius.circular(Radii.md),
@@ -819,7 +819,7 @@ class _SetRow extends StatelessWidget {
               TextSpan(
                 text: value,
                 style: AppFonts.sfr(
-                    size: 28, color: c.ink, letterSpacing: -0.5, height: 1.1),
+                    size: 28, color: c.ink, letterSpacing: -0.5, height: 1.1), // kept literal: 28pt rounded figure, no matching type token
                 children: unit == null
                     ? null
                     : [
@@ -866,7 +866,7 @@ class _SetRow extends StatelessWidget {
             const Spacer(),
             Text('${formatWeight(set.weightKg)}kg × ${set.reps}',
                 style: AppFonts.sfr(
-                    size: 15,
+                    size: 15, // kept literal: 15pt rounded figure, no matching type token
                     weight: FontWeight.w500,
                     color: c.ink3,
                     letterSpacing: -0.2)),
@@ -967,7 +967,7 @@ class _UpNextCard extends StatelessWidget {
                         color: c.ink,
                         letterSpacing: -0.24)),
                 if (first != null) ...[
-                  const SizedBox(height: 1),
+                  const SizedBox(height: 1), // kept literal: 1px gap under the title
                   Text(
                     '${nextSets.length} sets · ${formatWeight(first.weightKg)}kg × ${first.reps}',
                     style: AppType.caption.copyWith(
@@ -1004,7 +1004,7 @@ class _CompleteCard extends StatelessWidget {
           AppIcon('checkmark', size: 28, color: c.move),
           const SizedBox(height: Spacing.md),
           Text('All sets logged',
-              style: AppFonts.sfr(size: 18, color: c.ink, letterSpacing: -0.3)),
+              style: AppFonts.sfr(size: 18, color: c.ink, letterSpacing: -0.3)), // kept literal: 18pt rounded title, no matching type token
           const SizedBox(height: Spacing.xs),
           Text('Tap Finish to see your summary.',
               style: AppType.footnote.copyWith(color: c.ink3, letterSpacing: -0.08)),

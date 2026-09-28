@@ -103,8 +103,8 @@ class _GradientCircle extends StatelessWidget {
             colors: [colorA, colorB],
           ),
         ),
-        child: const Center(
-          child: AppIcon('sparkles', size: 11, color: Color(0xFFFFFFFF)),
+        child: Center(
+          child: AppIcon('sparkles', size: 11, color: context.colors.onAccent),
         ),
       );
 }

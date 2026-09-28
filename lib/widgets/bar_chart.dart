@@ -51,7 +51,7 @@ class MonthlyBarChart extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               for (var i = 0; i < months.length; i++) ...[
-                if (i > 0) const SizedBox(width: 10),
+                if (i > 0) const SizedBox(width: 10), // kept literal: 10 bar gutter is off the spacing grid
                 Expanded(
                   child: _Bar(
                     month: months[i],
@@ -101,7 +101,7 @@ class _Bar extends StatelessWidget {
         Text(
           '${(month.total / 1000).toStringAsFixed(1)}k',
           style: AppFonts.sf(
-            size: 10,
+            size: 10, // kept literal: 10pt chart label, below the type ramp
             weight: FontWeight.w600,
             color: isCurrent ? color : c.ink3,
             tabular: true,
@@ -114,7 +114,7 @@ class _Bar extends StatelessWidget {
             height: h,
             decoration: BoxDecoration(
               color: isCurrent ? color : fadedFill,
-              borderRadius: BorderRadius.circular(7),
+              borderRadius: BorderRadius.circular(7), // kept literal: 7 bar cap radius has no radii token
             ),
             clipBehavior: Clip.antiAlias,
             child: month.partial
@@ -129,7 +129,7 @@ class _Bar extends StatelessWidget {
         Text(
           month.label,
           style: AppFonts.sf(
-            size: 11,
+            size: 11, // kept literal: 11pt with a variable weight, caption2 is w400 only
             weight: isCurrent ? FontWeight.w700 : FontWeight.w500,
             color: isCurrent ? c.ink : c.ink3,
           ),

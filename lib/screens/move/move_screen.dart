@@ -66,7 +66,7 @@ class _MoveBody extends StatelessWidget {
         semanticLabel: 'New routine',
         onTap: () => context.pushNamed(AppRoute.routineEditor.name),
       ),
-      padding: const EdgeInsets.only(bottom: 110),
+      padding: const EdgeInsets.only(bottom: 110), // kept literal: 110 scroll-tail clearance for floating actions
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(
@@ -263,7 +263,7 @@ class _MiniRing extends StatelessWidget {
           Text(
             '$percent%',
             style: AppFonts.sfr(
-                size: 14,
+                size: 14, // kept literal: 14pt rounded figure, no matching type token
                 weight: FontWeight.w700,
                 color: onAccent,
                 letterSpacing: -0.2),
@@ -417,7 +417,7 @@ class _HeroStat extends StatelessWidget {
           TextSpan(
             text: value,
             style: AppFonts.sfr(
-                size: 18,
+                size: 18, // kept literal: 18pt rounded figure, no matching type token
                 weight: FontWeight.w700,
                 color: onAccent,
                 letterSpacing: -0.3,
@@ -511,7 +511,7 @@ class _StartCta extends ConsumerWidget {
                   Text(
                     routineName,
                     style: AppFonts.sfr(
-                        size: 18,
+                        size: 18, // kept literal: 18pt rounded figure, no matching type token
                         weight: FontWeight.w700,
                         color: c.ink,
                         letterSpacing: -0.3),
@@ -702,7 +702,7 @@ class _SessionCard extends StatelessWidget {
                                         letterSpacing: -0.24),
                                   ),
                                   Padding(
-                                    padding: const EdgeInsets.only(top: 1),
+                                    padding: const EdgeInsets.only(top: 1), // kept literal: 1px gap under the title
                                     child: Text(
                                       session.relativeDate,
                                       style: AppType.caption2.copyWith(
@@ -718,7 +718,7 @@ class _SessionCard extends StatelessWidget {
                         ),
                         const SizedBox(height: Spacing.sm),
                         Padding(
-                          padding: const EdgeInsets.only(left: 42), // align under title
+                          padding: const EdgeInsets.only(left: 42), // kept literal: 42 aligns under the title
                           child: Row(
                             children: [
                               _StatChip(
@@ -800,7 +800,7 @@ class _VolumeSparkline extends StatelessWidget {
               height: 18 * bars[i],
               decoration: BoxDecoration(
                 color: color.withValues(alpha: 0.4 + i * 0.1),
-                borderRadius: BorderRadius.circular(1), // bar corner (geometry)
+                borderRadius: BorderRadius.circular(1), // kept literal: bar corner, below the smallest radius
               ),
             ),
           ],
@@ -825,7 +825,7 @@ class _StatChip extends StatelessWidget {
         Text(
           value,
           style: AppFonts.sfr(
-              size: 14,
+              size: 14, // kept literal: 14pt rounded figure, no matching type token
               weight: FontWeight.w700,
               color: c.ink,
               letterSpacing: -0.2),
@@ -848,7 +848,7 @@ class _PrBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: Spacing.sm, vertical: 3),
+      padding: const EdgeInsets.symmetric(horizontal: Spacing.sm, vertical: 3), // kept literal: 3 keeps the chip compact, off-grid
       decoration: BoxDecoration(
           color: c.money, borderRadius: BorderRadius.circular(Radii.pill)),
       child: Row(

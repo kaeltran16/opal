@@ -161,7 +161,7 @@ class _NutritionAddSheetState extends ConsumerState<_NutritionAddSheet> {
               Text(
                 'WHEN',
                 style: AppFonts.sf(
-                    size: 11.5,
+                    size: 11.5, // kept literal: 11.5pt, no matching type token
                     weight: FontWeight.w700,
                     color: c.ink3,
                     letterSpacing: 0.4),
@@ -188,7 +188,7 @@ class _NutritionAddSheetState extends ConsumerState<_NutritionAddSheet> {
                         Text(
                           'WHAT DID YOU EAT?',
                           style: AppFonts.sf(
-                              size: 11.5,
+                              size: 11.5, // kept literal: 11.5pt, no matching type token
                               weight: FontWeight.w700,
                               color: c.nutrition,
                               letterSpacing: 0.3),
@@ -201,10 +201,10 @@ class _NutritionAddSheetState extends ConsumerState<_NutritionAddSheet> {
                         Expanded(
                           child: TextField(
                             controller: _nameController,
-                            style: AppFonts.sf(size: 15, color: c.ink),
+                            style: AppFonts.sf(size: 15, color: c.ink), // kept literal: 15pt untracked, subhead is tracked
                             decoration: InputDecoration(
                               hintText: 'greek yogurt with berries',
-                              hintStyle: AppFonts.sf(size: 15, color: c.ink3),
+                              hintStyle: AppFonts.sf(size: 15, color: c.ink3), // kept literal: 15pt untracked, subhead is tracked
                               filled: true,
                               fillColor: c.surface,
                               contentPadding: const EdgeInsets.symmetric(
@@ -240,7 +240,7 @@ class _NutritionAddSheetState extends ConsumerState<_NutritionAddSheet> {
                                 : Text(
                                     'Estimate',
                                     style: AppFonts.sf(
-                                      size: 14,
+                                      size: 14, // kept literal: 14pt, no matching type token
                                       weight: FontWeight.w600,
                                       color: Colors.white,
                                     ),
@@ -272,7 +272,7 @@ class _NutritionAddSheetState extends ConsumerState<_NutritionAddSheet> {
                   child: Text(
                     'Start over',
                     style: AppFonts.sf(
-                        size: 14, weight: FontWeight.w600, color: c.nutrition),
+                        size: 14, weight: FontWeight.w600, color: c.nutrition), // kept literal: 14pt w600, no matching type token
                   ),
                 ),
               ] else ...[
@@ -280,7 +280,7 @@ class _NutritionAddSheetState extends ConsumerState<_NutritionAddSheet> {
                 Text(
                   'OR PICK A COMMON ONE',
                   style: AppFonts.sf(
-                      size: 11.5,
+                      size: 11.5, // kept literal: 11.5pt, no matching type token
                       weight: FontWeight.w700,
                       color: c.ink3,
                       letterSpacing: 0.4),
@@ -311,17 +311,17 @@ class _NutritionAddSheetState extends ConsumerState<_NutritionAddSheet> {
                               Text(
                                 pick.name,
                                 style: AppFonts.sf(
-                                    size: 13,
+                                    size: 13, // kept literal: 13pt, no matching type token
                                     weight: FontWeight.w500,
                                     color: c.ink),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
-                              const SizedBox(height: 3),
+                              const SizedBox(height: 3), // kept literal: 3 gap is off the spacing grid
                               Text(
                                 '≈${((pick.cal.lo + pick.cal.hi) / 2).round()} cal',
                                 style: AppFonts.sfr(
-                                    size: 12,
+                                    size: 12, // kept literal: 12pt rounded figure, no matching type token
                                     weight: FontWeight.w600,
                                     color: c.nutrition),
                               ),

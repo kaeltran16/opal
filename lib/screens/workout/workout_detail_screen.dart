@@ -82,7 +82,7 @@ class _Body extends StatelessWidget {
         semanticLabel: 'Back',
       ),
       trailing: _MoreButton(workoutId: workoutId),
-      padding: const EdgeInsets.only(bottom: 48),
+      padding: const EdgeInsets.only(bottom: 48), // kept literal: 48 scroll tail below the last section
       children: [
         // --- 2×2 summary grid -------------------------------------------------
         Padding(
@@ -219,7 +219,7 @@ Future<void> _showWorkoutMenu(
     backgroundColor: c.bg,
     builder: (sheetContext) => SafeArea(
       child: Padding(
-        padding: const EdgeInsets.only(top: 8, bottom: 8),
+        padding: const EdgeInsets.only(top: Spacing.sm, bottom: Spacing.sm),
         child: InsetSection(
           children: [
             ListRow(
@@ -258,7 +258,7 @@ class _DeleteButton extends ConsumerWidget {
       child: Container(
         width: double.infinity,
         alignment: Alignment.center,
-        // off-grid tap-target padding — keep literal.
+        // kept literal: off-grid tap-target padding.
         padding: const EdgeInsets.symmetric(vertical: 13),
         child: Text('Delete workout',
             style: AppType.subhead.copyWith(
@@ -306,7 +306,7 @@ class _SummaryTile extends StatelessWidget {
     final c = context.colors;
     final color = c.forType(type);
     return Container(
-      // vertical 13 off-grid — keep literal.
+      // kept literal: vertical 13 off-grid.
       padding: const EdgeInsets.fromLTRB(Spacing.lg, 13, Spacing.lg, 13),
       decoration: BoxDecoration(
           color: c.surface, borderRadius: BorderRadius.circular(Radii.card)),
@@ -340,7 +340,7 @@ class _SummaryTile extends StatelessWidget {
             children: [
               Text(value,
                   style: AppFonts.sfr(
-                      size: 26, weight: FontWeight.w700, color: color, letterSpacing: -0.5)),
+                      size: 26, weight: FontWeight.w700, color: color, letterSpacing: -0.5)), // kept literal: 26pt rounded stat, no matching type token
               const SizedBox(width: Spacing.xs),
               Flexible(
                 child: Text(unit,
@@ -382,7 +382,7 @@ class _VolumeChart extends StatelessWidget {
           children: [
             Text(totalT.toStringAsFixed(1),
                 style: AppFonts.sfr(
-                    size: 26, weight: FontWeight.w700, color: c.ink, letterSpacing: -0.5)),
+                    size: 26, weight: FontWeight.w700, color: c.ink, letterSpacing: -0.5)), // kept literal: 26pt rounded stat, no matching type token
             const SizedBox(width: Spacing.xs),
             Text('t total',
                 style: AppType.footnote.copyWith(
@@ -402,7 +402,7 @@ class _VolumeChart extends StatelessWidget {
             child: Padding(
               padding: const EdgeInsets.only(bottom: Spacing.xs),
               child: Container(
-                // vertical 1 hairline — keep literal.
+                // kept literal: vertical 1 hairline.
                 padding: const EdgeInsets.symmetric(horizontal: Spacing.xs, vertical: 1),
                 decoration: BoxDecoration(
                   color: c.move.withValues(alpha: 0.1),
@@ -410,7 +410,7 @@ class _VolumeChart extends StatelessWidget {
                 ),
                 child: Text('${latestT.toStringAsFixed(1)}t',
                     style: AppFonts.sfr(
-                        size: 10,
+                        size: 10, // kept literal: 10pt rounded badge, below the type ramp
                         weight: FontWeight.w700,
                         color: c.move,
                         letterSpacing: -0.08)),
@@ -465,7 +465,7 @@ class _VolumeChart extends StatelessWidget {
                             ? c.move
                             : c.move.withValues(alpha: 0.27),
                         borderRadius: const BorderRadius.vertical(
-                          // decorative chart-bar foot; sub-token geometry, keep literal
+                          // kept literal: decorative chart-bar foot, sub-token geometry
                           top: Radius.circular(6),
                           bottom: Radius.circular(3),
                         ),
@@ -505,7 +505,7 @@ class _TrendPill extends StatelessWidget {
     final up = pct >= 0;
     final color = up ? c.move : c.red;
     return Container(
-      // horizontal 9 off-grid — keep literal.
+      // kept literal: horizontal 9 off-grid.
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: Spacing.xs),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.1),
@@ -565,7 +565,7 @@ class _ExerciseBlock extends StatelessWidget {
               ),
               Text('${group.sets.length} × ${vol}kg',
                   style: AppFonts.sfr(
-                      size: 12,
+                      size: 12, // kept literal: 12pt rounded figure, no matching type token
                       weight: FontWeight.w400,
                       color: c.ink3,
                       letterSpacing: -0.08)),
@@ -620,7 +620,7 @@ class _SetVolumeSparkline extends StatelessWidget {
             child: Align(
               alignment: Alignment(_labelX(topIdx, sets.length), 0),
               child: Container(
-                // vertical 1 hairline — keep literal.
+                // kept literal: vertical 1 hairline.
                 padding: const EdgeInsets.symmetric(horizontal: Spacing.xs, vertical: 1),
                 decoration: BoxDecoration(
                   color: c.move.withValues(alpha: 0.1),
@@ -628,7 +628,7 @@ class _SetVolumeSparkline extends StatelessWidget {
                 ),
                 child: Text(topLabel,
                     style: AppFonts.sfr(
-                        size: 9,
+                        size: 9, // kept literal: 9pt rounded badge, below the type ramp
                         weight: FontWeight.w700,
                         color: c.move,
                         letterSpacing: -0.08)),
@@ -652,7 +652,7 @@ class _SetVolumeSparkline extends StatelessWidget {
                               : c.move.withValues(alpha: 0.27),
                           borderRadius: const BorderRadius.vertical(
                             top: Radius.circular(Radii.xs),
-                            // decorative chart-bar foot; sub-token geometry, keep literal
+                            // kept literal: decorative chart-bar foot, sub-token geometry
                             bottom: Radius.circular(2),
                           ),
                         ),
@@ -698,7 +698,7 @@ class _SetTableHeader extends StatelessWidget {
           cell('SET', width: 32),
           cell('KG'),
           cell('REPS'),
-          const SizedBox(width: 40),
+          const SizedBox(width: 40), // kept literal: matches the 40-wide PR column in each row
         ],
       ),
     );
@@ -719,7 +719,7 @@ class _SetRow extends StatelessWidget {
     final isPR = set.isPR;
     final weightLabel = formatWeight(weight);
     final num = AppFonts.sfr(
-        size: 15, weight: FontWeight.w600, color: c.ink, letterSpacing: -0.1);
+        size: 15, weight: FontWeight.w600, color: c.ink, letterSpacing: -0.1); // kept literal: 15pt w600 rounded, no matching type token
     return Container(
       decoration: BoxDecoration(
         border: last
@@ -735,7 +735,7 @@ class _SetRow extends StatelessWidget {
             width: 32,
             child: Text('${index + 1}',
                 style: AppFonts.sfr(
-                    size: 13, weight: FontWeight.w600, color: c.ink3)),
+                    size: 13, weight: FontWeight.w600, color: c.ink3)), // kept literal: 13pt w600 rounded, no matching type token
           ),
           Expanded(child: Text(weightLabel, style: num)),
           Expanded(child: Text('$reps', style: num)),

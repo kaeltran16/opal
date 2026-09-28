@@ -48,7 +48,7 @@ class NutritionPatternsScreen extends ConsumerWidget {
           onTap: () => context.pop(),
           semanticLabel: 'Back',
         ),
-        padding: const EdgeInsets.only(bottom: 110),
+        padding: const EdgeInsets.only(bottom: 110), // kept literal: 110 scroll-tail clearance for floating actions
         children: [
           const SizedBox(height: Spacing.lg),
           for (final corr in nutritionCorrs)
@@ -184,7 +184,7 @@ class _SquareDot extends StatelessWidget {
       height: 8,
       decoration: BoxDecoration(
         color: color,
-        borderRadius: BorderRadius.circular(2),
+        borderRadius: BorderRadius.circular(2), // kept literal: bar corner, below the smallest radius
       ),
     );
   }
@@ -231,7 +231,7 @@ class _Sparkline extends StatelessWidget {
                 color: emph.contains(i)
                     ? color
                     : color.withValues(alpha: 0.40),
-                borderRadius: BorderRadius.circular(2),
+                borderRadius: BorderRadius.circular(2), // kept literal: bar corner, below the smallest radius
               ),
             ),
           ],

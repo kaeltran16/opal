@@ -42,7 +42,7 @@ class BudgetsScreen extends ConsumerWidget {
           name: 'slider.horizontal.3',
           semanticLabel: 'Budget options',
         ),
-        padding: const EdgeInsets.only(bottom: 110),
+        padding: const EdgeInsets.only(bottom: 110), // kept literal: 110 scroll-tail clearance for floating actions
         children: [
           async.when(
             loading: () => _centered(
@@ -94,12 +94,12 @@ class _Body extends StatelessWidget {
       children: [
         // --- Hero: total budget ring ---
         Padding(
-          padding: const EdgeInsets.fromLTRB(Spacing.lg, Spacing.sm, Spacing.lg, 22),
+          padding: const EdgeInsets.fromLTRB(Spacing.lg, Spacing.sm, Spacing.lg, 22), // kept literal: 22 hero bottom inset, off-grid
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: Spacing.xl, vertical: 22),
+            padding: const EdgeInsets.symmetric(horizontal: Spacing.xl, vertical: 22), // kept literal: 22 hero inset, off-grid
             decoration: BoxDecoration(
               color: c.surface,
-              borderRadius: BorderRadius.circular(22),
+              borderRadius: BorderRadius.circular(22), // kept literal: 22 hero radius has no radii token
             ),
             child: Row(
               children: [
@@ -115,7 +115,7 @@ class _Body extends StatelessWidget {
                       Text(
                         '${(progress * 100).round()}%',
                         style: AppFonts.sfr(
-                          size: 26,
+                          size: 26, // kept literal: 26pt rounded figure, no matching type token
                           weight: FontWeight.w700,
                           color: c.ink,
                           letterSpacing: -0.6,
@@ -126,7 +126,7 @@ class _Body extends StatelessWidget {
                       Text(
                         'USED',
                         style: AppFonts.sf(
-                          size: 11,
+                          size: 11, // kept literal: 11pt, no matching type token
                           weight: FontWeight.w600,
                           color: c.ink3,
                           letterSpacing: 0.2,
@@ -143,7 +143,7 @@ class _Body extends StatelessWidget {
                       Text(
                         formatCurrency(data.totalLeft, currency),
                         style: AppFonts.sfr(
-                          size: 34,
+                          size: 34, // kept literal: 34pt rounded with custom tracking, amount is untracked
                           weight: FontWeight.w700,
                           color: c.ink,
                           letterSpacing: -1,
@@ -153,17 +153,17 @@ class _Body extends StatelessWidget {
                       Text(
                         'left to spend',
                         style: AppFonts.sf(
-                          size: 15,
+                          size: 15, // kept literal: 15pt, no matching type token
                           weight: FontWeight.w600,
                           color: c.money,
                           letterSpacing: -0.24,
                         ),
                       ),
-                      const SizedBox(height: 6),
+                      const SizedBox(height: 6), // kept literal: 6 gap is off the spacing grid
                       Text(
                         '${formatCurrency(data.totalSpent, currency)} of ${formatCurrency(data.totalCap, currency)} · $month',
                         style: AppFonts.sf(
-                          size: 13,
+                          size: 13, // kept literal: 13pt, no matching type token
                           color: c.ink2,
                           letterSpacing: -0.08,
                           tabular: true,
@@ -175,7 +175,7 @@ class _Body extends StatelessWidget {
                       Text(
                         paceLabel,
                         style: AppFonts.sf(
-                          size: 12,
+                          size: 12, // kept literal: 12pt, no matching type token
                           weight: FontWeight.w600,
                           color: onPace ? c.move : c.money,
                           letterSpacing: -0.08,
@@ -195,7 +195,7 @@ class _Body extends StatelessWidget {
           child: Text(
             'ENVELOPES',
             style: AppFonts.sf(
-              size: 13,
+              size: 13, // kept literal: 13pt, no matching type token
               color: c.ink3,
               letterSpacing: -0.08,
             ),
@@ -312,7 +312,7 @@ class _PaceBar extends StatelessWidget {
                   height: 12,
                   decoration: BoxDecoration(
                     color: c.ink.withValues(alpha: 0.55),
-                    borderRadius: BorderRadius.circular(2),
+                    borderRadius: BorderRadius.circular(2), // kept literal: bar corner, below the smallest radius
                   ),
                 ),
               ),
@@ -440,10 +440,10 @@ class _EnvelopeCard extends StatelessWidget {
     final progress = spend.progress;
 
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(14), // kept literal: 14 inset is off the spacing grid
       decoration: BoxDecoration(
         color: c.surface,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(18), // kept literal: 18 tile radius has no radii token
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -470,7 +470,7 @@ class _EnvelopeCard extends StatelessWidget {
                 child: Text(
                   '${(progress * 100).round()}',
                   style: AppFonts.sf(
-                    size: 10,
+                    size: 10, // kept literal: 10pt, below the type ramp
                     weight: FontWeight.w700,
                     color: over ? c.red : c.ink2,
                   ),
@@ -484,7 +484,7 @@ class _EnvelopeCard extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: AppFonts.sf(
-              size: 15,
+              size: 15, // kept literal: 15pt, no matching type token
               weight: FontWeight.w600,
               color: c.ink,
               letterSpacing: -0.2,
@@ -494,19 +494,19 @@ class _EnvelopeCard extends StatelessWidget {
           Text(
             '${formatCurrency(spend.spent, currency)} of ${formatCurrency(spend.cap, currency)}',
             style: AppFonts.sf(
-              size: 12,
+              size: 12, // kept literal: 12pt, no matching type token
               color: c.ink3,
               letterSpacing: -0.08,
               tabular: true,
             ),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 6), // kept literal: 6 gap is off the spacing grid
           Text(
             over
                 ? '${formatCurrency(spend.remaining.abs(), currency)} over'
                 : '${formatCurrency(spend.remaining, currency)} left',
             style: AppFonts.sf(
-              size: 12,
+              size: 12, // kept literal: 12pt, no matching type token
               weight: FontWeight.w600,
               color: over ? c.red : c.ink2,
               letterSpacing: -0.08,

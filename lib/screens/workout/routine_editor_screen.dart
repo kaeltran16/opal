@@ -861,7 +861,7 @@ class _StepperRow extends StatelessWidget {
             child: Text(value,
                 textAlign: TextAlign.center,
                 style: AppFonts.sfr(
-                    size: 17, weight: FontWeight.w600, color: c.ink)),
+                    size: 17, weight: FontWeight.w600, color: c.ink)), // kept literal: 17pt w600 rounded, no matching type token
           ),
           _StepButton(icon: 'chevron.up', onTap: onInc),
         ],

@@ -99,7 +99,7 @@ class _EmailSetupScreenState extends ConsumerState<EmailSetupScreen> {
     return Material(
       color: c.bg,
       child: ListView(
-        padding: const EdgeInsets.only(bottom: 48),
+        padding: const EdgeInsets.only(bottom: 48), // kept literal: 48 scroll tail below the last section
         children: [
           EmailNavBar(
             title: 'Gmail setup',
@@ -141,7 +141,7 @@ class _EmailSetupScreenState extends ConsumerState<EmailSetupScreen> {
                       .read(emailSetupControllerProvider.notifier)
                       .markDirty(),
                   decoration: _fieldDecoration(hint: 'xxxx xxxx xxxx xxxx'),
-                  style: AppFonts.mono(size: 15, color: c.ink),
+                  style: AppFonts.mono(size: 15, color: c.ink), // kept literal: 15pt mono, eyebrow is 12pt
                 ),
               ),
             ],
@@ -198,7 +198,7 @@ class _EmailSetupScreenState extends ConsumerState<EmailSetupScreen> {
                                     fontWeight: FontWeight.w500,
                                     color: c.ink,
                                     letterSpacing: -0.24)),
-                            const SizedBox(height: 1), // tight 1px gap — keep
+                            const SizedBox(height: 1), // kept literal: tight 1px gap
                             Text('imap.gmail.com · port 993 · SSL',
                                 style: AppType.caption.copyWith(
                                     color: c.ink3,

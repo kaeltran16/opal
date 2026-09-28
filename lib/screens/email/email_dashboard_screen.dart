@@ -82,7 +82,7 @@ class EmailDashboardScreen extends ConsumerWidget {
           onTap: () => context.pop(),
           semanticLabel: 'Back',
         ),
-        padding: const EdgeInsets.only(bottom: 48),
+        padding: const EdgeInsets.only(bottom: 48), // kept literal: 48 scroll tail below the last section
         children: [
           // --- Sync-job hero -------------------------------------------------
           Padding(
@@ -224,7 +224,7 @@ class EmailDashboardScreen extends ConsumerWidget {
               padding: const EdgeInsets.fromLTRB(
                   Spacing.lg, 0, Spacing.lg, Spacing.lg),
               child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 28), // no token
+                padding: const EdgeInsets.symmetric(vertical: 28), // kept literal: 28 has no spacing token
                 decoration: BoxDecoration(
                   color: c.surface,
                   borderRadius: BorderRadius.circular(Radii.card),
@@ -580,7 +580,7 @@ class _ImportRowState extends State<_ImportRow> {
       decoration: BoxDecoration(
         color: _badgeVisible
             ? c.accent.withValues(alpha: 0.05)
-            // Colors.transparent unavailable: material imported with show-clause
+            // kept literal: Colors.transparent unavailable, material imported with show-clause
             : const Color(0x00000000),
         border: widget.last
             ? null
@@ -637,7 +637,7 @@ class _ImportRowState extends State<_ImportRow> {
                     ],
                   ],
                 ),
-                const SizedBox(height: 1), // 1px — keep
+                const SizedBox(height: 1), // kept literal: 1px gap
                 Text(item.category ?? 'Uncategorized',
                     style: AppType.caption.copyWith(
                         color: c.ink3, letterSpacing: -0.08)),
@@ -646,7 +646,7 @@ class _ImportRowState extends State<_ImportRow> {
           ),
           Text('−\$$amount',
               style: AppFonts.sfr(
-                  size: 16,
+                  size: 16, // kept literal: 16pt rounded figure, no matching type token
                   weight: FontWeight.w600,
                   color: c.ink,
                   letterSpacing: -0.2)),
@@ -671,11 +671,11 @@ class _StatTile extends StatelessWidget {
       children: [
         Text(value,
             style: AppFonts.sfr(
-                size: 22,
+                size: 22, // kept literal: 22pt rounded figure, no matching type token
                 weight: FontWeight.w700,
                 color: color,
                 letterSpacing: -0.3)),
-        const SizedBox(height: 1), // 1px — keep
+        const SizedBox(height: 1), // kept literal: 1px gap
         Text(label,
             style: AppType.caption2.copyWith(color: c.ink3, letterSpacing: -0.08)),
       ],
