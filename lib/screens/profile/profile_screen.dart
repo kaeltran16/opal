@@ -237,7 +237,7 @@ class _ProfileBody extends StatelessWidget {
     Navigator.of(context, rootNavigator: true).push(
       PageRouteBuilder<void>(
         opaque: false,
-        barrierColor: const Color(0x00000000),
+        barrierColor: Colors.transparent,
         transitionDuration: const Duration(milliseconds: 320),
         reverseTransitionDuration: const Duration(milliseconds: 220),
         pageBuilder: (context, animation, secondary) =>

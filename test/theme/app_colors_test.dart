@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opal/theme/app_colors.dart';
+import 'package:opal/theme/contrast.dart';
 
 void main() {
   test('light/dark carry onAccent, scrim, shadow', () {
@@ -96,6 +97,14 @@ void main() {
     expect(dark.glass, ref.glass);
     expect(dark.moneyInk, ref.moneyInk);
   });
+
+  for (final colors in [AppColors.light(AppAccent.blue), AppColors.dark(AppAccent.blue)]) {
+    test('${colors.brightness.name} ink3 reaches 4.5:1 on bg and surface', () {
+      for (final back in [colors.bg, colors.surface]) {
+        expect(contrastRatio(composite(colors.ink3, back), back), greaterThanOrEqualTo(4.5));
+      }
+    });
+  }
 
   test('inkForType mirrors forType and falls back to accentInk', () {
     final c = AppColors.dark(AppAccent.indigo);

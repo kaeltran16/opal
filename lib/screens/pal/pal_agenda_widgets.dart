@@ -497,6 +497,7 @@ class _Toggle extends StatelessWidget {
             // kept literal: the knob is white in both themes, like iOS.
             color: Color(0xFFFFFFFF),
             boxShadow: [
+              // kept literal: the knob shadow is fixed in both themes, like iOS.
               BoxShadow(color: Color(0x33000000), blurRadius: 4, offset: Offset(0, 2)),
             ],
           ),

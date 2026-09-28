@@ -163,7 +163,8 @@ class AppColors extends ThemeExtension<AppColors> {
       surface2: const Color(0xFFF2F2F7),
       ink: const Color(0xFF000000),
       ink2: const Color.fromRGBO(60, 60, 67, 0.85),
-      ink3: const Color.fromRGBO(60, 60, 67, 0.60),
+      // opaque so secondary text reaches 4.5:1 on bg; the translucent value was 3.3:1
+      ink3: const Color(0xFF6E6E73),
       ink4: const Color.fromRGBO(60, 60, 67, 0.30),
       hair: const Color.fromRGBO(60, 60, 67, 0.12),
       blur: const Color.fromRGBO(242, 242, 247, 0.72),

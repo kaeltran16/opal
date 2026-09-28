@@ -7,6 +7,7 @@ import 'package:opal/app.dart';
 import 'package:opal/controllers/providers.dart';
 import 'package:opal/data/db/database.dart';
 import 'package:opal/data/seed/seeder.dart';
+import 'package:opal/screens/profile/profile_screen.dart';
 import 'package:opal/services/pal/mock_pal_service.dart';
 import 'package:opal/widgets/glass_tab_bar.dart';
 
@@ -66,7 +67,7 @@ void main() {
         of: find.byType(GlassTabBar), matching: find.text('You')));
     await tester.pumpAndSettle();
 
-    expect(find.text('What Pal remembers'), findsOneWidget);
+    expect(find.byType(ProfileScreen), findsOneWidget);
     expect(find.bySemanticsLabel('Back'), findsNothing);
 
     await flushProviderTimers(tester);

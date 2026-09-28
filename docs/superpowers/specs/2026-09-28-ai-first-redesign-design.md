@@ -170,6 +170,9 @@ This replaces the FAB. The composer logic itself does not change.
   - `accentInk`: an explicit value per `AppAccent` in `AppAccentInfo`, 8 accents × light and dark,
     each checked for 4.5:1 on `accentTint`. It is a table, not a computed value, so it is
     deterministic and reviewable.
+- **`AppColors` change:** light `ink3` moves from `rgba(60,60,67,.60)` to opaque `#6E6E73`. The
+  old value measures 3.3:1 on `#F2F2F7`; the new one reaches 4.5:1 on `bg` and `surface`. Dark
+  `ink3` is unchanged.
 - **Starting values** come from the mockups:
   - moneyInk `#B45400` / `#FFB340`
   - moveInk `#1E7B34` / `#4CDB73`
