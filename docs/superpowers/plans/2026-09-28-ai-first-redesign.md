@@ -103,8 +103,9 @@ the baseline.
   - Delete the old un-suffixed PNGs.
 - [ ] **Step 5:** Run `flutter test --update-goldens test/golden`, then run `flutter test test/golden`
   twice. Expected: pass both times. Add a check that the fixed clock actually reaches the UI: the
-  `today_light` test asserts `find.textContaining('September 28')` before capture, so a stray
-  `DateTime.now()` shows up as a failure rather than as silent drift.
+  `today_light` test asserts `find.textContaining(RegExp('september 28', caseSensitive: false))`
+  before capture, so a stray `DateTime.now()` shows up as a failure rather than as silent drift.
+  Match case-insensitively, because Task 9's eyebrow renders the date in upper case.
 - [ ] **Step 6:** Commit: `test(golden): pin the clock and baseline every main screen in both themes`.
 
 ### Task 2: Tokens: glass, area inks, accent inks, brief type (P0)
@@ -328,7 +329,7 @@ class GlanceNumbers {
 }
 
 enum BriefMode { brief, fallback }
-BriefMode briefMode(AsyncValue<String?> brief); // brief iff brief.value is non-empty (value keeps the previous data while reloading or after an error)
+BriefMode briefMode(AsyncValue<String?> brief); // brief iff brief.value is non-empty
 
 bool isDoneByPal(Entry e, DateTime now); // e.source == EntrySource.email && same local day as now
 ```
@@ -360,15 +361,17 @@ is three columns with 0.5 `c.hair` separators and no card. It shows the `$ left 
     - `AsyncData('x')` gives brief.
     - `AsyncData(null)` and `AsyncData('')` give fallback.
     - `AsyncLoading()` gives fallback.
-    - `AsyncError` with a previous value `'x'` (`const AsyncLoading<String?>().copyWithPrevious(AsyncData('x'))`
-      or `AsyncError(e, st).copyWithPrevious(...)`) gives brief.
+    - Do not build states with `copyWithPrevious`: it is `@internal` in riverpod 3 and fails
+      `analyze --fatal-infos`. The "previous value survives" case is covered through the real
+      controller below.
   - `isDoneByPal`: an email entry today is true, an email entry yesterday is false, and a manual
     entry today is false.
   - `TodayBrief`, with `palServiceProvider` overridden by a fake whose `insights(InsightRange.day)`
     returns `headline: 'Steady start.'`, and then throws on the next call:
     - After `build`, the state is `'Steady start.'`.
-    - After `refresh()` throws, the state is still `AsyncData('Steady start.')`. This pins Review
-      Focus 3.
+    - After `refresh()` throws, the state is still `AsyncData('Steady start.')`, and
+      `briefMode(container.read(todayBriefProvider)) == BriefMode.brief`. Use a `ProviderContainer`.
+      This pins Review Focus 3.
     - A first-load failure gives `AsyncData(null)`, not an error.
   - `BriefText`: the three chip semantics labels exist exactly as written above, and tapping the
     money chip calls `onChip(TodayArea.money)`. With `routinesTotal: 0` there is no routines chip.
@@ -377,7 +380,9 @@ is three columns with 0.5 `c.hair` separators and no card. It shows the `$ left 
 - [ ] **Step 3:** Implement. `TodayBrief.build` calls `ref.read(palServiceProvider).insights(InsightRange.day)`
   and trims the headline, the same seam as `_PalScreenState._refreshBrief` (`lib/screens/pal/pal_screen.dart:56`).
   Catch errors at this boundary: keep the previous value and `debugPrint` the error with context.
-  Run the codegen.
+  `refresh()` does not put the state into loading. It fetches, and assigns
+  `state = AsyncData(headline)` only when the trimmed headline is non-empty, so a failed or empty
+  refresh leaves the state untouched. Run the codegen.
 - [ ] **Step 4:** Run the tests and `flutter analyze --fatal-infos`. Expected: pass.
 - [ ] **Step 5:** Commit: `feat(today): brief controller, area ordering and glance widgets`.
 
@@ -419,11 +424,12 @@ is three columns with 0.5 `c.hair` separators and no card. It shows the `$ left 
 - [ ] **Step 5:** Commit: `feat(ui): glass tab bar with scroll minimize and the Pal ask bar`.
 
 ### Task 8: Four-branch shell, route redirects and the glass composer sheet (P3)
-**Depends on:** Task 7, Task 4, Task 6
+**Depends on:** Task 7, Task 3, Task 4, Task 6
 **Chunk:** P3: new foundations (tokens + 23 shared widgets)
 
 **Files:**
 - Modify: `lib/router.dart`, `lib/screens/shell/loop_shell.dart`, `lib/screens/shell/tab_header.dart`,
+  `lib/widgets/nav_bar.dart` (the collapsed pinned bar becomes glass; Task 3 cleaned this file first),
   `lib/screens/profile/profile_screen.dart` (remove only the back `leading`),
   `lib/screens/pal/pal_composer_screen.dart` (sheet container only)
 - Delete: `lib/widgets/loop_tab_bar.dart`
@@ -459,31 +465,43 @@ const cases = {
   '/email': '/email', '/email/setup': '/email/setup', '/email/dashboard': '/email/dashboard',
   '/pal-composer': '/pal-composer', '/pal': '/pal', '/pal-home': '/pal', '/pal-inbox': '/pal',
   '/close-out': '/close-out', '/streak': '/streak',
+  '/post-workout': '/post-workout',
+  '/onboarding': '/today', // onboarding is complete in the test, so the gate bounces to Today
 };
 ```
 
   Also add these cases:
   - Start on `/nutrition`, go to `/sleep`. The Today tab is selected
-    (`Semantics selected` on `Today`), and a back affordance returns to `/today`. This pins Review
-    Focus 1.
-  - `/rituals/player/<seeded routine id>` still opens `RoutinePlayerScreen`.
-  - Every `AppRoute` value whose path starts with `/` appears as a key in `cases` or is a
-    parameterised path covered above. Iterate `AppRoute.values`, so a newly added route without a
-    case fails.
+    (`Semantics selected` on `Today`), a `Back` button is shown, and tapping it lands on `/today`.
+    This pins Review Focus 1.
+  - `/rituals/player/<seeded ritual routine id>` still opens `RoutinePlayerScreen`.
+  - `/session/<seeded workout routine id>` still opens `ActiveSessionScreen`. Take the id from
+    `ref.read(workoutRoutinesStreamProvider.future)` through the `ProviderScope`'s container.
+  - Every `AppRoute` value whose path starts with `/` and contains no `:` appears as a key in
+    `cases`. Iterate `AppRoute.values`, so a newly added route without a case fails. The two
+    parameterised root paths (`activeSession`, `routinePlayer`) are covered by the explicit cases
+    above.
 - [ ] **Step 2:** Run it and expect a FAIL (`/rituals` is not redirected yet).
 - [ ] **Step 3:** Restructure `router.dart`:
   - The branches become `today`, `move`, `nutrition` and `you`.
   - Under `/today`, add child `GoRoute`s `rituals` (with its `manage` child), `sleep` and `mood`,
-    using new `AppRoute` values `todayRituals('todayRituals', 'rituals')`, `todaySleep` and
-    `todayMood`.
+    using new `AppRoute` values:
+    - `todayRituals('todayRituals', 'rituals')`
+    - `todayManageRituals('todayManageRituals', 'manage')`
+    - `todaySleep('todaySleep', 'sleep')`
+    - `todayMood('todayMood', 'mood')`
+
+    Route names must be unique, so the new children never reuse the old names.
   - The existing `AppRoute.rituals`, `sleep`, `mood` and `manageRituals` become top-level redirect
-    routes to the new locations, keeping their names and paths.
+    routes to the new locations, keeping their names and paths. `/rituals` redirects with a
+    `manage` child redirecting to `/today/rituals/manage`.
   - Move the `/you` route and its children into the fourth branch and drop its
     `parentNavigatorKey`.
   - Remove the rituals, sleep and mood navigator keys.
   - Leave `/pal` untouched (Task 10 redirects it).
   - Update every `pushNamed`/`goNamed` of `AppRoute.rituals`/`sleep`/`mood`/`manageRituals` in
-    `lib/` to the new names (`grep -rn "AppRoute\.\(rituals\|sleep\|mood\|manageRituals\)\b" lib`).
+    `lib/` to `todayRituals`/`todaySleep`/`todayMood`/`todayManageRituals`
+    (`grep -rn "AppRoute\.\(rituals\|sleep\|mood\|manageRituals\)\b" lib`).
 - [ ] **Step 4:** Rewrite `LoopShell`:
   - Remove the More overflow, `_MoreOverflowMenu` and the FAB.
   - The branch ids are `['today','move','nutrition','you']`, and the tabs are
@@ -497,9 +515,21 @@ const cases = {
     it, as in TodayScrolled.
   - Both `onAsk` and `onMic` call `context.pushNamed(AppRoute.palComposer.name)`.
   - Delete `lib/widgets/loop_tab_bar.dart`.
-- [ ] **Step 5:** In `TabHeaderScrollView`, remove the You avatar leading and the Pal orb, because
-  You is a tab and the ask bar replaces the orb. Keep `contextualAction` as the only trailing
-  widget. In `ProfileScreen`, remove only the back `leading`. Task 10 restyles the rest.
+- [ ] **Step 5:** Update the headers:
+  - In `TabHeaderScrollView`, remove the You avatar and the Pal orb, because You is a tab and the ask
+    bar replaces the orb. Keep `contextualAction` as the only trailing widget.
+  - The leading is now a back button when the route can pop:
+    `GoRouter.of(context).canPop() ? NavAction(icon: 'chevron.left', label: 'Back', semanticLabel: 'Back', onTap: () => context.pop()) : null`.
+    Sleep, Mood and Rituals keep using `TabHeaderScrollView` and get their back affordance to Today
+    from this.
+  - In `ProfileScreen`, remove only the back `leading`. Task 10 restyles the rest.
+  - The glass collapsed top edge (spec, Glass rules). In `LargeTitleScrollView`'s pinned bar
+    (`lib/widgets/nav_bar.dart`), the background is `c.bg` while fully expanded (`t == 0`). Once it
+    starts collapsing, it becomes `GlassSurface(borderRadius: BorderRadius.zero, child: ...)`, and
+    the hairline stays. This covers the tab roots and the pushed screens alike. The glass count at
+    most is tab bar + ask bar + top edge + sheet = 4.
+  - Test in `test/large_title_scroll_view_test.dart`: there is no `BackdropFilter` at rest, and there
+    is one after dragging the list up by 200.
 - [ ] **Step 6:** Make the composer a glass sheet. In the `palComposer` `pageBuilder`, set
   `barrierColor` to `c.scrim.withValues(alpha: 0.12)` in light mode and `0.35` in dark mode (the
   LogGlass values). In `PalComposerSheet`, wrap the outermost sheet container in
@@ -514,7 +544,11 @@ const cases = {
 - [ ] **Step 8:** Fix the existing tests found in Files. Run `flutter test --update-goldens test/golden`,
   review each PNG for chrome-only changes (tab bar and header), then run `flutter analyze --fatal-infos && flutter test`.
   Expected: all pass.
-- [ ] **Step 9:** Commit: `feat(shell): four glass tabs with an ask bar; old paths redirect`.
+- [ ] **Step 9:** Point the tracker's manual raster-check item at the knob. The deferred dictation
+  item (chunk 17) and the device raster check (chunk 18) were already added to the tracker at spec
+  approval, so do not add new chunks. Run:
+  `wsh effort chunk note 579571b0-46fa-4c4f-8c84-43719b4b615c 18 --note "blur knob: GlassSurface.blurSigma in lib/widgets/glass_surface.dart; glass surfaces: tab bar, ask bar, collapsed top edge, composer sheet"`.
+- [ ] **Step 10:** Commit: `feat(shell): four glass tabs with an ask bar; old paths redirect`.
 
 ### Task 9: Pal-first Today (P4 Today)
 **Depends on:** Task 8
@@ -522,6 +556,10 @@ const cases = {
 
 **Files:**
 - Modify: `lib/screens/today/today_screen.dart` (rewrite the body)
+- Modify: `lib/screens/pal/pal_screen.dart` (import the extracted agenda widgets, and use
+  `greetingFor` in place of `_Hero._greeting`)
+- Modify: `test/golden/design_system_golden_test.dart` (keep the case-insensitive date assertion from
+  Task 1 matching the new `MONDAY, SEPTEMBER 28` eyebrow)
 - Create: `lib/screens/pal/pal_agenda_widgets.dart`. Move `_NeedsYou`, `_AgentCard` and the card
   status logic out of `pal_screen.dart` as public `NeedsYouSection` and `AgentCard`. `PalScreen`
   imports them, so its behaviour is unchanged.
@@ -601,6 +639,10 @@ comment.
 **Depends on:** Task 9
 
 **Files:**
+- Modify: `lib/app.dart`. In `_isOverlayRoute`, remove `/pal`, `/pal-inbox` and `/pal-home` from
+  `overlays`. They now redirect into the `/you` shell branch, so a deep link must `go`, not `push`.
+  Cover this in `test/deep_link_routing_test.dart`: emit `/pal`, and expect the You tab selected with
+  the `What Pal remembers` text visible.
 - Modify: `lib/screens/profile/profile_screen.dart`, `lib/router.dart`,
   `lib/screens/pal/pal_agenda_widgets.dart` (add `MemoryCard`, `AutopilotRow` and the toggle, moved
   from `pal_screen.dart`)
