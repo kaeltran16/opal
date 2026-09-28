@@ -18,6 +18,7 @@ class TabHeaderScrollView extends StatelessWidget {
     required this.children,
     this.padding = EdgeInsets.zero,
     this.controller,
+    this.physics,
   });
 
   final String title;
@@ -30,6 +31,7 @@ class TabHeaderScrollView extends StatelessWidget {
   final List<Widget> children;
   final EdgeInsetsGeometry padding;
   final ScrollController? controller;
+  final ScrollPhysics? physics;
 
   @override
   Widget build(BuildContext context) {
@@ -42,6 +44,7 @@ class TabHeaderScrollView extends StatelessWidget {
       eyebrow: eyebrow,
       largeTitle: largeTitle,
       controller: controller,
+      physics: physics,
       padding: padding,
       leading: canPop
           ? NavAction(

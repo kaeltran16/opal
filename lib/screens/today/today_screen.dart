@@ -43,11 +43,37 @@ const int _moveMinute = 17 * 60;
 /// Today, Pal first: the brief (or what's left when it's missing), what
 /// needs the user, what Pal already did, then the areas in Pal's order.
 /// Every number comes from local providers; Pal only supplies the lead.
-class TodayScreen extends ConsumerWidget {
+class TodayScreen extends ConsumerStatefulWidget {
   const TodayScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<TodayScreen> createState() => _TodayScreenState();
+}
+
+class _TodayScreenState extends ConsumerState<TodayScreen> {
+  late final AppLifecycleListener _lifecycle;
+
+  @override
+  void initState() {
+    super.initState();
+    // today stays mounted in the shell's indexed stack, so a resume on any tab
+    // refetches and the brief is fresh when the user comes back.
+    _lifecycle = AppLifecycleListener(onResume: _refresh);
+  }
+
+  @override
+  void dispose() {
+    _lifecycle.dispose();
+    super.dispose();
+  }
+
+  Future<void> _refresh() async {
+    ref.invalidate(palAgendaProvider);
+    await ref.read(todayBriefProvider.notifier).refresh();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final c = context.colors;
     final async = ref.watch(todayStateProvider);
 
@@ -64,7 +90,7 @@ class TodayScreen extends ConsumerWidget {
                   .copyWith(color: c.ink3, letterSpacing: -0.24)),
         ),
       ),
-      data: (today) => _TodayBody(today: today),
+      data: (today) => RefreshIndicator(onRefresh: _refresh, child: _TodayBody(today: today)),
     );
   }
 }
@@ -140,6 +166,8 @@ class _TodayBody extends ConsumerWidget {
       eyebrow: '${kWeekdays[now.weekday - 1]}, ${kMonths[now.month - 1]} ${now.day}'
           .toUpperCase(),
       largeTitle: '${greetingFor(now)}, $name',
+      // a short day still has to pull down to refresh.
+      physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
       padding: EdgeInsets.fromLTRB(Spacing.lg, Spacing.sm, Spacing.lg,
           _shellOverlay + Spacing.xxl + MediaQuery.paddingOf(context).bottom),
       children: [
@@ -341,8 +369,8 @@ class _DoneByPal extends ConsumerWidget {
   Widget _row(BuildContext context, WidgetRef ref, AppColors c, Entry e) {
     final amount = e.amount;
     final title = amount == null
-        ? e.title
-        : '${e.title}, ${formatCurrency(amount, currency, withSign: true, trimZeroCents: false)}';
+        ? 'Logged ${e.title}'
+        : 'Logged ${e.title}, ${formatCurrency(amount, currency, withSign: true, trimZeroCents: false)}';
     return Row(
       children: [
         Container(

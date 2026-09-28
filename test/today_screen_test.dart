@@ -9,6 +9,7 @@ import 'package:opal/controllers/spending_controller.dart' show DetailTracker;
 import 'package:opal/models/models.dart';
 import 'package:opal/screens/detail/detail_screen.dart';
 import 'package:opal/screens/reflect/evening_close_out_screen.dart';
+import 'package:opal/screens/shell/tab_header.dart';
 import 'package:opal/services/pal/mock_pal_service.dart';
 import 'package:opal/services/pal/pal_service.dart';
 import 'package:opal/widgets/activity_rings.dart';
@@ -27,9 +28,11 @@ class _Pal extends MockPalService {
   final String? headline;
   final bool throwInsights;
   final List<PalProposal>? proposals;
+  int insightsCalls = 0;
 
   @override
   Future<PalInsights> insights(InsightRange range) async {
+    if (range == InsightRange.day) insightsCalls++;
     if (throwInsights) throw Exception('offline');
     if (range == InsightRange.day && headline != null) {
       return PalInsights(headline: headline);
@@ -129,6 +132,49 @@ void main() {
     });
   });
 
+  testWidgets('pulling Today down refetches the brief', (tester) async {
+    await withClock(_monday, () async {
+      final pal = _Pal(headline: 'Steady start.');
+      await _boot(tester, pal);
+      final before = pal.insightsCalls;
+      // the indicator arms at a share of the viewport, which a 400 pt pull
+      // never reaches on the tall layout surface; pull on a phone instead.
+      tester.view.physicalSize = const Size(390, 844);
+      await tester.pumpAndSettle();
+
+      await tester.fling(find.byType(TabHeaderScrollView), const Offset(0, 400), 1000);
+      await tester.pumpAndSettle();
+
+      expect(pal.insightsCalls, before + 1);
+      await flushProviderTimers(tester);
+    });
+  });
+
+  testWidgets('returning to the app refetches the brief', (tester) async {
+    await withClock(_monday, () async {
+      final pal = _Pal(headline: 'Steady start.');
+      await _boot(tester, pal);
+      final before = pal.insightsCalls;
+
+      // AppLifecycleListener asserts every transition, so walk the real sequence.
+      for (final state in const [
+        AppLifecycleState.inactive,
+        AppLifecycleState.hidden,
+        AppLifecycleState.paused,
+        AppLifecycleState.hidden,
+        AppLifecycleState.inactive,
+        AppLifecycleState.resumed,
+      ]) {
+        tester.binding.handleAppLifecycleStateChanged(state);
+        await tester.pump();
+      }
+      await tester.pumpAndSettle();
+
+      expect(pal.insightsCalls, before + 1);
+      await flushProviderTimers(tester);
+    });
+  });
+
   testWidgets('Needs you is hidden with an empty agenda', (tester) async {
     await withClock(_monday, () async {
       await _boot(tester, _Pal(proposals: const []));
@@ -179,6 +225,7 @@ void main() {
       await Future.wait(inserted);
 
       expect(find.text('Done by Pal · from your Gmail receipt'), findsWidgets);
+      expect(find.textContaining('Logged Verve Coffee, '), findsOneWidget);
       await tester.tap(find.bySemanticsLabel('Undo Verve Coffee'));
       await tester.pumpAndSettle();
       expect(find.bySemanticsLabel('Undo Verve Coffee'), findsNothing);

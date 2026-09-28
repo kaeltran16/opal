@@ -76,6 +76,7 @@ class LargeTitleScrollView extends StatelessWidget {
     required this.children,
     this.padding = EdgeInsets.zero,
     this.controller,
+    this.physics,
   });
 
   final String title;
@@ -92,6 +93,7 @@ class LargeTitleScrollView extends StatelessWidget {
   final List<Widget> children;
   final EdgeInsetsGeometry padding;
   final ScrollController? controller;
+  final ScrollPhysics? physics;
 
   @override
   Widget build(BuildContext context) {
@@ -103,6 +105,7 @@ class LargeTitleScrollView extends StatelessWidget {
       color: context.colors.bg,
       child: CustomScrollView(
         controller: controller,
+        physics: physics,
         slivers: [
           SliverPersistentHeader(
             pinned: true,
