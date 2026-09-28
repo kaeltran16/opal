@@ -71,7 +71,7 @@ class _RecapScreenState extends ConsumerState<RecapScreen> {
           name: 'square.and.arrow.up',
           semanticLabel: 'Share',
         ),
-        padding: const EdgeInsets.only(bottom: 48),
+        padding: const EdgeInsets.only(bottom: 48), // kept literal: off-grid list bottom inset
         children: [
           // --- Range picker ---------------------------------------------------
           Padding(
@@ -351,7 +351,7 @@ class _WinRow extends StatelessWidget {
                 Text(title,
                     style: AppType.subhead
                         .copyWith(fontWeight: FontWeight.w600, color: c.ink)),
-                const SizedBox(height: 1),
+                const SizedBox(height: 1), // kept literal: 1px nudge, below the smallest token
                 Text(sub,
                     style: AppType.caption
                         .copyWith(color: c.ink3, letterSpacing: -0.08)),

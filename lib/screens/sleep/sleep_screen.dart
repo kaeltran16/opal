@@ -47,7 +47,7 @@ class SleepScreen extends ConsumerWidget {
 
 Widget _healthPill(AppColors c) => Container(
       padding: const EdgeInsets.symmetric(
-          horizontal: Spacing.sm, vertical: 5),
+          horizontal: Spacing.sm, vertical: 5), // kept literal: pill vertical padding, off-grid
       decoration: BoxDecoration(
         color: c.fill,
         borderRadius: BorderRadius.circular(Radii.pill),
@@ -94,7 +94,7 @@ class _SleepBody extends ConsumerWidget {
       title: 'Sleep',
       subtitle: 'synced from Health',
       contextualAction: _healthPill(c),
-      padding: const EdgeInsets.only(bottom: 110),
+      padding: const EdgeInsets.only(bottom: 110), // kept literal: bottom inset clearing the floating tab bar
       children: [
         _HeroCard(state: state),
         SleepTrendChart(
@@ -182,7 +182,7 @@ class _HeroCard extends StatelessWidget {
                       if (state.read.isNotEmpty)
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: Spacing.sm, vertical: 5),
+                              horizontal: Spacing.sm, vertical: 5), // kept literal: pill vertical padding, off-grid
                           decoration: BoxDecoration(
                             color: Colors.white.withValues(alpha: 0.18),
                             borderRadius: BorderRadius.circular(Radii.pill),
@@ -292,7 +292,7 @@ class _SleepNeedsSync extends StatelessWidget {
       title: 'Sleep',
       subtitle: 'synced from Health',
       contextualAction: _healthPill(c),
-      padding: const EdgeInsets.only(bottom: 110),
+      padding: const EdgeInsets.only(bottom: 110), // kept literal: bottom inset clearing the floating tab bar
       children: [
         Padding(
           padding: const EdgeInsets.all(Spacing.xxl),

@@ -116,7 +116,7 @@ class _Body extends ConsumerWidget {
         // --- Notes --------------------------------------------------------
         if (visible.isEmpty)
           Padding(
-            padding: const EdgeInsets.fromLTRB(Spacing.xl, 24, Spacing.xl, 24),
+            padding: const EdgeInsets.fromLTRB(Spacing.xl, Spacing.xxl, Spacing.xl, Spacing.xxl),
             child: Text('Nothing here. A quiet Pal is a happy Pal.',
                 textAlign: TextAlign.center,
                 style: AppType.footnote.copyWith(color: c.ink3, letterSpacing: -0.15)),

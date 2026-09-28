@@ -206,7 +206,7 @@ class _Header extends StatelessWidget {
                         letterSpacing: -0.24,
                       ),
                     ),
-                    const SizedBox(height: 1),
+                    const SizedBox(height: 1), // kept literal: 1px nudge, below the smallest token
                     Row(
                       children: [
                         Container(
@@ -350,7 +350,7 @@ class _CompactBody extends ConsumerWidget {
                             letterSpacing: -0.24,
                           ),
                         ),
-                        const SizedBox(height: 1),
+                        const SizedBox(height: 1), // kept literal: 1px nudge, below the smallest token
                         Text(
                           "Jump into a routine — I'll track it",
                           style: AppType.caption.copyWith(
@@ -849,7 +849,7 @@ class _LogCard extends ConsumerWidget {
                                   letterSpacing: -0.24,
                                 ),
                               ),
-                              const SizedBox(height: 1),
+                              const SizedBox(height: 1), // kept literal: 1px nudge, below the smallest token
                               Text(
                                 subtitle,
                                 style: AppType.caption.copyWith(
@@ -1096,7 +1096,7 @@ class _MealCard extends StatelessWidget {
                                   letterSpacing: -0.24,
                                 ),
                               ),
-                              const SizedBox(height: 1),
+                              const SizedBox(height: 1), // kept literal: 1px nudge, below the smallest token
                               Text(
                                 '$slot · ${action.confidence.label}',
                                 style: AppType.caption.copyWith(
@@ -1318,7 +1318,7 @@ class _Composer extends StatelessWidget {
                   // without this, InputBorder.none's large default padding
                   // inflates the pill past the 38px send button. Horizontal
                   // padding comes from the wrapping container.
-                  contentPadding: const EdgeInsets.symmetric(vertical: 9),
+                  contentPadding: const EdgeInsets.symmetric(vertical: 9), // kept literal: see the comment above
                   border: InputBorder.none,
                   hintText: hint,
                   hintStyle: AppType.subhead.copyWith(

@@ -225,7 +225,7 @@ class _SheetHeader extends StatelessWidget {
             ),
           ),
           // spacer to balance Cancel width
-          const SizedBox(width: 70),
+          const SizedBox(width: 70), // kept literal: matches the Cancel button width, no token
         ],
       ),
     );

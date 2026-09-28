@@ -111,7 +111,7 @@ class _List extends ConsumerWidget {
     }
 
     return ReorderableListView.builder(
-      padding: const EdgeInsets.fromLTRB(Spacing.lg, Spacing.sm, Spacing.lg, 110),
+      padding: const EdgeInsets.fromLTRB(Spacing.lg, Spacing.sm, Spacing.lg, 110), // kept literal: bottom inset clearing the floating tab bar
       itemCount: routines.length,
       onReorderItem: (oldIndex, newIndex) => ref
           .read(ritualsBuilderControllerProvider.notifier)
@@ -190,7 +190,7 @@ class _RoutineRow extends StatelessWidget {
                                 color: c.ink, height: 22 / 17),
                           ),
                           Padding(
-                            padding: const EdgeInsets.only(top: 1),
+                            padding: const EdgeInsets.only(top: 1), // kept literal: 1px nudge, below the smallest token
                             child: Text(
                               '${routine.time} · $n ${n == 1 ? 'step' : 'steps'}',
                               style: AppType.footnote.copyWith(
@@ -371,7 +371,7 @@ class _RoutineEditorState extends State<_RoutineEditor> {
 
     return Padding(
       padding: EdgeInsets.fromLTRB(
-          Spacing.lg, Spacing.md, Spacing.lg, Spacing.lg + bottom + 100),
+          Spacing.lg, Spacing.md, Spacing.lg, Spacing.lg + bottom + 100), // kept literal: room for the sheet's bottom actions
       child: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,

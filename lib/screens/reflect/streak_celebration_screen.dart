@@ -102,11 +102,11 @@ class StreakCelebrationScreen extends ConsumerWidget {
             child: CustomPaint(painter: _RaysPainter(color: c.move)),
           ),
           ListView(
-            padding: const EdgeInsets.only(bottom: 40),
+            padding: const EdgeInsets.only(bottom: 40), // kept literal: off-grid list bottom inset
             children: [
               // --- Close ----------------------------------------------------
               Padding(
-                padding: const EdgeInsets.fromLTRB(Spacing.lg, 56, Spacing.lg, 0),
+                padding: const EdgeInsets.fromLTRB(Spacing.lg, 56, Spacing.lg, 0), // kept literal: top 56 clears the status bar
                 child: PressScale(
                   onTap: () => Navigator.of(context).canPop()
                       ? Navigator.of(context).pop()
@@ -131,7 +131,7 @@ class StreakCelebrationScreen extends ConsumerWidget {
 
               // --- Hero -----------------------------------------------------
               Padding(
-                padding: const EdgeInsets.fromLTRB(Spacing.xxl, 44, Spacing.xxl, Spacing.sm),
+                padding: const EdgeInsets.fromLTRB(Spacing.xxl, 44, Spacing.xxl, Spacing.sm), // kept literal: off-grid hero top gap
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -202,7 +202,7 @@ class StreakCelebrationScreen extends ConsumerWidget {
 
               // --- CTAs -----------------------------------------------------
               Padding(
-                padding: const EdgeInsets.fromLTRB(Spacing.xl, 28, Spacing.xl, 0),
+                padding: const EdgeInsets.fromLTRB(Spacing.xl, 28, Spacing.xl, 0), // kept literal: off-grid gap above the CTAs
                 child: Row(
                   children: [
                     Expanded(

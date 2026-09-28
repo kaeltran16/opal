@@ -135,7 +135,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               _ProgressDots(step: step, count: _stepCount),
-              const SizedBox(height: 36), // off-grid hero gap, no token
+              const SizedBox(height: 36), // kept literal: off-grid hero gap, no token
 
               Expanded(
                 child: SingleChildScrollView(
@@ -574,7 +574,7 @@ class _RoutineRow extends StatelessWidget {
                       letterSpacing: -0.24,
                     ),
                   ),
-                  const SizedBox(height: 1),
+                  const SizedBox(height: 1), // kept literal: 1px nudge, below the smallest token
                   Text(
                     '${routine.time} · $steps ${steps == 1 ? 'step' : 'steps'}',
                     style: AppType.caption.copyWith(
@@ -621,11 +621,11 @@ class _Toggle extends StatelessWidget {
           // fixed iOS toggle knob: always-white with a tight knob shadow (kept
           // literal — snapping blur 4→8 would change the control's intent)
           decoration: const BoxDecoration(
-            color: Color(0xFFFFFFFF),
+            color: Color(0xFFFFFFFF), // kept literal: iOS toggle knob is always white
             shape: BoxShape.circle,
             boxShadow: [
               BoxShadow(
-                color: Color(0x33000000),
+                color: Color(0x33000000), // kept literal: iOS toggle knob shadow
                 blurRadius: 4,
                 offset: Offset(0, 2),
               ),

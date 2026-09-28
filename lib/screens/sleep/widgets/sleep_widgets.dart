@@ -76,7 +76,7 @@ class StageSplitBar extends StatelessWidget {
           child: Row(
             children: [
               for (var i = 0; i < stages.length; i++) ...[
-                if (i > 0) const SizedBox(width: 2),
+                if (i > 0) const SizedBox(width: Spacing.xxs),
                 Flexible(
                   flex: ((stages[i].minutes / total) * 1000).round().clamp(3, 1000),
                   child: Container(
@@ -389,7 +389,7 @@ class _SleepTrendChartState extends State<SleepTrendChart> {
                       children: [
                         for (var i = 0; i < series.length; i++) ...[
                           if (i > 0)
-                            SizedBox(width: isWeek ? 7 : 2.5),
+                            SizedBox(width: isWeek ? 7 : 2.5), // kept literal: bar gaps sized to the chart, off-grid
                           Expanded(
                             child: _TrendBar(
                               minutes: series[i],
@@ -414,7 +414,7 @@ class _SleepTrendChartState extends State<SleepTrendChart> {
               Row(
                 children: [
                   for (var i = 0; i < widget.week.length; i++) ...[
-                    if (i > 0) const SizedBox(width: 7),
+                    if (i > 0) const SizedBox(width: 7), // kept literal: must match the week bar gap above
                     Expanded(
                       child: Text(
                         widget.week[i].dayLetter,

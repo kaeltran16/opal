@@ -59,7 +59,7 @@ class _MoodBody extends StatelessWidget {
         semanticLabel: 'Check in',
         onTap: () => showMoodLogger(context),
       ),
-      padding: const EdgeInsets.only(bottom: 110),
+      padding: const EdgeInsets.only(bottom: 110), // kept literal: bottom inset clearing the floating tab bar
       children: [
         _HeroCard(state: state),
         _CheckInAgainRow(state: state),
@@ -122,7 +122,7 @@ class _HeroCard extends StatelessWidget {
                     'TODAY LEANS',
                     style: AppType.caption2.copyWith(
                       fontWeight: FontWeight.w700,
-                      color: const Color(0xD9FFFFFF),
+                      color: const Color(0xD9FFFFFF), // kept literal: 85% white on the mood hero gradient, no token
                       letterSpacing: 1.3,
                     ),
                   ),
@@ -140,7 +140,7 @@ class _HeroCard extends StatelessWidget {
                   Text(
                     'averaged from ${state.todayCheckins.length} check-in${state.todayCheckins.length == 1 ? '' : 's'}',
                     style: AppType.subhead.copyWith(
-                      color: const Color(0xCCFFFFFF),
+                      color: const Color(0xCCFFFFFF), // kept literal: 80% white on the mood hero gradient, no token
                       letterSpacing: -0.1,
                     ),
                   ),
@@ -149,7 +149,7 @@ class _HeroCard extends StatelessWidget {
                     _TagChip(tag: last!.tag!),
                   ],
                   const SizedBox(height: Spacing.md),
-                  Container(height: 0.5, color: const Color(0x4DFFFFFF)),
+                  Container(height: 0.5, color: const Color(0x4DFFFFFF)), // kept literal: 30% white hairline on the mood hero gradient
                   const SizedBox(height: Spacing.md),
                   MoodMiniScale(t: state.todayLean, dark: dark, light: true),
                   if (hasCheckins) ...[
@@ -157,7 +157,7 @@ class _HeroCard extends StatelessWidget {
                     Text(
                       _metaLine(state),
                       style: AppType.subhead.copyWith(
-                        color: const Color(0xCCFFFFFF),
+                        color: const Color(0xCCFFFFFF), // kept literal: 80% white on the mood hero gradient, no token
                         letterSpacing: -0.1,
                       ),
                     ),
@@ -198,7 +198,7 @@ class _TagChip extends StatelessWidget {
         vertical: Spacing.xxs + 1,
       ),
       decoration: BoxDecoration(
-        color: const Color(0x33FFFFFF),
+        color: const Color(0x33FFFFFF), // kept literal: 20% white chip fill on the mood hero gradient
         borderRadius: BorderRadius.circular(Radii.pill),
       ),
       child: Row(

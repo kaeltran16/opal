@@ -58,7 +58,7 @@ class _RitualsBody extends StatelessWidget {
         semanticLabel: 'New routine',
         onTap: () => context.go('/rituals/manage'),
       ),
-      padding: const EdgeInsets.only(bottom: 110),
+      padding: const EdgeInsets.only(bottom: 110), // kept literal: bottom inset clearing the floating tab bar
       children: [
         _UpNextHero(state: state),
         _Timeline(state: state),
@@ -167,7 +167,7 @@ class _UpNextHero extends StatelessWidget {
                     width: 170,
                     height: 170,
                     decoration: const BoxDecoration(
-                      color: Color(0x1AFFFFFF),
+                      color: Color(0x1AFFFFFF), // kept literal: 10% white decoration on the accent hero
                       shape: BoxShape.circle,
                     ),
                   ),
@@ -195,7 +195,7 @@ class _UpNextHero extends StatelessWidget {
                         .toUpperCase(),
                     style: AppType.caption2.copyWith(
                       fontWeight: FontWeight.w700,
-                      color: const Color(0xD9FFFFFF),
+                      color: const Color(0xD9FFFFFF), // kept literal: 85% white on the accent hero, no token
                       letterSpacing: 1.3,
                     ),
                   ),
@@ -215,7 +215,7 @@ class _UpNextHero extends StatelessWidget {
               Text(
                 '${routine.time} · $left ${left == 1 ? 'step' : 'steps'} left · ~${left * _minutesPerStep} min',
                 style: AppType.subhead.copyWith(
-                  color: const Color(0xE6FFFFFF),
+                  color: const Color(0xE6FFFFFF), // kept literal: 90% white on the accent hero, no token
                   letterSpacing: -0.1,
                 ),
               ),
@@ -231,7 +231,7 @@ class _UpNextHero extends StatelessWidget {
                         decoration: BoxDecoration(
                           color: i < done
                               ? c.onAccent
-                              : const Color(0x52FFFFFF),
+                              : const Color(0x52FFFFFF), // kept literal: 32% white pending pip on the accent hero
                           borderRadius: BorderRadius.circular(Radii.xs),
                         ),
                       ),
@@ -283,7 +283,7 @@ class _HatchPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = const Color(0x0AFFFFFF)
+      ..color = const Color(0x0AFFFFFF) // kept literal: 4% white hatch on the accent hero
       ..strokeWidth = 1;
     // 125° from horizontal; step 25px along the perpendicular, drawn as long
     // diagonal lines that cover the box corner-to-corner.
@@ -347,7 +347,7 @@ class _Timeline extends StatelessWidget {
                 child: Container(width: 2, color: c.hair),
               ),
               Padding(
-                padding: const EdgeInsets.only(left: 34),
+                padding: const EdgeInsets.only(left: 34), // kept literal: aligns rows past the timeline spine
                 child: Column(
                   children: [
                     for (final r in state.routines)

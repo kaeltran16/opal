@@ -27,7 +27,7 @@ class AppearanceScreen extends ConsumerWidget {
     return ColoredBox(
       color: c.bg,
       child: ListView(
-        padding: const EdgeInsets.only(bottom: 40),
+        padding: const EdgeInsets.only(bottom: 40), // kept literal: off-grid list bottom inset
         children: [
           EmailNavBar(
             title: 'Appearance',

@@ -115,7 +115,7 @@ class _Player extends StatelessWidget {
         children: [
           // top bar.
           Padding(
-            padding: const EdgeInsets.fromLTRB(Spacing.lg, 54, Spacing.lg, Spacing.sm),
+            padding: const EdgeInsets.fromLTRB(Spacing.lg, 54, Spacing.lg, Spacing.sm), // kept literal: top 54 clears the status bar
             child: Row(
               children: [
                 PressScale(
@@ -213,7 +213,7 @@ class _Player extends StatelessWidget {
           ),
           // controls.
           Padding(
-            padding: const EdgeInsets.fromLTRB(Spacing.xl, 0, Spacing.xl, 40),
+            padding: const EdgeInsets.fromLTRB(Spacing.xl, 0, Spacing.xl, 40), // kept literal: off-grid bottom inset
             child: onDeck
                 ? Column(
                     children: [

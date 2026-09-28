@@ -28,20 +28,20 @@ class EveningCloseOutScreen extends ConsumerWidget {
 
   // This screen is theme-agnostic — always dark purple. Local constants instead
   // of context.colors so it renders identically in light and dark mode.
-  static const _accent = Color(0xFFBF5AF2);
-  static const _white = Color(0xFFFFFFFF);
-  static const _white85 = Color(0xD9FFFFFF);
-  static const _white65 = Color(0xA6FFFFFF);
-  static const _white55 = Color(0x8CFFFFFF);
-  static const _white50 = Color(0x80FFFFFF);
-  static const _white40 = Color(0x66FFFFFF);
-  static const _white14 = Color(0x24FFFFFF);
-  static const _white12 = Color(0x1FFFFFFF);
-  static const _white10 = Color(0x1AFFFFFF);
-  static const _white08 = Color(0x14FFFFFF);
-  static const _white06 = Color(0x0FFFFFFF);
-  static const _accent22 = Color(0x38BF5AF2);
-  static const _accent50 = Color(0x80BF5AF2);
+  static const _accent = Color(0xFFBF5AF2); // kept literal: fixed night palette, theme-agnostic
+  static const _white = Color(0xFFFFFFFF); // kept literal: fixed night palette, theme-agnostic
+  static const _white85 = Color(0xD9FFFFFF); // kept literal: fixed night palette, theme-agnostic
+  static const _white65 = Color(0xA6FFFFFF); // kept literal: fixed night palette, theme-agnostic
+  static const _white55 = Color(0x8CFFFFFF); // kept literal: fixed night palette, theme-agnostic
+  static const _white50 = Color(0x80FFFFFF); // kept literal: fixed night palette, theme-agnostic
+  static const _white40 = Color(0x66FFFFFF); // kept literal: fixed night palette, theme-agnostic
+  static const _white14 = Color(0x24FFFFFF); // kept literal: fixed night palette, theme-agnostic
+  static const _white12 = Color(0x1FFFFFFF); // kept literal: fixed night palette, theme-agnostic
+  static const _white10 = Color(0x1AFFFFFF); // kept literal: fixed night palette, theme-agnostic
+  static const _white08 = Color(0x14FFFFFF); // kept literal: fixed night palette, theme-agnostic
+  static const _white06 = Color(0x0FFFFFFF); // kept literal: fixed night palette, theme-agnostic
+  static const _accent22 = Color(0x38BF5AF2); // kept literal: fixed night palette, theme-agnostic
+  static const _accent50 = Color(0x80BF5AF2); // kept literal: fixed night palette, theme-agnostic
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -95,17 +95,17 @@ class EveningCloseOutScreen extends ConsumerWidget {
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [Color(0xFF1A1340), Color(0xFF2D1F5C), Color(0xFF3D2A73)],
+          colors: [Color(0xFF1A1340), Color(0xFF2D1F5C), Color(0xFF3D2A73)], // kept literal: fixed night gradient, theme-agnostic
           stops: [0.0, 0.45, 1.0],
         ),
       ),
       child: ListView(
-        padding: const EdgeInsets.only(bottom: 40),
+        padding: const EdgeInsets.only(bottom: 40), // kept literal: off-grid list bottom inset
         children: [
           // --- Nav: glass back + centered time -----------------------------
           Padding(
             padding: const EdgeInsets.fromLTRB(
-                Spacing.lg, 56, Spacing.lg, Spacing.sm),
+                Spacing.lg, 56, Spacing.lg, Spacing.sm), // kept literal: top 56 clears the status bar
             child: Row(
               children: [
                 PressScale(
@@ -139,7 +139,7 @@ class EveningCloseOutScreen extends ConsumerWidget {
                         .copyWith(color: _white65, letterSpacing: -0.15),
                   ),
                 ),
-                const SizedBox(width: 32),
+                const SizedBox(width: Spacing.xxxl),
               ],
             ),
           ),
@@ -329,7 +329,7 @@ class _ChecklistRow extends StatelessWidget {
                 shape: BoxShape.circle,
                 color: checked
                     ? EveningCloseOutScreen._accent
-                    : const Color(0x00000000),
+                    : const Color(0x00000000), // kept literal: transparent; screen imports widgets only
                 border: checked
                     ? null
                     : Border.all(
@@ -372,7 +372,7 @@ class _ChecklistRow extends StatelessWidget {
                       decorationColor: EveningCloseOutScreen._white55,
                     ),
                   ),
-                  const SizedBox(height: 1),
+                  const SizedBox(height: 1), // kept literal: 1px nudge, below the smallest token
                   Text(
                     row.subtitle,
                     style: AppType.caption.copyWith(
@@ -413,7 +413,7 @@ class _DashedButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DottedBorderBox(
-      color: const Color(0x40FFFFFF),
+      color: const Color(0x40FFFFFF), // kept literal: fixed night palette, theme-agnostic
       fillColor: EveningCloseOutScreen._white06,
       strokeWidth: 0.5,
       radius: Radii.card,
