@@ -57,4 +57,54 @@ void main() {
     expect(mid.sleep, isNot(a.sleep)); // proves sleep is in lerp
     expect(mid.mood, isNot(a.mood));
   });
+
+  test('lerp at 0 and 1 keeps the ink and glass tokens', () {
+    final a = AppColors.light(AppAccent.pink);
+    final b = AppColors.dark(AppAccent.teal);
+    final start = a.lerp(b, 0);
+    expect(start.moneyInk, a.moneyInk);
+    expect(start.nutritionInk, a.nutritionInk);
+    expect(start.accentInk, a.accentInk);
+    expect(start.glass, a.glass);
+    expect(start.glassBorder, a.glassBorder);
+    expect(start.glassHighlight, a.glassHighlight);
+    final end = a.lerp(b, 1);
+    expect(end.sleepInk, b.sleepInk);
+    expect(end.accentInk, b.accentInk);
+    expect(end.glass, b.glass);
+  });
+
+  test('accentInk comes from the accent table per brightness', () {
+    expect(AppColors.light(AppAccent.blue).accentInk, const Color(0xFF0060DF));
+    expect(AppColors.dark(AppAccent.blue).accentInk, const Color(0xFF5AAEFF));
+    expect(AppColors.light(AppAccent.pink).accentInk, AppAccent.pink.inkLight());
+    expect(AppColors.dark(AppAccent.pink).accentInk, AppAccent.pink.inkDark());
+  });
+
+  test('copyWith(accent:) keeps accentInk unless one is passed', () {
+    final c = AppColors.light(AppAccent.blue);
+    expect(c.copyWith(accent: const Color(0xFF000000)).accentInk, c.accentInk);
+    expect(
+      c.copyWith(accent: const Color(0xFF000000), accentInk: const Color(0xFF111111)).accentInk,
+      const Color(0xFF111111),
+    );
+  });
+
+  test('copyWith(brightness:) takes the target brightness glass and area inks', () {
+    final dark = AppColors.light(AppAccent.blue).copyWith(brightness: Brightness.dark);
+    final ref = AppColors.dark(AppAccent.blue);
+    expect(dark.glass, ref.glass);
+    expect(dark.moneyInk, ref.moneyInk);
+  });
+
+  test('inkForType mirrors forType and falls back to accentInk', () {
+    final c = AppColors.dark(AppAccent.indigo);
+    expect(c.inkForType('sleep'), c.sleepInk);
+    expect(c.inkForType('money'), c.moneyInk);
+    expect(c.inkForType('move'), c.moveInk);
+    expect(c.inkForType('rituals'), c.ritualsInk);
+    expect(c.inkForType('nutrition'), c.nutritionInk);
+    expect(c.inkForType('mood'), c.moodInk);
+    expect(c.inkForType('unknown'), c.accentInk);
+  });
 }

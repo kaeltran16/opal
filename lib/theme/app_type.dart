@@ -20,6 +20,9 @@ class AppType {
   static final TextStyle title2 = AppFonts.sf(size: 22, weight: FontWeight.w700);
   static final TextStyle title1 = AppFonts.sf(size: 28, weight: FontWeight.w700);
   static final TextStyle large = AppFonts.sf(size: 34, weight: FontWeight.w700);
+  // pal's brief lead sentence on today.
+  static final TextStyle brief =
+      AppFonts.sf(size: 28, weight: FontWeight.w600, letterSpacing: -0.4, height: 38 / 28);
 
   // Rounded + tabular — amounts, counts, timers.
   static final TextStyle amount = AppFonts.sfr(size: 34);

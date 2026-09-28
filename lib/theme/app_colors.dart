@@ -36,6 +36,31 @@ extension AppAccentInfo on AppAccent {
         AppAccent.teal => const Color(0xFF40C8E0),
         AppAccent.graphite => const Color(0xFFF5F5F7),
       };
+
+  // text/icon color on accentTint, checked for 4.5:1 in contrast_test.
+  // orange, green and purple share their tints with money, move and rituals,
+  // so they reuse those inks.
+  Color inkLight() => switch (this) {
+        AppAccent.blue => const Color(0xFF0060DF),
+        AppAccent.indigo => const Color(0xFF5856D6),
+        AppAccent.purple => const Color(0xFF8A2FB8),
+        AppAccent.pink => const Color(0xFFD00028),
+        AppAccent.orange => const Color(0xFFAF5200),
+        AppAccent.green => const Color(0xFF1E7B34),
+        AppAccent.teal => const Color(0xFF207685),
+        AppAccent.graphite => const Color(0xFF1C1C1E),
+      };
+
+  Color inkDark() => switch (this) {
+        AppAccent.blue => const Color(0xFF5AAEFF),
+        AppAccent.indigo => const Color(0xFF8A88ED),
+        AppAccent.purple => const Color(0xFFD08CF7),
+        AppAccent.pink => const Color(0xFFFF5B7C),
+        AppAccent.orange => const Color(0xFFFFB340),
+        AppAccent.green => const Color(0xFF4CDB73),
+        AppAccent.teal => const Color(0xFF40C8E0),
+        AppAccent.graphite => const Color(0xFFF5F5F7),
+      };
 }
 
 /// Semantic design tokens from the design handoff, exposed as a
@@ -68,6 +93,16 @@ class AppColors extends ThemeExtension<AppColors> {
     required this.moodTint,
     required this.accent,
     required this.accentTint,
+    required this.moneyInk,
+    required this.moveInk,
+    required this.ritualsInk,
+    required this.nutritionInk,
+    required this.sleepInk,
+    required this.moodInk,
+    required this.accentInk,
+    required this.glass,
+    required this.glassBorder,
+    required this.glassHighlight,
     required this.red,
     required this.onAccent,
     required this.scrim,
@@ -85,6 +120,10 @@ class AppColors extends ThemeExtension<AppColors> {
   final Color sleep, sleepTint;
   final Color mood, moodTint;
   final Color accent, accentTint;
+  // text and icons on the matching tint; the area colors fail 4.5:1 there.
+  final Color moneyInk, moveInk, ritualsInk, nutritionInk, sleepInk, moodInk;
+  final Color accentInk;
+  final Color glass, glassBorder, glassHighlight;
   final Color red;
   final Color onAccent;
   final Color scrim;
@@ -99,6 +138,17 @@ class AppColors extends ThemeExtension<AppColors> {
         'sleep' => sleep,
         'mood' => mood,
         _ => accent,
+      };
+
+  /// Ink for a tracker type token, mirroring [forType].
+  Color inkForType(String type) => switch (type) {
+        'money' => moneyInk,
+        'move' => moveInk,
+        'rituals' => ritualsInk,
+        'nutrition' => nutritionInk,
+        'sleep' => sleepInk,
+        'mood' => moodInk,
+        _ => accentInk,
       };
 
   factory AppColors.light(AppAccent accent) {
@@ -129,6 +179,16 @@ class AppColors extends ThemeExtension<AppColors> {
       moodTint: const Color.fromRGBO(47, 166, 188, 0.14),
       accent: a,
       accentTint: a.withValues(alpha: 0.14),
+      moneyInk: const Color(0xFFAF5200),
+      moveInk: const Color(0xFF1E7B34),
+      ritualsInk: const Color(0xFF8A2FB8),
+      nutritionInk: const Color(0xFF0A7785),
+      sleepInk: const Color(0xFF3F4FBF),
+      moodInk: const Color(0xFF1B7688),
+      accentInk: accent.inkLight(),
+      glass: const Color.fromRGBO(255, 255, 255, 0.52),
+      glassBorder: const Color.fromRGBO(255, 255, 255, 0.70),
+      glassHighlight: const Color.fromRGBO(255, 255, 255, 0.95),
       red: const Color(0xFFFF3B30),
       onAccent: const Color(0xFFFFFFFF),
       scrim: const Color.fromRGBO(0, 0, 0, 0.40),
@@ -164,6 +224,16 @@ class AppColors extends ThemeExtension<AppColors> {
       moodTint: const Color.fromRGBO(86, 194, 218, 0.20),
       accent: a,
       accentTint: a.withValues(alpha: 0.18),
+      moneyInk: const Color(0xFFFFB340),
+      moveInk: const Color(0xFF4CDB73),
+      ritualsInk: const Color(0xFFD08CF7),
+      nutritionInk: const Color(0xFF6FE0EC),
+      sleepInk: const Color(0xFFA3ADF5),
+      moodInk: const Color(0xFF7FD3E6),
+      accentInk: accent.inkDark(),
+      glass: const Color.fromRGBO(44, 44, 48, 0.52),
+      glassBorder: const Color.fromRGBO(255, 255, 255, 0.14),
+      glassHighlight: const Color.fromRGBO(255, 255, 255, 0.18),
       red: const Color(0xFFFF453A),
       onAccent: const Color(0xFFFFFFFF),
       scrim: const Color.fromRGBO(0, 0, 0, 0.40),
@@ -172,7 +242,7 @@ class AppColors extends ThemeExtension<AppColors> {
   }
 
   @override
-  AppColors copyWith({Brightness? brightness, Color? accent}) {
+  AppColors copyWith({Brightness? brightness, Color? accent, Color? accentInk}) {
     // Tokens are derived from (brightness, accent). The AppAccent enum can't be
     // recovered from a Color, so rebuild the neutral palette for the target
     // brightness (reusing the existing accent when none is passed) and overlay
@@ -194,6 +264,16 @@ class AppColors extends ThemeExtension<AppColors> {
       mood: base.mood, moodTint: base.moodTint,
       accent: a,
       accentTint: a.withValues(alpha: dark ? 0.18 : 0.14),
+      moneyInk: base.moneyInk,
+      moveInk: base.moveInk,
+      ritualsInk: base.ritualsInk,
+      nutritionInk: base.nutritionInk,
+      sleepInk: base.sleepInk,
+      moodInk: base.moodInk,
+      accentInk: accentInk ?? this.accentInk,
+      glass: base.glass,
+      glassBorder: base.glassBorder,
+      glassHighlight: base.glassHighlight,
       red: base.red,
       onAccent: base.onAccent,
       scrim: base.scrim,
@@ -231,6 +311,16 @@ class AppColors extends ThemeExtension<AppColors> {
       moodTint: c(moodTint, other.moodTint),
       accent: c(accent, other.accent),
       accentTint: c(accentTint, other.accentTint),
+      moneyInk: c(moneyInk, other.moneyInk),
+      moveInk: c(moveInk, other.moveInk),
+      ritualsInk: c(ritualsInk, other.ritualsInk),
+      nutritionInk: c(nutritionInk, other.nutritionInk),
+      sleepInk: c(sleepInk, other.sleepInk),
+      moodInk: c(moodInk, other.moodInk),
+      accentInk: c(accentInk, other.accentInk),
+      glass: c(glass, other.glass),
+      glassBorder: c(glassBorder, other.glassBorder),
+      glassHighlight: c(glassHighlight, other.glassHighlight),
       red: c(red, other.red),
       onAccent: c(onAccent, other.onAccent),
       scrim: c(scrim, other.scrim),
