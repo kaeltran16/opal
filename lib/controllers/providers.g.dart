@@ -1212,6 +1212,104 @@ final class LiveActivityServiceProvider
 String _$liveActivityServiceHash() =>
     r'da56177b00efd0d4c58d9386832c921d706e55b0';
 
+/// The iOS Reduce Transparency setting over `opal/accessibility`; always off
+/// on web, tests and desktop.
+
+@ProviderFor(reduceTransparencyService)
+const reduceTransparencyServiceProvider = ReduceTransparencyServiceProvider._();
+
+/// The iOS Reduce Transparency setting over `opal/accessibility`; always off
+/// on web, tests and desktop.
+
+final class ReduceTransparencyServiceProvider
+    extends
+        $FunctionalProvider<
+          ReduceTransparencyService,
+          ReduceTransparencyService,
+          ReduceTransparencyService
+        >
+    with $Provider<ReduceTransparencyService> {
+  /// The iOS Reduce Transparency setting over `opal/accessibility`; always off
+  /// on web, tests and desktop.
+  const ReduceTransparencyServiceProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'reduceTransparencyServiceProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$reduceTransparencyServiceHash();
+
+  @$internal
+  @override
+  $ProviderElement<ReduceTransparencyService> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  ReduceTransparencyService create(Ref ref) {
+    return reduceTransparencyService(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(ReduceTransparencyService value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<ReduceTransparencyService>(value),
+    );
+  }
+}
+
+String _$reduceTransparencyServiceHash() =>
+    r'3427f5a5b2d649638611f0c25038931f01186d5c';
+
+/// Live Reduce Transparency, watched by [GlassSurface]. Tests override it
+/// with a stream to flip the setting at runtime.
+
+@ProviderFor(reduceTransparency)
+const reduceTransparencyProvider = ReduceTransparencyProvider._();
+
+/// Live Reduce Transparency, watched by [GlassSurface]. Tests override it
+/// with a stream to flip the setting at runtime.
+
+final class ReduceTransparencyProvider
+    extends $FunctionalProvider<AsyncValue<bool>, bool, Stream<bool>>
+    with $FutureModifier<bool>, $StreamProvider<bool> {
+  /// Live Reduce Transparency, watched by [GlassSurface]. Tests override it
+  /// with a stream to flip the setting at runtime.
+  const ReduceTransparencyProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'reduceTransparencyProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$reduceTransparencyHash();
+
+  @$internal
+  @override
+  $StreamProviderElement<bool> $createElement($ProviderPointer pointer) =>
+      $StreamProviderElement(pointer);
+
+  @override
+  Stream<bool> create(Ref ref) {
+    return reduceTransparency(ref);
+  }
+}
+
+String _$reduceTransparencyHash() =>
+    r'1aa6e00ce64f207dea1ca86ae01e59da4775863a';
+
 /// Pushes today's progress to the iOS home-screen rings widget. The app POSTs
 /// the snapshot to the proxy (`/v1/widget/snapshot`) and the widget fetches it
 /// over HTTP — App-Group sharing isn't available on a free Apple team. No-op off

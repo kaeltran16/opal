@@ -84,6 +84,7 @@ const Map<String, IconData> _sfMap = {
   'tv.fill': CupertinoIcons.tv_fill,
   'plus.circle.fill': CupertinoIcons.add_circled_solid,
   'pencil': CupertinoIcons.pencil,
+  'mic': CupertinoIcons.mic,
 };
 
 IconData iconForSf(String name) => _sfMap[name] ?? CupertinoIcons.circle;

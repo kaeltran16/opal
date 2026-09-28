@@ -464,6 +464,22 @@ LiveActivityService liveActivityService(Ref ref) {
   return const NoopLiveActivityService();
 }
 
+/// The iOS Reduce Transparency setting over `opal/accessibility`; always off
+/// on web, tests and desktop.
+@Riverpod(keepAlive: true)
+ReduceTransparencyService reduceTransparencyService(Ref ref) {
+  if (!kIsWeb && defaultTargetPlatform == TargetPlatform.iOS) {
+    return const MethodChannelReduceTransparencyService();
+  }
+  return const NoopReduceTransparencyService();
+}
+
+/// Live Reduce Transparency, watched by [GlassSurface]. Tests override it
+/// with a stream to flip the setting at runtime.
+@riverpod
+Stream<bool> reduceTransparency(Ref ref) =>
+    ref.watch(reduceTransparencyServiceProvider).watch();
+
 /// Pushes today's progress to the iOS home-screen rings widget. The app POSTs
 /// the snapshot to the proxy (`/v1/widget/snapshot`) and the widget fetches it
 /// over HTTP — App-Group sharing isn't available on a free Apple team. No-op off

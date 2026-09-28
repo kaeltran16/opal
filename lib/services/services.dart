@@ -5,6 +5,7 @@
 /// Riverpod provider override (U03). Real impls land later (U23/U24/U27).
 library;
 
+export 'accessibility/reduce_transparency_service.dart';
 export 'email/email_sync_service.dart';
 // the enough_mail impl is reached through this conditional export only, so the
 // web build never pulls dart:io.
