@@ -98,9 +98,6 @@ class _LoopAppState extends ConsumerState<LoopApp> {
     final loc = path.split('?').first;
     const overlays = <String>{
       '/pal-composer',
-      '/pal', // the Pal hub (canonical); /pal-inbox + /pal-home redirect to it
-      '/pal-inbox',
-      '/pal-home',
       '/entry/new',
       '/post-workout',
       '/monthly-review',

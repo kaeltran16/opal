@@ -104,6 +104,7 @@ class AppColors extends ThemeExtension<AppColors> {
     required this.glassBorder,
     required this.glassHighlight,
     required this.red,
+    required this.dangerInk,
     required this.onAccent,
     required this.scrim,
     required this.shadow,
@@ -125,6 +126,8 @@ class AppColors extends ThemeExtension<AppColors> {
   final Color accentInk;
   final Color glass, glassBorder, glassHighlight;
   final Color red;
+  // destructive text and icons on surface; red itself fails 4.5:1 there.
+  final Color dangerInk;
   final Color onAccent;
   final Color scrim;
   final Color shadow;
@@ -190,6 +193,7 @@ class AppColors extends ThemeExtension<AppColors> {
       glassBorder: const Color.fromRGBO(255, 255, 255, 0.70),
       glassHighlight: const Color.fromRGBO(255, 255, 255, 0.95),
       red: const Color(0xFFFF3B30),
+      dangerInk: const Color(0xFFD70015),
       onAccent: const Color(0xFFFFFFFF),
       scrim: const Color.fromRGBO(0, 0, 0, 0.40),
       shadow: const Color.fromRGBO(0, 0, 0, 0.12),
@@ -235,6 +239,7 @@ class AppColors extends ThemeExtension<AppColors> {
       glassBorder: const Color.fromRGBO(255, 255, 255, 0.14),
       glassHighlight: const Color.fromRGBO(255, 255, 255, 0.18),
       red: const Color(0xFFFF453A),
+      dangerInk: const Color(0xFFFF6961),
       onAccent: const Color(0xFFFFFFFF),
       scrim: const Color.fromRGBO(0, 0, 0, 0.40),
       shadow: const Color.fromRGBO(0, 0, 0, 0.40),
@@ -275,6 +280,7 @@ class AppColors extends ThemeExtension<AppColors> {
       glassBorder: base.glassBorder,
       glassHighlight: base.glassHighlight,
       red: base.red,
+      dangerInk: base.dangerInk,
       onAccent: base.onAccent,
       scrim: base.scrim,
       shadow: base.shadow,
@@ -322,6 +328,7 @@ class AppColors extends ThemeExtension<AppColors> {
       glassBorder: c(glassBorder, other.glassBorder),
       glassHighlight: c(glassHighlight, other.glassHighlight),
       red: c(red, other.red),
+      dangerInk: c(dangerInk, other.dangerInk),
       onAccent: c(onAccent, other.onAccent),
       scrim: c(scrim, other.scrim),
       shadow: c(shadow, other.shadow),

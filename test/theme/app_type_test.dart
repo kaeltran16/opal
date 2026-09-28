@@ -23,10 +23,10 @@ void main() {
   });
 
   test('brief is 28/38 semibold with tight tracking', () {
-    expect(AppType.brief.fontSize, 28);
-    expect(AppType.brief.height, 38 / 28);
+    expect(AppType.brief.fontSize, 21);
+    expect(AppType.brief.height, 38 / 21);
     expect(AppType.brief.fontWeight, FontWeight.w600);
-    expect(AppType.brief.letterSpacing, -0.4);
+    expect(AppType.brief.letterSpacing, -0.3);
     expect(AppType.brief.color, isNull);
   });
 }

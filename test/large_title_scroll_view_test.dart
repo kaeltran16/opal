@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:opal/theme/app_colors.dart';
@@ -8,14 +9,16 @@ void main() {
   Future<void> pump(WidgetTester tester) async {
     final colors = AppColors.light(AppAccent.blue);
     await tester.pumpWidget(
-      MaterialApp(
-        theme: ThemeData(useMaterial3: true, extensions: [colors]),
-        home: LargeTitleScrollView(
-          title: 'Profile',
-          children: [
-            for (var i = 0; i < 40; i++)
-              SizedBox(height: 60, child: Text('row $i')),
-          ],
+      ProviderScope(
+        child: MaterialApp(
+          theme: ThemeData(useMaterial3: true, extensions: [colors]),
+          home: LargeTitleScrollView(
+            title: 'Profile',
+            children: [
+              for (var i = 0; i < 40; i++)
+                SizedBox(height: 60, child: Text('row $i')),
+            ],
+          ),
         ),
       ),
     );
@@ -37,5 +40,16 @@ void main() {
     // the collapsing header vs. a plain ListView, where it would scroll away.
     expect(find.text('Profile'), findsOneWidget);
     expect(tester.getTopLeft(find.text('Profile')).dy, lessThan(120));
+  });
+
+  testWidgets('the pinned bar turns to glass only once it collapses',
+      (tester) async {
+    await pump(tester);
+    expect(find.byType(BackdropFilter), findsNothing);
+
+    await tester.drag(find.byType(CustomScrollView), const Offset(0, -200));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(BackdropFilter), findsOneWidget);
   });
 }

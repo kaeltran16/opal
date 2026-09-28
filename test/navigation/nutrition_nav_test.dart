@@ -8,16 +8,15 @@ import 'package:opal/controllers/providers.dart';
 import 'package:opal/data/db/database.dart';
 import 'package:opal/data/seed/seeder.dart';
 import 'package:opal/services/pal/mock_pal_service.dart';
-import 'package:opal/widgets/loop_tab_bar.dart';
+import 'package:opal/widgets/glass_tab_bar.dart';
 
 import '../support/flush_provider_timers.dart';
 
-/// Task 9 — the Nutrition tab + the You relocation off the bar.
+/// The Nutrition and You tabs of the four-tab glass shell.
 ///
 /// Boots the full seeded app and drives the real router: the Nutrition tab
-/// (now in the bar, 4th slot) opens the Nutrition screen, and the Today header
-/// avatar (which replaced the old month label) pushes the You/profile screen
-/// (no longer a tab).
+/// opens the Nutrition screen, and the You tab opens the profile as a tab root
+/// (no back button).
 void main() {
   Future<void> bootApp(WidgetTester tester) async {
     SharedPreferences.setMockInitialValues({
@@ -45,18 +44,13 @@ void main() {
   testWidgets('the Nutrition tab opens the Nutrition screen', (tester) async {
     await bootApp(tester);
 
-    // Boots to Today; the bar exposes a Nutrition tab (not a You tab).
     expect(
         find.descendant(
-            of: find.byType(LoopTabBar), matching: find.text('Nutrition')),
+            of: find.byType(GlassTabBar), matching: find.text('Nutrition')),
         findsOneWidget);
-    expect(
-        find.descendant(
-            of: find.byType(LoopTabBar), matching: find.text('You')),
-        findsNothing);
 
     await tester.tap(find.descendant(
-        of: find.byType(LoopTabBar), matching: find.text('Nutrition')));
+        of: find.byType(GlassTabBar), matching: find.text('Nutrition')));
     await tester.pumpAndSettle();
 
     // The (stub) Nutrition screen is on screen.
@@ -65,19 +59,15 @@ void main() {
     await flushProviderTimers(tester);
   });
 
-  testWidgets('the Today avatar pushes the You/profile screen', (tester) async {
+  testWidgets('the You tab opens the profile as a tab root', (tester) async {
     await bootApp(tester);
 
-    // The Today header avatar (semanticLabel 'You') replaced the month label.
-    final avatar = find.bySemanticsLabel('You');
-    expect(avatar, findsOneWidget);
-
-    await tester.tap(avatar);
+    await tester.tap(find.descendant(
+        of: find.byType(GlassTabBar), matching: find.text('You')));
     await tester.pumpAndSettle();
 
-    // The pushed profile screen renders its header + its (generic) back action.
     expect(find.text('Reviews, patterns, settings'), findsOneWidget);
-    expect(find.bySemanticsLabel('Back'), findsOneWidget);
+    expect(find.bySemanticsLabel('Back'), findsNothing);
 
     await flushProviderTimers(tester);
   });

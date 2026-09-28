@@ -27,8 +27,8 @@ class GlassTabBar extends StatelessWidget {
   static const double sideInset = Spacing.lg;
   static const double bottomGap = Spacing.sm;
   static const double minimizedSize = 52;
+  static const double expandedHeight = 62;
 
-  static const double _height = 62;
   static const double _inset = Spacing.xs;
   static const double _gap = Spacing.xxs;
   static const double _iconSize = 22;
@@ -79,7 +79,7 @@ class GlassTabBar extends StatelessWidget {
     return SizedBox(
       key: const ValueKey('expanded'),
       width: double.infinity,
-      height: _height,
+      height: expandedHeight,
       child: Padding(
         padding: const EdgeInsets.all(_inset),
         child: Row(

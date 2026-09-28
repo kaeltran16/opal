@@ -17,7 +17,6 @@ import 'screens/nutrition/nutrition_patterns_screen.dart';
 import 'screens/nutrition/nutrition_screen.dart';
 import 'screens/onboarding/onboarding_screen.dart';
 import 'screens/pal/pal_composer_screen.dart';
-import 'screens/pal/pal_screen.dart';
 import 'screens/money/budgets_screen.dart';
 import 'screens/money/insights_screen.dart';
 import 'screens/profile/profile_screen.dart';
@@ -54,7 +53,6 @@ enum AppRoute {
   today('today', '/today'),
   move('move', '/move'),
   nutrition('nutrition', '/nutrition'),
-  rituals('rituals', '/rituals'),
   you('you', '/you'),
 
   // Nutrition sub-routes.
@@ -65,8 +63,14 @@ enum AppRoute {
   spendingDetail('spendingDetail', 'spending'), // U09 -> /today/spending
   moveDetail('moveDetail', 'move-detail'), //       -> /today/move-detail
   ritualsDetail('ritualsDetail', 'rituals-detail'), //  /today/rituals-detail
+  todayRituals('todayRituals', 'rituals'), //       -> /today/rituals
+  todayManageRituals('todayManageRituals', 'manage'), // /today/rituals/manage
+  todaySleep('todaySleep', 'sleep'), //             -> /today/sleep
+  todayMood('todayMood', 'mood'), //                -> /today/mood
 
-  // Sleep & Mood are tab-style branches reached from the More overflow popover.
+  // Old tab paths, kept as redirects so Siri / Live Activity links resolve.
+  rituals('rituals', '/rituals'),
+  manageRituals('manageRituals', 'manage'), //      -> /rituals/manage
   sleep('sleep', '/sleep'),
   mood('mood', '/mood'),
 
@@ -80,10 +84,7 @@ enum AppRoute {
   activeSession('activeSession', '/session/:routineId'), // U13
   postWorkout('postWorkout', '/post-workout'), //          U14 (stub)
 
-  // Rituals sub-routes.
-  manageRituals('manageRituals', 'manage'), //   U21b -> /rituals/manage
-
-  // You / Settings sub-routes (push within the pushed /you route).
+  // You / Settings sub-routes (push within the You branch).
   youBudgets('youBudgets', 'budgets'), //           -> /you/budgets
   youInsights('youInsights', 'insights'), //        -> /you/insights
   budgetsGoals('budgetsGoals', 'budgets-goals'), // -> /you/budgets-goals
@@ -105,8 +106,8 @@ enum AppRoute {
   // --- Handoff #2 (Wave 6) ---
   // Pal composer — the unified FAB input surface (replaces Quick Actions menu).
   palComposer('palComposer', '/pal-composer'),
+  // the old Pal hub paths, kept for stable deep links; all redirect to /you.
   palInbox('palInbox', '/pal-inbox'),
-  // palHome kept for stable deep links; redirects to /pal.
   palHome('palHome', '/pal-home'),
   pal('pal', '/pal'),
   eveningCloseOut('eveningCloseOut', '/close-out'),
@@ -131,9 +132,10 @@ final _rootNavigatorKey = GlobalKey<NavigatorState>();
 final _todayNavigatorKey = GlobalKey<NavigatorState>();
 final _moveNavigatorKey = GlobalKey<NavigatorState>();
 final _nutritionNavigatorKey = GlobalKey<NavigatorState>();
-final _ritualsNavigatorKey = GlobalKey<NavigatorState>();
-final _sleepNavigatorKey = GlobalKey<NavigatorState>();
-final _moodNavigatorKey = GlobalKey<NavigatorState>();
+final _youNavigatorKey = GlobalKey<NavigatorState>();
+
+const _lightSheetScrim = 0.12;
+const _darkSheetScrim = 0.35;
 
 /// Builds the app router. Kept as a function so tests can supply their own
 /// `initialLocation` if needed.
@@ -192,6 +194,31 @@ GoRouter createRouter({
                     name: AppRoute.ritualsDetail.name,
                     builder: (context, state) =>
                         const DetailScreen(tracker: DetailTracker.rituals),
+                  ),
+                  // rituals, sleep and mood live under Today so the shell
+                  // keeps four tabs; their old root paths redirect here.
+                  GoRoute(
+                    path: AppRoute.todayRituals.path,
+                    name: AppRoute.todayRituals.name,
+                    builder: (context, state) => const RitualsScreen(),
+                    routes: [
+                      GoRoute(
+                        path: AppRoute.todayManageRituals.path,
+                        name: AppRoute.todayManageRituals.name,
+                        builder: (context, state) =>
+                            const RitualsBuilderScreen(),
+                      ),
+                    ],
+                  ),
+                  GoRoute(
+                    path: AppRoute.todaySleep.path,
+                    name: AppRoute.todaySleep.name,
+                    builder: (context, state) => const SleepScreen(),
+                  ),
+                  GoRoute(
+                    path: AppRoute.todayMood.path,
+                    name: AppRoute.todayMood.name,
+                    builder: (context, state) => const MoodScreen(),
                   ),
                 ],
               ),
@@ -269,103 +296,90 @@ GoRouter createRouter({
               ),
             ],
           ),
-          // --- Rituals branch ---
+          // --- You branch ---
           StatefulShellBranch(
-            navigatorKey: _ritualsNavigatorKey,
+            navigatorKey: _youNavigatorKey,
             routes: [
               GoRoute(
-                path: AppRoute.rituals.path,
-                name: AppRoute.rituals.name,
-                builder: (context, state) => const RitualsScreen(),
+                path: AppRoute.you.path,
+                name: AppRoute.you.name,
+                builder: (context, state) => const ProfileScreen(),
                 routes: [
                   GoRoute(
-                    path: AppRoute.manageRituals.path,
-                    name: AppRoute.manageRituals.name,
-                    builder: (context, state) => const RitualsBuilderScreen(),
+                    path: AppRoute.youBudgets.path,
+                    name: AppRoute.youBudgets.name,
+                    builder: (context, state) => const BudgetsScreen(),
+                  ),
+                  GoRoute(
+                    path: AppRoute.youInsights.path,
+                    name: AppRoute.youInsights.name,
+                    builder: (context, state) => const InsightsScreen(),
+                  ),
+                  GoRoute(
+                    path: AppRoute.budgetsGoals.path,
+                    name: AppRoute.budgetsGoals.name,
+                    builder: (context, state) => const BudgetsGoalsScreen(),
+                  ),
+                  GoRoute(
+                    path: AppRoute.notificationSettings.path,
+                    name: AppRoute.notificationSettings.name,
+                    builder: (context, state) => const NotificationsScreen(),
+                  ),
+                  GoRoute(
+                    path: AppRoute.appearance.path,
+                    name: AppRoute.appearance.name,
+                    builder: (context, state) => const AppearanceScreen(),
+                  ),
+                  GoRoute(
+                    path: AppRoute.privacy.path,
+                    name: AppRoute.privacy.name,
+                    builder: (context, state) => const PrivacyScreen(),
+                  ),
+                  GoRoute(
+                    path: AppRoute.exportData.path,
+                    name: AppRoute.exportData.name,
+                    builder: (context, state) => const ExportDataScreen(),
+                  ),
+                  GoRoute(
+                    path: AppRoute.about.path,
+                    name: AppRoute.about.name,
+                    builder: (context, state) => const AboutScreen(),
                   ),
                 ],
-              ),
-            ],
-          ),
-          // --- Sleep branch ---
-          // Sleep & Mood are tab-style destinations hidden behind the More
-          // overflow popover (see LoopShell). Each is its own branch so the bar
-          // keeps the More tab lit and the popover marks the active one.
-          StatefulShellBranch(
-            navigatorKey: _sleepNavigatorKey,
-            routes: [
-              GoRoute(
-                path: AppRoute.sleep.path,
-                name: AppRoute.sleep.name,
-                builder: (context, state) => const SleepScreen(),
-              ),
-            ],
-          ),
-          // --- Mood branch ---
-          StatefulShellBranch(
-            navigatorKey: _moodNavigatorKey,
-            routes: [
-              GoRoute(
-                path: AppRoute.mood.path,
-                name: AppRoute.mood.name,
-                builder: (context, state) => const MoodScreen(),
               ),
             ],
           ),
         ],
       ),
 
-      // --- You / profile (pushed above the shell; lifted off the tab bar) ---
-      // Reached from the Today-header avatar via `pushNamed`, not a tab. Its
-      // existing sub-routes are preserved verbatim so /you/* deep links stay
-      // stable; the profile screen carries its own back/Done leading action.
+      // --- Old tab paths, now children of Today ---
+      // a route-level redirect runs for every route in the match, so the
+      // parent only redirects its own path and leaves /rituals/manage to the
+      // child. /rituals/player/:routineId doesn't match here and falls through.
       GoRoute(
-        path: AppRoute.you.path,
-        name: AppRoute.you.name,
-        parentNavigatorKey: _rootNavigatorKey,
-        builder: (context, state) => const ProfileScreen(),
+        path: AppRoute.rituals.path,
+        name: AppRoute.rituals.name,
+        redirect: (context, state) => state.uri.path == AppRoute.rituals.path
+            ? _todayChild(AppRoute.todayRituals)
+            : null,
         routes: [
           GoRoute(
-            path: AppRoute.youBudgets.path,
-            name: AppRoute.youBudgets.name,
-            builder: (context, state) => const BudgetsScreen(),
-          ),
-          GoRoute(
-            path: AppRoute.youInsights.path,
-            name: AppRoute.youInsights.name,
-            builder: (context, state) => const InsightsScreen(),
-          ),
-          GoRoute(
-            path: AppRoute.budgetsGoals.path,
-            name: AppRoute.budgetsGoals.name,
-            builder: (context, state) => const BudgetsGoalsScreen(),
-          ),
-          GoRoute(
-            path: AppRoute.notificationSettings.path,
-            name: AppRoute.notificationSettings.name,
-            builder: (context, state) => const NotificationsScreen(),
-          ),
-          GoRoute(
-            path: AppRoute.appearance.path,
-            name: AppRoute.appearance.name,
-            builder: (context, state) => const AppearanceScreen(),
-          ),
-          GoRoute(
-            path: AppRoute.privacy.path,
-            name: AppRoute.privacy.name,
-            builder: (context, state) => const PrivacyScreen(),
-          ),
-          GoRoute(
-            path: AppRoute.exportData.path,
-            name: AppRoute.exportData.name,
-            builder: (context, state) => const ExportDataScreen(),
-          ),
-          GoRoute(
-            path: AppRoute.about.path,
-            name: AppRoute.about.name,
-            builder: (context, state) => const AboutScreen(),
+            path: AppRoute.manageRituals.path,
+            name: AppRoute.manageRituals.name,
+            redirect: (context, state) =>
+                '${_todayChild(AppRoute.todayRituals)}/${AppRoute.todayManageRituals.path}',
           ),
         ],
+      ),
+      GoRoute(
+        path: AppRoute.sleep.path,
+        name: AppRoute.sleep.name,
+        redirect: (context, state) => _todayChild(AppRoute.todaySleep),
+      ),
+      GoRoute(
+        path: AppRoute.mood.path,
+        name: AppRoute.mood.name,
+        redirect: (context, state) => _todayChild(AppRoute.todayMood),
       ),
 
       // --- Modal / focus routes above the shell (full-screen for now) ---
@@ -454,11 +468,15 @@ GoRouter createRouter({
         parentNavigatorKey: _rootNavigatorKey,
         pageBuilder: (context, state) {
           final seed = state.uri.queryParameters['seed'];
+          final c = context.colors;
+          // a light scrim keeps the page readable through the glass sheet.
+          final scrimAlpha =
+              c.brightness == Brightness.dark ? _darkSheetScrim : _lightSheetScrim;
           return CustomTransitionPage<void>(
             key: state.pageKey,
             opaque: false,
             barrierDismissible: true,
-            barrierColor: context.colors.scrim,
+            barrierColor: c.scrim.withValues(alpha: scrimAlpha),
             fullscreenDialog: true,
             transitionDuration: const Duration(milliseconds: 320),
             reverseTransitionDuration: const Duration(milliseconds: 220),
@@ -496,27 +514,14 @@ GoRouter createRouter({
           RoutinePlayerScreen(routineId: state.pathParameters['routineId']!),
         ),
       ),
-      // Pal hub — the merged Home + Inbox destination.
-      GoRoute(
-        path: AppRoute.pal.path,
-        name: AppRoute.pal.name,
-        parentNavigatorKey: _rootNavigatorKey,
-        pageBuilder: (context, state) =>
-            _sheetPage(state.pageKey, const PalScreen()),
-      ),
-      // Old Pal routes kept as stable redirects into the hub.
-      GoRoute(
-        path: AppRoute.palInbox.path,
-        name: AppRoute.palInbox.name,
-        parentNavigatorKey: _rootNavigatorKey,
-        redirect: (context, state) => '/pal',
-      ),
-      GoRoute(
-        path: AppRoute.palHome.path,
-        name: AppRoute.palHome.name,
-        parentNavigatorKey: _rootNavigatorKey,
-        redirect: (context, state) => '/pal',
-      ),
+      // the Pal hub's memory, autopilot and noticed feed live on the You tab
+      // now; its old paths stay as stable redirects there.
+      for (final route in [AppRoute.pal, AppRoute.palInbox, AppRoute.palHome])
+        GoRoute(
+          path: route.path,
+          name: route.name,
+          redirect: (context, state) => AppRoute.you.path,
+        ),
       GoRoute(
         path: AppRoute.eveningCloseOut.path,
         name: AppRoute.eveningCloseOut.name,
@@ -553,6 +558,8 @@ GoRouter createRouter({
 /// Default gate predicate: when no `SettingsRepository` is supplied (tests,
 /// stand-alone use) the app behaves as if onboarding is already done.
 bool _alwaysComplete() => true;
+
+String _todayChild(AppRoute child) => '${AppRoute.today.path}/${child.path}';
 
 /// Maps the Recap `?range=` query value to an [InsightRange]; anything other
 /// than `week`/`month` (including absent) opens on Day.

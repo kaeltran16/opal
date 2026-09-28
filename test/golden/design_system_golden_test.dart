@@ -54,7 +54,6 @@ void main() {
 
   // non-opaque overlays: push() keeps Today underneath, as the app shows them.
   const pushScreens = {
-    'pal': '/pal',
     'pal_composer': '/pal-composer',
   };
   for (final MapEntry(key: name, value: path) in pushScreens.entries) {

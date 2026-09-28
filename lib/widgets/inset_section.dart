@@ -62,6 +62,7 @@ class ListRow extends StatefulWidget {
     super.key,
     this.icon,
     this.iconBg,
+    this.iconColor,
     required this.title,
     this.subtitle,
     this.value,
@@ -73,6 +74,9 @@ class ListRow extends StatefulWidget {
 
   final String? icon;
   final Color? iconBg;
+
+  /// Glyph color on [iconBg]; an area ink when the tile is an area tint.
+  final Color? iconColor;
   final String title;
   final String? subtitle;
   final String? value;
@@ -125,7 +129,7 @@ class _ListRowState extends State<ListRow> {
                             borderRadius: BorderRadius.circular(Radii.sm),
                           ),
                           alignment: Alignment.center,
-                          child: AppIcon(icon, size: 17, color: c.onAccent),
+                          child: AppIcon(icon, size: 17, color: widget.iconColor ?? c.onAccent),
                         ),
                         const SizedBox(width: Spacing.md),
                       ],

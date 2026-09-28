@@ -36,6 +36,10 @@ void main() {
           expect(contrastRatio(p.$1, bg), greaterThanOrEqualTo(4.5), reason: name);
         });
       });
+
+      test('${accent.name}/$mode: dangerInk passes 4.5:1 on surface', () {
+        expect(contrastRatio(c.dangerInk, c.surface), greaterThanOrEqualTo(4.5));
+      });
     }
   }
 }

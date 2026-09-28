@@ -1,5 +1,4 @@
 import 'package:drift/native.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -11,12 +10,12 @@ import 'package:opal/data/seed/seeder.dart';
 
 import 'support/flush_provider_timers.dart';
 
-/// Handoff #2 — the center FAB now opens the unified **Pal composer** (the
-/// single input surface that replaced the old Quick-Actions menu). Pump the
-/// real app, tap the FAB, assert the composer surface appears, then dismiss it
-/// by tapping the dim backdrop.
+/// The ask bar opens the unified **Pal composer** (the single input surface
+/// that replaced the old Quick-Actions menu and the FAB). Pump the real app,
+/// tap the ask bar, assert the composer surface appears, then dismiss it by
+/// tapping the backdrop.
 void main() {
-  testWidgets('FAB opens the Pal composer; tap-outside closes',
+  testWidgets('the ask bar opens the Pal composer; tap-outside closes',
       (WidgetTester tester) async {
     SharedPreferences.setMockInitialValues({
       'settings.onboardingComplete': true,
@@ -40,17 +39,16 @@ void main() {
     // Composer not present before opening.
     expect(find.text('Log, ask, or start anything'), findsNothing);
 
-    // Tap the center FAB (the raised "+" in the tab bar).
-    final fab = find.byIcon(CupertinoIcons.plus);
-    expect(fab, findsOneWidget);
-    await tester.tap(fab);
+    final askBar = find.bySemanticsLabel('Ask or log anything');
+    expect(askBar, findsOneWidget);
+    await tester.tap(askBar);
     await tester.pumpAndSettle();
 
     // The compact composer surface is up.
     expect(find.text('Log, ask, or start anything'), findsOneWidget);
     expect(find.text('Start a workout'), findsOneWidget);
 
-    // Tap the dim backdrop (top of the screen, above the sheet) to dismiss.
+    // Tap the backdrop (top of the screen, above the sheet) to dismiss.
     await tester.tapAt(const Offset(8, 8));
     await tester.pumpAndSettle();
 

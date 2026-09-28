@@ -62,8 +62,8 @@ void main() {
         find.text('This week'), 300, scrollable: scrollable);
     expect(find.text('This week'), findsOneWidget);
 
-    expect(find.bySemanticsLabel('You'), findsOneWidget);
-    expect(find.bySemanticsLabel('Open Pal'), findsOneWidget);
+    expect(find.bySemanticsLabel('Open Pal'), findsNothing);
+    expect(find.bySemanticsLabel('Back'), findsNothing);
     expect(find.bySemanticsLabel('Add a meal'), findsOneWidget);
 
     await flushProviderTimers(tester);

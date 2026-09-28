@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 import '../theme/theme.dart';
 import 'app_icon.dart';
+import 'glass_surface.dart';
 import 'press_scale.dart';
 
 /// iOS large-title navigation header (static, non-collapsing variant used by the
@@ -68,6 +69,8 @@ class LargeTitleScrollView extends StatelessWidget {
     super.key,
     required this.title,
     this.subtitle,
+    this.eyebrow,
+    this.largeTitle,
     this.leading,
     this.trailing,
     required this.children,
@@ -77,6 +80,13 @@ class LargeTitleScrollView extends StatelessWidget {
 
   final String title;
   final String? subtitle;
+
+  /// A small line above the large title (Today's date).
+  final String? eyebrow;
+
+  /// The expanded title when it differs from the compact [title] (Today's
+  /// greeting collapses to "Today").
+  final String? largeTitle;
   final Widget? leading;
   final Widget? trailing;
   final List<Widget> children;
@@ -100,6 +110,8 @@ class LargeTitleScrollView extends StatelessWidget {
               colors: context.colors,
               title: title,
               subtitle: subtitle,
+              eyebrow: eyebrow,
+              largeTitle: largeTitle,
               leading: leading,
               trailing: trailing,
             ),
@@ -119,6 +131,8 @@ class _CollapsingNavDelegate extends SliverPersistentHeaderDelegate {
     required this.colors,
     required this.title,
     this.subtitle,
+    this.eyebrow,
+    this.largeTitle,
     this.leading,
     this.trailing,
   });
@@ -126,6 +140,8 @@ class _CollapsingNavDelegate extends SliverPersistentHeaderDelegate {
   final AppColors colors;
   final String title;
   final String? subtitle;
+  final String? eyebrow;
+  final String? largeTitle;
   final Widget? leading;
   final Widget? trailing;
 
@@ -135,10 +151,14 @@ class _CollapsingNavDelegate extends SliverPersistentHeaderDelegate {
   static const double _navRow = 44;
   static const double _titleH = 41;
   static const double _subtitleH = 19;
+  static const double _eyebrowH = 16;
   static const double _bottomPad = 8;
 
   double get _titleBlock =>
-      _titleH + (subtitle != null ? 2 + _subtitleH : 0) + _bottomPad;
+      (eyebrow != null ? _eyebrowH + Spacing.xxs : 0) +
+      _titleH +
+      (subtitle != null ? 2 + _subtitleH : 0) +
+      _bottomPad;
 
   @override
   double get minExtent => _statusPad + _navRow;
@@ -153,12 +173,47 @@ class _CollapsingNavDelegate extends SliverPersistentHeaderDelegate {
     final t = range <= 0 ? 1.0 : (shrinkOffset / range).clamp(0.0, 1.0);
     final largeOpacity = (1 - t * 1.5).clamp(0.0, 1.0);
     final compactOpacity = ((t - 0.4) / 0.6).clamp(0.0, 1.0);
+    // glass only once content slides under the bar; at rest it's plain page.
+    final atRest = t == 0;
+    final bar = Container(
+      height: minExtent,
+      decoration: BoxDecoration(
+        color: atRest ? c.bg : null,
+        border: Border(
+          bottom: BorderSide(
+            color: c.hair.withValues(alpha: compactOpacity),
+            width: 0.5,
+          ),
+        ),
+      ),
+      padding: const EdgeInsets.only(top: _statusPad),
+      child: SizedBox(
+        height: _navRow,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            if (compactOpacity > 0)
+              Opacity(
+                opacity: compactOpacity,
+                child: Text(
+                  title,
+                  style: AppType.headline.copyWith(color: c.ink),
+                ),
+              ),
+            if (leading != null)
+              Positioned(left: Spacing.lg, child: leading!),
+            if (trailing != null)
+              Positioned(right: Spacing.lg, child: trailing!),
+          ],
+        ),
+      ),
+    );
 
     return SizedBox.expand(
       child: Stack(
         clipBehavior: Clip.none,
         children: [
-          // large title — drawn first so the opaque pinned bar occludes it as it
+          // large title — drawn first so the pinned bar covers it as it
           // slides up. Omitted once fully collapsed so the title text exists
           // exactly once in the tree (compact OR large, never both at rest).
           if (largeOpacity > 0)
@@ -171,14 +226,28 @@ class _CollapsingNavDelegate extends SliverPersistentHeaderDelegate {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      title,
-                      style: AppType.large.copyWith(
-                        color: c.ink,
-                        letterSpacing: 0.37,
-                        height: _titleH / 34,
+                    if (eyebrow != null)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: Spacing.xxs),
+                        child: SizedBox(
+                          height: _eyebrowH,
+                          child: Text(
+                            eyebrow!,
+                            style: AppType.eyebrow.copyWith(color: c.ink3),
+                          ),
+                        ),
                       ),
-                    ),
+                    if (largeTitle == null)
+                      Text(title, style: _largeStyle(c))
+                    else
+                      // the block has a fixed height, so a long greeting
+                      // scales down to one line instead of wrapping under
+                      // the content.
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Text(largeTitle!, maxLines: 1, style: _largeStyle(c)),
+                      ),
                     if (subtitle != null)
                       Padding(
                         padding: const EdgeInsets.only(top: Spacing.xxs),
@@ -192,59 +261,34 @@ class _CollapsingNavDelegate extends SliverPersistentHeaderDelegate {
                 ),
               ),
             ),
-          // pinned bar: opaque background, hairline on collapse, then the
-          // leading / compact-title / trailing row.
+          // pinned bar: page background at rest, glass once collapsing, with
+          // a hairline on collapse and the leading / compact-title / trailing
+          // row.
           Positioned(
             top: 0,
             left: 0,
             right: 0,
-            child: Container(
-              height: minExtent,
-              decoration: BoxDecoration(
-                color: c.bg,
-                border: Border(
-                  bottom: BorderSide(
-                    color: c.hair.withValues(alpha: compactOpacity),
-                    width: 0.5,
-                  ),
-                ),
-              ),
-              padding: const EdgeInsets.only(top: _statusPad),
-              child: SizedBox(
-                height: _navRow,
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    if (compactOpacity > 0)
-                      Opacity(
-                        opacity: compactOpacity,
-                        child: Text(
-                          title,
-                          style: AppType.headline.copyWith(color: c.ink),
-                        ),
-                      ),
-                    if (leading != null)
-                      Positioned(
-                          left: Spacing.lg,
-                          child: leading!),
-                    if (trailing != null)
-                      Positioned(
-                          right: Spacing.lg,
-                          child: trailing!),
-                  ],
-                ),
-              ),
-            ),
+            child: atRest
+                ? bar
+                : GlassSurface(borderRadius: BorderRadius.zero, child: bar),
           ),
         ],
       ),
     );
   }
 
+  TextStyle _largeStyle(AppColors c) => AppType.large.copyWith(
+        color: c.ink,
+        letterSpacing: 0.37,
+        height: _titleH / 34,
+      );
+
   @override
   bool shouldRebuild(covariant _CollapsingNavDelegate old) =>
       old.title != title ||
       old.subtitle != subtitle ||
+      old.eyebrow != eyebrow ||
+      old.largeTitle != largeTitle ||
       old.colors != colors ||
       old.leading != leading ||
       old.trailing != trailing;

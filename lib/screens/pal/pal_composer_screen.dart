@@ -14,6 +14,7 @@ import '../../theme/theme.dart';
 import '../../util/entry_glyph.dart';
 import '../../util/format.dart';
 import '../../widgets/app_icon.dart';
+import '../../widgets/glass_surface.dart';
 import '../../widgets/pal_avatar.dart';
 import '../../widgets/press_scale.dart';
 
@@ -107,7 +108,6 @@ class _PalComposerSheetState extends ConsumerState<PalComposerSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final c = context.colors;
     final state = ref.watch(palComposerControllerProvider(seed: widget.seed));
 
     // Keep pinned to the newest content whenever the transcript grows.
@@ -128,39 +128,37 @@ class _PalComposerSheetState extends ConsumerState<PalComposerSheet> {
         margin: EdgeInsets.only(bottom: keyboard),
         height: expanded ? media.size.height * 0.86 : null,
         constraints: BoxConstraints(maxHeight: media.size.height * 0.92 - keyboard),
-        decoration: BoxDecoration(
-          color: c.surface,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(Radii.lg)),
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: SafeArea(
-          top: false,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _Header(onClose: _close),
-              if (expanded)
-                Expanded(
-                  child: _MessageList(
-                    controller: _scrollCtrl,
-                    messages: state.messages,
-                    isLoading: state.isLoading,
-                    onUndo: (i) => _controller.undo(i),
-                    onEdit: _editLog,
-                  ),
-                )
-              else
-                _CompactBody(onSendStarter: _sendStarter),
-              _Composer(
-                controller: _inputCtrl,
-                focusNode: _inputFocus,
-                expanded: expanded,
-                hasText: _inputCtrl.text.trim().isNotEmpty,
-                enabled: !state.isLoading,
-                onSend: () => _send(_inputCtrl.text),
-              ),
-            ],
+        child: GlassSurface(
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(Radii.xxl)),
+          child: SafeArea(
+            top: false,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _Header(onClose: _close),
+                if (expanded)
+                  Expanded(
+                    child: _MessageList(
+                      controller: _scrollCtrl,
+                      messages: state.messages,
+                      isLoading: state.isLoading,
+                      onUndo: (i) => _controller.undo(i),
+                      onEdit: _editLog,
+                    ),
+                  )
+                else
+                  _CompactBody(onSendStarter: _sendStarter),
+                _Composer(
+                  controller: _inputCtrl,
+                  focusNode: _inputFocus,
+                  expanded: expanded,
+                  hasText: _inputCtrl.text.trim().isNotEmpty,
+                  enabled: !state.isLoading,
+                  onSend: () => _send(_inputCtrl.text),
+                ),
+              ],
+            ),
           ),
         ),
       ),

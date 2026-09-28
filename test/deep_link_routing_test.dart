@@ -82,7 +82,7 @@ void main() {
     await tester.pump(const Duration(seconds: 1));
   });
 
-  testWidgets('a /pal deep link pushes the Pal hub above the shell',
+  testWidgets('a /pal deep link selects the You tab, where Pal lives',
       (WidgetTester tester) async {
     SharedPreferences.setMockInitialValues({
       'settings.onboardingComplete': true,
@@ -106,12 +106,16 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // The canonical Pal path is /pal (the old /pal-home, /pal-inbox redirect to
-    // it). It must be treated as an above-shell overlay route and pushed, not
-    // go'd — otherwise the hub replaces the whole stack and looks stuck.
+    // /pal redirects into the You branch, so it must be go'd like any tab
+    // path: a push would stack a second You page over the shell.
     siri.emit('/pal');
     await tester.pumpAndSettle();
-    expect(find.text('Needs you'), findsOneWidget);
+    final youTab = find.byWidgetPredicate((w) =>
+        w is Semantics &&
+        w.properties.label == 'You' &&
+        w.properties.button == true);
+    expect(tester.widget<Semantics>(youTab).properties.selected, isTrue);
+    expect(find.text('What Pal remembers'), findsOneWidget);
 
     // Flush the agenda/brief mock-latency + drift stream-close timers.
     await tester.pumpWidget(const SizedBox());

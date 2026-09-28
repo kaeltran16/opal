@@ -11,9 +11,9 @@ import '../../widgets/app_icon.dart';
 import '../../widgets/nav_bar.dart';
 import '../../widgets/press_scale.dart';
 
-/// "What Pal noticed" — the passive observation feed, embedded as a section of
-/// the Pal hub. Reads [palInboxControllerProvider]; renders as a Column so it
-/// nests inside the hub's scroll view. Handles its own loading/empty/error
+/// "What Pal noticed" — the passive observation feed, embedded in the You
+/// tab's Pal section. Reads [palInboxControllerProvider]; renders as a Column so
+/// it nests inside the tab's scroll view. Handles its own loading/empty/error
 /// independent of the agenda regions (compose, not fuse).
 class PalNoticedSection extends ConsumerWidget {
   const PalNoticedSection({super.key});
@@ -56,8 +56,10 @@ class _Body extends ConsumerWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Text('What Pal noticed',
-                  style: AppType.title3.copyWith(color: c.ink, letterSpacing: -0.3)),
+              Flexible(
+                child: Text('What Pal noticed',
+                    style: AppType.title3.copyWith(color: c.ink, letterSpacing: -0.3)),
+              ),
               NavAction(
                 label: 'Mark all read',
                 onTap: controller.markAllRead,

@@ -14,7 +14,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'support/flush_provider_timers.dart';
 
 void main() {
-  testWidgets('Routines header: profile + Pal + new-routine action',
+  testWidgets('Routines header: back to Today + new-routine action',
       (tester) async {
     SharedPreferences.setMockInitialValues({});
     final prefs = await SharedPreferences.getInstance();
@@ -42,8 +42,9 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.bySemanticsLabel('You'), findsOneWidget);
-    expect(find.bySemanticsLabel('Open Pal'), findsOneWidget);
+    // /rituals redirects under Today, so the header leads back to Today.
+    expect(find.bySemanticsLabel('Back'), findsOneWidget);
+    expect(find.bySemanticsLabel('Open Pal'), findsNothing);
     expect(find.bySemanticsLabel('New routine'), findsOneWidget);
 
     await flushProviderTimers(tester);

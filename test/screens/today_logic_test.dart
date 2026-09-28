@@ -109,4 +109,28 @@ void main() {
       expect(isDoneByPal(_entry(DateTime(2026, 9, 28, 8), EntrySource.manual), now), isFalse);
     });
   });
+
+  group('greetingFor', () {
+    test('switches at noon and 18:00', () {
+      expect(greetingFor(DateTime(2026, 9, 28, 11, 59)), 'Good morning');
+      expect(greetingFor(DateTime(2026, 9, 28, 12)), 'Good afternoon');
+      expect(greetingFor(DateTime(2026, 9, 28, 17, 59)), 'Good afternoon');
+      expect(greetingFor(DateTime(2026, 9, 28, 18)), 'Good evening');
+    });
+  });
+
+  group('routineMinute', () {
+    test('parses 12-hour display times', () {
+      expect(routineMinute('7:00 AM'), 420);
+      expect(routineMinute('1:00 PM'), 780);
+      expect(routineMinute('9:30 pm'), 1290);
+      expect(routineMinute('12:15 AM'), 15);
+      expect(routineMinute('12:00 PM'), 720);
+    });
+
+    test('returns null for anything else', () {
+      expect(routineMinute('Evening'), isNull);
+      expect(routineMinute(''), isNull);
+    });
+  });
 }

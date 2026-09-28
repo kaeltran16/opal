@@ -35,13 +35,10 @@ void main() {
     // Resolve the async Today stream + first frame.
     await tester.pumpAndSettle();
 
-    // Nav title + the Today tab label both read "Today".
+    // The Today tab label, and Today's own sections.
     expect(find.text('Today'), findsWidgets);
-    expect(find.text('PAL NOTICED'), findsOneWidget);
-    // The ring stats (RingStat uppercases its label) are present.
-    expect(find.text('SPENT'), findsWidgets);
-    expect(find.text('WORKOUT'), findsWidgets);
-    expect(find.text('ROUTINES'), findsWidgets);
+    expect(find.text('Your day'), findsOneWidget);
+    expect(find.text('Ordered by Pal'), findsOneWidget);
 
     await flushProviderTimers(tester);
   });

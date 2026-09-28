@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart';
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -258,6 +259,50 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Stop logging card\ncharges by hand.'), findsNothing);
     expect(find.widgetWithText(ListRow, 'Email sync'), findsOneWidget);
+
+    await flushProviderTimers(tester);
+  });
+
+  testWidgets('the profile card carries the live workout streak',
+      (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(1200, 3000);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
+    final db = LoopDatabase.forTesting(NativeDatabase.memory());
+    addTearDown(db.close);
+    final now = clock.now();
+    Entry workout(int daysAgo) => Entry(
+        id: 'w$daysAgo',
+        timestamp: now.subtract(Duration(days: daysAgo)),
+        type: EntryType.move,
+        title: 'Run',
+        duration: 30,
+        calories: 200,
+        source: EntrySource.manual);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          loopDatabaseProvider.overrideWithValue(db),
+          allEntriesStreamProvider.overrideWith(
+              (ref) => Stream.value([workout(0), workout(1), workout(2)])),
+        ],
+        child: MaterialApp.router(
+          debugShowCheckedModeBanner: false,
+          theme: ThemeData(
+              useMaterial3: true,
+              extensions: [AppColors.light(AppAccent.blue)]),
+          routerConfig: createRouter(initialLocation: '/you'),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('3-day workout streak'), findsOneWidget);
 
     await flushProviderTimers(tester);
   });

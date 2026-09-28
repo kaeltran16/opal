@@ -78,10 +78,11 @@ void main() {
         scrollable: find.byType(Scrollable).first);
     expect(find.text('Run · Mission loop'), findsOneWidget);
 
-    // Header consolidation: single direct "+" (New routine), profile + Pal
-    // anchors, and NO overflow menu.
-    expect(find.bySemanticsLabel('You'), findsOneWidget);
-    expect(find.bySemanticsLabel('Open Pal'), findsOneWidget);
+    // Header consolidation: a single direct "+" (New routine) and no overflow
+    // menu. The ask bar replaced the Pal orb and You is a tab, so the header
+    // has no back button or orb at the tab root.
+    expect(find.bySemanticsLabel('Open Pal'), findsNothing);
+    expect(find.bySemanticsLabel('Back'), findsNothing);
     expect(find.bySemanticsLabel('New routine'), findsOneWidget);
     expect(find.bySemanticsLabel('More options'), findsNothing);
 

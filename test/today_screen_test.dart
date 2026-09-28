@@ -1,211 +1,245 @@
-import 'package:drift/native.dart';
+import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:opal/app.dart';
 import 'package:opal/controllers/providers.dart';
-import 'package:opal/data/db/database.dart';
-import 'package:opal/data/repositories/repositories.dart';
-import 'package:opal/data/seed/seeder.dart';
+import 'package:opal/controllers/spending_controller.dart' show DetailTracker;
 import 'package:opal/models/models.dart';
-import 'package:opal/router.dart';
+import 'package:opal/screens/detail/detail_screen.dart';
+import 'package:opal/screens/reflect/evening_close_out_screen.dart';
 import 'package:opal/services/pal/mock_pal_service.dart';
-import 'package:opal/theme/app_colors.dart';
+import 'package:opal/services/pal/pal_service.dart';
 import 'package:opal/widgets/activity_rings.dart';
-import 'package:opal/widgets/summary_tile.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import 'support/flush_provider_timers.dart';
+import 'support/golden_harness.dart' show bootApp;
 
-/// A timestamp today at [hour]:[minute] so the entries land in `watchToday()`.
-DateTime _todayAt(int hour, int minute) {
-  final n = DateTime.now();
-  return DateTime(n.year, n.month, n.day, hour, minute);
+final _monday = Clock.fixed(DateTime(2026, 9, 28, 9, 30));
+
+/// A mock whose day headline and agenda the test picks; `throwInsights`
+/// makes the brief fail so Today falls back to its local numbers.
+class _Pal extends MockPalService {
+  _Pal({this.headline, this.throwInsights = false, this.proposals})
+      : super(latency: Duration.zero, seed: 0);
+
+  final String? headline;
+  final bool throwInsights;
+  final List<PalProposal>? proposals;
+
+  @override
+  Future<PalInsights> insights(InsightRange range) async {
+    if (throwInsights) throw Exception('offline');
+    if (range == InsightRange.day && headline != null) {
+      return PalInsights(headline: headline);
+    }
+    return super.insights(range);
+  }
+
+  @override
+  Future<PalAgenda> agenda() async {
+    final p = proposals;
+    return p == null ? super.agenda() : PalAgenda(proposals: p);
+  }
+}
+
+PalProposal _proposal(String id, String title) => PalProposal(
+      id: id,
+      tag: 'Money',
+      colorToken: 'money',
+      icon: 'dollarsign.circle.fill',
+      title: title,
+      body: 'Body for $title.',
+      approveLabel: 'Got it',
+      approveIcon: 'checkmark',
+      doneLabel: '$title done',
+    );
+
+/// Boots the seeded app on Today under the fixed Monday clock, on a surface
+/// tall enough that every section is laid out.
+Future<void> _boot(WidgetTester tester, MockPalService pal) async {
+  tester.view.physicalSize = const Size(800, 3200);
+  tester.view.devicePixelRatio = 1.0;
+  addTearDown(tester.view.reset);
+  await bootApp(tester, palService: pal);
+}
+
+ProviderContainer _container(WidgetTester tester) =>
+    ProviderScope.containerOf(tester.element(find.byType(LoopApp)));
+
+/// Logs every step of every routine today, which completes the Routines area.
+Future<void> _completeEveryRoutine(WidgetTester tester) async {
+  final container = _container(tester);
+  final routinesSub = container.listen(ritualRoutinesStreamProvider.future, (_, _) {});
+  addTearDown(routinesSub.close);
+  await tester.pumpAndSettle();
+  final routines = await routinesSub.read();
+
+  final repo = container.read(entryRepositoryProvider);
+  final inserts = [
+    for (final r in routines)
+      for (final s in r.steps)
+        repo.insert(Entry(
+          id: 'done-${s.id}',
+          timestamp: DateTime(2026, 9, 28, 9),
+          type: EntryType.rituals,
+          title: s.title,
+          ritualId: s.id,
+          source: EntrySource.manual,
+        )),
+  ];
+  await tester.pumpAndSettle();
+  await Future.wait(inserts);
 }
 
 void main() {
-  testWidgets(
-      'Today renders rings, 3-up summary tiles, and timeline from live data',
-      (WidgetTester tester) async {
-    // onboardingComplete=true so the U17 first-run gate doesn't redirect this
-    // full-app boot away from Today.
-    SharedPreferences.setMockInitialValues({
-      'settings.onboardingComplete': true,
-    });
-    final prefs = await SharedPreferences.getInstance();
-    final db = LoopDatabase.forTesting(NativeDatabase.memory());
-    addTearDown(db.close);
-
-    // Fixed goals: $100 budget, 60 move-kcal, 4 rituals.
-    await GoalsRepository(db).upsert(const Goals(
-      dailyBudget: 100,
-      dailyMoveKcal: 60,
-      dailyRitualTarget: 4,
-    ));
-
-    // Fixed entries: one expense (morning), one ritual (morning), one
-    // dinner expense (evening). Spent = 50, rituals done = 1.
-    final entries = EntryRepository(db);
-    await entries.insert(Entry(
-      id: 'e-coffee',
-      timestamp: _todayAt(8, 0),
-      type: EntryType.money,
-      title: 'Verve Coffee',
-      detail: 'Coffee · cortado',
-      amount: -10,
-      category: 'Coffee',
-      source: EntrySource.manual,
-    ));
-    await entries.insert(Entry(
-      id: 'e-pages',
-      timestamp: _todayAt(7, 0),
-      type: EntryType.rituals,
-      title: 'Morning pages',
-      detail: '15 min · journal',
-      duration: 15,
-      source: EntrySource.manual,
-    ));
-    await entries.insert(Entry(
-      id: 'e-dinner',
-      timestamp: _todayAt(19, 30),
-      type: EntryType.money,
-      title: 'Tartine',
-      detail: 'Dinner',
-      amount: -40,
-      category: 'Dining',
-      source: EntrySource.email,
-    ));
-    // Move: a logged workout today burning 30 kcal → move ring 30/60 (move-kcal
-    // is derived from logged move entries' calories, not HealthKit).
-    await entries.insert(Entry(
-      id: 'e-run',
-      timestamp: _todayAt(18, 0),
-      type: EntryType.move,
-      title: 'Evening run',
-      detail: '30 min',
-      duration: 30,
-      calories: 30,
-      source: EntrySource.manual,
-    ));
-
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          sharedPreferencesProvider.overrideWithValue(prefs),
-          loopDatabaseProvider.overrideWithValue(db),
-        ],
-        child: const LoopApp(),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    // Rings rendered with computed fractions: money 50/100, move 30/60,
-    // rituals 1/4.
-    final rings = tester.widget<ActivityRings>(find.byType(ActivityRings));
-    expect(rings.values[0], closeTo(0.5, 1e-9)); // money
-    expect(rings.values[1], closeTo(0.5, 1e-9)); // move
-    expect(rings.values[2], closeTo(0.25, 1e-9)); // rituals
-
-    // Rings hero shows one stat per tracker type (money / move / rituals).
-    expect(find.byType(RingStat), findsNWidgets(3));
-    // Spent total reflects the two expenses ($50).
-    expect(find.text('\$50'), findsWidgets);
-
-    // Timeline buckets render their entry titles. Scroll to reveal the
-    // lazily-built rows.
-    final listFinder = find.byType(Scrollable).first;
-    await tester.scrollUntilVisible(
-      find.text('Verve Coffee'),
-      300,
-      scrollable: listFinder,
-    );
-    expect(find.text('Verve Coffee'), findsOneWidget);
-    expect(find.text('Morning pages'), findsOneWidget);
-
-    await tester.scrollUntilVisible(
-      find.text('Tartine'),
-      300,
-      scrollable: listFinder,
-    );
-    expect(find.text('Tartine'), findsOneWidget);
-
-    await flushProviderTimers(tester);
-  });
-
-  testWidgets('Today shows the empty-state copy when nothing is logged',
-      (WidgetTester tester) async {
-    SharedPreferences.setMockInitialValues({
-      'settings.onboardingComplete': true,
-    });
-    final prefs = await SharedPreferences.getInstance();
-    final db = LoopDatabase.forTesting(NativeDatabase.memory());
-    addTearDown(db.close);
-
-    // Tall surface so the empty-state line (below rings + tiles + timeline
-    // header) is laid out rather than culled by the lazy ListView.
-    tester.view.physicalSize = const Size(800, 2400);
-    tester.view.devicePixelRatio = 1.0;
-    addTearDown(tester.view.reset);
-
-    // Goals exist so TodayState builds, but no entries are inserted.
-    await GoalsRepository(db).upsert(const Goals(
-      dailyBudget: 100,
-      dailyMoveKcal: 60,
-      dailyRitualTarget: 4,
-    ));
-
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          sharedPreferencesProvider.overrideWithValue(prefs),
-          loopDatabaseProvider.overrideWithValue(db),
-        ],
-        child: const LoopApp(),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    expect(find.text('Nothing logged yet. Tap + to start your day.'),
-        findsOneWidget);
-
-    await flushProviderTimers(tester);
-  });
-
-  testWidgets('Today header: profile + Pal + search, no inbox tray',
+  testWidgets('the brief shows Pal\'s lead and its chips open their area',
       (tester) async {
-    SharedPreferences.setMockInitialValues({});
-    final prefs = await SharedPreferences.getInstance();
-    final db = LoopDatabase.forTesting(NativeDatabase.memory());
-    await Seeder(db).seedIfNeeded();
-    addTearDown(db.close);
+    await withClock(_monday, () async {
+      await _boot(tester, _Pal(headline: 'Steady start.'));
 
-    final router = createRouter(initialLocation: '/today');
-    final colors = AppColors.light(AppAccent.indigo);
+      expect(find.textContaining('Steady start.', findRichText: true), findsOneWidget);
+      expect(find.textContaining('MONDAY, SEPTEMBER 28'), findsOneWidget);
+      expect(find.textContaining('Good morning'), findsOneWidget);
 
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          sharedPreferencesProvider.overrideWithValue(prefs),
-          loopDatabaseProvider.overrideWithValue(db),
-          palServiceProvider.overrideWithValue(
-              MockPalService(latency: const Duration(milliseconds: 1))),
-        ],
-        child: MaterialApp.router(
-          debugShowCheckedModeBanner: false,
-          theme: ThemeData(useMaterial3: true, extensions: [colors]),
-          routerConfig: router,
-        ),
-      ),
-    );
-    await tester.pumpAndSettle();
+      await tester.tap(find.bySemanticsLabel(RegExp(r'^Spent .* open Money$')));
+      await tester.pumpAndSettle();
+      expect(
+        find.byWidgetPredicate((w) => w is DetailScreen && w.tracker == DetailTracker.money),
+        findsOneWidget,
+      );
 
-    expect(find.bySemanticsLabel('You'), findsOneWidget);
-    expect(find.bySemanticsLabel('Open Pal'), findsOneWidget);
-    expect(find.bySemanticsLabel('Search'), findsOneWidget);
-    // The redundant inbox tray is gone — the Pal orb already opens /pal.
-    expect(find.bySemanticsLabel('Pal inbox'), findsNothing);
+      await flushProviderTimers(tester);
+    });
+  });
 
-    await flushProviderTimers(tester);
+  testWidgets('a failed brief falls back to the what\'s-left row',
+      (tester) async {
+    await withClock(_monday, () async {
+      await _boot(tester, _Pal(throwInsights: true));
+
+      expect(find.text("Pal's brief is catching up"), findsOneWidget);
+      // the three columns, not the area cards below them.
+      expect(find.bySemanticsLabel(RegExp(r'^Spent \S+ of')), findsOneWidget);
+      expect(find.bySemanticsLabel(RegExp(r'^Workout \d')), findsOneWidget);
+      expect(find.bySemanticsLabel(RegExp(r'^Routines \d')), findsOneWidget);
+
+      await flushProviderTimers(tester);
+    });
+  });
+
+  testWidgets('Needs you is hidden with an empty agenda', (tester) async {
+    await withClock(_monday, () async {
+      await _boot(tester, _Pal(proposals: const []));
+
+      expect(find.text('Needs you'), findsNothing);
+
+      await flushProviderTimers(tester);
+    });
+  });
+
+  testWidgets('Needs you shows its proposals with a count', (tester) async {
+    await withClock(_monday, () async {
+      await _boot(
+        tester,
+        _Pal(proposals: [_proposal('a', 'Rent auto-pays'), _proposal('b', 'Push Day A')]),
+      );
+
+      expect(find.text('Needs you'), findsOneWidget);
+      expect(find.bySemanticsLabel('2 need you'), findsOneWidget);
+      expect(find.text('Rent auto-pays'), findsOneWidget);
+      expect(find.text('Push Day A'), findsOneWidget);
+
+      await flushProviderTimers(tester);
+    });
+  });
+
+  testWidgets('Undo deletes a Done-by-Pal entry, even one already gone',
+      (tester) async {
+    await withClock(_monday, () async {
+      await _boot(tester, _Pal());
+      final repo = _container(tester).read(entryRepositoryProvider);
+
+      Entry emailed(String id, String title) => Entry(
+            id: id,
+            timestamp: DateTime(2026, 9, 28, 8),
+            type: EntryType.money,
+            title: title,
+            amount: -5.75,
+            source: EntrySource.email,
+          );
+      // the insert only completes once fake time advances, so don't await it
+      // before pumping.
+      final inserted = [
+        repo.insert(emailed('e-verve', 'Verve Coffee')),
+        repo.insert(emailed('e-blue', 'Blue Bottle')),
+      ];
+      await tester.pumpAndSettle();
+      await Future.wait(inserted);
+
+      expect(find.text('Done by Pal · from your Gmail receipt'), findsWidgets);
+      await tester.tap(find.bySemanticsLabel('Undo Verve Coffee'));
+      await tester.pumpAndSettle();
+      expect(find.bySemanticsLabel('Undo Verve Coffee'), findsNothing);
+      final all = repo.getAll();
+      await tester.pumpAndSettle();
+      expect((await all).any((e) => e.id == 'e-verve'), isFalse);
+
+      // deleted elsewhere first: Undo must not throw, and the row goes away.
+      final gone = repo.deleteById('e-blue');
+      await tester.tap(find.bySemanticsLabel('Undo Blue Bottle'));
+      await tester.pumpAndSettle();
+      await gone;
+      expect(tester.takeException(), isNull);
+      expect(find.bySemanticsLabel('Undo Blue Bottle'), findsNothing);
+
+      await flushProviderTimers(tester);
+    });
+  });
+
+  testWidgets('a complete Routines card sinks below the incomplete cards',
+      (tester) async {
+    await withClock(_monday, () async {
+      await _boot(tester, _Pal());
+      await _completeEveryRoutine(tester);
+
+      double top(String card) =>
+          tester.getTopLeft(find.bySemanticsLabel(RegExp('^$card card'))).dy;
+      final routines = top('Routines');
+      // sleep is due at minute 0 either way; money and move only rank above
+      // routines (next slot 7:00 AM) once routines count as complete.
+      expect(top('Sleep'), lessThan(routines));
+      expect(top('Money'), lessThan(routines));
+      expect(top('Move'), lessThan(routines));
+
+      await flushProviderTimers(tester);
+    });
+  });
+
+  testWidgets('with every routine done, the Routines card starts the close-out',
+      (tester) async {
+    await withClock(_monday, () async {
+      await _boot(tester, _Pal());
+      await _completeEveryRoutine(tester);
+
+      expect(find.text('Evening close-out'), findsOneWidget);
+      await tester.tap(find.bySemanticsLabel('Start Evening close-out'));
+      await tester.pumpAndSettle();
+      expect(find.byType(EveningCloseOutScreen), findsOneWidget);
+
+      await flushProviderTimers(tester);
+    });
+  });
+
+  testWidgets('the rings hero and the search button are gone', (tester) async {
+    await withClock(_monday, () async {
+      await _boot(tester, _Pal());
+
+      expect(find.byType(ActivityRings), findsNothing);
+      expect(find.bySemanticsLabel('Search'), findsNothing);
+
+      await flushProviderTimers(tester);
+    });
   });
 }
