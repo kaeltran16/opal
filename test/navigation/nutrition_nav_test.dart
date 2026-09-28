@@ -66,7 +66,7 @@ void main() {
         of: find.byType(GlassTabBar), matching: find.text('You')));
     await tester.pumpAndSettle();
 
-    expect(find.text('Reviews, patterns, settings'), findsOneWidget);
+    expect(find.text('What Pal remembers'), findsOneWidget);
     expect(find.bySemanticsLabel('Back'), findsNothing);
 
     await flushProviderTimers(tester);
