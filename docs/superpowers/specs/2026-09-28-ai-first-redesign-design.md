@@ -116,6 +116,9 @@ The screen, top to bottom (see TodayGlass and TodayScrolled):
    - Below the row is a quiet line: "Pal's brief is catching up".
    - A brief that loaded earlier is never blanked on a later failure. This matches the current
      `_refreshBrief` behavior.
+   - **Refresh** (decided 2026-09-28): Today has no refresh button, per the mockup. The brief and
+     the agenda refresh on pull-to-refresh and whenever the app resumes. This replaces the Pal hub's
+     refetch-on-open and its "Refresh brief" button, so no capability is lost.
 4. **Needs you.** The pending `PalAgenda.proposals`, shown as cards with a primary and a secondary
    action, plus a count badge. The section is hidden when there are none.
 5. **Done by Pal.** Today's email-sourced entries (decision 7), each with its source line ("Done by
@@ -182,7 +185,8 @@ This replaces the FAB. The composer logic itself does not change.
 - **Type:**
   - Existing `AppType` ramp.
   - Numbers use `AppFonts.sfr` at weight 800 in the brief chips and the fallback row.
-  - Greeting: `large`. Brief lead: a new `brief` style, 28/38.
+  - Greeting: `large`. Brief lead: a new `brief` style, 21/38 semibold, letterSpacing -0.3 (the tall line fits the
+    inline chips).
 - **Touch targets:** at least 44 pt everywhere. Primary buttons are 52 tall.
 
 ### Glass rules

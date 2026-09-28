@@ -201,7 +201,12 @@ void main() {
 ### Task 3: Token cleanup, part A: widgets and the workout, money and nutrition screens (P2)
 **Depends on:** Task 1
 
-Zero visual change. Scope: `lib/widgets/*.dart` except `loop_tab_bar.dart`, plus
+Zero visual change. Scope: these existing widget files, by name: `activity_rings.dart`,
+`app_icon.dart`, `bar_chart.dart`, `budget_sheet.dart`, `controls.dart`, `correlation_card.dart`,
+`correlation_view.dart`, `dashed_border.dart`, `donut_chart.dart`, `gmail_glyph.dart`,
+`inset_section.dart`, `keypad.dart`, `nav_bar.dart`, `pal_avatar.dart`, `press_scale.dart`,
+`spend_ring.dart` and `summary_tile.dart`, all in `lib/widgets/`. Never touch the new widget files
+Tasks 5-7 create. Also in scope:
 `lib/screens/{workout,move,nutrition,email,money,library,entry,detail}/**`. Do NOT touch
 `today_screen.dart`, `loop_shell.dart`, `loop_tab_bar.dart`, `pal_screen.dart` or
 `profile_screen.dart` (later tasks rewrite them) or any file outside this scope (Task 4 owns it).
@@ -366,8 +371,10 @@ is three columns with 0.5 `c.hair` separators and no card. It shows the `$ left 
       controller below.
   - `isDoneByPal`: an email entry today is true, an email entry yesterday is false, and a manual
     entry today is false.
-  - `TodayBrief`, with `palServiceProvider` overridden by a fake whose `insights(InsightRange.day)`
-    returns `headline: 'Steady start.'`, and then throws on the next call:
+  - `TodayBrief`, with `palServiceProvider` overridden by a test-local
+    `class _FakePal extends MockPalService` that overrides `insights()`. `MockPalService` takes only
+    latency and a seed, so it can neither set a headline nor throw. The fake returns
+    `PalInsights(headline: 'Steady start.')` on the first call and throws on the next:
     - After `build`, the state is `'Steady start.'`.
     - After `refresh()` throws, the state is still `AsyncData('Steady start.')`, and
       `briefMode(container.read(todayBriefProvider)) == BriefMode.brief`. Use a `ProviderContainer`.
@@ -387,10 +394,12 @@ is three columns with 0.5 `c.hair` separators and no card. It shows the `$ left 
 - [ ] **Step 5:** Commit: `feat(today): brief controller, area ordering and glance widgets`.
 
 ### Task 7: GlassTabBar and PalAskBar
-**Depends on:** Task 5
+**Depends on:** Task 5, Task 3
 
 **Files:**
 - Create: `lib/widgets/glass_tab_bar.dart`, `lib/widgets/pal_ask_bar.dart`
+- Modify: `lib/widgets/app_icon.dart`. Add `'mic.fill': CupertinoIcons.mic_fill` to the map; there
+  is no mic icon today. Task 3 cleans this file first, hence the dependency.
 - Test: `test/widgets/glass_tab_bar_test.dart`, `test/widgets/pal_ask_bar_test.dart`
 
 **Interfaces (produces):**
@@ -433,7 +442,8 @@ is three columns with 0.5 `c.hair` separators and no card. It shows the `$ left 
   `lib/screens/profile/profile_screen.dart` (remove only the back `leading`),
   `lib/screens/pal/pal_composer_screen.dart` (sheet container only)
 - Delete: `lib/widgets/loop_tab_bar.dart`
-- Test: create `test/navigation/route_compat_test.dart`, and update the tests that reference
+- Test: create `test/navigation/route_compat_test.dart` and `test/screens/shell_test.dart`, modify
+  `test/large_title_scroll_view_test.dart`, and update the tests that reference
   `LoopTabBar`, `'More'`, `bySemanticsLabel('You')` or the header orb. Find them with
   `grep -rln "LoopTabBar\|'More'\|bySemanticsLabel('You')\|Open Pal" test`.
 - Goldens: regenerate every golden, because the chrome changed on every tab screen.
@@ -493,8 +503,11 @@ const cases = {
 
     Route names must be unique, so the new children never reuse the old names.
   - The existing `AppRoute.rituals`, `sleep`, `mood` and `manageRituals` become top-level redirect
-    routes to the new locations, keeping their names and paths. `/rituals` redirects with a
-    `manage` child redirecting to `/today/rituals/manage`.
+    routes to the new locations, keeping their names and paths. A route-level redirect on the
+    parent `/rituals` also fires for `/rituals/manage`, so the `/rituals` redirect must map by
+    path: `redirect: (context, state) => '/today${state.uri.path}'`. That turns `/rituals` into
+    `/today/rituals` and `/rituals/manage` into `/today/rituals/manage`, and it preserves the query
+    string by appending `state.uri.query` when it is non-empty. The route-compat cases pin both.
   - Move the `/you` route and its children into the fourth branch and drop its
     `parentNavigatorKey`.
   - Remove the rituals, sleep and mood navigator keys.
@@ -615,18 +628,33 @@ Layout, top to bottom (TodayGlass, TodayFallback and TodayScrolled):
 Bottom padding clears the shell overlay: keep the existing literal pattern with a `kept literal`
 comment.
 
+Refresh (spec, Today section 3): `TodayScreen` becomes a `ConsumerStatefulWidget`.
+- Wrap the `TabHeaderScrollView` in a `RefreshIndicator` whose `onRefresh` awaits
+  `ref.read(todayBriefProvider.notifier).refresh()` and calls `ref.invalidate(palAgendaProvider)`.
+- Create an `AppLifecycleListener(onResume: _refresh)` in `initState`, pointing at the same method,
+  and dispose it in `dispose`.
+- There is no visible refresh button.
+
 - [ ] **Step 1: Write the failing widget tests** in `test/today_screen_test.dart`, booting the
   seeded app under `withClock(Clock.fixed(DateTime(2026,9,28,9,30)))`:
-  - With a `MockPalService` whose headline is `'Steady start.'`, the text shows, and
-    `find.bySemanticsLabel(RegExp(r'^Spent .* open Money$'))` taps through to the spending detail.
-  - With a mock that throws on `insights`, `Pal's brief is catching up` shows, and there are three
-    column semantics labels.
-  - Needs you is hidden with an empty agenda and shows its count with 2 proposals.
+  - Use a test-local subclass of `MockPalService` that overrides `insights()`. `MockPalService`
+    itself only takes latency and a seed.
+    - When it returns `'Steady start.'`, the text shows, and
+      `find.bySemanticsLabel(RegExp(r'^Spent .* open Money$'))` taps through to the spending detail.
+    - When it throws, `Pal's brief is catching up` shows, and there are three column semantics
+      labels.
+  - Needs you: override `palAgendaProvider.overrideWith((ref) async => PalAgenda(proposals: [...]))`.
+    It is hidden with `const PalAgenda()` and shows the count `2` with two proposals.
   - With a seeded email entry today, `Undo` removes it (the repository no longer has it). Calling
     Undo on an id already deleted through the repository shows no exception.
   - With the Routines area complete and Sleep incomplete, the Sleep card appears above the Routines
     card (compare `tester.getTopLeft` dy).
   - There is no `ActivityRings`, and no `magnifyingglass` search button.
+  - Refresh: the fake `insights()` counts its calls.
+    - A fling down on the list (`tester.fling(find.byType(CustomScrollView).first, const Offset(0, 400), 1000)`
+      plus `pumpAndSettle`) raises the count by 1, and a new headline returned on that call shows.
+    - Driving `tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused)` and then
+      `.resumed` also raises the count by 1.
 - [ ] **Step 2:** Run them and expect a FAIL.
 - [ ] **Step 3:** Implement per the layout above.
 - [ ] **Step 4:** Run `flutter test test/pal_home_test.dart test/screens/pal_home_memory_test.dart`.
