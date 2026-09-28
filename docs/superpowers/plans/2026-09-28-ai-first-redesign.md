@@ -122,7 +122,7 @@ the baseline.
   `nutritionInk`, `sleepInk`, `moodInk`, `accentInk`. Also `Color inkForType(String type)`, which
   mirrors `forType`.
 - `AppAccentInfo.inkLight()` and `AppAccentInfo.inkDark()`, both returning `Color`.
-- `AppType.brief` (28/38, w600, letterSpacing -0.4).
+- `AppType.brief` (21/38, w600, letterSpacing -0.3).
 - `double contrastRatio(Color fg, Color bg)` and `Color composite(Color top, Color bottom)` in
   `lib/theme/contrast.dart`.
 
@@ -189,7 +189,7 @@ void main() {
   mode) or lighten (dark mode) the accent until the test passes. Write the final values as literal
   consts; do not compute them at runtime.
 - [ ] **Step 5:** Run the contrast test. Adjust any value that fails and re-run until it is green.
-- [ ] **Step 6:** Add `AppType.brief` and extend `app_type_test.dart` (size 28, height 38/28). Extend
+- [ ] **Step 6:** Add `AppType.brief` and extend `app_type_test.dart` (size 21, height 38/21). Extend
   `app_colors_test.dart`:
   - `lerp(a, b, 0)` keeps the new fields.
   - `copyWith(accent:)` keeps `accentInk` unless one is passed.
