@@ -105,6 +105,21 @@ void main() {
     expect(tester.getTopLeft(_goalLine).dy, tester.getTopLeft(_bars.at(0)).dy);
   });
 
+  testWidgets('short bars stand on the chart floor, under the goal line', (tester) async {
+    await _pump(tester, values: [30, 6, null, null, null, null, null], todayIndex: 1);
+
+    final chart = find.descendant(
+      of: find.byType(WeekBars),
+      matching: find.byWidgetPredicate((w) => w is SizedBox && w.height == _chartHeight),
+    );
+    final floor = tester.getBottomLeft(chart).dy;
+    expect(tester.getSize(_bars.at(0)).height, _chartHeight / 2);
+    for (var i = 0; i < 7; i++) {
+      expect(tester.getBottomLeft(_bars.at(i)).dy, floor);
+    }
+    expect(tester.getTopLeft(_goalLine).dy, floor - _chartHeight);
+  });
+
   testWidgets('a value above the goal scales the chart to that value', (tester) async {
     await _pump(tester, values: [120, 60, null, null, null, null, null], todayIndex: 1);
 

@@ -7,84 +7,42 @@ import 'providers.dart';
 
 part 'spending_controller.g.dart';
 
-/// Which tracker a [DetailScreen] is rendering. This is the real
-/// type-parametrization for handoff screen 06: the Spending detail is built as
-/// a reusable template so the Move and Rituals detail screens (later units)
-/// reuse the exact same widget + provider, only switching this value.
+/// Which tracker a [DetailScreen] is rendering: one widget and one provider
+/// serve the Money, Move and Routines area pages, switching only this value.
 ///
-/// Each case carries the presentation knobs the template needs (title, the
-/// underlying [EntryType], the tracker color token, and how a single entry's
-/// magnitude and label are read). Money is the only case wired into the UI now;
-/// the others are defined so Move/Rituals detail can drop in without touching
-/// the template.
+/// Each case carries its title, the underlying [EntryType], and how a single
+/// entry's magnitude and category are read.
 enum DetailTracker {
   money(
     title: 'Spending',
     entryType: EntryType.money,
-    colorToken: 'money',
-    askPalPrompt: 'Ask Pal about spending',
     unbudgetedLabel: 'Uncategorized',
-    heroSub: 'Spent today',
-    heroIcon: 'creditcard.fill',
-    recentHeader: 'Recent spending',
   ),
   move(
     title: 'Workout',
     entryType: EntryType.move,
-    colorToken: 'move',
-    askPalPrompt: 'Ask Pal about workouts',
     unbudgetedLabel: 'Other',
-    heroSub: 'Active energy',
-    heroIcon: 'figure.run',
-    recentHeader: 'Recent workouts',
   ),
   rituals(
     title: 'Routines',
     entryType: EntryType.rituals,
-    colorToken: 'rituals',
-    askPalPrompt: 'Ask Pal about routines',
     unbudgetedLabel: 'Other',
-    heroSub: 'Routines completed',
-    heroIcon: 'checkmark',
-    recentHeader: 'Recent routines',
   );
 
   const DetailTracker({
     required this.title,
     required this.entryType,
-    required this.colorToken,
-    required this.askPalPrompt,
     required this.unbudgetedLabel,
-    required this.heroSub,
-    required this.heroIcon,
-    required this.recentHeader,
   });
 
-  /// Large-title nav text for this detail screen.
+  /// What the tracker is called in the page's load-failure copy.
   final String title;
 
   /// The [EntryType] whose entries feed this detail screen.
   final EntryType entryType;
 
-  /// `context.colors.forType(colorToken)` — the tracker accent color.
-  final String colorToken;
-
-  /// Copy for the bottom "Ask Pal about …" pill.
-  final String askPalPrompt;
-
   /// Category bucket label for entries with no category set.
   final String unbudgetedLabel;
-
-  /// Colored hero sub-line under the big number (design `cfg.sub`).
-  final String heroSub;
-
-  /// SF symbol for the hero icon tile and entry rows (design `cfg.icon`/`e.sf`).
-  final String heroIcon;
-
-  /// Section header over the recent-entries list. "Recent", not the design's
-  /// "Today's …": the list groups by day (Today/Yesterday/date), so it spans
-  /// history while the hero above stays scoped to today.
-  final String recentHeader;
 
   /// Magnitude of one entry for totals/breakdown. For money this is the
   /// absolute expense amount; Move is active energy in kcal (same source as

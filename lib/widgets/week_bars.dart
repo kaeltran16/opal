@@ -63,25 +63,29 @@ class WeekBars extends StatelessWidget {
                       height: _goalLine,
                       child: CustomPaint(painter: _DashedLinePainter(c.ink3)),
                     ),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    spacing: Spacing.sm,
-                    children: [
-                      for (var i = 0; i < _days; i++)
-                        Expanded(
-                          child: SizedBox(
-                            height: height(values[i]),
-                            child: DecoratedBox(
-                              decoration: BoxDecoration(
-                                color: fill(i),
-                                borderRadius: const BorderRadius.vertical(
-                                  top: Radius.circular(Radii.xs),
+                  // fills the chart so the bars stand on its floor, where the
+                  // goal line is measured from.
+                  Positioned.fill(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      spacing: Spacing.sm,
+                      children: [
+                        for (var i = 0; i < _days; i++)
+                          Expanded(
+                            child: SizedBox(
+                              height: height(values[i]),
+                              child: DecoratedBox(
+                                decoration: BoxDecoration(
+                                  color: fill(i),
+                                  borderRadius: const BorderRadius.vertical(
+                                    top: Radius.circular(Radii.xs),
+                                  ),
                                 ),
                               ),
                             ),
                           ),
-                        ),
-                    ],
+                      ],
+                    ),
                   ),
                 ],
               ),

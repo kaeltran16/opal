@@ -12,6 +12,8 @@ import 'package:opal/models/models.dart';
 import 'package:opal/screens/detail/detail_screen.dart';
 import 'package:opal/theme/app_colors.dart';
 
+import 'support/flush_provider_timers.dart';
+
 /// A timestamp today at [hour]:[minute].
 DateTime _todayAt(int hour, int minute) {
   final n = DateTime.now();
@@ -205,9 +207,9 @@ void main() {
   });
 
   // ---------------------------------------------------------------------------
-  // Widget — renders total + category rows from seeded money entries.
+  // Widget — renders what is left + category rows from seeded money entries.
   // ---------------------------------------------------------------------------
-  testWidgets('DetailScreen renders total + category rows from seeded entries',
+  testWidgets('DetailScreen renders what is left + category rows from seeded entries',
       (tester) async {
     final db = LoopDatabase.forTesting(NativeDatabase.memory());
     addTearDown(db.close);
@@ -257,19 +259,20 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // Title.
-    expect(find.text('Spending'), findsOneWidget);
+    expect(find.text('Money'), findsOneWidget);
 
-    // Hero total: 6 + 30 + 4 = 40.
-    expect(find.text('\$40'), findsWidgets);
+    // Hero: 85 - (6 + 30 + 4) = 45 left.
+    expect(find.text('\$45'), findsOneWidget);
+    expect(find.text('left of \$85 today'), findsOneWidget);
+    expect(find.text('\$40 of \$85'), findsOneWidget);
 
-    // Category breakdown rows render their labels + amounts.
+    // The top categories are contributors, with their amounts.
     expect(find.text('Groceries'), findsOneWidget);
     expect(find.text('Food & Drink'), findsOneWidget);
     expect(find.text('Transit'), findsOneWidget);
     expect(find.text('\$30'), findsWidgets);
 
-    // Ask Pal pill.
-    expect(find.text('Ask Pal about spending'), findsOneWidget);
+    expect(find.textContaining('Ask Pal about'), findsNothing);
+    await flushProviderTimers(tester);
   });
 }
