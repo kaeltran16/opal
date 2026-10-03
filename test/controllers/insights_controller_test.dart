@@ -34,10 +34,13 @@ class _FakePal implements PalService {
 
 Future<void> _insert(EntryRepository repo, int count) async {
   final now = DateTime.now();
+  // counted from midnight, not back from now: the day gate is today only, and
+  // hours before now cross into yesterday when the suite runs before 3am.
+  final today = DateTime(now.year, now.month, now.day);
   for (var i = 0; i < count; i++) {
     await repo.insert(Entry(
       id: 'e$i',
-      timestamp: now.subtract(Duration(hours: i + 1)),
+      timestamp: today.add(Duration(minutes: i)),
       type: EntryType.money,
       title: 'Spend $i',
       amount: -10,
