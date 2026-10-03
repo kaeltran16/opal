@@ -17,7 +17,6 @@ final _roles = <String, TextStyle>{
   'title2': AppType.title2,
   'title1': AppType.title1,
   'large': AppType.large,
-  'brief': AppType.brief,
   'amount': AppType.amount,
   'amountLg': AppType.amountLg,
   'display': AppType.display,
@@ -56,13 +55,6 @@ void main() {
     expect(AppType.large.fontSize, 34);
     expect(AppType.amount.fontSize, 34);
     expect(AppType.amountLg.fontSize, 48);
-  });
-
-  test('brief is 21/38 semibold with tight tracking', () {
-    expect(AppType.brief.fontSize, 21);
-    expect(AppType.brief.height, 38 / 21);
-    expect(AppType.brief.fontWeight, FontWeight.w600);
-    expect(AppType.brief.letterSpacing, -0.3);
   });
 
   test('the DESIGN.md section 4 roles have the exact metrics', () {

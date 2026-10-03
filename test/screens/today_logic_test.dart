@@ -1,4 +1,3 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opal/models/models.dart';
 import 'package:opal/screens/today/today_logic.dart';
@@ -13,30 +12,6 @@ Entry _entry(DateTime at, EntrySource source) => Entry(
     );
 
 void main() {
-  group('orderAreas', () {
-    test('puts incomplete areas before complete ones', () {
-      final order = orderAreas(const [
-        AreaStatus(area: TodayArea.sleep, complete: true, minuteOfDay: 0),
-        AreaStatus(area: TodayArea.money, complete: false, minuteOfDay: 720),
-        AreaStatus(area: TodayArea.mood, complete: false, minuteOfDay: 480),
-      ]);
-      expect(order, [TodayArea.mood, TodayArea.money, TodayArea.sleep]);
-    });
-
-    test('breaks minuteOfDay ties by enum index', () {
-      final order = orderAreas(const [
-        AreaStatus(area: TodayArea.nutrition, complete: false, minuteOfDay: 600),
-        AreaStatus(area: TodayArea.move, complete: false, minuteOfDay: 600),
-        AreaStatus(area: TodayArea.routines, complete: false, minuteOfDay: 600),
-      ]);
-      expect(order, [TodayArea.routines, TodayArea.move, TodayArea.nutrition]);
-    });
-
-    test('an empty list gives an empty list', () {
-      expect(orderAreas(const []), isEmpty);
-    });
-  });
-
   group('GlanceNumbers', () {
     GlanceNumbers numbers({
       double spent = 0,
@@ -79,21 +54,6 @@ void main() {
     });
   });
 
-  group('briefMode', () {
-    test('a non-empty headline gives brief', () {
-      expect(briefMode(const AsyncData('x')), BriefMode.brief);
-    });
-
-    test('null or empty headlines give fallback', () {
-      expect(briefMode(const AsyncData(null)), BriefMode.fallback);
-      expect(briefMode(const AsyncData('')), BriefMode.fallback);
-    });
-
-    test('loading gives fallback', () {
-      expect(briefMode(const AsyncLoading()), BriefMode.fallback);
-    });
-  });
-
   group('isDoneByPal', () {
     final now = DateTime(2026, 9, 28, 14);
 
@@ -110,12 +70,15 @@ void main() {
     });
   });
 
-  group('greetingFor', () {
-    test('switches at noon and 18:00', () {
-      expect(greetingFor(DateTime(2026, 9, 28, 11, 59)), 'Good morning');
-      expect(greetingFor(DateTime(2026, 9, 28, 12)), 'Good afternoon');
-      expect(greetingFor(DateTime(2026, 9, 28, 17, 59)), 'Good afternoon');
-      expect(greetingFor(DateTime(2026, 9, 28, 18)), 'Good evening');
+  group('dateLine', () {
+    test('reads weekday, day, month and a 12-hour time', () {
+      expect(dateLine(DateTime(2026, 9, 28, 9, 30)), 'MON 28 SEP · 9:30 AM');
+      expect(dateLine(DateTime(2026, 10, 3, 18, 5)), 'SAT 3 OCT · 6:05 PM');
+    });
+
+    test('midnight and noon read as 12', () {
+      expect(dateLine(DateTime(2026, 9, 28)), 'MON 28 SEP · 12:00 AM');
+      expect(dateLine(DateTime(2026, 9, 28, 12)), 'MON 28 SEP · 12:00 PM');
     });
   });
 

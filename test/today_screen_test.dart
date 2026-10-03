@@ -1,292 +1,480 @@
+import 'dart:async';
+
 import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:opal/analysis/area_state.dart';
 import 'package:opal/app.dart';
 import 'package:opal/controllers/providers.dart';
-import 'package:opal/controllers/spending_controller.dart' show DetailTracker;
+import 'package:opal/controllers/today_controller.dart';
+import 'package:opal/data/seed/seed_data.dart';
 import 'package:opal/models/models.dart';
 import 'package:opal/screens/detail/detail_screen.dart';
+import 'package:opal/screens/mood/mood_screen.dart';
+import 'package:opal/screens/nutrition/nutrition_screen.dart';
+import 'package:opal/screens/pal/pal_composer_screen.dart';
 import 'package:opal/screens/reflect/evening_close_out_screen.dart';
-import 'package:opal/screens/shell/tab_header.dart';
-import 'package:opal/services/pal/mock_pal_service.dart';
-import 'package:opal/services/pal/pal_service.dart';
-import 'package:opal/widgets/activity_rings.dart';
+import 'package:opal/screens/rituals/routine_player_screen.dart';
+import 'package:opal/screens/sleep/sleep_screen.dart';
+import 'package:opal/screens/today/today_logic.dart';
+import 'package:opal/screens/today/today_screen.dart';
+import 'package:opal/screens/workout/start_workout_screen.dart';
+import 'package:opal/theme/theme.dart';
+import 'package:opal/widgets/app_icon.dart';
+import 'package:opal/widgets/shortcut_ring.dart';
 
 import 'support/flush_provider_timers.dart';
-import 'support/golden_harness.dart' show bootApp;
+import 'support/golden_harness.dart' show appRouter;
+import 'support/today_fixture.dart';
 
 final _monday = Clock.fixed(DateTime(2026, 9, 28, 9, 30));
 
-/// A mock whose day headline and agenda the test picks; `throwInsights`
-/// makes the brief fail so Today falls back to its local numbers.
-class _Pal extends MockPalService {
-  _Pal({this.headline, this.throwInsights = false, this.proposals})
-      : super(latency: Duration.zero, seed: 0);
+const _longTitle = 'Stretch the hips and shoulders before the long desk session';
+const _otherLongTitle = 'Walk around the block and refill the water bottle again';
 
-  final String? headline;
-  final bool throwInsights;
-  final List<PalProposal>? proposals;
-  int insightsCalls = 0;
-
-  @override
-  Future<PalInsights> insights(InsightRange range) async {
-    if (range == InsightRange.day) insightsCalls++;
-    if (throwInsights) throw Exception('offline');
-    if (range == InsightRange.day && headline != null) {
-      return PalInsights(headline: headline);
-    }
-    return super.insights(range);
-  }
-
-  @override
-  Future<PalAgenda> agenda() async {
-    final p = proposals;
-    return p == null ? super.agenda() : PalAgenda(proposals: p);
-  }
-}
-
-PalProposal _proposal(String id, String title) => PalProposal(
-      id: id,
-      tag: 'Money',
-      colorToken: 'money',
-      icon: 'dollarsign.circle.fill',
-      title: title,
-      body: 'Body for $title.',
-      approveLabel: 'Got it',
-      approveIcon: 'checkmark',
-      doneLabel: '$title done',
-    );
-
-/// Boots the seeded app on Today under the fixed Monday clock, on a surface
-/// tall enough that every section is laid out.
-Future<void> _boot(WidgetTester tester, MockPalService pal) async {
-  tester.view.physicalSize = const Size(800, 3200);
+/// Boots Today under the fixed Monday clock on a surface tall enough that
+/// every row is on screen.
+Future<void> _boot(
+  WidgetTester tester, {
+  TodayDay day = const TodayDay(),
+  TodayPal? pal,
+}) async {
+  tester.view.physicalSize = const Size(390, 2400);
   tester.view.devicePixelRatio = 1.0;
   addTearDown(tester.view.reset);
-  await bootApp(tester, palService: pal);
+  await bootToday(tester, day: day, pal: pal);
 }
+
+Finder _onToday(Finder matching) =>
+    find.descendant(of: find.byType(TodayScreen), matching: matching);
 
 ProviderContainer _container(WidgetTester tester) =>
     ProviderScope.containerOf(tester.element(find.byType(LoopApp)));
 
-/// Logs every step of every routine today, which completes the Routines area.
-Future<void> _completeEveryRoutine(WidgetTester tester) async {
-  final container = _container(tester);
-  final routinesSub = container.listen(ritualRoutinesStreamProvider.future, (_, _) {});
-  addTearDown(routinesSub.close);
-  await tester.pumpAndSettle();
-  final routines = await routinesSub.read();
+AppColors _colors(WidgetTester tester) => tester.element(find.byType(TodayScreen)).colors;
 
-  final repo = container.read(entryRepositoryProvider);
-  final inserts = [
-    for (final r in routines)
-      for (final s in r.steps)
-        repo.insert(Entry(
-          id: 'done-${s.id}',
-          timestamp: DateTime(2026, 9, 28, 9),
-          type: EntryType.rituals,
-          title: s.title,
-          ritualId: s.id,
-          source: EntrySource.manual,
-        )),
-  ];
-  await tester.pumpAndSettle();
-  await Future.wait(inserts);
+/// Runs [body] under the Monday clock and flushes the app's timers after it.
+void _todayTest(String name, Future<void> Function(WidgetTester tester) body) {
+  testWidgets(name, (tester) async {
+    await withClock(_monday, () async {
+      await body(tester);
+      await flushProviderTimers(tester);
+    });
+  });
 }
 
 void main() {
-  testWidgets('the brief shows Pal\'s lead and its chips open their area',
+  _todayTest('the header shows the date line and a hidden Today heading, with no profile button',
       (tester) async {
-    await withClock(_monday, () async {
-      await _boot(tester, _Pal(headline: 'Steady start.'));
+    await _boot(tester);
 
-      expect(find.textContaining('Steady start.', findRichText: true), findsOneWidget);
-      expect(find.textContaining('MONDAY, SEPTEMBER 28'), findsOneWidget);
-      expect(find.textContaining('Good morning'), findsOneWidget);
+    expect(find.text('MON 28 SEP · 9:30 AM'), findsOneWidget);
+    expect(
+      _onToday(find.byWidgetPredicate((w) =>
+          w is Semantics && w.properties.header == true && w.properties.label == 'Today')),
+      findsOneWidget,
+    );
+    expect(find.bySemanticsLabel('Profile and settings'), findsNothing);
+    expect(find.bySemanticsLabel('Search'), findsNothing);
+  });
 
-      await tester.tap(find.bySemanticsLabel(RegExp(r'^Spent .* open Money$')));
+  _todayTest('the three rings carry the glance labels and open their area page',
+      (tester) async {
+    await _boot(tester);
+    final currency = _container(tester).read(appSettingsControllerProvider).currency;
+    final glances = areaGlances(
+      const GlanceNumbers(
+        spent: 5.75,
+        budget: 60,
+        moveKcal: 310,
+        moveGoal: 500,
+        routinesDone: 0,
+        routinesTotal: 3,
+      ),
+      currency,
+      clock.now(),
+    );
+
+    expect(find.byType(ShortcutRing), findsNWidgets(3));
+    for (final glance in glances) {
+      expect(find.bySemanticsLabel(glance.semantics), findsOneWidget);
+
+      await tester.tap(find.bySemanticsLabel(glance.semantics));
       await tester.pumpAndSettle();
       expect(
-        find.byWidgetPredicate((w) => w is DetailScreen && w.tracker == DetailTracker.money),
+        find.byWidgetPredicate((w) => w is DetailScreen && w.tracker == glance.tracker),
         findsOneWidget,
       );
 
-      await flushProviderTimers(tester);
-    });
+      appRouter(tester).pop();
+      await tester.pumpAndSettle();
+      // nothing expanded in place: the card is the one Today booted with.
+      expect(find.byType(DetailScreen), findsNothing);
+      expect(_onToday(find.text('Morning')), findsOneWidget);
+      expect(_onToday(find.text('Now')), findsOneWidget);
+    }
   });
 
-  testWidgets('a failed brief falls back to the what\'s-left row',
+  _todayTest('the lead is Pal\'s headline when there is one', (tester) async {
+    await _boot(tester, pal: TodayPal(headline: 'Steady start.', proposals: const []));
+
+    expect(find.text('Steady start.'), findsOneWidget);
+    expect(find.text('Ease into the day'), findsNothing);
+  });
+
+  _todayTest('with Pal offline Today still renders, led by the current item\'s sentence',
       (tester) async {
-    await withClock(_monday, () async {
-      await _boot(tester, _Pal(throwInsights: true));
+    await _boot(tester, pal: TodayPal(offline: true));
 
-      expect(find.text("Pal's brief is catching up"), findsOneWidget);
-      // the three columns, not the area cards below them.
-      expect(find.bySemanticsLabel(RegExp(r'^Spent \S+ of')), findsOneWidget);
-      expect(find.bySemanticsLabel(RegExp(r'^Workout \d')), findsOneWidget);
-      expect(find.bySemanticsLabel(RegExp(r'^Routines \d')), findsOneWidget);
-
-      await flushProviderTimers(tester);
-    });
+    // the morning routine's own blurb.
+    expect(find.text('Ease into the day'), findsOneWidget);
+    expect(find.byType(ShortcutRing), findsNWidgets(3));
+    expect(_onToday(find.text('Morning')), findsOneWidget);
+    expect(_onToday(find.text('Midday reset')), findsOneWidget);
+    expect(find.byKey(todayRailKey), findsOneWidget);
+    expect(find.textContaining("Couldn't load today"), findsNothing);
   });
 
-  testWidgets('pulling Today down refetches the brief', (tester) async {
-    await withClock(_monday, () async {
-      final pal = _Pal(headline: 'Steady start.');
-      await _boot(tester, pal);
-      final before = pal.insightsCalls;
-      // the indicator arms at a share of the viewport, which a 400 pt pull
-      // never reaches on the tall layout surface; pull on a phone instead.
-      tester.view.physicalSize = const Size(390, 844);
-      await tester.pumpAndSettle();
+  _todayTest('an item with no sentence leads with its title', (tester) async {
+    await _boot(tester,
+        day: const TodayDay(routines: [], workout: false), pal: TodayPal(offline: true));
 
-      await tester.fling(find.byType(TabHeaderScrollView), const Offset(0, 400), 1000);
-      await tester.pumpAndSettle();
-
-      expect(pal.insightsCalls, before + 1);
-      await flushProviderTimers(tester);
-    });
+    expect(_onToday(find.text('Mood check-in')), findsNWidgets(2));
   });
 
-  testWidgets('returning to the app refetches the brief', (tester) async {
-    await withClock(_monday, () async {
-      final pal = _Pal(headline: 'Steady start.');
-      await _boot(tester, pal);
-      final before = pal.insightsCalls;
-
-      // AppLifecycleListener asserts every transition, so walk the real sequence.
-      for (final state in const [
-        AppLifecycleState.inactive,
-        AppLifecycleState.hidden,
-        AppLifecycleState.paused,
-        AppLifecycleState.hidden,
-        AppLifecycleState.inactive,
-        AppLifecycleState.resumed,
-      ]) {
-        tester.binding.handleAppLifecycleStateChanged(state);
-        await tester.pump();
-      }
-      await tester.pumpAndSettle();
-
-      expect(pal.insightsCalls, before + 1);
-      await flushProviderTimers(tester);
-    });
-  });
-
-  testWidgets('Needs you is hidden with an empty agenda', (tester) async {
-    await withClock(_monday, () async {
-      await _boot(tester, _Pal(proposals: const []));
-
-      expect(find.text('Needs you'), findsNothing);
-
-      await flushProviderTimers(tester);
-    });
-  });
-
-  testWidgets('Needs you shows its proposals with a count', (tester) async {
-    await withClock(_monday, () async {
-      await _boot(
-        tester,
-        _Pal(proposals: [_proposal('a', 'Rent auto-pays'), _proposal('b', 'Push Day A')]),
-      );
-
-      expect(find.text('Needs you'), findsOneWidget);
-      expect(find.bySemanticsLabel('2 need you'), findsOneWidget);
-      expect(find.text('Rent auto-pays'), findsOneWidget);
-      expect(find.text('Push Day A'), findsOneWidget);
-
-      await flushProviderTimers(tester);
-    });
-  });
-
-  testWidgets('Undo deletes a Done-by-Pal entry, even one already gone',
+  _todayTest('the card shows the first open item; skip, Undo and the count follow',
       (tester) async {
-    await withClock(_monday, () async {
-      await _boot(tester, _Pal());
-      final repo = _container(tester).read(entryRepositoryProvider);
+    await _boot(
+      tester,
+      day: const TodayDay(routines: []),
+      pal: TodayPal(proposals: [proposal('a', 'Rent auto-pays')]),
+    );
 
-      Entry emailed(String id, String title) => Entry(
-            id: id,
-            timestamp: DateTime(2026, 9, 28, 8),
-            type: EntryType.money,
-            title: title,
-            amount: -5.75,
-            source: EntrySource.email,
-          );
-      // the insert only completes once fake time advances, so don't await it
-      // before pumping.
-      final inserted = [
-        repo.insert(emailed('e-verve', 'Verve Coffee')),
-        repo.insert(emailed('e-blue', 'Blue Bottle')),
-      ];
-      await tester.pumpAndSettle();
-      await Future.wait(inserted);
+    expect(_onToday(find.text('Rent auto-pays')), findsOneWidget);
+    expect(find.text('0 of 4 done'), findsOneWidget);
+    // the receipt row has its own Undo, labelled with its title.
+    expect(find.bySemanticsLabel('Undo'), findsNothing);
 
-      expect(find.text('Done by Pal · from your Gmail receipt'), findsWidgets);
-      expect(find.textContaining('Logged Verve Coffee, '), findsOneWidget);
-      await tester.tap(find.bySemanticsLabel('Undo Verve Coffee'));
-      await tester.pumpAndSettle();
-      expect(find.bySemanticsLabel('Undo Verve Coffee'), findsNothing);
-      final all = repo.getAll();
-      await tester.pumpAndSettle();
-      expect((await all).any((e) => e.id == 'e-verve'), isFalse);
+    await tester.tap(find.text('Not now'));
+    await tester.pumpAndSettle();
+    expect(_onToday(find.text('Rent auto-pays')), findsNothing);
+    expect(find.text('Now · 55 min'), findsOneWidget);
+    // a skip is not counted as done.
+    expect(find.text('0 of 4 done'), findsOneWidget);
 
-      // deleted elsewhere first: Undo must not throw, and the row goes away.
-      final gone = repo.deleteById('e-blue');
-      await tester.tap(find.bySemanticsLabel('Undo Blue Bottle'));
-      await tester.pumpAndSettle();
-      await gone;
-      expect(tester.takeException(), isNull);
-      expect(find.bySemanticsLabel('Undo Blue Bottle'), findsNothing);
+    await tester.tap(find.bySemanticsLabel('Undo'));
+    await tester.pumpAndSettle();
+    expect(_onToday(find.text('Rent auto-pays')), findsOneWidget);
 
-      await flushProviderTimers(tester);
-    });
+    await tester.tap(find.text('Got it'));
+    await tester.pumpAndSettle();
+    expect(_onToday(find.text('Rent auto-pays')), findsNothing);
+    expect(find.text('1 of 4 done'), findsOneWidget);
   });
 
-  testWidgets('a complete Routines card sinks below the incomplete cards',
-      (tester) async {
-    await withClock(_monday, () async {
-      await _boot(tester, _Pal());
-      await _completeEveryRoutine(tester);
+  group('the primary pill opens the flow for', () {
+    _todayTest('a routine', (tester) async {
+      await _boot(tester);
 
-      double top(String card) =>
-          tester.getTopLeft(find.bySemanticsLabel(RegExp('^$card card'))).dy;
-      final routines = top('Routines');
-      // sleep is due at minute 0 either way; money and move only rank above
-      // routines (next slot 7:00 AM) once routines count as complete.
-      expect(top('Sleep'), lessThan(routines));
-      expect(top('Money'), lessThan(routines));
-      expect(top('Move'), lessThan(routines));
-
-      await flushProviderTimers(tester);
+      await tester.tap(find.text('Start'));
+      await tester.pumpAndSettle();
+      expect(find.byType(RoutinePlayerScreen), findsOneWidget);
     });
-  });
 
-  testWidgets('with every routine done, the Routines card starts the close-out',
-      (tester) async {
-    await withClock(_monday, () async {
-      await _boot(tester, _Pal());
-      await _completeEveryRoutine(tester);
+    _todayTest('the workout', (tester) async {
+      await _boot(tester, day: const TodayDay(routines: []));
 
-      expect(find.text('Evening close-out'), findsOneWidget);
-      await tester.tap(find.bySemanticsLabel('Start Evening close-out'));
+      await tester.tap(find.text('Start'));
+      await tester.pumpAndSettle();
+      expect(find.byType(StartWorkoutScreen), findsOneWidget);
+    });
+
+    _todayTest('the mood check-in', (tester) async {
+      await _boot(tester, day: const TodayDay(routines: [], workout: false));
+
+      await tester.tap(find.text('Check in'));
+      await tester.pumpAndSettle();
+      expect(find.byType(BottomSheet), findsOneWidget);
+    });
+
+    _todayTest('a meal', (tester) async {
+      await _boot(tester, day: const TodayDay(routines: [], workout: false, mood: true));
+
+      // the card's title and its pill read the same.
+      await tester.tap(_onToday(find.text('Log a meal')).last);
+      await tester.pumpAndSettle();
+      expect(find.byType(PalComposerSheet), findsOneWidget);
+    });
+
+    _todayTest('the close-out', (tester) async {
+      await _boot(tester);
+
+      await tester.tap(find.bySemanticsLabel('Close-out, at 9:30 PM. Do this next'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Start'));
       await tester.pumpAndSettle();
       expect(find.byType(EveningCloseOutScreen), findsOneWidget);
+    });
+  });
 
+  _todayTest('tapping a later row makes it the card', (tester) async {
+    await _boot(tester);
+    expect(find.text('At 1:00 PM'), findsNothing);
+
+    await tester.tap(find.bySemanticsLabel('Midday reset, at 1:00 PM. Do this next'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('At 1:00 PM'), findsOneWidget);
+    expect(find.bySemanticsLabel('Midday reset, at 1:00 PM. Do this next'), findsNothing);
+    expect(find.bySemanticsLabel('Morning, at 7:00 AM. Do this next'), findsOneWidget);
+  });
+
+  _todayTest('a receipt row\'s Undo deletes the entry, even one already gone',
+      (tester) async {
+    await _boot(tester);
+    final repo = _container(tester).read(entryRepositoryProvider);
+    // the insert only completes once fake time advances, so don't await it
+    // before pumping.
+    final inserted = repo.insert(Entry(
+      id: 'e-blue',
+      timestamp: DateTime(2026, 9, 28, 8),
+      type: EntryType.money,
+      title: 'Blue Bottle',
+      amount: -4.5,
+      source: EntrySource.email,
+    ));
+    await tester.pumpAndSettle();
+    await inserted;
+
+    expect(find.textContaining('Logged $receiptTitle, '), findsOneWidget);
+    await tester.tap(find.bySemanticsLabel('Undo $receiptTitle'));
+    await tester.pumpAndSettle();
+    expect(find.bySemanticsLabel('Undo $receiptTitle'), findsNothing);
+    final all = repo.getAll();
+    await tester.pumpAndSettle();
+    expect((await all).any((e) => e.id == receiptId), isFalse);
+
+    // deleted elsewhere first: Undo must not throw, and the row goes away.
+    final gone = repo.deleteById('e-blue');
+    await tester.tap(find.bySemanticsLabel('Undo Blue Bottle'));
+    await tester.pumpAndSettle();
+    await gone;
+    expect(tester.takeException(), isNull);
+    expect(find.bySemanticsLabel('Undo Blue Bottle'), findsNothing);
+  });
+
+  _todayTest('the sleep, mood and meal done rows open their screens', (tester) async {
+    await _boot(tester, day: const TodayDay(mood: true, meal: true));
+
+    await tester.tap(_onToday(find.text('Sleep')));
+    await tester.pumpAndSettle();
+    expect(find.byType(SleepScreen), findsOneWidget);
+    appRouter(tester).pop();
+    await tester.pumpAndSettle();
+
+    await tester.tap(_onToday(find.text('Mood check-in')));
+    await tester.pumpAndSettle();
+    expect(find.byType(MoodScreen), findsOneWidget);
+    appRouter(tester).pop();
+    await tester.pumpAndSettle();
+
+    await tester.tap(_onToday(find.text(mealTitle)));
+    await tester.pumpAndSettle();
+    expect(find.byType(NutritionScreen), findsOneWidget);
+  });
+
+  _todayTest('a done routine row opens the Routines page', (tester) async {
+    await _boot(tester, day: const TodayDay(firstRoutineDone: true));
+
+    await tester.tap(_onToday(find.text('Morning')));
+    await tester.pumpAndSettle();
+    expect(
+      find.byWidgetPredicate((w) => w is DetailScreen && w.tracker.name == 'rituals'),
+      findsOneWidget,
+    );
+  });
+
+  _todayTest('an empty day ends on the all-done card with no buttons and no rail',
+      (tester) async {
+    await _boot(tester, day: const TodayDay.empty());
+
+    // with nothing set up, the mood check-in and a meal are all that is asked.
+    expect(find.text('0 of 2 done'), findsOneWidget);
+    await tester.tap(find.text('Not today'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Not today'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('All done'), findsOneWidget);
+    expect(find.text("That's the day"), findsOneWidget);
+    expect(find.text('Nothing is left. Rest up.'), findsOneWidget);
+    expect(find.text('Not today'), findsNothing);
+    expect(find.byKey(todayRailKey), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  _todayTest('with no goals the rings are empty, neutral and On track', (tester) async {
+    await _boot(tester, day: const TodayDay.empty());
+    final c = _colors(tester);
+
+    final rings = tester.widgetList<ShortcutRing>(find.byType(ShortcutRing)).toList();
+    expect(rings, hasLength(3));
+    for (final ring in rings) {
+      expect(ring.fraction, 0);
+      expect(ring.state, AreaState.good);
+    }
+    final words = tester.widgetList<Text>(_onToday(find.text('On track'))).toList();
+    expect(words, hasLength(3));
+    for (final word in words) {
+      expect(word.style!.color, c.ink3);
+    }
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('a 60 character routine title at text scale 1.3 does not overflow',
+      (tester) async {
+    await withClock(_monday, () async {
+      expect(_longTitle.length, greaterThanOrEqualTo(59));
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.reset);
+      tester.platformDispatcher.textScaleFactorTestValue = 1.3;
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+      final seeded = SeedData.ritualRoutines();
+
+      await bootToday(
+        tester,
+        strictLayout: true,
+        day: TodayDay(routines: [
+          seeded[0].copyWith(name: _longTitle),
+          seeded[1].copyWith(name: _otherLongTitle),
+        ]),
+      );
+
+      // the card wraps its title; the timeline row ellipsises.
+      expect(_onToday(find.text(_longTitle)), findsOneWidget);
+      expect(_onToday(find.text(_otherLongTitle)), findsOneWidget);
+      expect(tester.takeException(), isNull);
       await flushProviderTimers(tester);
     });
   });
 
-  testWidgets('the rings hero and the search button are gone', (tester) async {
-    await withClock(_monday, () async {
-      await _boot(tester, _Pal());
+  _todayTest('pulling Today down refetches the brief', (tester) async {
+    final pal = TodayPal(headline: 'Steady start.', proposals: const []);
+    await _boot(tester, pal: pal);
+    final before = pal.insightsCalls;
+    // the indicator arms at a share of the viewport, which a 400 pt pull
+    // never reaches on the tall layout surface; pull on a phone instead.
+    tester.view.physicalSize = const Size(390, 844);
+    await tester.pumpAndSettle();
 
-      expect(find.byType(ActivityRings), findsNothing);
-      expect(find.bySemanticsLabel('Search'), findsNothing);
+    await tester.fling(find.byType(TodayScreen), const Offset(0, 400), 1000);
+    await tester.pumpAndSettle();
 
-      await flushProviderTimers(tester);
-    });
+    expect(pal.insightsCalls, before + 1);
+  });
+
+  _todayTest('returning to the app refetches the brief', (tester) async {
+    final pal = TodayPal(headline: 'Steady start.', proposals: const []);
+    await _boot(tester, pal: pal);
+    final before = pal.insightsCalls;
+
+    // AppLifecycleListener asserts every transition, so walk the real sequence.
+    for (final state in const [
+      AppLifecycleState.inactive,
+      AppLifecycleState.hidden,
+      AppLifecycleState.paused,
+      AppLifecycleState.hidden,
+      AppLifecycleState.inactive,
+      AppLifecycleState.resumed,
+    ]) {
+      tester.binding.handleAppLifecycleStateChanged(state);
+      await tester.pump();
+    }
+    await tester.pumpAndSettle();
+
+    expect(pal.insightsCalls, before + 1);
+  });
+
+  _todayTest('the date line is the only uppercase text', (tester) async {
+    await _boot(
+      tester,
+      day: const TodayDay(mood: true, meal: true, spent: 80),
+      pal: TodayPal(proposals: [proposal('a', 'Rent auto-pays')]),
+    );
+
+    final shouting = tester
+        .widgetList<Text>(_onToday(find.byType(Text)))
+        .map((t) => t.data!)
+        .where(RegExp(r'[A-Z]{3,}').hasMatch);
+    expect(shouting, ['MON 28 SEP · 9:30 AM']);
+  });
+
+  _todayTest('Today reads no area colour: rings, icons and text are neutral or a state colour',
+      (tester) async {
+    // over budget, a goal met and a routine done, so every state colour shows.
+    await _boot(
+      tester,
+      day: const TodayDay(mood: true, meal: true, spent: 80, moveKcal: 520, firstRoutineDone: true),
+      pal: TodayPal(proposals: [proposal('a', 'Rent auto-pays')]),
+    );
+    final c = _colors(tester);
+    final area = {
+      c.money, c.moneyTint, c.moneyInk,
+      c.move, c.moveTint, c.moveInk,
+      c.rituals, c.ritualsTint, c.ritualsInk,
+      c.nutrition, c.nutritionTint, c.nutritionInk,
+      c.sleep, c.sleepTint, c.sleepInk,
+      c.mood, c.moodTint, c.moodInk,
+    };
+
+    for (final ring in tester.widgetList<CustomPaint>(find.descendant(
+        of: find.byType(ShortcutRing), matching: find.byType(CustomPaint)))) {
+      final painter = ring.painter as dynamic;
+      if (painter == null) continue;
+      expect(painter.track, c.track);
+      expect([c.ink, c.watch, c.care], contains(painter.arc));
+    }
+    for (final icon in tester.widgetList<AppIcon>(find.descendant(
+        of: find.byType(ShortcutRing), matching: find.byType(AppIcon)))) {
+      expect([c.ink, c.bg], contains(icon.color));
+    }
+
+    final used = <Color?>{
+      for (final icon in tester.widgetList<AppIcon>(_onToday(find.byType(AppIcon)))) icon.color,
+      for (final text in tester.widgetList<Text>(_onToday(find.byType(Text)))) text.style?.color,
+      for (final box in tester.widgetList<Container>(_onToday(find.byType(Container))))
+        if (box.decoration case final BoxDecoration d) d.color,
+    };
+    expect(used.intersection(area), isEmpty);
+  });
+
+  _todayTest('while today is loading it shows the ellipsis', (tester) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+    final never = StreamController<TodayState>();
+    addTearDown(never.close);
+
+    await bootToday(tester,
+        overrides: [todayStateProvider.overrideWith((ref) => never.stream)]);
+
+    expect(_onToday(find.text('…')), findsOneWidget);
+    expect(find.byType(ShortcutRing), findsNothing);
+  });
+
+  _todayTest('when today fails to load it says so', (tester) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    await bootToday(tester, overrides: [
+      todayStateProvider.overrideWith((ref) => Stream.error(StateError('no database'))),
+    ]);
+
+    expect(find.text("Couldn't load today. Try again in a moment."), findsOneWidget);
+    expect(find.byType(ShortcutRing), findsNothing);
   });
 }

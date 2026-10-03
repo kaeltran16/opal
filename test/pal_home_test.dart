@@ -8,7 +8,7 @@ import 'package:opal/controllers/providers.dart';
 import 'package:opal/data/db/database.dart';
 import 'package:opal/data/seed/seeder.dart';
 import 'package:opal/router.dart';
-import 'package:opal/screens/pal/pal_agenda_widgets.dart';
+import 'package:opal/screens/reflect/evening_close_out_screen.dart';
 import 'package:opal/services/pal/mock_pal_service.dart';
 import 'package:opal/services/pal/pal_service.dart';
 import 'package:opal/theme/app_colors.dart';
@@ -246,36 +246,51 @@ void main() {
     }
   });
 
-  // the hub's Needs you cards moved to Today; their behavior is unchanged.
+  // the hub's Needs you cards moved to Today's action card; a later row is
+  // tapped first to bring its proposal onto the card.
   group('Needs you on Today', () {
-    testWidgets('Approve flips a card to its done confirmation; Undo reverts',
+    /// The header's Undo; a receipt row's is labelled with its title.
+    Finder undo() => find.bySemanticsLabel('Undo');
+
+    // these run on the wall clock, so which item starts on the card varies.
+    Future<void> select(WidgetTester tester, String title) async {
+      final row = find.bySemanticsLabel('$title, any time. Do this next');
+      if (row.evaluate().isEmpty) return;
+      await tester.tap(row);
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('the primary pill settles a proposal; Undo brings it back',
         (tester) async {
       await _pumpApp(tester, location: '/today');
+      await select(tester, 'Set aside \$40 for rent');
+      final progress = find.textContaining(RegExp(r'^\d+ of \d+ done$'));
+      final before = tester.widget<Text>(progress).data;
+      expect(undo(), findsNothing);
 
       // the money action approves in place (no navigation).
       await tester.tap(find.text('Hold \$40'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Held \$40 in your Rent envelope'), findsOneWidget);
-      expect(find.text('Done by Pal · just now'), findsOneWidget);
       expect(find.text('Hold \$40'), findsNothing);
+      expect(find.text('Set aside \$40 for rent'), findsNothing);
+      expect(tester.widget<Text>(progress).data, isNot(before));
 
-      // Today's Done-by-Pal rows have their own Undo; take the card's.
-      await tester.tap(find.descendant(
-          of: find.byType(AgentCard), matching: find.text('Undo')));
+      await tester.tap(undo());
       await tester.pumpAndSettle();
 
       expect(find.text('Hold \$40'), findsOneWidget);
-      expect(find.text('Held \$40 in your Rent envelope'), findsNothing);
+      expect(tester.widget<Text>(progress).data, before);
 
       await flushProviderTimers(tester);
     });
 
-    testWidgets('Not now removes the card', (tester) async {
+    testWidgets('Not now removes the proposal', (tester) async {
       await _pumpApp(tester, location: '/today');
+      await select(tester, 'Move Legs day to Friday');
 
-      expect(find.text('Move Legs day to Friday'), findsOneWidget);
-      await tester.tap(find.text('Not now').first);
+      expect(find.text('Reschedule'), findsOneWidget);
+      await tester.tap(find.text('Not now'));
       await tester.pumpAndSettle();
 
       expect(find.text('Move Legs day to Friday'), findsNothing);
@@ -283,14 +298,18 @@ void main() {
       await flushProviderTimers(tester);
     });
 
-    testWidgets('close-out action navigates instead of flipping to done',
+    testWidgets('a close-out proposal navigates instead of settling',
         (tester) async {
       await _pumpApp(tester, location: '/today');
+      await select(tester, 'Close out tonight');
 
       await tester.tap(find.text('Start close-out'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Close-out queued for 21:30'), findsNothing);
+      expect(find.byType(EveningCloseOutScreen), findsOneWidget);
+      // still on the card behind the sheet, and nothing to undo.
+      expect(find.text('Start close-out', skipOffstage: false), findsOneWidget);
+      expect(undo(), findsNothing);
 
       await flushProviderTimers(tester);
     });

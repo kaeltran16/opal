@@ -35,10 +35,15 @@ void main() {
     // Resolve the async Today stream + first frame.
     await tester.pumpAndSettle();
 
-    // The Today tab label, and Today's own sections.
+    // The Today tab label, Today's date line and its three rings.
     expect(find.text('Today'), findsWidgets);
-    expect(find.text('Your day'), findsOneWidget);
-    expect(find.text('Ordered by Pal'), findsOneWidget);
+    expect(
+      find.textContaining(RegExp(r'^[A-Z]{3} \d{1,2} [A-Z]{3} · \d{1,2}:\d{2} [AP]M$')),
+      findsOneWidget,
+    );
+    for (final area in ['Money', 'Move', 'Routines']) {
+      expect(find.bySemanticsLabel(RegExp('^$area: ')), findsOneWidget);
+    }
 
     await flushProviderTimers(tester);
   });

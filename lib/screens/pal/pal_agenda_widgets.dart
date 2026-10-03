@@ -5,25 +5,13 @@ import '../../theme/theme.dart';
 import '../../widgets/app_icon.dart';
 import '../../widgets/press_scale.dart';
 
-/// Where a proposal card stands locally, on top of the server agenda.
-enum CardStatus { open, done, dismissed }
-
 const double _minTap = 44;
-const double _iconTile = 40;
-const double _doneTile = 34;
 const double _rowTile = 32;
 const double _rowMinHeight = 60;
 // kept literal: the iOS switch track and knob.
 const double _toggleWidth = 51;
 const double _toggleHeight = 31;
 const double _knob = 27;
-
-/// The solid "done" fill and its glyph: move ink under white in light, the
-/// brighter move under black in dark (white on move green fails contrast).
-/// Light surface and dark background are the theme's pure white and black.
-(Color, Color) doneFill(AppColors c) => c.brightness == Brightness.dark
-    ? (c.move, c.bg)
-    : (c.moveInk, c.surface);
 
 /// The tint behind an agenda token's icon; unknown tokens use the accent.
 Color _tint(AppColors c, String token) => switch (token) {
@@ -32,178 +20,6 @@ Color _tint(AppColors c, String token) => switch (token) {
       'rituals' => c.ritualsTint,
       _ => c.accentTint,
     };
-
-/// The "Needs you" stack: a loading hint, the visible proposal cards, or an
-/// all-caught-up line when everything has been handled.
-class NeedsYouSection extends StatelessWidget {
-  const NeedsYouSection({
-    super.key,
-    required this.loading,
-    required this.proposals,
-    required this.done,
-    required this.onApprove,
-    required this.onDismiss,
-    required this.onUndo,
-  });
-
-  final bool loading;
-  final List<PalProposal> proposals;
-  final bool Function(PalProposal) done;
-  final void Function(PalProposal) onApprove;
-  final void Function(PalProposal) onDismiss;
-  final void Function(PalProposal) onUndo;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.colors;
-    if (loading) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(vertical: Spacing.sm),
-        child: Text('Pal is lining up your day…',
-            style: AppType.subhead.copyWith(color: c.ink3, letterSpacing: -0.24)),
-      );
-    }
-    if (proposals.isEmpty) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(vertical: Spacing.sm),
-        child: Text("You're all caught up — nothing needs you right now.",
-            style: AppType.subhead.copyWith(color: c.ink3, letterSpacing: -0.24)),
-      );
-    }
-    return Column(
-      children: [
-        for (var i = 0; i < proposals.length; i++) ...[
-          if (i > 0) const SizedBox(height: Spacing.md),
-          AgentCard(
-            proposal: proposals[i],
-            done: done(proposals[i]),
-            onApprove: () => onApprove(proposals[i]),
-            onDismiss: () => onDismiss(proposals[i]),
-            onUndo: () => onUndo(proposals[i]),
-          ),
-        ],
-      ],
-    );
-  }
-}
-
-/// A proposed cross-pillar action with its approve action and Not now. In the
-/// [done] state it collapses to a confirmation row that bounces in with the
-/// brand's success easing (`Cubic(0.34, 1.56, 0.64, 1)`).
-class AgentCard extends StatelessWidget {
-  const AgentCard({
-    super.key,
-    required this.proposal,
-    required this.done,
-    required this.onApprove,
-    required this.onDismiss,
-    required this.onUndo,
-  });
-
-  final PalProposal proposal;
-  final bool done;
-  final VoidCallback onApprove;
-  final VoidCallback onDismiss;
-  final VoidCallback onUndo;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.colors;
-    return done ? _buildDone(context, c) : _buildOpen(context, c);
-  }
-
-  BoxDecoration _card(AppColors c) => BoxDecoration(
-        color: c.surface,
-        borderRadius: BorderRadius.circular(Radii.xxl),
-        boxShadow: [BoxShadow(color: c.hair, blurRadius: 0, spreadRadius: 0.5)],
-      );
-
-  Widget _buildDone(BuildContext context, AppColors c) {
-    final (fill, glyph) = doneFill(c);
-    return TweenAnimationBuilder<double>(
-      // bouncy "success" easing; the >1 control point gives the overshoot.
-      tween: Tween(begin: 0.96, end: 1),
-      duration: const Duration(milliseconds: 360),
-      curve: const Cubic(0.34, 1.56, 0.64, 1),
-      builder: (context, scale, child) =>
-          Transform.scale(scale: scale, child: child),
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(Spacing.lg, Spacing.sm, Spacing.sm, Spacing.sm),
-        decoration: _card(c),
-        child: Row(
-          children: [
-            Container(
-              width: _doneTile,
-              height: _doneTile,
-              decoration: BoxDecoration(color: fill, shape: BoxShape.circle),
-              alignment: Alignment.center,
-              child: AppIcon('checkmark', size: 17, color: glyph),
-            ),
-            const SizedBox(width: Spacing.md),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(proposal.doneLabel,
-                      style: AppType.subhead.copyWith(
-                          fontWeight: FontWeight.w600, color: c.ink)),
-                  const SizedBox(height: 1),
-                  Text('Done by Pal · just now',
-                      style: AppType.footnote.copyWith(color: c.ink3)),
-                ],
-              ),
-            ),
-            _PillButton(label: 'Undo', onTap: onUndo, tinted: true),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildOpen(BuildContext context, AppColors c) {
-    final token = proposal.colorToken;
-    return Container(
-      padding: const EdgeInsets.all(Spacing.lg),
-      decoration: _card(c),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: _iconTile,
-            height: _iconTile,
-            decoration: BoxDecoration(color: _tint(c, token), shape: BoxShape.circle),
-            alignment: Alignment.center,
-            child: AppIcon(proposal.icon, size: 19, color: c.inkForType(token)),
-          ),
-          const SizedBox(width: Spacing.md),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(proposal.title,
-                    style: AppType.headline.copyWith(color: c.ink, letterSpacing: -0.2)),
-                const SizedBox(height: 3),
-                Text(proposal.body,
-                    style: AppType.subhead.copyWith(color: c.ink2, height: 20 / 15)),
-                const SizedBox(height: Spacing.md),
-                // one tinted action per card: the view's single primary
-                // action stays with the ask bar.
-                Wrap(
-                  spacing: Spacing.sm,
-                  runSpacing: Spacing.sm,
-                  children: [
-                    _PillButton(label: proposal.approveLabel, onTap: onApprove, tinted: true),
-                    _PillButton(label: 'Not now', onTap: onDismiss),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
 
 BoxDecoration _groupCard(AppColors c) => BoxDecoration(
       color: c.surface,
@@ -502,37 +318,6 @@ class _Toggle extends StatelessWidget {
             ],
           ),
         ),
-      ),
-    );
-  }
-}
-
-/// A 44 pt capsule button: accent tint and ink when [tinted], else plain
-/// accent-ink text.
-class _PillButton extends StatelessWidget {
-  const _PillButton({required this.label, required this.onTap, this.tinted = false});
-
-  final String label;
-  final VoidCallback onTap;
-  final bool tinted;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.colors;
-    return PressScale(
-      onTap: onTap,
-      semanticLabel: label,
-      child: Container(
-        height: _minTap,
-        padding: EdgeInsets.symmetric(horizontal: tinted ? Spacing.xl : Spacing.md),
-        decoration: BoxDecoration(
-          color: tinted ? c.accentTint : null,
-          borderRadius: BorderRadius.circular(Radii.pill),
-        ),
-        alignment: Alignment.center,
-        child: Text(label,
-            style: AppType.subhead.copyWith(
-                fontWeight: FontWeight.w600, color: c.accentInk, letterSpacing: 0)),
       ),
     );
   }

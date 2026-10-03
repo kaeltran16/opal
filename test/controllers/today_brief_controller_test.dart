@@ -3,7 +3,6 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:opal/controllers/providers.dart';
 import 'package:opal/controllers/today_brief_controller.dart';
-import 'package:opal/screens/today/today_logic.dart';
 import 'package:opal/services/pal/pal_service.dart';
 
 /// Plays back one scripted response per `insights` call: a [PalInsights] is
@@ -55,9 +54,7 @@ void main() {
 
     await c.read(todayBriefProvider.notifier).refresh();
 
-    final state = c.read(todayBriefProvider);
-    expect(state, const AsyncData<String?>('Steady start.'));
-    expect(briefMode(state), BriefMode.brief);
+    expect(c.read(todayBriefProvider), const AsyncData<String?>('Steady start.'));
   });
 
   test('an empty refresh keeps the last good headline', () async {
@@ -105,8 +102,6 @@ void main() {
     final c = _container(pal);
 
     expect(await c.read(todayBriefProvider.future), isNull);
-    final state = c.read(todayBriefProvider);
-    expect(state, const AsyncData<String?>(null));
-    expect(briefMode(state), BriefMode.fallback);
+    expect(c.read(todayBriefProvider), const AsyncData<String?>(null));
   });
 }
