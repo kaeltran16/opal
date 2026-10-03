@@ -6,7 +6,7 @@ import 'package:opal/widgets/glass_surface.dart';
 import 'package:opal/widgets/pal_ask_bar.dart';
 import 'package:opal/widgets/pal_avatar.dart';
 
-const _askLabel = 'Ask or log anything';
+const _askLabel = 'Tell Pal anything';
 
 Widget _app(Widget child) {
   return ProviderScope(
@@ -44,16 +44,41 @@ void main() {
     expect((asks, mics), (1, 1));
   });
 
-  testWidgets('is a 52 tall glass capsule with the sparkle and placeholder', (
+  testWidgets('is a 52 tall glass capsule with the placeholder and no avatar', (
     tester,
   ) async {
     await tester.pumpWidget(_app(PalAskBar(onAsk: () {}, onMic: () {})));
     await tester.pump();
 
     expect(tester.getSize(find.byType(GlassSurface)).height, 52);
-    expect(find.byType(PalAvatar), findsOneWidget);
+    expect(find.byType(PalAvatar), findsNothing);
     final placeholder = tester.widget<Text>(find.text(_askLabel));
     expect(placeholder.style?.color, AppColors.light().ink3);
+    expect(placeholder.style?.fontSize, AppType.callout.fontSize);
+    expect(tester.getTopLeft(find.text(_askLabel)).dx -
+        tester.getTopLeft(find.byType(GlassSurface)).dx, 20);
+  });
+
+  testWidgets('the mic is a 44 round button filled ink with a bg glyph', (
+    tester,
+  ) async {
+    final colors = AppColors.light();
+    await tester.pumpWidget(_app(PalAskBar(onAsk: () {}, onMic: () {})));
+    await tester.pump();
+
+    final mic = find.bySemanticsLabel('Dictate');
+    expect(tester.getSize(mic), const Size(44, 44));
+    final fill = tester.widget<Container>(
+      find.descendant(of: mic, matching: find.byType(Container)),
+    );
+    final decoration = fill.decoration! as BoxDecoration;
+    expect(decoration.color, colors.ink);
+    expect(decoration.shape, BoxShape.circle);
+    final glyph = tester.widget<Icon>(
+      find.descendant(of: mic, matching: find.byType(Icon)),
+    );
+    expect(glyph.color, colors.bg);
+    expect(glyph.size, 20);
   });
 
   testWidgets('every tap target is at least 44 by 44', (tester) async {

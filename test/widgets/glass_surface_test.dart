@@ -49,9 +49,22 @@ void main() {
     expect(find.byType(BackdropFilter), findsOneWidget);
     final fill = _fill(tester);
     expect(fill.color, _colors.glass);
-    expect(_side(fill).color, _colors.glassBorder);
-    expect(_side(fill).width, 0.5);
+    expect(_side(fill).color, _colors.hair);
+    expect(_side(fill).width, 1.0);
     expect(find.text('ask pal'), findsOneWidget);
+
+    expect(GlassSurface.blurSigma, 30);
+    final shadows = tester
+        .widgetList<DecoratedBox>(
+          find.descendant(
+            of: find.byType(GlassSurface),
+            matching: find.byType(DecoratedBox),
+          ),
+        )
+        .map((box) => (box.decoration as BoxDecoration).boxShadow)
+        .nonNulls
+        .single;
+    expect(shadows, Elevation.fab(_colors.shadow));
   });
 
   testWidgets(

@@ -68,7 +68,7 @@ void main() {
   });
 
   for (final (name, label) in [
-    ('ask bar', 'Ask or log anything'),
+    ('ask bar', 'Tell Pal anything'),
     ('mic', 'Dictate'),
   ]) {
     testWidgets('tapping the $name opens the composer sheet', (tester) async {

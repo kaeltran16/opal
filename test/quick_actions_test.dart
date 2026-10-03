@@ -39,7 +39,7 @@ void main() {
     // Composer not present before opening.
     expect(find.text('Log, ask, or start anything'), findsNothing);
 
-    final askBar = find.bySemanticsLabel('Ask or log anything');
+    final askBar = find.bySemanticsLabel('Tell Pal anything');
     expect(askBar, findsOneWidget);
     await tester.tap(askBar);
     await tester.pumpAndSettle();

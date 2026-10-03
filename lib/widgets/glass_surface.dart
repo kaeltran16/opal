@@ -24,6 +24,7 @@ class GlassSurface extends ConsumerWidget {
   static const double blurSigma = 30;
 
   static const double _saturation = 1.8;
+  static const double _border = 1.0;
   static const double _hairline = 0.5;
   static const double _highContrastBorder = 1.0;
   static const double _highlightHeight = 1;
@@ -55,7 +56,7 @@ class GlassSurface extends ConsumerWidget {
     return DecoratedBox(
       decoration: BoxDecoration(
         borderRadius: borderRadius,
-        boxShadow: Elevation.card(c.shadow),
+        boxShadow: Elevation.fab(c.shadow),
       ),
       child: ClipRRect(
         borderRadius: borderRadius,
@@ -68,7 +69,7 @@ class GlassSurface extends ConsumerWidget {
             decoration: BoxDecoration(
               color: c.glass,
               borderRadius: borderRadius,
-              border: Border.all(color: c.glassBorder, width: _hairline),
+              border: Border.all(color: c.glassBorder, width: _border),
             ),
             child: Stack(
               children: [

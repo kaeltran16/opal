@@ -113,7 +113,7 @@ class GlassTabBar extends StatelessWidget {
           child: SizedBox.square(
             dimension: minimizedSize,
             child: Center(
-              child: AppIcon(active.icon, size: _iconSize, color: c.accent),
+              child: AppIcon(active.icon, size: _iconSize, color: c.ink),
             ),
           ),
         ),
@@ -136,7 +136,7 @@ class _TabButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    final color = active ? c.accent : c.ink;
+    final color = active ? c.ink : c.ink3;
     return Semantics(
       container: true,
       selected: active,
@@ -147,7 +147,7 @@ class _TabButton extends StatelessWidget {
         child: ExcludeSemantics(
           child: DecoratedBox(
             decoration: BoxDecoration(
-              color: active ? c.fill : null,
+              color: active ? c.surface2 : null,
               borderRadius: BorderRadius.circular(Radii.pill),
             ),
             child: Column(
@@ -159,8 +159,8 @@ class _TabButton extends StatelessWidget {
                   tab.label,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: AppType.caption2.copyWith(
-                    fontWeight: active ? FontWeight.w600 : FontWeight.w500,
+                  style: AppType.caption.copyWith(
+                    fontWeight: active ? FontWeight.w600 : FontWeight.w400,
                     color: color,
                   ),
                 ),

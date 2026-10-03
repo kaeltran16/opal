@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opal/theme/theme.dart';
 import 'package:opal/widgets/app_icon.dart';
+import 'package:opal/widgets/glass_surface.dart';
 import 'package:opal/widgets/glass_tab_bar.dart';
 
 const _tabs = [
@@ -78,6 +79,47 @@ void main() {
       isSemantics(label: 'Nutrition', isButton: true, isSelected: false),
     );
     handle.dispose();
+  });
+
+  testWidgets('the active label is semibold ink and the rest are ink3', (
+    tester,
+  ) async {
+    final colors = AppColors.light();
+    await tester.pumpWidget(_app(_bar()));
+    await tester.pump();
+
+    final active = tester.widget<Text>(find.text('Today')).style!;
+    expect(active.fontWeight, FontWeight.w600);
+    expect(active.color, colors.ink);
+    expect(active.fontSize, AppType.caption.fontSize);
+    expect(tester.widget<Icon>(find.byIcon(iconForSf('house.fill'))).color,
+        colors.ink);
+
+    for (final t in _tabs.skip(1)) {
+      final style = tester.widget<Text>(find.text(t.label)).style!;
+      expect(style.fontWeight, FontWeight.w400, reason: t.label);
+      expect(style.color, colors.ink3, reason: t.label);
+      expect(tester.widget<Icon>(find.byIcon(iconForSf(t.icon))).color,
+          colors.ink3, reason: t.label);
+    }
+  });
+
+  testWidgets('the bar is a 62 tall pill and the active tab sits on surface2', (
+    tester,
+  ) async {
+    await tester.pumpWidget(_app(_bar()));
+    await tester.pump();
+
+    expect(tester.getSize(find.byType(GlassSurface)).height, 62);
+    final pills = tester
+        .widgetList<DecoratedBox>(
+          find.descendant(
+            of: find.bySemanticsLabel('Today'),
+            matching: find.byType(DecoratedBox),
+          ),
+        )
+        .map((box) => (box.decoration as BoxDecoration).color);
+    expect(pills, [AppColors.light().surface2]);
   });
 
   testWidgets('tabs are at least 44 by 44', (tester) async {
