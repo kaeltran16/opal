@@ -200,14 +200,18 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
     final current = plan.current(_session, now);
     final later = plan.later(_session, now);
     final done = plan.doneRows;
+    // the routine count is the target, as on the routines page. with no
+    // routines there is nothing to complete, so the stored fallback target and
+    // the legacy step count do not apply.
+    final routinesTotal = today.routines.length;
     final glances = areaGlances(
       GlanceNumbers(
         spent: today.moneySpent,
         budget: today.goals.dailyBudget,
         moveKcal: today.moveKcal,
         moveGoal: today.goals.dailyMoveKcal,
-        routinesDone: today.ritualsDone,
-        routinesTotal: today.ritualsTarget,
+        routinesDone: routinesTotal == 0 ? 0 : today.ritualsDone,
+        routinesTotal: routinesTotal,
       ),
       currency,
       now,
@@ -597,9 +601,14 @@ class _PlanRow extends StatelessWidget {
           children: [
             SizedBox(
               width: MediaQuery.textScalerOf(context).scale(_timeWidth),
-              child: Text(minute == null ? 'Any' : clockLabel(minute),
-                  maxLines: 1,
-                  style: AppType.caption.copyWith(color: c.ink3, fontFeatures: _tabular)),
+              // a done row with no time has nothing to say; the column keeps
+              // its width so the rows stay aligned.
+              child: minute == null && quiet
+                  ? null
+                  : Text(minute == null ? 'Any' : clockLabel(minute),
+                      maxLines: 1,
+                      style:
+                          AppType.caption.copyWith(color: c.ink3, fontFeatures: _tabular)),
             ),
             const SizedBox(width: _rowGap),
             Container(

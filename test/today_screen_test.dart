@@ -55,6 +55,26 @@ ProviderContainer _container(WidgetTester tester) =>
 
 AppColors _colors(WidgetTester tester) => tester.element(find.byType(TodayScreen)).colors;
 
+/// The timeline row titled [title].
+Finder _row(String title) =>
+    find.ancestor(of: _onToday(find.text(title)), matching: find.byType(Row)).first;
+
+double _rowIconLeft(WidgetTester tester, String title) => tester
+    .getTopLeft(find.descendant(of: _row(title), matching: find.byType(AppIcon)))
+    .dx;
+
+/// The Routines ring with nothing to complete: empty, On track, neutral ink.
+void _expectNoRoutinesRing(WidgetTester tester) {
+  expect(find.bySemanticsLabel('Routines: none today. On track'), findsOneWidget);
+  final ring = find.byType(ShortcutRing).last;
+  final widget = tester.widget<ShortcutRing>(ring);
+  expect(widget.fraction, 0);
+  expect(widget.state, AreaState.good);
+  final word = tester.widget<Text>(
+      find.descendant(of: ring, matching: find.text(AreaState.good.word)));
+  expect(word.style!.color, _colors(tester).ink3);
+}
+
 /// Runs [body] under the Monday clock and flushes the app's timers after it.
 void _todayTest(String name, Future<void> Function(WidgetTester tester) body) {
   testWidgets(name, (tester) async {
@@ -331,6 +351,74 @@ void main() {
       expect(word.style!.color, c.ink3);
     }
     expect(tester.takeException(), isNull);
+  });
+
+  for (final (hour, minute, time) in const [(12, 0, '12:00'), (21, 30, '21:30')]) {
+    testWidgets(
+        'with no routines and the default goals the Routines ring is On track at $time',
+        (tester) async {
+      await withClock(Clock.fixed(DateTime(2026, 9, 28, hour, minute)), () async {
+        await _boot(tester, day: const TodayDay(goals: Goals(), routines: []));
+
+        _expectNoRoutinesRing(tester);
+        await flushProviderTimers(tester);
+      });
+    });
+  }
+
+  _todayTest('with no routines, stray ritual step entries leave the ring empty and On track',
+      (tester) async {
+    await _boot(tester, day: const TodayDay(goals: Goals(), routines: []));
+    // the insert only completes once fake time advances, so don't await it
+    // before pumping.
+    final inserted = _container(tester).read(entryRepositoryProvider).insert(Entry(
+          id: 'stray-step',
+          timestamp: DateTime(2026, 9, 28, 8),
+          type: EntryType.rituals,
+          title: 'Stretch',
+          ritualId: 'step-of-a-deleted-routine',
+          source: EntrySource.manual,
+        ));
+    await tester.pumpAndSettle();
+    await inserted;
+
+    _expectNoRoutinesRing(tester);
+  });
+
+  _todayTest('with three routines and one complete the ring reads 1 of 3', (tester) async {
+    await _boot(tester, day: const TodayDay(firstRoutineDone: true));
+    final routines = areaGlances(
+      const GlanceNumbers(
+        spent: 5.75,
+        budget: 60,
+        moveKcal: 310,
+        moveGoal: 500,
+        routinesDone: 1,
+        routinesTotal: 3,
+      ),
+      _container(tester).read(appSettingsControllerProvider).currency,
+      clock.now(),
+    ).last;
+
+    expect(routines.value, '1 of 3');
+    expect(find.bySemanticsLabel(routines.semantics), findsOneWidget);
+    final ring = tester.widgetList<ShortcutRing>(find.byType(ShortcutRing)).last;
+    expect(ring.value, routines.value);
+    expect(ring.fraction, routines.fraction);
+    expect(ring.state, routines.state);
+  });
+
+  _todayTest('a done row with no time leaves the time column empty, at the same width',
+      (tester) async {
+    await _boot(tester, day: const TodayDay(meal: true));
+
+    expect(find.descendant(of: _row('Sleep'), matching: find.text('Any')), findsNothing);
+    // an open untimed row still says so, and a timed done row keeps its clock.
+    expect(find.descendant(of: _row('Mood check-in'), matching: find.text('Any')),
+        findsOneWidget);
+    expect(find.descendant(of: _row(mealTitle), matching: find.text('6:40 AM')),
+        findsOneWidget);
+    expect(_rowIconLeft(tester, 'Sleep'), _rowIconLeft(tester, mealTitle));
   });
 
   testWidgets('a 60 character routine title at text scale 1.3 does not overflow',

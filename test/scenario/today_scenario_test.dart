@@ -59,6 +59,12 @@ Finder _onToday(Finder matching) =>
 Finder _later(String title, String when) =>
     find.bySemanticsLabel('$title, $when. Do this next');
 
+/// 'Any' in the time column of the done Sleep row, which has no time.
+Finder _sleepRowAny() => find.descendant(
+      of: find.ancestor(of: _onToday(find.text('Sleep')), matching: find.byType(Row)).first,
+      matching: find.text('Any'),
+    );
+
 Finder _areaPage(DetailTracker tracker) =>
     find.byWidgetPredicate((w) => w is DetailScreen && w.tracker == tracker);
 
@@ -99,6 +105,8 @@ void main() {
       expect(find.text(_headline), findsOneWidget);
       expect(_onToday(find.text('Morning')), findsOneWidget);
       expect(find.byKey(todayRailKey), findsOneWidget);
+      expect(_onToday(find.text('Sleep')), findsOneWidget);
+      expect(_sleepRowAny(), findsNothing);
       await shot(tester, 'today_${name}_${_theme(dark)}');
     });
   }
@@ -210,6 +218,26 @@ void main() {
     await shot(tester, 'today_zero_goals_${_theme(dark)}');
   });
 
+  // the stored ritual target (5) must not stand in for routines that are not there.
+  scenarioTest('today no routines, default goals', at: Clock.fixed(DateTime(2026, 9, 28, 21, 30)),
+      (tester, dark) async {
+    await bootToday(tester,
+        dark: dark, pal: _pal(), day: const TodayDay(goals: Goals(), routines: []));
+
+    expect(find.bySemanticsLabel('Routines: none today. On track'), findsOneWidget);
+    final routines = find.byType(ShortcutRing).last;
+    expect(tester.widget<ShortcutRing>(routines).fraction, 0);
+    expect(
+      tester
+          .widget<Text>(
+              find.descendant(of: routines, matching: find.text(AreaState.good.word)))
+          .style!
+          .color,
+      tester.element(find.byType(TodayScreen)).colors.ink3,
+    );
+    await shot(tester, 'today_no_routines_default_goals_${_theme(dark)}');
+  });
+
   scenarioTest('today scrolled to the done rows', (tester, dark) async {
     await bootToday(tester,
         dark: dark, pal: _pal(), day: const TodayDay(mood: true, meal: true));
@@ -220,6 +248,7 @@ void main() {
     expect(sleep.hitTestable(), findsOneWidget);
     expect(_onToday(find.text(mealTitle)).hitTestable(), findsOneWidget);
     expect(find.text('MON 28 SEP · 9:30 AM').hitTestable(), findsNothing);
+    expect(_sleepRowAny(), findsNothing);
     await shot(tester, 'today_scrolled_${_theme(dark)}');
   });
 
