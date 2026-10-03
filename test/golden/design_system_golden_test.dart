@@ -29,7 +29,7 @@ void main() {
     // a stray DateTime.now() would show today's real date here instead of
     // silently drifting the capture.
     expect(
-      find.textContaining(RegExp('september 28', caseSensitive: false)),
+      find.textContaining(RegExp('28 sep', caseSensitive: false)),
       findsWidgets,
     );
   });
