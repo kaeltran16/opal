@@ -269,34 +269,41 @@ Don't
 
 ## 10. Token delta against `lib/theme/`
 
-Not yet applied. Each row is a follow-up change to the token source.
+Applied in `lib/theme/`. Each row names what was done.
 
-| Area | Today in code | Target |
+| Area | Before | Done |
 |---|---|---|
-| Light neutrals | iOS system greys, `bg #F2F2F7`, `ink #000000` | cream and graphite, section 3 |
-| Dark neutrals | pure black `#000000`, iOS greys | graphite `#101418`, cream ink |
-| State colours | none; only `red`, `dangerInk` | `thriving`, `good`, `watch`, `care` with fill and ink |
-| Area colours | six hues with tint and ink, used across chrome | chart series only |
-| Accent | eight user-selectable accents | removed; accent is `ink` |
-| Glass | `glass`, `glassBorder`, `glassHighlight` on cards | floating bars only |
-| Shadow | `Elevation.sm/card/fab` | unused on cards; keep `fab` for floating bars |
-| Type | `AppType` 11 to 34, titles w700, `amount` rounded w700 | section 4 ramp; light display numerals; serif `lead` |
-| Mono eyebrow | `AppType.eyebrow` | removed |
-| Radius | `Radii.card` 14 as workhorse | 20 for cards, pill for controls |
-| Contrast test | covers area inks on tints | must cover state inks on all three grounds |
+| Light neutrals | iOS system greys, `bg #F2F2F7`, `ink #000000` | `AppColors.light()` takes the section 3 light table; `track` added; `fill` is `surface2` |
+| Dark neutrals | pure black `#000000`, iOS greys | `AppColors.dark()` takes the section 3 dark table; `track` added; `fill` is `surface2` |
+| State colours | none; only `red`, `dangerInk` | `thriving`, `good`, `watch`, `care` added with fill and ink; `red` is the `care` fill and `dangerInk` the `care` ink |
+| Area colours | six hues with tint and ink, used across chrome | kept unchanged for the screens not yet redesigned; Today and the area pages use none |
+| Accent | eight user-selectable accents | the choice is removed; `accent`, `accentInk`, `accentTint`, `onAccent` are kept as aliases of `ink`, `ink`, `surface2`, `bg` so untouched screens compile |
+| Glass | `glass`, `glassBorder`, `glassHighlight` on cards | re-valued for floating bars: `glass` is `surface` at 0.78 alpha, `glassBorder` is `hair`, `glassHighlight` is transparent |
+| Shadow | `Elevation.sm/card/fab` | presets unchanged; `fab` is on the floating bars, Today and the area pages use none; `sm` and `card` are kept for untouched screens |
+| Type | `AppType` 11 to 34, titles w700, `amount` rounded w700 | `display`, `score`, `lead`, `title`, `label` added per section 4; the legacy roles are kept with their old metrics for untouched screens |
+| Mono eyebrow | `AppType.eyebrow` | removed; the nav bar eyebrow uses `label` |
+| Radius | `Radii.card` 14 as workhorse | `Radii.card` is 20 |
+| Contrast test | covers area inks on tints | covers state inks (4.5:1) and state fills (3:1) on all three grounds in both themes, and `ink` on every scene palette; the area-ink check is kept |
 
 ## 11. Open decisions
 
-1. **Serif face.** Candidates with open licences: Newsreader (variable, has a light display
-   cut), Instrument Serif (regular and italic only), Fraunces. Recommendation: Newsreader
-   Light. Or skip the serif and set `lead` in SF Pro Light.
+1. **Serif face.** Resolved: Newsreader Light, bundled under the OFL
+   (`assets/fonts/Newsreader-Light.ttf`, family `Newsreader`). No network fetch.
 2. **Tabs.** Oura's Today / Vitals / My Health against Opal's current Today / Workout /
    Nutrition / You. Adopting Oura's structure is an information-architecture change, not a
    restyle, and is not decided here.
-3. **Default theme.** Oura's app is dark-first; Opal's current prototype is light. Both
-   palettes are specified; which one ships as default is open.
-4. **State thresholds.** Oura's 85 / 70 / 60 cut-offs apply to 0 to 100 scores. Opal's areas
-   are goals and budgets, so each needs its own rule for when it turns `watch` or `care`.
+3. **Default theme.** Resolved: dark is the default when nothing is saved. A saved Light is
+   kept.
+4. **State thresholds.** Resolved: pace against the waking day, 07:00 to 22:00. `dayShare`
+   is the fraction of that window elapsed: 0 at or before 07:00, 1 at or after 22:00, linear
+   between. The first rule that matches wins.
+   - Money: no budget (0 or less) is On track; spent over budget is Needs care; the share of
+     the budget spent 25 points or more ahead of `dayShare` is Worth watching; otherwise On
+     track. Money is never Ahead during the day.
+   - Move and Routines: no goal (0 or less, or no routines) is On track; goal met is Ahead;
+     under half the goal at or after 21:00 is Needs care; the share of the goal done 25
+     points or more behind `dayShare` is Worth watching; otherwise On track.
+   - An area with no goal set renders in neutral ink.
 5. **Achievement mark.** Oura uses a crown at 85+. Opal needs its own mark; a check is the
    placeholder.
 

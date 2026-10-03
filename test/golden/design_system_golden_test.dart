@@ -28,10 +28,7 @@ void main() {
     await bootApp(tester, dark: dark);
     // a stray DateTime.now() would show today's real date here instead of
     // silently drifting the capture.
-    expect(
-      find.textContaining(RegExp('28 sep', caseSensitive: false)),
-      findsWidgets,
-    );
+    expect(find.textContaining('MON 28 SEP'), findsOneWidget);
   });
 
   // shell branches and pushed full-screen routes: go() lands on them directly.
