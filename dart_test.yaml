@@ -1,6 +1,7 @@
 # Test tags. `golden` marks the machine-local visual baseline in
 # test/golden/ — captured on one machine with the Ahem test font, so glyph
-# metrics differ on other platforms. CI runs `--exclude-tags golden`; a bare
+# metrics differ on other platforms. CI runs `--exclude-tags "golden || scenario"`
+# (one selector: this Flutter keeps only the last repeated flag); a bare
 # `flutter test` still runs them locally.
 tags:
   golden:
