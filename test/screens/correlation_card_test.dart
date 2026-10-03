@@ -47,7 +47,7 @@ const _noBreakdown = Correlation(
 );
 
 Widget _wrap(Widget child) {
-  final colors = AppColors.light(AppAccent.indigo);
+  final colors = AppColors.light();
   // a minimal GoRouter is needed so context.go in the Ask Pal button resolves
   final router = GoRouter(
     routes: [

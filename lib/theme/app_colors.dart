@@ -1,69 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// User-selectable accent options (persisted via @AppStorage equivalent later).
-enum AppAccent { blue, indigo, purple, pink, orange, green, teal, graphite }
-
-extension AppAccentInfo on AppAccent {
-  String get label => switch (this) {
-        AppAccent.blue => 'Blue',
-        AppAccent.indigo => 'Indigo',
-        AppAccent.purple => 'Purple',
-        AppAccent.pink => 'Pink',
-        AppAccent.orange => 'Orange',
-        AppAccent.green => 'Green',
-        AppAccent.teal => 'Teal',
-        AppAccent.graphite => 'Graphite',
-      };
-
-  Color light() => switch (this) {
-        AppAccent.blue => const Color(0xFF007AFF),
-        AppAccent.indigo => const Color(0xFF5856D6),
-        AppAccent.purple => const Color(0xFFAF52DE),
-        AppAccent.pink => const Color(0xFFFF2D55),
-        AppAccent.orange => const Color(0xFFFF9500),
-        AppAccent.green => const Color(0xFF34C759),
-        AppAccent.teal => const Color(0xFF30B0C7),
-        AppAccent.graphite => const Color(0xFF1C1C1E),
-      };
-
-  Color dark() => switch (this) {
-        AppAccent.blue => const Color(0xFF0A84FF),
-        AppAccent.indigo => const Color(0xFF5E5CE6),
-        AppAccent.purple => const Color(0xFFBF5AF2),
-        AppAccent.pink => const Color(0xFFFF375F),
-        AppAccent.orange => const Color(0xFFFF9F0A),
-        AppAccent.green => const Color(0xFF30D158),
-        AppAccent.teal => const Color(0xFF40C8E0),
-        AppAccent.graphite => const Color(0xFFF5F5F7),
-      };
-
-  // text/icon color on accentTint, checked for 4.5:1 in contrast_test.
-  // orange, green and purple share their tints with money, move and rituals,
-  // so they reuse those inks.
-  Color inkLight() => switch (this) {
-        AppAccent.blue => const Color(0xFF0060DF),
-        AppAccent.indigo => const Color(0xFF5856D6),
-        AppAccent.purple => const Color(0xFF8A2FB8),
-        AppAccent.pink => const Color(0xFFD00028),
-        AppAccent.orange => const Color(0xFFAF5200),
-        AppAccent.green => const Color(0xFF1E7B34),
-        AppAccent.teal => const Color(0xFF207685),
-        AppAccent.graphite => const Color(0xFF1C1C1E),
-      };
-
-  Color inkDark() => switch (this) {
-        AppAccent.blue => const Color(0xFF5AAEFF),
-        AppAccent.indigo => const Color(0xFF8A88ED),
-        AppAccent.purple => const Color(0xFFD08CF7),
-        AppAccent.pink => const Color(0xFFFF5B7C),
-        AppAccent.orange => const Color(0xFFFFB340),
-        AppAccent.green => const Color(0xFF4CDB73),
-        AppAccent.teal => const Color(0xFF40C8E0),
-        AppAccent.graphite => const Color(0xFFF5F5F7),
-      };
-}
-
-/// Semantic design tokens from the design handoff, exposed as a
+/// Semantic design tokens from DESIGN.md section 3, exposed as a
 /// [ThemeExtension] so any widget can read them via `Theme.of(context)`.
 @immutable
 class AppColors extends ThemeExtension<AppColors> {
@@ -77,8 +14,17 @@ class AppColors extends ThemeExtension<AppColors> {
     required this.ink3,
     required this.ink4,
     required this.hair,
+    required this.track,
     required this.blur,
     required this.fill,
+    required this.thriving,
+    required this.good,
+    required this.watch,
+    required this.care,
+    required this.thrivingInk,
+    required this.goodInk,
+    required this.watchInk,
+    required this.careInk,
     required this.money,
     required this.moneyTint,
     required this.move,
@@ -113,17 +59,24 @@ class AppColors extends ThemeExtension<AppColors> {
   final Brightness brightness;
   final Color bg, surface, surface2;
   final Color ink, ink2, ink3, ink4;
-  final Color hair, blur, fill;
+  final Color hair, track, blur, fill;
+  // state fills, for arcs, bars and dots: 3:1 on every ground.
+  final Color thriving, good, watch, care;
+  // state text and icons: 4.5:1 on every ground.
+  final Color thrivingInk, goodInk, watchInk, careInk;
   final Color money, moneyTint;
   final Color move, moveTint;
   final Color rituals, ritualsTint;
   final Color nutrition, nutritionTint;
   final Color sleep, sleepTint;
   final Color mood, moodTint;
+  // the accent is no longer a choice. these alias the neutrals so screens not
+  // yet redesigned keep compiling.
   final Color accent, accentTint;
   // text and icons on the matching tint; the area colors fail 4.5:1 there.
   final Color moneyInk, moveInk, ritualsInk, nutritionInk, sleepInk, moodInk;
   final Color accentInk;
+  // floating bars only (tab bar, composer).
   final Color glass, glassBorder, glassHighlight;
   final Color red;
   // destructive text and icons on surface; red itself fails 4.5:1 there.
@@ -131,6 +84,9 @@ class AppColors extends ThemeExtension<AppColors> {
   final Color onAccent;
   final Color scrim;
   final Color shadow;
+
+  static const double _glassAlpha = 0.78;
+  static const double _blurAlpha = 0.72;
 
   /// Color for a tracker type token: 'money' | 'move' | 'rituals' | 'nutrition'.
   Color forType(String type) => switch (type) {
@@ -154,21 +110,35 @@ class AppColors extends ThemeExtension<AppColors> {
         _ => accentInk,
       };
 
-  factory AppColors.light(AppAccent accent) {
-    final a = accent.light();
+  factory AppColors.light() {
+    const bg = Color(0xFFF7F1E8);
+    const surface = Color(0xFFFEFAEF);
+    const surface2 = Color(0xFFEEE6DC);
+    const ink = Color(0xFF1E2427);
+    const hair = Color(0xFFE6DED3);
+    const care = Color(0xFFD22C15);
+    const careInk = Color(0xFFB32410);
     return AppColors(
       brightness: Brightness.light,
-      bg: const Color(0xFFF2F2F7),
-      surface: const Color(0xFFFFFFFF),
-      surface2: const Color(0xFFF2F2F7),
-      ink: const Color(0xFF000000),
-      ink2: const Color.fromRGBO(60, 60, 67, 0.85),
-      // opaque so secondary text reaches 4.5:1 on bg; the translucent value was 3.3:1
-      ink3: const Color(0xFF6E6E73),
-      ink4: const Color.fromRGBO(60, 60, 67, 0.30),
-      hair: const Color.fromRGBO(60, 60, 67, 0.12),
-      blur: const Color.fromRGBO(242, 242, 247, 0.72),
-      fill: const Color.fromRGBO(120, 120, 128, 0.12),
+      bg: bg,
+      surface: surface,
+      surface2: surface2,
+      ink: ink,
+      ink2: const Color(0xFF4A4741),
+      ink3: const Color(0xFF5A5958),
+      ink4: const Color(0xFFA8A5A0),
+      hair: hair,
+      track: const Color(0xFFD9D0C3),
+      blur: bg.withValues(alpha: _blurAlpha),
+      fill: surface2,
+      thriving: const Color(0xFF2A72DE),
+      good: const Color(0xFF5C6F5D),
+      watch: const Color(0xFFAF751B),
+      care: care,
+      thrivingInk: const Color(0xFF2056A6),
+      goodInk: const Color(0xFF4C5E4D),
+      watchInk: const Color(0xFF86570F),
+      careInk: careInk,
       money: const Color(0xFFFF9500),
       moneyTint: const Color.fromRGBO(255, 149, 0, 0.14),
       move: const Color(0xFF34C759),
@@ -181,40 +151,58 @@ class AppColors extends ThemeExtension<AppColors> {
       sleepTint: const Color.fromRGBO(91, 108, 219, 0.14),
       mood: const Color(0xFF2FA6BC),
       moodTint: const Color.fromRGBO(47, 166, 188, 0.14),
-      accent: a,
-      accentTint: a.withValues(alpha: 0.14),
-      moneyInk: const Color(0xFFAF5200),
+      accent: ink,
+      accentTint: surface2,
+      moneyInk: const Color(0xFFAE5200),
       moveInk: const Color(0xFF1E7B34),
       ritualsInk: const Color(0xFF8A2FB8),
-      nutritionInk: const Color(0xFF0A7785),
+      nutritionInk: const Color(0xFF0A7685),
       sleepInk: const Color(0xFF3F4FBF),
-      moodInk: const Color(0xFF1B7688),
-      accentInk: accent.inkLight(),
-      glass: const Color.fromRGBO(255, 255, 255, 0.52),
-      glassBorder: const Color.fromRGBO(255, 255, 255, 0.70),
-      glassHighlight: const Color.fromRGBO(255, 255, 255, 0.95),
-      red: const Color(0xFFFF3B30),
-      dangerInk: const Color(0xFFD70015),
-      onAccent: const Color(0xFFFFFFFF),
+      moodInk: const Color(0xFF1B7488),
+      accentInk: ink,
+      glass: surface.withValues(alpha: _glassAlpha),
+      glassBorder: hair,
+      glassHighlight: const Color(0x00000000),
+      red: care,
+      dangerInk: careInk,
+      onAccent: bg,
       scrim: const Color.fromRGBO(0, 0, 0, 0.40),
       shadow: const Color.fromRGBO(0, 0, 0, 0.12),
     );
   }
 
-  factory AppColors.dark(AppAccent accent) {
-    final a = accent.dark();
+  factory AppColors.dark() {
+    const bg = Color(0xFF101418);
+    const surface = Color(0xFF1A1F24);
+    const surface2 = Color(0xFF242A30);
+    const ink = Color(0xFFF7F1E8);
+    const hair = Color(0xFF2E353C);
+    // in dark, a state's fill and ink share one value.
+    const thriving = Color(0xFF7FB0F5);
+    const good = Color(0xFFA3BBA4);
+    const watch = Color(0xFFE0B060);
+    const care = Color(0xFFF58A78);
     return AppColors(
       brightness: Brightness.dark,
-      bg: const Color(0xFF000000),
-      surface: const Color(0xFF1C1C1E),
-      surface2: const Color(0xFF2C2C2E),
-      ink: const Color(0xFFFFFFFF),
-      ink2: const Color.fromRGBO(235, 235, 245, 0.85),
-      ink3: const Color.fromRGBO(235, 235, 245, 0.60),
-      ink4: const Color.fromRGBO(235, 235, 245, 0.30),
-      hair: const Color.fromRGBO(84, 84, 88, 0.65),
-      blur: const Color.fromRGBO(0, 0, 0, 0.72),
-      fill: const Color.fromRGBO(120, 120, 128, 0.24),
+      bg: bg,
+      surface: surface,
+      surface2: surface2,
+      ink: ink,
+      ink2: const Color(0xFFD3D1CE),
+      ink3: const Color(0xFFA8A5A0),
+      ink4: const Color(0xFF5A5958),
+      hair: hair,
+      track: const Color(0xFF39424A),
+      blur: bg.withValues(alpha: _blurAlpha),
+      fill: surface2,
+      thriving: thriving,
+      good: good,
+      watch: watch,
+      care: care,
+      thrivingInk: thriving,
+      goodInk: good,
+      watchInk: watch,
+      careInk: care,
       money: const Color(0xFFFF9F0A),
       moneyTint: const Color.fromRGBO(255, 159, 10, 0.18),
       move: const Color(0xFF30D158),
@@ -227,66 +215,31 @@ class AppColors extends ThemeExtension<AppColors> {
       sleepTint: const Color.fromRGBO(132, 145, 240, 0.20),
       mood: const Color(0xFF56C2DA),
       moodTint: const Color.fromRGBO(86, 194, 218, 0.20),
-      accent: a,
-      accentTint: a.withValues(alpha: 0.18),
+      accent: ink,
+      accentTint: surface2,
       moneyInk: const Color(0xFFFFB340),
       moveInk: const Color(0xFF4CDB73),
       ritualsInk: const Color(0xFFD08CF7),
       nutritionInk: const Color(0xFF6FE0EC),
       sleepInk: const Color(0xFFA3ADF5),
       moodInk: const Color(0xFF7FD3E6),
-      accentInk: accent.inkDark(),
-      glass: const Color.fromRGBO(44, 44, 48, 0.52),
-      glassBorder: const Color.fromRGBO(255, 255, 255, 0.14),
-      glassHighlight: const Color.fromRGBO(255, 255, 255, 0.18),
-      red: const Color(0xFFFF453A),
-      dangerInk: const Color(0xFFFF6961),
-      onAccent: const Color(0xFFFFFFFF),
+      accentInk: ink,
+      glass: surface.withValues(alpha: _glassAlpha),
+      glassBorder: hair,
+      glassHighlight: const Color(0x00000000),
+      red: care,
+      dangerInk: care,
+      onAccent: bg,
       scrim: const Color.fromRGBO(0, 0, 0, 0.40),
       shadow: const Color.fromRGBO(0, 0, 0, 0.40),
     );
   }
 
   @override
-  AppColors copyWith({Brightness? brightness, Color? accent, Color? accentInk}) {
-    // Tokens are derived from (brightness, accent). The AppAccent enum can't be
-    // recovered from a Color, so rebuild the neutral palette for the target
-    // brightness (reusing the existing accent when none is passed) and overlay
-    // the requested accent/tint the same way the brightness factory does.
-    final b = brightness ?? this.brightness;
-    final dark = b == Brightness.dark;
-    final base = dark ? AppColors.dark(AppAccent.blue) : AppColors.light(AppAccent.blue);
-    final a = accent ?? this.accent;
-    return AppColors(
-      brightness: b,
-      bg: base.bg, surface: base.surface, surface2: base.surface2,
-      ink: base.ink, ink2: base.ink2, ink3: base.ink3, ink4: base.ink4,
-      hair: base.hair, blur: base.blur, fill: base.fill,
-      money: base.money, moneyTint: base.moneyTint,
-      move: base.move, moveTint: base.moveTint,
-      rituals: base.rituals, ritualsTint: base.ritualsTint,
-      nutrition: base.nutrition, nutritionTint: base.nutritionTint,
-      sleep: base.sleep, sleepTint: base.sleepTint,
-      mood: base.mood, moodTint: base.moodTint,
-      accent: a,
-      accentTint: a.withValues(alpha: dark ? 0.18 : 0.14),
-      moneyInk: base.moneyInk,
-      moveInk: base.moveInk,
-      ritualsInk: base.ritualsInk,
-      nutritionInk: base.nutritionInk,
-      sleepInk: base.sleepInk,
-      moodInk: base.moodInk,
-      accentInk: accentInk ?? this.accentInk,
-      glass: base.glass,
-      glassBorder: base.glassBorder,
-      glassHighlight: base.glassHighlight,
-      red: base.red,
-      dangerInk: base.dangerInk,
-      onAccent: base.onAccent,
-      scrim: base.scrim,
-      shadow: base.shadow,
-    );
-  }
+  AppColors copyWith({Brightness? brightness}) =>
+      (brightness ?? this.brightness) == Brightness.dark
+          ? AppColors.dark()
+          : AppColors.light();
 
   @override
   AppColors lerp(ThemeExtension<AppColors>? other, double t) {
@@ -302,8 +255,17 @@ class AppColors extends ThemeExtension<AppColors> {
       ink3: c(ink3, other.ink3),
       ink4: c(ink4, other.ink4),
       hair: c(hair, other.hair),
+      track: c(track, other.track),
       blur: c(blur, other.blur),
       fill: c(fill, other.fill),
+      thriving: c(thriving, other.thriving),
+      good: c(good, other.good),
+      watch: c(watch, other.watch),
+      care: c(care, other.care),
+      thrivingInk: c(thrivingInk, other.thrivingInk),
+      goodInk: c(goodInk, other.goodInk),
+      watchInk: c(watchInk, other.watchInk),
+      careInk: c(careInk, other.careInk),
       money: c(money, other.money),
       moneyTint: c(moneyTint, other.moneyTint),
       move: c(move, other.move),

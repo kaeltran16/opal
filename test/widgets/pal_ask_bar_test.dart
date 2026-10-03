@@ -13,7 +13,7 @@ Widget _app(Widget child) {
     child: MaterialApp(
       theme: ThemeData(
         useMaterial3: true,
-        extensions: [AppColors.light(AppAccent.indigo)],
+        extensions: [AppColors.light()],
       ),
       home: Scaffold(
         body: Center(
@@ -53,7 +53,7 @@ void main() {
     expect(tester.getSize(find.byType(GlassSurface)).height, 52);
     expect(find.byType(PalAvatar), findsOneWidget);
     final placeholder = tester.widget<Text>(find.text(_askLabel));
-    expect(placeholder.style?.color, AppColors.light(AppAccent.indigo).ink3);
+    expect(placeholder.style?.color, AppColors.light().ink3);
   });
 
   testWidgets('every tap target is at least 44 by 44', (tester) async {

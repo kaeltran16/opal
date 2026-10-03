@@ -236,7 +236,7 @@ class _CollapsingNavDelegate extends SliverPersistentHeaderDelegate {
                           height: _eyebrowH,
                           child: Text(
                             eyebrow!,
-                            style: AppType.eyebrow.copyWith(color: c.ink3),
+                            style: AppType.label.copyWith(color: c.ink3),
                           ),
                         ),
                       ),

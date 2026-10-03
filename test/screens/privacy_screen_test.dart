@@ -6,7 +6,7 @@ import 'package:opal/theme/app_colors.dart';
 
 void main() {
   testWidgets('Privacy screen discloses Pal memory storage', (tester) async {
-    final colors = AppColors.light(AppAccent.blue);
+    final colors = AppColors.light();
     await tester.pumpWidget(MaterialApp(
       theme: ThemeData(useMaterial3: true, extensions: [colors]),
       home: const PrivacyScreen(),

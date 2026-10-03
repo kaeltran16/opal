@@ -7,7 +7,7 @@ import 'package:opal/screens/sleep/widgets/sleep_widgets.dart';
 import 'package:opal/theme/app_colors.dart';
 
 Widget _wrap(Widget child) {
-  final colors = AppColors.light(AppAccent.indigo);
+  final colors = AppColors.light();
   return ProviderScope(
     child: MaterialApp(
       theme: ThemeData(useMaterial3: true, extensions: [colors]),

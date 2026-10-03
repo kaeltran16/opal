@@ -39,7 +39,7 @@ Future<void> _pumpLibrary(
       child: MaterialApp(
         theme: ThemeData(
           useMaterial3: true,
-          extensions: [AppColors.light(AppAccent.blue)],
+          extensions: [AppColors.light()],
         ),
         home: const ExerciseLibraryScreen(),
       ),

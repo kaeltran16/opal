@@ -29,7 +29,7 @@ void main() {
           estMin: const Value(45),
         ));
 
-    final colors = AppColors.light(AppAccent.indigo);
+    final colors = AppColors.light();
     await tester.pumpWidget(
       ProviderScope(
         overrides: [loopDatabaseProvider.overrideWithValue(db)],

@@ -63,7 +63,7 @@ void main() {
       patterns: const [],
     );
 
-    final colors = AppColors.light(AppAccent.indigo);
+    final colors = AppColors.light();
 
     await tester.pumpWidget(
       ProviderScope(

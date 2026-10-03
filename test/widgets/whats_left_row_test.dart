@@ -11,7 +11,7 @@ Future<void> _pump(
   void Function(TodayArea)? onTap,
 }) =>
     tester.pumpWidget(MaterialApp(
-      theme: ThemeData(useMaterial3: true, extensions: [AppColors.light(AppAccent.blue)]),
+      theme: ThemeData(useMaterial3: true, extensions: [AppColors.light()]),
       home: Scaffold(
         body: WhatsLeftRow(numbers: numbers, currency: Currency.usd, onTap: onTap ?? (_) {}),
       ),

@@ -47,7 +47,7 @@ Future<LoopDatabase> _pumpSheet(
       spendHabitsProvider.overrideWith((ref) => Stream.value(habits)),
     ],
     child: MaterialApp.router(
-      theme: ThemeData.light().copyWith(extensions: [AppColors.light(AppAccent.blue)]),
+      theme: ThemeData.light().copyWith(extensions: [AppColors.light()]),
       routerConfig: router,
     ),
   ));

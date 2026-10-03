@@ -62,7 +62,7 @@ Future<void> _pumpApp(WidgetTester tester,
   addTearDown(db.close);
 
   final router = createRouter(initialLocation: location);
-  final colors = AppColors.light(AppAccent.blue);
+  final colors = AppColors.light();
 
   await tester.pumpWidget(
     ProviderScope(

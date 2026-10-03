@@ -7,7 +7,7 @@ import 'package:opal/controllers/providers.dart';
 import 'package:opal/theme/theme.dart';
 import 'package:opal/widgets/glass_surface.dart';
 
-final _colors = AppColors.light(AppAccent.indigo);
+final _colors = AppColors.light();
 
 Widget _app(Stream<bool> reduceTransparency, {bool highContrast = false}) {
   return ProviderScope(

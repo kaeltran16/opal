@@ -9,7 +9,7 @@ import 'package:opal/widgets/nav_bar.dart';
 
 void main() {
   Future<GoRouter> pump(WidgetTester tester, {Widget? action}) async {
-    final colors = AppColors.light(AppAccent.blue);
+    final colors = AppColors.light();
     final router = GoRouter(
       initialLocation: '/home',
       routes: [

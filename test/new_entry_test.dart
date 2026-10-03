@@ -51,7 +51,7 @@ Future<EntryRepository> _pumpSheet(
       ],
       child: MaterialApp.router(
         theme: ThemeData.light().copyWith(
-          extensions: [AppColors.light(AppAccent.blue)],
+          extensions: [AppColors.light()],
         ),
         routerConfig: router,
       ),

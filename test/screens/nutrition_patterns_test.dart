@@ -37,7 +37,7 @@ void main() {
       isOnboardingComplete: () => true,
     );
 
-    final colors = AppColors.light(AppAccent.blue);
+    final colors = AppColors.light();
 
     await tester.pumpWidget(
       ProviderScope(
@@ -134,7 +134,7 @@ void main() {
       isOnboardingComplete: () => true,
     );
 
-    final colors = AppColors.light(AppAccent.blue);
+    final colors = AppColors.light();
 
     await tester.pumpWidget(
       ProviderScope(

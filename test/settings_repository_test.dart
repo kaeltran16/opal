@@ -3,34 +3,39 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:opal/data/repositories/settings_repository.dart';
-import 'package:opal/theme/app_colors.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  test('defaults: blue accent, light brightness, onboarding incomplete',
-      () async {
+  test('defaults: dark brightness, onboarding incomplete', () async {
     SharedPreferences.setMockInitialValues({});
     final repo = SettingsRepository(await SharedPreferences.getInstance());
-    expect(repo.accent, AppAccent.blue);
-    expect(repo.brightness, Brightness.light);
+    expect(repo.brightness, Brightness.dark);
     expect(repo.onboardingComplete, isFalse);
   });
 
-  test('persists accent / brightness / onboarding across reloads', () async {
+  test('a saved light reads light and a saved dark reads dark', () async {
+    SharedPreferences.setMockInitialValues({'settings.brightness': 'light'});
+    expect(SettingsRepository(await SharedPreferences.getInstance()).brightness,
+        Brightness.light);
+
+    SharedPreferences.setMockInitialValues({'settings.brightness': 'dark'});
+    expect(SettingsRepository(await SharedPreferences.getInstance()).brightness,
+        Brightness.dark);
+  });
+
+  test('persists brightness / onboarding across reloads', () async {
     SharedPreferences.setMockInitialValues({});
 
     // First "session": write values.
     final repo = SettingsRepository(await SharedPreferences.getInstance());
-    await repo.setAccent(AppAccent.teal);
-    await repo.setBrightness(Brightness.dark);
+    await repo.setBrightness(Brightness.light);
     await repo.setOnboardingComplete(true);
 
     // Simulate a restart: a fresh instance over the same backing store.
     final reloaded =
         SettingsRepository(await SharedPreferences.getInstance());
-    expect(reloaded.accent, AppAccent.teal);
-    expect(reloaded.brightness, Brightness.dark);
+    expect(reloaded.brightness, Brightness.light);
     expect(reloaded.onboardingComplete, isTrue);
   });
 

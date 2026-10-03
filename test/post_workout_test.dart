@@ -159,7 +159,7 @@ void main() {
       ],
     );
 
-    final colors = AppColors.light(AppAccent.blue);
+    final colors = AppColors.light();
     final router = GoRouter(
       initialLocation: '/',
       routes: [
@@ -220,7 +220,7 @@ void main() {
       ],
     );
 
-    final colors = AppColors.light(AppAccent.blue);
+    final colors = AppColors.light();
     final router = GoRouter(
       initialLocation: '/',
       routes: [

@@ -7,7 +7,7 @@ import 'package:opal/screens/mood/widgets/mood_widgets.dart';
 import 'package:opal/theme/app_colors.dart';
 
 Widget _wrap(Widget child) {
-  final colors = AppColors.light(AppAccent.indigo);
+  final colors = AppColors.light();
   return ProviderScope(
     child: MaterialApp(
       theme: ThemeData(useMaterial3: true, extensions: [colors]),
@@ -37,7 +37,7 @@ void main() {
     });
 
     testWidgets('builds with dark=true', (tester) async {
-      final darkColors = AppColors.dark(AppAccent.indigo);
+      final darkColors = AppColors.dark();
       await tester.pumpWidget(
         ProviderScope(
           child: MaterialApp(

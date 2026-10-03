@@ -29,7 +29,7 @@ Future<void> _pump(
   void Function(TodayArea)? onChip,
 }) =>
     tester.pumpWidget(MaterialApp(
-      theme: ThemeData(useMaterial3: true, extensions: [AppColors.light(AppAccent.blue)]),
+      theme: ThemeData(useMaterial3: true, extensions: [AppColors.light()]),
       home: Scaffold(
         body: BriefText(
           lead: 'Steady start.',

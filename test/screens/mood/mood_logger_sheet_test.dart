@@ -29,7 +29,7 @@ class _NoHaptics implements HapticsService {
 /// a real (empty) in-memory DB so the logCheckin call can resolve without
 /// crashing. No Seeder needed — the sheet doesn't read existing data.
 Widget _buildOpener(LoopDatabase db, SharedPreferences prefs) {
-  final colors = AppColors.light(AppAccent.indigo);
+  final colors = AppColors.light();
   return ProviderScope(
     overrides: [
       sharedPreferencesProvider.overrideWithValue(prefs),

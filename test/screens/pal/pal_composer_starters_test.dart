@@ -14,7 +14,7 @@ const _staticLabel = 'Verve coffee, \$5';
 
 /// The composer sheet with its suggestions seam driven by [suggestions].
 Widget _app(FutureOr<List<PalSuggestion>> Function() suggestions) {
-  final colors = AppColors.light(AppAccent.blue);
+  final colors = AppColors.light();
   return ProviderScope(
     overrides: [
       palSuggestionsProvider(SuggestionSurface.composer)

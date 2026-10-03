@@ -114,10 +114,10 @@ void main() {
           debugShowCheckedModeBanner: false,
           theme: dark
               ? ThemeData.dark().copyWith(
-                  extensions: [AppColors.dark(AppAccent.blue)],
+                  extensions: [AppColors.dark()],
                 )
               : ThemeData.light().copyWith(
-                  extensions: [AppColors.light(AppAccent.blue)],
+                  extensions: [AppColors.light()],
                 ),
           routerConfig: router,
         ),

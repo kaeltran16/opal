@@ -237,7 +237,7 @@ void main() {
       SharedPreferences prefs,
       _RecordingNotificationService service,
     ) async {
-      final colors = AppColors.light(AppAccent.indigo);
+      final colors = AppColors.light();
       final router = GoRouter(routes: [
         GoRoute(
             path: '/', builder: (context, state) => const NotificationsScreen()),

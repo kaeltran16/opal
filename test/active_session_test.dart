@@ -70,7 +70,7 @@ Future<void> _pump(
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
           useMaterial3: true,
-          extensions: [AppColors.light(AppAccent.indigo)],
+          extensions: [AppColors.light()],
         ),
         routerConfig: router,
       ),

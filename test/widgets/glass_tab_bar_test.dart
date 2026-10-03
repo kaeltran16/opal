@@ -16,7 +16,7 @@ const _tabs = [
 // test sees a running animation that isn't the tab bar's.
 final _theme = ThemeData(
   useMaterial3: true,
-  extensions: [AppColors.light(AppAccent.indigo)],
+  extensions: [AppColors.light()],
 );
 
 Widget _app(Widget child, {bool disableAnimations = false}) {

@@ -30,7 +30,7 @@ void main() {
         ),
       ],
       child: MaterialApp(
-        theme: ThemeData.light().copyWith(extensions: [AppColors.light(AppAccent.blue)]),
+        theme: ThemeData.light().copyWith(extensions: [AppColors.light()]),
         home: const RoutineGeneratorScreen(),
       ),
     ));
@@ -59,7 +59,7 @@ void main() {
       ],
       child: MaterialApp(
         theme: ThemeData.light()
-            .copyWith(extensions: [AppColors.light(AppAccent.blue)]),
+            .copyWith(extensions: [AppColors.light()]),
         home: const RoutineGeneratorScreen(),
       ),
     ));

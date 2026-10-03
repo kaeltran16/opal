@@ -11,7 +11,6 @@ import '../data/db/database.dart';
 import '../data/repositories/repositories.dart';
 import '../models/models.dart';
 import '../services/services.dart';
-import '../theme/app_colors.dart';
 import '../util/dates.dart';
 import '../util/format.dart' show Currency;
 import '../analysis/correlations.dart';
@@ -512,7 +511,7 @@ SiriShortcutsService siriShortcutsService(Ref ref) {
 }
 
 // ---------------------------------------------------------------------------
-// Theme settings (brightness + accent), persisted via SettingsRepository.
+// Theme settings (brightness), persisted via SettingsRepository.
 // Replaces the setState-driven state that lived in _LoopAppState.
 // ---------------------------------------------------------------------------
 
@@ -521,22 +520,18 @@ SiriShortcutsService siriShortcutsService(Ref ref) {
 class AppSettings {
   const AppSettings({
     required this.brightness,
-    required this.accent,
     required this.currency,
   });
 
   final Brightness brightness;
-  final AppAccent accent;
   final Currency currency;
 
   AppSettings copyWith({
     Brightness? brightness,
-    AppAccent? accent,
     Currency? currency,
   }) =>
       AppSettings(
         brightness: brightness ?? this.brightness,
-        accent: accent ?? this.accent,
         currency: currency ?? this.currency,
       );
 
@@ -545,14 +540,13 @@ class AppSettings {
       identical(this, other) ||
       other is AppSettings &&
           other.brightness == brightness &&
-          other.accent == accent &&
           other.currency == currency;
 
   @override
-  int get hashCode => Object.hash(brightness, accent, currency);
+  int get hashCode => Object.hash(brightness, currency);
 }
 
-/// Holds and persists the theme (brightness + accent). Reads initial values
+/// Holds and persists the theme brightness and currency. Reads initial values
 /// from [SettingsRepository]; every setter writes back so the selection
 /// survives a restart.
 @Riverpod(keepAlive: true)
@@ -562,7 +556,6 @@ class AppSettingsController extends _$AppSettingsController {
     final repo = ref.watch(settingsRepositoryProvider);
     return AppSettings(
       brightness: repo.brightness,
-      accent: repo.accent,
       currency: repo.currency,
     );
   }
@@ -570,11 +563,6 @@ class AppSettingsController extends _$AppSettingsController {
   Future<void> setBrightness(Brightness brightness) async {
     await ref.read(settingsRepositoryProvider).setBrightness(brightness);
     state = state.copyWith(brightness: brightness);
-  }
-
-  Future<void> setAccent(AppAccent accent) async {
-    await ref.read(settingsRepositoryProvider).setAccent(accent);
-    state = state.copyWith(accent: accent);
   }
 
   Future<void> setCurrency(Currency currency) async {

@@ -61,7 +61,7 @@ Widget _wrap({
   required SleepState sleepState,
   List<Correlation> correlations = const [],
 }) {
-  final colors = AppColors.light(AppAccent.indigo);
+  final colors = AppColors.light();
 
   // minimal GoRouter: just the root route + the routes TabHeaderScrollView navigates to
   final router = GoRouter(

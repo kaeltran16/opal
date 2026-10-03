@@ -3,7 +3,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../services/notifications/notification_service.dart'
     show kDefaultReminderTime;
-import '../../theme/app_colors.dart' show AppAccent;
 import '../../util/format.dart' show Currency;
 
 /// How often the email sync runs in the background. Persisted by its [minutes]
@@ -27,8 +26,8 @@ enum SyncCadence {
 
 /// User preferences persisted across launches via `shared_preferences`.
 ///
-/// Mirrors the handoff's `@AppStorage("accent")` / brightness toggle plus the
-/// onboarding gate flag. This is the SwiftData-free settings store; theme state
+/// Holds the brightness toggle plus the onboarding gate flag. This is the
+/// SwiftData-free settings store; theme state
 /// that previously lived in `_LoopAppState` now reads/writes here (via the
 /// Riverpod `appSettings` controller).
 ///
@@ -38,7 +37,6 @@ class SettingsRepository {
 
   final SharedPreferences _prefs;
 
-  static const _kAccent = 'settings.accent';
   static const _kBrightness = 'settings.brightness';
   static const _kCurrency = 'settings.currency';
   static const _kOnboardingComplete = 'settings.onboardingComplete';
@@ -53,27 +51,12 @@ class SettingsRepository {
   static const _kImportNotifications = 'settings.email.importNotifications';
   static const _kAutoCategorize = 'settings.email.autoCategorize';
 
-  // --- Accent -------------------------------------------------------------
-
-  /// Persisted accent, defaulting to [AppAccent.blue] when unset/unknown.
-  AppAccent get accent {
-    final name = _prefs.getString(_kAccent);
-    if (name == null) return AppAccent.blue;
-    return AppAccent.values.firstWhere(
-      (a) => a.name == name,
-      orElse: () => AppAccent.blue,
-    );
-  }
-
-  Future<void> setAccent(AppAccent accent) =>
-      _prefs.setString(_kAccent, accent.name);
-
   // --- Brightness ---------------------------------------------------------
 
-  /// Persisted brightness, defaulting to [Brightness.light] when unset.
+  /// Persisted brightness, defaulting to [Brightness.dark] when unset.
   Brightness get brightness {
     final v = _prefs.getString(_kBrightness);
-    return v == 'dark' ? Brightness.dark : Brightness.light;
+    return v == 'light' ? Brightness.light : Brightness.dark;
   }
 
   Future<void> setBrightness(Brightness brightness) => _prefs.setString(

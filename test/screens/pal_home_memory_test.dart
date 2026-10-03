@@ -21,7 +21,7 @@ void main() {
     // an empty db keeps the test focused on the memory card.
     final db = LoopDatabase.forTesting(NativeDatabase.memory());
     addTearDown(db.close);
-    final colors = AppColors.light(AppAccent.indigo);
+    final colors = AppColors.light();
 
     await tester.pumpWidget(
       ProviderScope(

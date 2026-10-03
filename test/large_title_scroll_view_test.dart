@@ -7,7 +7,7 @@ import 'package:opal/widgets/nav_bar.dart';
 
 void main() {
   Future<void> pump(WidgetTester tester) async {
-    final colors = AppColors.light(AppAccent.blue);
+    final colors = AppColors.light();
     await tester.pumpWidget(
       ProviderScope(
         child: MaterialApp(

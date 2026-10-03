@@ -29,6 +29,24 @@ class AppType {
   static final TextStyle amount = AppFonts.sfr(size: 34);
   static final TextStyle amountLg = AppFonts.sfr(size: 48);
 
-  // Mono — eyebrows, timestamps.
-  static final TextStyle eyebrow = AppFonts.mono(size: 12);
+  // DESIGN.md section 4. large numbers are light; emphasis comes from size.
+  static final TextStyle display = AppFonts.sf(
+      size: 64, weight: FontWeight.w300, letterSpacing: -1.6, height: 68 / 64, tabular: true);
+  static final TextStyle score = AppFonts.sf(
+      size: 40, weight: FontWeight.w300, letterSpacing: -0.8, height: 44 / 40, tabular: true);
+  // the serif: pal's lead line on today and nothing else.
+  static const TextStyle lead = TextStyle(
+    fontFamily: serifFamily,
+    fontSize: 30,
+    fontWeight: FontWeight.w300,
+    letterSpacing: -0.6,
+    height: 36 / 30,
+  );
+  static final TextStyle title =
+      AppFonts.sf(size: 22, weight: FontWeight.w500, letterSpacing: -0.4, height: 27 / 22);
+  static final TextStyle label =
+      AppFonts.sf(size: 13, weight: FontWeight.w500, letterSpacing: 0.3, height: 18 / 13);
+
+  /// The bundled serif, declared in pubspec.yaml.
+  static const String serifFamily = 'Newsreader';
 }

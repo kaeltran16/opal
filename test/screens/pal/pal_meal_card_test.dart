@@ -39,7 +39,7 @@ void main() {
         sharedPreferencesProvider.overrideWithValue(prefs),
       ],
       child: MaterialApp(
-        theme: ThemeData(useMaterial3: true, extensions: [AppColors.light(AppAccent.blue)]),
+        theme: ThemeData(useMaterial3: true, extensions: [AppColors.light()]),
         home: const Scaffold(body: PalComposerSheet(seed: 'had a burrito for lunch')),
       ),
     ));

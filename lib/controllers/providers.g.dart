@@ -1430,19 +1430,19 @@ final class SiriShortcutsServiceProvider
 String _$siriShortcutsServiceHash() =>
     r'b33f6ecb8781e6a3b00582f6ee1c85b4029cd6d5';
 
-/// Holds and persists the theme (brightness + accent). Reads initial values
+/// Holds and persists the theme brightness and currency. Reads initial values
 /// from [SettingsRepository]; every setter writes back so the selection
 /// survives a restart.
 
 @ProviderFor(AppSettingsController)
 const appSettingsControllerProvider = AppSettingsControllerProvider._();
 
-/// Holds and persists the theme (brightness + accent). Reads initial values
+/// Holds and persists the theme brightness and currency. Reads initial values
 /// from [SettingsRepository]; every setter writes back so the selection
 /// survives a restart.
 final class AppSettingsControllerProvider
     extends $NotifierProvider<AppSettingsController, AppSettings> {
-  /// Holds and persists the theme (brightness + accent). Reads initial values
+  /// Holds and persists the theme brightness and currency. Reads initial values
   /// from [SettingsRepository]; every setter writes back so the selection
   /// survives a restart.
   const AppSettingsControllerProvider._()
@@ -1473,9 +1473,9 @@ final class AppSettingsControllerProvider
 }
 
 String _$appSettingsControllerHash() =>
-    r'a329bbd48cc5232dc8a52d8787846643149c1644';
+    r'9b3dcee482c7859fe32b4ee3fb6669966293d347';
 
-/// Holds and persists the theme (brightness + accent). Reads initial values
+/// Holds and persists the theme brightness and currency. Reads initial values
 /// from [SettingsRepository]; every setter writes back so the selection
 /// survives a restart.
 

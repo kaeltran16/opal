@@ -129,7 +129,7 @@ class _LoopAppState extends ConsumerState<LoopApp> {
       child: MaterialApp.router(
         title: 'Opal',
         debugShowCheckedModeBanner: false,
-        theme: _buildTheme(settings.brightness, settings.accent),
+        theme: _buildTheme(settings.brightness),
         routerConfig: _router,
         // Full-screen routes above the shell (reviews, pal inbox, email, etc.)
         // render outside any Material, so without an ambient default text style
@@ -145,10 +145,10 @@ class _LoopAppState extends ConsumerState<LoopApp> {
     );
   }
 
-  ThemeData _buildTheme(Brightness brightness, AppAccent accent) {
+  ThemeData _buildTheme(Brightness brightness) {
     final colors = brightness == Brightness.dark
-        ? AppColors.dark(accent)
-        : AppColors.light(accent);
+        ? AppColors.dark()
+        : AppColors.light();
     return ThemeData(
       useMaterial3: true,
       brightness: brightness,

@@ -60,7 +60,7 @@ Future<void> bootApp(
   ignoreOverflowErrors();
   SharedPreferences.setMockInitialValues({
     'settings.onboardingComplete': true,
-    if (dark) 'settings.brightness': 'dark',
+    'settings.brightness': dark ? 'dark' : 'light',
   });
   final prefs = await SharedPreferences.getInstance();
   final db = LoopDatabase.forTesting(NativeDatabase.memory());

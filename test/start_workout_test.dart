@@ -50,7 +50,7 @@ Future<void> _pump(
       ),
     ],
   );
-  final colors = AppColors.light(AppAccent.blue);
+  final colors = AppColors.light();
   await tester.pumpWidget(
     ProviderScope(
       overrides: [

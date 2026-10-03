@@ -94,7 +94,7 @@ class _SequencedPalService implements PalService {
 }
 
 Widget _wrap(Widget child) {
-  final colors = AppColors.light(AppAccent.blue);
+  final colors = AppColors.light();
   return MaterialApp(theme: ThemeData(extensions: [colors]), home: child);
 }
 

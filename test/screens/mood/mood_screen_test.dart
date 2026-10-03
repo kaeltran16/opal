@@ -75,7 +75,7 @@ void main() {
     await Seeder(db).seedIfNeeded();
     addTearDown(db.close);
 
-    final colors = AppColors.light(AppAccent.indigo);
+    final colors = AppColors.light();
 
     await tester.pumpWidget(_buildApp(db, prefs, colors));
     await tester.pumpAndSettle();
@@ -113,7 +113,7 @@ void main() {
     await Seeder(db).seedIfNeeded();
     addTearDown(db.close);
 
-    await tester.pumpWidget(_buildApp(db, prefs, AppColors.light(AppAccent.indigo)));
+    await tester.pumpWidget(_buildApp(db, prefs, AppColors.light()));
     await tester.pumpAndSettle();
 
     expect(find.text('Check in again'), findsOneWidget);

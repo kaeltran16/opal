@@ -6,7 +6,7 @@ void main() {
     expect(Radii.xs, 4.0);
     expect(Radii.sm, 8.0);
     expect(Radii.md, 12.0);
-    expect(Radii.card, 14.0);
+    expect(Radii.card, 20.0);
     expect(Radii.lg, 16.0);
     expect(Radii.xl, 20.0);
     expect(Radii.xxl, 28.0);

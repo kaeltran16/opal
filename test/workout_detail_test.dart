@@ -92,7 +92,7 @@ void main() {
     await Seeder(db).seedIfNeeded();
     addTearDown(db.close);
 
-    final colors = AppColors.light(AppAccent.blue);
+    final colors = AppColors.light();
     final router = GoRouter(
       initialLocation: '/',
       routes: [

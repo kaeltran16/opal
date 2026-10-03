@@ -20,7 +20,7 @@ DateTime _todayAt(int hour, int minute) {
 
 /// Minimal app wrapper providing the AppColors ThemeExtension the screen reads.
 Widget _wrap(Widget child) {
-  final colors = AppColors.light(AppAccent.blue);
+  final colors = AppColors.light();
   return MaterialApp(
     theme: ThemeData(extensions: [colors]),
     home: child,

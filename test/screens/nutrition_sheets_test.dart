@@ -25,7 +25,7 @@ void main() {
     addTearDown(db.close);
 
     final router = createRouter(initialLocation: '/nutrition');
-    final colors = AppColors.light(AppAccent.indigo);
+    final colors = AppColors.light();
 
     await tester.pumpWidget(
       ProviderScope(

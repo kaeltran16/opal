@@ -162,7 +162,7 @@ void main() {
     addTearDown(db.close);
 
     final router = createRouter(initialLocation: '/you');
-    final colors = AppColors.light(AppAccent.blue);
+    final colors = AppColors.light();
 
     await tester.pumpWidget(
       ProviderScope(
@@ -295,7 +295,7 @@ void main() {
           debugShowCheckedModeBanner: false,
           theme: ThemeData(
               useMaterial3: true,
-              extensions: [AppColors.light(AppAccent.blue)]),
+              extensions: [AppColors.light()]),
           routerConfig: createRouter(initialLocation: '/you'),
         ),
       ),
