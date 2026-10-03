@@ -7,6 +7,9 @@ name: opal-app CI
 # captured with the Ahem test font, so glyph metrics differ on a Linux runner.
 # See the header comment in test/golden/design_system_golden_test.dart.
 #
+# Scenarios are excluded too: test/scenario/ writes screenshots for a human to
+# look at and compares nothing.
+#
 # No deploy job: iOS builds are produced locally by scripts/build_ipa.sh and
 # sideloaded via AltStore, so there is nothing here to deploy.
 
@@ -61,4 +64,5 @@ jobs:
 
       - run: flutter analyze --fatal-infos
 
-      - run: flutter test --exclude-tags golden
+      # one selector: flutter keeps only the last of a repeated --exclude-tags
+      - run: flutter test --exclude-tags "golden || scenario"

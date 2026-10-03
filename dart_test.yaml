@@ -5,3 +5,8 @@
 tags:
   golden:
     description: Machine-local visual baselines; excluded from CI.
+  # `scenario` marks test/scenario/: the real app rendered with real fonts and
+  # written out as PNGs for a human to look at. Nothing is compared, so CI
+  # skips them.
+  scenario:
+    description: Screenshot scenarios written to ARC_FINAL_OUT; excluded from CI.
