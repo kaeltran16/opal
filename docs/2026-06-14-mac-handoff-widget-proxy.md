@@ -74,13 +74,14 @@ Confirm on the device:
 - [ ] Widget shows **real** money/move/rituals values, not zeros.
 - [ ] Logging an entry with the app foregrounded refreshes the widget within seconds.
 - [ ] With the app closed, the widget refreshes on the ~20-min fallback.
-- [ ] Airplane mode: the widget keeps its last values (cached), doesn't blank.
+- [ ] Airplane mode: the widget keeps its last values (cached), doesn't blank, until local
+      midnight, when the cached snapshot expires and it shows dashes (v2, below).
 - [ ] `+` FAB and tile deep links still work.
 
 Manual server check (token from `POST /v1/register` with the provisioning key):
 ```bash
 curl -s https://opal.kael.life/v1/widget/snapshot -H "Authorization: Bearer <token>"
-# -> {"moneyRing":...,"moveKcal":...,...}   (404 before the app has posted once)
+# -> {"until":...,"move":{...},"routines":{...},"money":{...}}   (404 before the app has posted once)
 ```
 
 ## Trade-offs accepted (decided 2026-06-14)
@@ -112,8 +113,10 @@ On a Mac:
       in light and dark. Care reads `$4 over $60` with Needs care (the canvas shows
       `$4 left`; the state rules only give Needs care when over budget). Cached v1 must
       look exactly like Empty.
-- [ ] 3. Deploy the worker (`server/worker`) before installing the build, so the server
-      accepts and returns the v2 body.
+- [ ] 3. Confirm the worker (`server/worker`) deployed before installing the build, so the
+      server accepts and returns the v2 body. `.github/workflows/worker.yml` deploys it on
+      push to `main`; from then until the new build is installed, the old app's v1 POST
+      gets a 400 and the widget keeps its last cached snapshot.
 - [ ] 4. On the device, confirm the "+" opens the Pal composer and a tap anywhere else
       opens Today. VoiceOver reads `Tell Pal anything` on the "+" and
       `Opal. Move ... Opens Today` on the rest.
