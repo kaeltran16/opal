@@ -75,7 +75,7 @@ compares the Today view only.
     row and Pal-logged receipts with their Undo. Receipts stay deletable by swipe on the Money
     page and by the composer's undo.
 12. **Reachability.** Until the Areas tab lands, an `Areas` group on the You tab lists Money, Move,
-    Routines, Sleep and Mood, pushing `spendingDetail`, `moveDetail`, `ritualsDetail`,
+    Routines, Sleep and Mood, opening (`goNamed`) `spendingDetail`, `moveDetail`, `ritualsDetail`,
     `todaySleep`, `todayMood`. Those routes live under `/today`, so they open on the Today branch
     and back returns to Today.
 13. **Dead code is deleted**, not left behind: `ShortcutRing` and its test, `areaGlances` and
@@ -83,7 +83,8 @@ compares the Today view only.
     `total` and the receipt and sleep plan items if unused, the screen's `_opener`,
     `_undoReceipt`, `_receiptRow`, `_ringIcon`, `_ringRoute`. Grep every reference first.
 14. **Goldens.** Only the affected baselines are regenerated: `profile_dark.png` /
-    `profile_light.png` (Task 2, the new Areas group); `today_dark.png` / `today_light.png` and
+    `profile_light.png` (Task 2, the new Areas group; it sits below the captured viewport, so
+    these came out unchanged); `today_dark.png` / `today_light.png` and
     `pal_composer_dark.png` / `pal_composer_light.png` (Task 3; the composer golden is pushed
     non-opaque over Today, so Today shows through its scrim). Any other golden diff is a failure
     to fix, not to rebase.
@@ -228,7 +229,7 @@ description.
   sent first; the money proposal leads.
 - Add `today money needs care offline`: as above, then go offline and pull to refresh; the label
   reads offline and the money proposal still leads.
-- Add `today more expanded`: five open items, tap `3 more later today`; all four rows show; then
+- Add `today more expanded`: five open items, tap `2 more later today`; all four rows show; then
   skip the lead and the timeline stays expanded.
 - Add `today undo restores tapped row`: tap a timeline row, skip it, tap `Undo`; the tapped item
   is the lead again and `Why this first` is absent.
@@ -252,7 +253,7 @@ Acceptance:
   `Pal is offline · next on the clock`, the lead is the item's sentence and the order is the
   clock; `Why this first` pushes the composer with seed `Why <lead title> first?`; tapping a row
   makes it the lead and hides Why; skip shows `Undo` and Undo restores the item; with five open
-  items two rows and `3 more later today` show, tapping it shows all four, and a skip keeps them
+  items two rows and `2 more later today` show, tapping it shows all four, and a skip keeps them
   expanded; with three open items no More button; all done shows `All done`, `That's the day`,
   `Nothing is left. Rest up.`, no rail and no Why; Money over budget leads with the money
   proposal online, and still after going offline with a failed refresh (stale proposals); Move
