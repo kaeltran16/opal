@@ -13,17 +13,26 @@ void main() {
   TokenProvider tokensReturning(String token, {void Function()? onClear}) =>
       TokenProvider(token: () async => token, clear: () async => onClear?.call());
 
-  Future<void> syncSample(WidgetSyncService service) => service.sync(
-        moneyRing: 0.7,
-        moveRing: 0.45,
-        ritualsRing: 0.6,
-        moneySpent: 42,
-        dailyBudget: 60,
-        moveKcal: 180,
-        dailyMoveKcal: 400,
-        ritualsDone: 3,
-        dailyRitualTarget: 5,
-      );
+  final at = DateTime(2026, 10, 13, 11);
+  final snapshot = WidgetSnapshot(
+    until: DateTime(2026, 10, 14),
+    move: WidgetRow(
+      fraction: 0.62,
+      value: '310 of 500 kcal',
+      states: [StateChange(at: at, state: 'good', word: 'On track')],
+    ),
+    routines: WidgetRow(
+      fraction: 0.5,
+      value: '2 of 4 done',
+      states: [StateChange(at: at, state: 'good', word: 'On track')],
+    ),
+    money: WidgetRow(
+      value: r'$22 left of $60',
+      states: [StateChange(at: at, state: 'watch', word: 'Worth watching')],
+    ),
+  );
+
+  Future<void> syncSample(WidgetSyncService service) => service.sync(snapshot);
 
   // Records native reload calls (no native side in a unit test).
   List<String> captureReloadCalls() {
@@ -58,15 +67,8 @@ void main() {
     expect(captured.url.path, '/v1/widget/snapshot');
     expect(captured.headers['authorization'], 'Bearer tok');
     final body = jsonDecode(captured.body) as Map<String, dynamic>;
-    expect(body['moneyRing'], closeTo(0.7, 1e-9));
-    expect(body['moveRing'], closeTo(0.45, 1e-9));
-    expect(body['ritualsRing'], closeTo(0.6, 1e-9));
-    expect(body['moneySpent'], 42);
-    expect(body['dailyBudget'], 60);
-    expect(body['moveKcal'], 180);
-    expect(body['dailyMoveKcal'], 400);
-    expect(body['ritualsDone'], 3);
-    expect(body['dailyRitualTarget'], 5);
+    expect(body, snapshot.toJson());
+    expect(body.keys, unorderedEquals(['until', 'move', 'routines', 'money']));
     expect(reloads, ['reload']); // success nudges an immediate widget reload
   });
 
