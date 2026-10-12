@@ -8,7 +8,9 @@ const double _gap = 6;
 
 /// Marks the line beneath it as Pal's.
 class PalLabel extends StatelessWidget {
-  const PalLabel({super.key});
+  const PalLabel({super.key, this.text = 'Pal'});
+
+  final String text;
 
   @override
   Widget build(BuildContext context) {
@@ -18,7 +20,12 @@ class PalLabel extends StatelessWidget {
       children: [
         AppIcon('sparkles', size: _iconSize, color: c.ink2),
         const SizedBox(width: _gap),
-        Text('Pal', style: AppType.label.copyWith(color: c.ink2)),
+        Flexible(
+          child: Text(text,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: AppType.label.copyWith(color: c.ink2)),
+        ),
       ],
     );
   }

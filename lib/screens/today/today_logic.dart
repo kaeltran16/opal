@@ -1,8 +1,7 @@
-import '../../models/models.dart';
 import '../../util/dates.dart';
 
 /// Today's facts from the local providers, never from the model. A zero
-/// budget or goal means "not set"; the left-over getters never go negative.
+/// budget or goal means "not set".
 class GlanceNumbers {
   const GlanceNumbers({
     required this.spent,
@@ -15,16 +14,7 @@ class GlanceNumbers {
 
   final double spent, budget;
   final int moveKcal, moveGoal, routinesDone, routinesTotal;
-
-  double get moneyLeft => (budget - spent).clamp(0.0, double.infinity);
-  int get kcalToGo => (moveGoal - moveKcal).clamp(0, 1 << 31);
-  int get routinesLeft => (routinesTotal - routinesDone).clamp(0, 1 << 31);
 }
-
-/// Email-sourced entries logged today are the ones Pal did for the user.
-bool isDoneByPal(Entry e, DateTime now) =>
-    e.source == EntrySource.email &&
-    startOfDay(e.timestamp.toLocal()) == startOfDay(now.toLocal());
 
 /// Today's date line, "MON 28 SEP · 9:30 AM".
 String dateLine(DateTime now) {

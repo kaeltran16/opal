@@ -14,19 +14,15 @@ import 'package:opal/screens/today/today_screen.dart';
 import 'package:opal/theme/theme.dart';
 import 'package:opal/util/format.dart';
 import 'package:opal/widgets/contributor_bar.dart';
+import 'package:opal/widgets/inset_section.dart';
 import 'package:opal/widgets/pal_label.dart';
 import 'package:opal/widgets/week_bars.dart';
 
 import '../support/flush_provider_timers.dart';
+import '../support/golden_harness.dart' show appRouter;
 import '../support/today_fixture.dart';
 
 final _monday = Clock.fixed(DateTime(2026, 9, 28, 9, 30));
-
-const _ringPrefix = {
-  DetailTracker.money: 'Money: ',
-  DetailTracker.move: 'Move: ',
-  DetailTracker.rituals: 'Routines: ',
-};
 
 const _areaTitle = {
   DetailTracker.money: 'Money',
@@ -57,10 +53,15 @@ Future<void> _boot(
   await bootToday(tester, day: day, strictLayout: strictLayout);
 }
 
-/// Opens [tracker]'s page by tapping its ring on Today, and returns what the
-/// provider gave the page.
+/// Opens [tracker]'s page from its row in the You tab's Areas group, and
+/// returns what the provider gave the page.
 Future<AreaDetail> _open(WidgetTester tester, DetailTracker tracker) async {
-  await tester.tap(find.bySemanticsLabel(RegExp('^${_ringPrefix[tracker]}')));
+  await tester.tap(find.bySemanticsLabel('You'));
+  await tester.pumpAndSettle();
+  final row = find.widgetWithText(ListRow, _areaTitle[tracker]!);
+  await tester.ensureVisible(row);
+  await tester.pumpAndSettle();
+  await tester.tap(row);
   await tester.pumpAndSettle();
   expect(
     find.byWidgetPredicate((w) => w is DetailScreen && w.tracker == tracker),
@@ -257,7 +258,9 @@ void main() {
     addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
     await _boot(tester, strictLayout: true);
     await _insert(tester, _spend('long', DateTime(2026, 9, 28, 8), _longTitle, 1234.56));
-    await _open(tester, DetailTracker.money);
+    // by route: only the page's layout is under test, not the You tab's.
+    appRouter(tester).go('/today/spending');
+    await tester.pumpAndSettle();
 
     expect(tester.takeException(), isNull);
     final title = _onPage(find.text(_longTitle));

@@ -9,6 +9,8 @@ import 'package:opal/app.dart';
 import 'package:opal/controllers/providers.dart';
 import 'package:opal/data/db/database.dart';
 import 'package:opal/data/seed/seeder.dart';
+import 'package:opal/screens/today/today_screen.dart';
+import 'package:opal/widgets/pal_label.dart';
 
 void main() {
   testWidgets('App root boots to the Today tab on seeded data',
@@ -35,15 +37,17 @@ void main() {
     // Resolve the async Today stream + first frame.
     await tester.pumpAndSettle();
 
-    // The Today tab label, Today's date line and its three rings.
+    // The Today tab label, Today's date line, Pal's label and the action card.
     expect(find.text('Today'), findsWidgets);
     expect(
       find.textContaining(RegExp(r'^[A-Z]{3} \d{1,2} [A-Z]{3} · \d{1,2}:\d{2} [AP]M$')),
       findsOneWidget,
     );
-    for (final area in ['Money', 'Move', 'Routines']) {
-      expect(find.bySemanticsLabel(RegExp('^$area: ')), findsOneWidget);
-    }
+    expect(
+      find.descendant(of: find.byType(TodayScreen), matching: find.byType(PalLabel)),
+      findsOneWidget,
+    );
+    expect(find.byKey(todayCardKey), findsOneWidget);
 
     await flushProviderTimers(tester);
   });

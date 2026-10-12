@@ -3,12 +3,8 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:opal/analysis/area_state.dart';
 import 'package:opal/theme/theme.dart';
-import 'package:opal/widgets/app_icon.dart';
 import 'package:opal/widgets/contributor_bar.dart';
-import 'package:opal/widgets/pal_label.dart';
-import 'package:opal/widgets/shortcut_ring.dart';
 import 'package:opal/widgets/week_bars.dart';
 
 import 'scenario_harness.dart';
@@ -36,49 +32,7 @@ Future<void> _pump(WidgetTester tester, bool dark, List<Widget> children) {
   ));
 }
 
-ShortcutRing _ring(String icon, String value, AreaState state, double fraction) => ShortcutRing(
-      icon: icon,
-      value: value,
-      state: state,
-      fraction: fraction,
-      semanticLabel: '$value. ${state.word}',
-      onTap: () {},
-    );
-
 void main() {
-  scenarioTest('components rings', (tester, dark) async {
-    await _pump(tester, dark, [
-      const PalLabel(),
-      const SizedBox(height: Spacing.xxl),
-      Row(
-        spacing: Spacing.sm,
-        children: [
-          Expanded(child: _ring('dollarsign.circle.fill', r'$22 left', AreaState.watch, 22 / 60)),
-          Expanded(child: _ring('figure.run', '310 kcal', AreaState.good, 310 / 500)),
-          Expanded(child: _ring('sparkles', '4 of 4', AreaState.thriving, 1)),
-        ],
-      ),
-      const SizedBox(height: Spacing.xxxl),
-      Row(
-        spacing: Spacing.sm,
-        children: [
-          Expanded(child: _ring('dollarsign.circle.fill', r'$0 left', AreaState.care, 0)),
-          Expanded(child: _ring('figure.run', '40 kcal', AreaState.care, 40 / 500)),
-          Expanded(child: _ring('sparkles', '0', AreaState.good, 0)),
-        ],
-      ),
-    ]);
-
-    for (final state in AreaState.values) {
-      expect(find.text(state.word), findsWidgets);
-    }
-    expect(find.byType(ShortcutRing), findsNWidgets(6));
-    expect(find.byIcon(iconForSf('checkmark')), findsOneWidget);
-    expect(find.text('Pal'), findsOneWidget);
-
-    await shot(tester, 'components_rings_${dark ? 'dark' : 'light'}');
-  });
-
   scenarioTest('components bars', (tester, dark) async {
     await _pump(tester, dark, [
       const ContributorBar(label: 'Spent so far', value: r'$38 of $60', fraction: 38 / 60),
