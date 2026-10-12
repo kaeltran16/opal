@@ -9,15 +9,14 @@ part 'pal_agenda_controller.g.dart';
 /// streak) from the `/agenda` seam. One-shot, not a stream — it's fetched when
 /// the hub opens, not on every entry edit.
 ///
-/// An unreachable backend / timeout / malformed payload degrades to an empty
-/// [PalAgenda] (the screen shows its caught-up empty states) rather than an
-/// error screen — matching [insights]'s graceful-degradation boundary.
-@riverpod
-Future<PalAgenda> palAgenda(Ref ref) async {
-  final pal = ref.watch(palServiceProvider);
-  try {
-    return await pal.agenda();
-  } catch (_) {
-    return const PalAgenda();
-  }
-}
+/// A failed fetch is left as an error, not an empty agenda: Today reads the
+/// error as Pal being offline and falls back to the clock. A failed refresh
+/// keeps the last proposals as the error's value, so callers read
+/// `.value ?? const PalAgenda()`.
+@Riverpod(retry: _noRetry)
+Future<PalAgenda> palAgenda(Ref ref) => ref.watch(palServiceProvider).agenda();
+
+// riverpod's auto-retry holds a failure as loading, which Today reads as
+// online; the failure must show at once. pull to refresh and resume fetch
+// again.
+Duration? _noRetry(int retryCount, Object error) => null;

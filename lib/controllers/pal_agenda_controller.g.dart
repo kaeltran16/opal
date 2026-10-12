@@ -12,9 +12,10 @@ part of 'pal_agenda_controller.dart';
 /// streak) from the `/agenda` seam. One-shot, not a stream — it's fetched when
 /// the hub opens, not on every entry edit.
 ///
-/// An unreachable backend / timeout / malformed payload degrades to an empty
-/// [PalAgenda] (the screen shows its caught-up empty states) rather than an
-/// error screen — matching [insights]'s graceful-degradation boundary.
+/// A failed fetch is left as an error, not an empty agenda: Today reads the
+/// error as Pal being offline and falls back to the clock. A failed refresh
+/// keeps the last proposals as the error's value, so callers read
+/// `.value ?? const PalAgenda()`.
 
 @ProviderFor(palAgenda)
 const palAgendaProvider = PalAgendaProvider._();
@@ -23,9 +24,10 @@ const palAgendaProvider = PalAgendaProvider._();
 /// streak) from the `/agenda` seam. One-shot, not a stream — it's fetched when
 /// the hub opens, not on every entry edit.
 ///
-/// An unreachable backend / timeout / malformed payload degrades to an empty
-/// [PalAgenda] (the screen shows its caught-up empty states) rather than an
-/// error screen — matching [insights]'s graceful-degradation boundary.
+/// A failed fetch is left as an error, not an empty agenda: Today reads the
+/// error as Pal being offline and falls back to the clock. A failed refresh
+/// keeps the last proposals as the error's value, so callers read
+/// `.value ?? const PalAgenda()`.
 
 final class PalAgendaProvider
     extends
@@ -39,14 +41,15 @@ final class PalAgendaProvider
   /// streak) from the `/agenda` seam. One-shot, not a stream — it's fetched when
   /// the hub opens, not on every entry edit.
   ///
-  /// An unreachable backend / timeout / malformed payload degrades to an empty
-  /// [PalAgenda] (the screen shows its caught-up empty states) rather than an
-  /// error screen — matching [insights]'s graceful-degradation boundary.
+  /// A failed fetch is left as an error, not an empty agenda: Today reads the
+  /// error as Pal being offline and falls back to the clock. A failed refresh
+  /// keeps the last proposals as the error's value, so callers read
+  /// `.value ?? const PalAgenda()`.
   const PalAgendaProvider._()
     : super(
         from: null,
         argument: null,
-        retry: null,
+        retry: _noRetry,
         name: r'palAgendaProvider',
         isAutoDispose: true,
         dependencies: null,
@@ -67,4 +70,4 @@ final class PalAgendaProvider
   }
 }
 
-String _$palAgendaHash() => r'af64c9b6a8e485c581e620424091663d8af2e384';
+String _$palAgendaHash() => r'cde3b80044a82f4b978e759e87e7ea56a2103c77';

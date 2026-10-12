@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opal/controllers/rituals_controller.dart';
+import 'package:opal/controllers/spending_controller.dart' show DetailTracker;
 import 'package:opal/controllers/weekly_plan_controller.dart';
 import 'package:opal/models/models.dart';
 import 'package:opal/screens/today/day_plan.dart';
@@ -19,6 +20,18 @@ const _proposal = PalProposal(
   approveLabel: 'Hold \$40',
   approveIcon: 'checkmark',
   doneLabel: 'Held',
+);
+
+const _legs = PalProposal(
+  id: 'legs',
+  tag: 'Workout',
+  colorToken: 'move',
+  icon: 'figure.run',
+  title: 'Move Legs day to Friday',
+  body: 'Friday is clear and open.',
+  approveLabel: 'Move it',
+  approveIcon: 'checkmark',
+  doneLabel: 'Moved',
 );
 
 RitualRoutine _routine(String id, String time, {int steps = 1}) => RitualRoutine(
@@ -172,13 +185,197 @@ void main() {
       final selected = session.select('routine:evening');
       expect(plan.current(selected, _now)!.id, 'routine:evening');
       expect(_ids(plan.later(selected, _now)),
-          ['routine:morning', 'proposal:rent', 'mood', 'meal', 'closeOut']);
+          ['proposal:rent', 'mood', 'meal', 'routine:morning', 'closeOut']);
     });
 
     test('current falls back to the first open item when the selected one is settled', () {
       final plan = full();
       final settled = session.settle('mood', done: true).select('mood');
       expect(plan.current(settled, _now)!.id, 'routine:morning');
+    });
+  });
+
+  group('lead rules', () {
+    const online = LeadRules(palOnline: true);
+    const offline = LeadRules();
+
+    /// Pal sent the move proposal before the money one; a workout is planned.
+    DayPlan both() => _plan(
+          agenda: const PalAgenda(proposals: [_legs, _proposal]),
+          rituals: _rituals([_routine('morning', '7:00 AM'), _routine('evening', '9:00 PM')]),
+          workout: _workout(),
+        );
+
+    test('proposals carry their area; the workout is move, routines are rituals', () {
+      final plan = _plan(
+        agenda: const PalAgenda(proposals: [
+          _legs,
+          _proposal,
+          PalProposal(
+            id: 'other',
+            tag: 'Other',
+            colorToken: 'mood',
+            icon: 'sparkles',
+            title: 'Other',
+            body: '',
+            approveLabel: 'Yes',
+            approveIcon: 'checkmark',
+            doneLabel: 'Done',
+          ),
+        ]),
+        rituals: _rituals([_routine('morning', '7:00 AM')]),
+        workout: _workout(),
+      );
+      DetailTracker? area(String id) => plan.items.firstWhere((i) => i.id == id).area;
+      expect(area('proposal:legs'), DetailTracker.move);
+      expect(area('proposal:rent'), DetailTracker.money);
+      expect(area('proposal:other'), isNull);
+      expect(area('workout'), DetailTracker.move);
+      expect(area('routine:morning'), DetailTracker.rituals);
+      expect(area('mood'), isNull);
+    });
+
+    test('online, proposals lead in agenda order ahead of an overdue routine', () {
+      final plan = _plan(
+        agenda: const PalAgenda(proposals: [_legs, _proposal]),
+        rituals: _rituals([_routine('morning', '7:00 AM'), _routine('evening', '9:00 PM')]),
+      );
+      expect(_ids(plan.open(session, _now, online)), [
+        'proposal:legs',
+        'proposal:rent',
+        'routine:morning',
+        'mood',
+        'meal',
+        'routine:evening',
+        'closeOut',
+      ]);
+    });
+
+    test('offline, the overdue routine leads and proposals sit in clock position', () {
+      final plan = _plan(
+        agenda: const PalAgenda(proposals: [_legs, _proposal]),
+        rituals: _rituals([_routine('morning', '7:00 AM'), _routine('evening', '9:00 PM')]),
+      );
+      final clock = [
+        'routine:morning',
+        'proposal:legs',
+        'proposal:rent',
+        'mood',
+        'meal',
+        'routine:evening',
+        'closeOut',
+      ];
+      expect(_ids(plan.open(session, _now, offline)), clock);
+      expect(_ids(plan.open(session, _now)), clock);
+    });
+
+    test('Money care forces the money proposal over a move proposal Pal sent first', () {
+      final rules = LeadRules(palOnline: true, care: [DetailTracker.money]);
+      expect(_ids(both().open(session, _now, rules)).take(3),
+          ['proposal:rent', 'proposal:legs', 'routine:morning']);
+    });
+
+    test('Money care offline forces a held money proposal', () {
+      final rules = LeadRules(care: [DetailTracker.money]);
+      expect(_ids(both().open(session, _now, rules)).take(3),
+          ['proposal:rent', 'routine:morning', 'proposal:legs']);
+    });
+
+    test('Move care forces the workout online and offline, not the move proposal', () {
+      for (final palOnline in [true, false]) {
+        final rules = LeadRules(palOnline: palOnline, care: [DetailTracker.move]);
+        expect(both().open(session, _now, rules).first.id, 'workout');
+      }
+    });
+
+    test('Routines care forces the earliest open routine, untimed last', () {
+      final rules = LeadRules(palOnline: true, care: [DetailTracker.rituals]);
+      final plan = _plan(
+        agenda: const PalAgenda(proposals: [_proposal]),
+        rituals: _rituals([
+          _routine('odd', 'whenever'),
+          _routine('evening', '9:00 PM'),
+          _routine('morning', '7:00 AM'),
+        ]),
+      );
+      expect(plan.open(session, _now, rules).first.id, 'routine:morning');
+
+      final morningDone = session.settle('routine:morning', done: true);
+      expect(plan.open(morningDone, _now, rules).first.id, 'routine:evening');
+
+      final onlyOdd = morningDone.settle('routine:evening', done: false);
+      expect(plan.open(onlyOdd, _now, rules).first.id, 'routine:odd');
+    });
+
+    test('Money and Move both in care lead with the money proposal, then the workout', () {
+      final rules =
+          LeadRules(palOnline: true, care: [DetailTracker.money, DetailTracker.move]);
+      expect(_ids(both().open(session, _now, rules)).take(3),
+          ['proposal:rent', 'workout', 'proposal:legs']);
+    });
+
+    test('a care item already settled falls through to the next rule', () {
+      final rules =
+          LeadRules(palOnline: true, care: [DetailTracker.money, DetailTracker.move]);
+      final rentDone = session.settle('proposal:rent', done: true);
+      expect(both().open(rentDone, _now, rules).first.id, 'workout');
+
+      final workoutSkipped = rentDone.settle('workout', done: false);
+      expect(both().open(workoutSkipped, _now, rules).first.id, 'proposal:legs');
+    });
+
+    test('a care item already done falls through to the clock offline', () {
+      final rules = LeadRules(care: [DetailTracker.move]);
+      final plan = _plan(
+        rituals: _rituals([_routine('morning', '7:00 AM')]),
+        workout: _workout(done: true),
+      );
+      expect(plan.open(session, _now, rules).first.id, 'routine:morning');
+    });
+
+    test('Money care with no money proposal forces nothing', () {
+      final plan = _plan(
+        agenda: const PalAgenda(proposals: [_legs]),
+        rituals: _rituals([_routine('morning', '7:00 AM')]),
+      );
+      final rules = LeadRules(palOnline: true, care: [DetailTracker.money]);
+      expect(_ids(plan.open(session, _now, rules)), _ids(plan.open(session, _now, online)));
+    });
+
+    test('later puts untimed first, then by minute, and excludes the lead', () {
+      final plan = both();
+      expect(plan.current(session, _now, online)!.id, 'proposal:legs');
+      expect(_ids(plan.later(session, _now, online)), [
+        'proposal:rent',
+        'workout',
+        'mood',
+        'meal',
+        'routine:morning',
+        'routine:evening',
+        'closeOut',
+      ]);
+    });
+
+    test('palPick ignores the selection; isPalPick follows it', () {
+      final plan = both();
+      expect(plan.isPalPick(session, _now, online), isTrue);
+
+      final tapped = session.select('routine:evening');
+      expect(plan.current(tapped, _now, online)!.id, 'routine:evening');
+      expect(plan.palPick(tapped, _now, online)!.id, 'proposal:legs');
+      expect(plan.isPalPick(tapped, _now, online), isFalse);
+
+      final settled = tapped.settle('routine:evening', done: false);
+      expect(plan.current(settled, _now, online)!.id, 'proposal:legs');
+      expect(plan.isPalPick(settled, _now, online), isTrue);
+    });
+
+    test('selecting the pick itself is still the pick; no lead is no pick', () {
+      final plan = _plan();
+      expect(plan.isPalPick(session.select('mood'), _now, online), isTrue);
+      final over = session.settle('mood', done: true).settle('meal', done: true);
+      expect(plan.palPick(over, _now, online), isNull);
+      expect(plan.isPalPick(over, _now, online), isFalse);
     });
   });
 

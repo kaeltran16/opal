@@ -104,6 +104,40 @@ void main() {
     });
   });
 
+  group('careAreas', () {
+    test('is empty when every area is on track', () {
+      expect(careAreas(_numbers(), _at(14)), isEmpty);
+    });
+
+    test('is money when spent is over budget', () {
+      expect(careAreas(_numbers(spent: 75), _at(14)), [DetailTracker.money]);
+    });
+
+    test('is move then routines at 21:30 with under half of both goals', () {
+      expect(
+        careAreas(_numbers(moveKcal: 200, routinesDone: 1), _at(21, 30)),
+        [DetailTracker.move, DetailTracker.rituals],
+      );
+    });
+
+    test('lists every area in rule order', () {
+      expect(
+        careAreas(_numbers(spent: 75, moveKcal: 200, routinesDone: 1), _at(21, 30)),
+        [DetailTracker.money, DetailTracker.move, DetailTracker.rituals],
+      );
+    });
+
+    test('ignores an area with no goal', () {
+      expect(
+        careAreas(
+          _numbers(budget: 0, moveKcal: 0, moveGoal: 0, routinesDone: 0, routinesTotal: 0),
+          _at(21, 30),
+        ),
+        isEmpty,
+      );
+    });
+  });
+
   group('areaGlances', () {
     test('returns money, move, routines in order', () {
       final glances = areaGlances(_numbers(), Currency.usd, _at(9));

@@ -1,4 +1,5 @@
 import '../../controllers/rituals_controller.dart';
+import '../../controllers/spending_controller.dart' show DetailTracker;
 import '../../controllers/weekly_plan_controller.dart';
 import '../../models/models.dart';
 import '../../services/pal/pal_service.dart' show PalAgenda;
@@ -30,6 +31,7 @@ class PlanItem {
     this.skipLabel = _notToday,
     this.done = false,
     this.ref,
+    this.area,
   });
 
   final String id;
@@ -52,6 +54,9 @@ class PlanItem {
 
   /// The proposal, routine or entry id the screen needs to act.
   final String? ref;
+
+  /// The area a Needs care state can force this item to lead for.
+  final DetailTracker? area;
 
   /// Whether the user can act on it. A logged meal is a record, not a task.
   bool get actionable => switch (kind) {
@@ -100,14 +105,37 @@ class PlanSession {
   bool get canUndo => history.isNotEmpty;
 }
 
+/// What decides the lead beyond the clock. The default is the clock alone.
+class LeadRules {
+  const LeadRules({this.palOnline = false, this.care = const []});
+
+  /// Whether Pal's proposals lead, in the order Pal sent them.
+  final bool palOnline;
+
+  /// The areas in Needs care, in rule order (Money, Move, Routines).
+  final List<DetailTracker> care;
+}
+
 /// The day as one list: Today's action card and timeline both read it.
 class DayPlan {
   const DayPlan(this.items);
 
   final List<PlanItem> items;
 
-  /// What is still to do: overdue timed items, then untimed, then upcoming.
-  List<PlanItem> open(PlanSession session, DateTime now) {
+  /// What is still to do, in lead order: items forced by a Needs care area,
+  /// then Pal's proposals when Pal is online, then the clock (overdue timed
+  /// items, then untimed, then upcoming).
+  List<PlanItem> open(PlanSession session, DateTime now,
+      [LeadRules rules = const LeadRules()]) {
+    final clock = _clockOrder(session, now);
+    final lead = <PlanItem>{
+      for (final area in rules.care) ?_careLead(area, clock),
+      if (rules.palOnline) ...clock.where((i) => i.kind == PlanKind.proposal),
+    };
+    return [...lead, ...clock.where((i) => !lead.contains(i))];
+  }
+
+  List<PlanItem> _clockOrder(PlanSession session, DateTime now) {
     final nowMinute = now.hour * 60 + now.minute;
     final pending = items
         .where((i) => i.actionable && !i.done && !session.settled.containsKey(i.id))
@@ -121,20 +149,56 @@ class DayPlan {
     ];
   }
 
-  PlanItem? current(PlanSession session, DateTime now) {
-    final items = open(session, now);
+  /// The open item a Needs care area forces to lead, or null when it has none.
+  PlanItem? _careLead(DetailTracker area, List<PlanItem> open) {
+    final candidates = open.where((i) => i.area == area);
+    return switch (area) {
+      DetailTracker.money =>
+        candidates.where((i) => i.kind == PlanKind.proposal).firstOrNull,
+      DetailTracker.move =>
+        candidates.where((i) => i.kind == PlanKind.workout).firstOrNull,
+      DetailTracker.rituals => _timeOrder(
+          candidates.where((i) => i.kind == PlanKind.routine),
+          untimedFirst: false,
+        ).firstOrNull,
+    };
+  }
+
+  /// The lead Pal's order gives, whatever the user tapped.
+  PlanItem? palPick(PlanSession session, DateTime now,
+          [LeadRules rules = const LeadRules()]) =>
+      open(session, now, rules).firstOrNull;
+
+  PlanItem? current(PlanSession session, DateTime now,
+      [LeadRules rules = const LeadRules()]) {
+    final items = open(session, now, rules);
     for (final i in items) {
       if (i.id == session.selected) return i;
     }
-    return items.isEmpty ? null : items.first;
+    return items.firstOrNull;
   }
 
-  List<PlanItem> later(PlanSession session, DateTime now) {
-    final cur = current(session, now);
-    return [
-      for (final i in open(session, now))
-        if (i != cur) i,
-    ];
+  bool isPalPick(PlanSession session, DateTime now,
+      [LeadRules rules = const LeadRules()]) {
+    final cur = current(session, now, rules);
+    return cur != null && cur == palPick(session, now, rules);
+  }
+
+  /// The open items besides the lead, untimed first, then by time.
+  List<PlanItem> later(PlanSession session, DateTime now,
+      [LeadRules rules = const LeadRules()]) {
+    final cur = current(session, now, rules);
+    return _timeOrder(open(session, now, rules).where((i) => i != cur),
+        untimedFirst: true);
+  }
+
+  /// [from] by minute, untimed items first or last; ties keep build order.
+  List<PlanItem> _timeOrder(Iterable<PlanItem> from, {required bool untimedFirst}) {
+    final picked = from.toSet();
+    final inBuildOrder = items.where(picked.contains);
+    final untimed = inBuildOrder.where((i) => i.minuteOfDay == null);
+    final timed = _byMinute(inBuildOrder.where((i) => i.minuteOfDay != null));
+    return untimedFirst ? [...untimed, ...timed] : [...timed, ...untimed];
   }
 
   /// Done and informational rows, newest first; rows without a time last.
@@ -218,6 +282,7 @@ DayPlan buildDayPlan({
         actionLabel: p.approveLabel,
         skipLabel: _notNow,
         ref: p.id,
+        area: DetailTracker.values.asNameMap()[p.colorToken],
       ),
     for (final r in routines)
       PlanItem(
@@ -230,6 +295,7 @@ DayPlan buildDayPlan({
         actionLabel: _start,
         done: rituals!.isComplete(r),
         ref: r.id,
+        area: DetailTracker.rituals,
       ),
     if (workout != null && !workout.isRest)
       PlanItem(
@@ -240,6 +306,7 @@ DayPlan buildDayPlan({
         detail: workout.est == null ? null : '${workout.est} min',
         actionLabel: _start,
         done: workout.done,
+        area: DetailTracker.move,
       ),
     PlanItem(
       id: 'mood',

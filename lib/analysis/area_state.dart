@@ -60,6 +60,17 @@ AreaState progressState({
   return AreaState.good;
 }
 
+/// The areas in [AreaState.care], in rule order: Money, Move, Routines.
+List<DetailTracker> careAreas(GlanceNumbers n, DateTime now) => [
+      if (moneyState(spent: n.spent, budget: n.budget, now: now) == AreaState.care)
+        DetailTracker.money,
+      if (progressState(done: n.moveKcal, goal: n.moveGoal, now: now) == AreaState.care)
+        DetailTracker.move,
+      if (progressState(done: n.routinesDone, goal: n.routinesTotal, now: now) ==
+          AreaState.care)
+        DetailTracker.rituals,
+    ];
+
 /// What one ring on Today says. [fraction] is always the fraction [value]
 /// states, so ring and number never disagree.
 @immutable
