@@ -80,9 +80,12 @@ current build.
 ## 2. Principles for Opal
 
 1. **One big thing.** Every screen has one lead element. On Today it is Pal's line and the
-   next action. Nothing else on the screen competes with it in size, weight or colour.
+   next action, and Today carries no glance: no rings, bars or score row. The glance lives on
+   the Areas screen, whose lead is the activity rings. Nothing else on a screen competes with
+   its lead in size, weight or colour.
 2. **Colour means state.** A hue on screen answers "how is this going", never "which area is
-   this". Areas are told apart by icon and label.
+   this". Areas are told apart by icon and label. The one exception is the activity rings
+   (section 3).
 3. **Quiet until it matters.** The default rendering of any score is neutral ink. State colour
    appears when something is off track or has been achieved.
 4. **Words before numbers.** Every score carries a state word. A bare number never stands alone
@@ -149,9 +152,18 @@ on every light ground). `Ink` is for text and icons (4.5:1 or better on every gr
 ### Area colours are retired from UI chrome
 
 `money`, `move`, `rituals`, `nutrition`, `sleep`, `mood` and their tints and inks no longer
-colour rings, icons, chips or cards. They survive only as series colours in explore-level
-charts that plot several areas together. The user-selectable accent is removed: the accent is
-`ink`.
+colour rings, icons, chips or cards. They survive only as series colours where several areas
+are plotted together: explore-level charts, and the activity rings on Areas and the home-screen
+widget. The user-selectable accent is removed: the accent is `ink`.
+
+On the activity rings:
+- Use `move` and `rituals`, the existing values in `lib/theme/app_colors.dart`. Tracks are the
+  same hue at 20% alpha.
+- Neighbouring rings must also differ in lightness, at 1.5:1 or more, so they stay apart
+  without hue. Dark `move` against `rituals` is 1.74:1. Check this before adding a ring:
+  `sleep` (`#8491F0`) against `rituals` is only 1.22:1.
+- A ring's colour never signals state. State shows as the state word in state ink beside the
+  ring's value, only when off track or ahead.
 
 ## 4. Typography
 
@@ -205,19 +217,35 @@ Oura's faces are licensed and are not bundled. Substitutes:
 
 ## 7. Components
 
-**Shortcut circle** (glance). The row at the top of Today.
-- 56px circle, 3px arc, `ink` on `track`, area icon (20px, 1.6 stroke) in the centre.
-- Under it: the number in `headline`, then the state word or unit in `caption`.
-- The arc always draws the same fraction the number states.
-- Neutral by default; arc and state word switch to `watch` or `care` when off track. A goal
-  met shows a small filled check at the arc's end, in `thriving`.
-- Equal columns across the width. More than four: the row scrolls sideways. Each opens its
-  focus view.
+**Activity rings** (glance). The lead of the Areas screen.
+- Only goals you close get a ring, so a full ring always means done: Move (outer), Routines
+  (inner). Budgets (Money) and readings (Nutrition, Mood, Sleep) are vital cards below,
+  under "Also tracked".
+- Nested, 152px, 16px stroke, radii 68 and 48, round caps, starting at 12 o'clock. Colours per
+  section 3.
+- A legend beside the rings, one row per ring: swatch, area name in `label` `ink2`, the state
+  word when off track or ahead, then the value in `headline` weight 400 (`310 of 500 kcal`).
+  Each row opens that area's page.
+- The arc always draws the same fraction the value states.
+- Under the rings, one `subhead` line from Pal naming what is off ("Money and sleep are worth
+  a look"), or "Everything is on track".
+
+**Rings widget.** The iOS medium home-screen widget is the same glance off the app.
+- Move and Routines rings, 104px, 12px stroke, radii 46 and 32.
+- Legend rows for Move and Routines, then Money as a row with a dollar mark instead of a swatch,
+  reading what is left (`$22 left of $60`), never what is spent.
+- State words come from the app's state rules, never recomputed in the widget.
+- Before the first fetch, with nothing cached: empty tracks and dashes, never zeros.
+- A round `ink` "+" at top right opens the Pal composer; anywhere else opens Today.
 
 **Lead** (the one big thing).
 - Pal's line in `lead`, at most three lines, followed by one card holding the next action.
 - The action card: icon, `label` line for when, `title` for what, one primary pill and at most
   one secondary pill.
+- Pal picks the lead and orders the day. Offline, the order falls back to the clock, and the
+  label says so.
+- **Needs care rule.** Anything in Needs care leads Today, ahead of Pal's order, online or
+  offline. This is a fixed rule in code, not a model call.
 
 **Vital card** (focus).
 - Row 1: icon, area name in `headline`, state word right-aligned in state ink.
@@ -239,7 +267,9 @@ exact value.
 `surface2` fill, `ink` text. Text button: `ink`, `headline`, no fill. One primary per screen.
 
 **Tab bar.** Floating pill over content with blur, icon over `caption` label, active tab in
-`ink` on a `surface2` pill, inactive in `ink3`.
+`ink` on a `surface2` pill, inactive in `ink3`. With the glance off Today, the Areas tab
+carries an 8px state dot when any area is off track: `care` if any area needs care, else
+`watch`. Its accessible label names the areas, e.g. "Areas, money worth watching".
 
 **Composer.** Floating pill above the tab bar, placeholder "Tell Pal anything" in `ink3`, one
 round `ink` button at the right.
@@ -261,9 +291,11 @@ Do
 - Separate with space first, hairline second, card last.
 
 Don't
-- Colour by area. No orange for money, green for move, purple for routines.
+- Colour by area. No orange for money, green for move, purple for routines, except on the
+  activity rings.
 - Add a second accent, a gradient wash, a shadow or a glass card.
-- Put a chart on Today beyond a ring or a bar.
+- Put a glance on Today. No rings, bars or charts; the glance is on Areas.
+- Give a budget a ring. A full ring means done, and a spent budget is not.
 - Use bold or rounded numerals for amounts.
 - Use `ink4` for text, or the serif below 28px or in controls.
 
@@ -291,7 +323,8 @@ Applied in `lib/theme/`. Each row names what was done.
    (`assets/fonts/Newsreader-Light.ttf`, family `Newsreader`). No network fetch.
 2. **Tabs.** Oura's Today / Vitals / My Health against Opal's current Today / Workout /
    Nutrition / You. Adopting Oura's structure is an information-architecture change, not a
-   restyle, and is not decided here.
+   restyle, and is not decided here. The `oura-ai-first` canvas proposes Today / Areas /
+   Trends: Areas is the glance and focus level, and Trends holds Pal's cross-area findings.
 3. **Default theme.** Resolved: dark is the default when nothing is saved. A saved Light is
    kept.
 4. **State thresholds.** Resolved: pace against the waking day, 07:00 to 22:00. `dayShare`
@@ -306,6 +339,10 @@ Applied in `lib/theme/`. Each row names what was done.
    - An area with no goal set renders in neutral ink.
 5. **Achievement mark.** Oura uses a crown at 85+. Opal needs its own mark; a check is the
    placeholder.
+6. **Sleep.** Sleep has no working data source yet. The app fetches `/v1/health/sleep`, but the
+   proxy serves no such route; the Shortcuts ingest accepts `sleepMinutes`, but only
+   `/v1/health/day` returns it. Until that is wired up, Sleep stays a vital card, not a ring.
+   It also has no goal and no state rule yet.
 
 ## Sources
 
