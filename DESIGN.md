@@ -210,8 +210,9 @@ Oura's faces are licensed and are not bundled. Substitutes:
 - Today opens on a **time-of-day landscape**: layered hills under a sky that shifts across
   morning, afternoon and evening. This is Opal's equivalent of Oura's landscapes and is drawn,
   not photographed.
-- The scene sits behind the top third of Today and fades into `bg`. Other tabs do not carry a
-  scene; a detail view may reuse it behind its hero number.
+- The scene sits behind the top of Today, the Areas tab and each area page (Money, Move,
+  Routines, Nutrition, Sleep, Mood) and fades into `bg`. The other tabs (Workout, You) and
+  sub-screens (meal detail, the routines builder) do not carry a scene.
 - Text on the scene is `ink` only and must hold 4.5:1 against the lightest point behind it.
 - No other gradients anywhere in the product.
 
