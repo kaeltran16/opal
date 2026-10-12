@@ -266,7 +266,8 @@ exact value.
 **Buttons.** Primary: `ink` fill, `bg`-coloured text, pill, 48 tall, `headline`. Secondary:
 `surface2` fill, `ink` text. Text button: `ink`, `headline`, no fill. One primary per screen.
 
-**Tab bar.** Floating pill over content with blur, icon over `caption` label, active tab in
+**Tab bar.** Four tabs: Today, Areas, Workout, You (section 11, decision 2). Floating pill over
+content with blur, icon over `caption` label, active tab in
 `ink` on a `surface2` pill, inactive in `ink3`. With the glance off Today, the Areas tab
 carries an 8px state dot when any area is off track: `care` if any area needs care, else
 `watch`. Its accessible label names the areas, e.g. "Areas, money worth watching".
@@ -295,6 +296,7 @@ Don't
   activity rings.
 - Add a second accent, a gradient wash, a shadow or a glass card.
 - Put a glance on Today. No rings, bars or charts; the glance is on Areas.
+- Add a second patterns surface. Every pattern is one of Pal's findings, shown on You.
 - Give a budget a ring. A full ring means done, and a spent budget is not.
 - Use bold or rounded numerals for amounts.
 - Use `ink4` for text, or the serif below 28px or in controls.
@@ -321,10 +323,31 @@ Applied in `lib/theme/`. Each row names what was done.
 
 1. **Serif face.** Resolved: Newsreader Light, bundled under the OFL
    (`assets/fonts/Newsreader-Light.ttf`, family `Newsreader`). No network fetch.
-2. **Tabs.** Oura's Today / Vitals / My Health against Opal's current Today / Workout /
-   Nutrition / You. Adopting Oura's structure is an information-architecture change, not a
-   restyle, and is not decided here. The `oura-ai-first` canvas proposes Today / Areas /
-   Trends: Areas is the glance and focus level, and Trends holds Pal's cross-area findings.
+2. **Tabs.** Resolved: **Today / Areas / Workout / You**, a middle ground rather than Oura's
+   three. Today is the day; Areas is the glance and focus level (Oura's Vitals); You is the
+   long view (Oura's My Health) plus Pal and settings; Workout stays because it is a tool used
+   mid-session, often unplanned.
+   - A feature earns a tab only when it is opened on purpose most days, without Today's plan
+     sending you there, and every other path costs more than one tap. Nutrition is the one
+     contender: it stays off the bar unless logging through the composer proves slow in use.
+   - Where everything else lives:
+     - **Today:** the day plan. The routine player and the evening close-out open from the
+       action card; Sleep and Mood from their timeline rows.
+     - **Areas:** a page per area (Money, Move, Routines, Nutrition, Sleep, Mood). Nutrition's
+       page lists today's meals, each opening a meal detail, with "Add a meal". Routines'
+       page lists today's routines and ends with "Manage routines". Spending detail sits
+       under Money.
+     - **Workout:** unchanged: start, active session, post-workout, history, weekly plan,
+       routine generator, exercise library, streak celebration.
+     - **You:** a header line with name and streak; Pal's findings as the lead, then "Also
+       seen"; a Pal group (What Pal remembers, Autopilot, each its own screen); then
+       settings rows: Goals, Budgets, Reviews (day, week, month), Email sync, Data and
+       privacy, Appearance, About and help.
+   - **One home for patterns.** Pal's findings are the only patterns surface. Money insights
+     and nutrition patterns become findings for their area. "Patterns Pal uses" in What Pal
+     remembers lists the same findings; dismissing one removes it from both.
+   - Old routes that move (the area pages out of Today, the Nutrition branch) keep redirects,
+     as the old tab paths already do, so Siri and Live Activity links resolve.
 3. **Default theme.** Resolved: dark is the default when nothing is saved. A saved Light is
    kept.
 4. **State thresholds.** Resolved: pace against the waking day, 07:00 to 22:00. `dayShare`
