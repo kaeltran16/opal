@@ -118,15 +118,26 @@ export const healthDayQuery = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
 })
 
-// Pre-computed rings progress the app pushes for the iOS widget to read back.
+// display-ready rows the app pushes for the iOS widget to read back; the widget
+// never computes a state, it walks the schedule of changes until local midnight.
+const stateChange = z.object({
+  at: z.number().int(),
+  state: z.enum(['thriving', 'good', 'watch', 'care']),
+  word: z.string().min(1).max(32),
+})
+// one entry per minute from midnight to midnight is the most a schedule can hold.
+const widgetStates = z.array(stateChange).min(1).max(1441)
+const widgetValue = z.string().min(1).max(64)
+const ringRow = z.object({
+  fraction: z.number().finite().min(0).max(1),
+  value: widgetValue,
+  states: widgetStates,
+})
+const moneyRow = z.object({ value: widgetValue, states: widgetStates })
+
 export const widgetSnapshotBody = z.object({
-  moneyRing: z.number().finite(),
-  moveRing: z.number().finite(),
-  ritualsRing: z.number().finite(),
-  moneySpent: z.number().finite(),
-  dailyBudget: z.number().finite(),
-  moveKcal: z.number().int(),
-  dailyMoveKcal: z.number().int(),
-  ritualsDone: z.number().int(),
-  dailyRitualTarget: z.number().int(),
+  until: z.number().int(),
+  move: ringRow,
+  routines: ringRow,
+  money: moneyRow,
 })

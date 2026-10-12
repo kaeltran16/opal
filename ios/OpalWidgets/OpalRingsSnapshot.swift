@@ -9,35 +9,53 @@
 //  provisioning key injected into this target's Info.plist at build time.
 //
 //  NOTE: edited on Windows where iOS can't be compiled — compile + verify on a
-//  Mac. See docs/2026-06-12-mac-handoff-move-ring-kcal.md.
+//  Mac. See docs/2026-06-14-mac-handoff-widget-proxy.md, "Rings widget v2".
 //
 
 import Foundation
 
-/// Today's progress the rings widget renders. Decoded straight from the server
-/// JSON (the keys match `widgetSnapshotBody` on the server, camelCase).
+/// Today's display-ready rows (v2 wire contract). Decoded straight from the
+/// server JSON; the app works out every value and state word, the widget only
+/// picks the one for the current minute. Times are Unix epoch seconds.
 struct RingsSnapshot: Codable {
-  var moneyRing: Double
-  var moveRing: Double
-  var ritualsRing: Double
-  var moneySpent: Double
-  var dailyBudget: Double
-  var moveKcal: Int
-  var dailyMoveKcal: Int
-  var ritualsDone: Int
-  var dailyRitualTarget: Int
+  /// Next local midnight after the sync; from then on the widget shows dashes.
+  let until: Int
+  let move: Row
+  let routines: Row
+  let money: Row
 
-  /// Zeroed snapshot for "no data yet" (first fetch, offline cold start).
-  static let empty = RingsSnapshot(
-    moneyRing: 0, moveRing: 0, ritualsRing: 0,
-    moneySpent: 0, dailyBudget: 0,
-    moveKcal: 0, dailyMoveKcal: 0,
-    ritualsDone: 0, dailyRitualTarget: 0)
+  struct Row: Codable {
+    /// Ring fill in [0, 1]; absent on money, which is a row, not a ring.
+    let fraction: Double?
+    let value: String
+    /// State changes from the sync until `until`, ascending by `at`.
+    let states: [StateChange]
+
+    /// The change in force at `date`: the last one at or before it, else the
+    /// first (the widget clock can run ahead of the sync's first minute).
+    /// Nil only when the server sent no states.
+    func state(at date: Date) -> StateChange? {
+      let seconds = Int(date.timeIntervalSince1970)
+      return states.last(where: { $0.at <= seconds }) ?? states.first
+    }
+  }
+
+  struct StateChange: Codable {
+    let at: Int
+    /// `AreaState.name` on the app side: thriving, good, watch or care.
+    let state: String
+    let word: String
+  }
+
+  func isExpired(at date: Date) -> Bool {
+    Int(date.timeIntervalSince1970) >= until
+  }
 }
 
 /// Fetches the snapshot from the proxy, caching the last good value so a network
 /// hiccup never blanks the widget. All failures degrade to the cached snapshot
-/// (then `.empty`) — the widget must never crash or throw.
+/// (then nil, "not synced") — the widget must never crash or throw. A v1 body or
+/// cache fails to decode and also lands on nil, so it reads as dashes, never zeros.
 enum RingsSnapshotLoader {
   private static let store = UserDefaults.standard // widget's own sandbox; no sharing needed
   private static let tokenKey = "pal_widget_token"
@@ -54,13 +72,13 @@ enum RingsSnapshotLoader {
     Bundle.main.object(forInfoDictionaryKey: "PAL_PROVISIONING_KEY") as? String
   }
 
-  /// Latest snapshot, or the last cached one, or `.empty`.
-  static func load() async -> RingsSnapshot {
+  /// Latest snapshot, or the last cached one, or nil when never synced.
+  static func load() async -> RingsSnapshot? {
     if let fresh = await fetch() {
       cache(fresh)
       return fresh
     }
-    return lastCached() ?? .empty
+    return lastCached()
   }
 
   private static func fetch() async -> RingsSnapshot? {
