@@ -360,6 +360,12 @@ Applied in `lib/theme/`. Each row names what was done.
      under half the goal at or after 21:00 is Needs care; the share of the goal done 25
      points or more behind `dayShare` is Worth watching; otherwise On track.
    - An area with no goal set renders in neutral ink.
+   - Nutrition, Sleep and Mood have no state rule yet, so they render in neutral ink and are
+     never off track. Nutrition has no targets in the app, so its page shows meals and macros
+     without a target line until targets become a setting. Sleep waits on its data source
+     (decision 6). Mood is a reading, not a goal, and never takes a state colour.
+   - The Areas tab's `N of M on track` counts only areas with a state rule (Money, Move,
+     Routines today), so it reads `N of 3` until the others gain one.
 5. **Achievement mark.** Oura uses a crown at 85+. Opal needs its own mark; a check is the
    placeholder.
 6. **Sleep.** Sleep has no working data source yet. The app fetches `/v1/health/sleep`, but the
