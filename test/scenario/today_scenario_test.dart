@@ -5,35 +5,29 @@ import 'dart:async';
 
 import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:opal/analysis/area_state.dart';
-import 'package:opal/controllers/providers.dart';
-import 'package:opal/controllers/spending_controller.dart' show DetailTracker;
+import 'package:opal/controllers/pal_composer_controller.dart';
 import 'package:opal/controllers/today_controller.dart';
-import 'package:opal/data/repositories/repositories.dart';
-import 'package:opal/models/models.dart';
-import 'package:opal/screens/detail/detail_screen.dart';
-import 'package:opal/screens/mood/mood_screen.dart';
-import 'package:opal/screens/nutrition/nutrition_screen.dart';
 import 'package:opal/screens/pal/pal_composer_screen.dart';
 import 'package:opal/screens/reflect/evening_close_out_screen.dart';
 import 'package:opal/screens/rituals/routine_player_screen.dart';
-import 'package:opal/screens/sleep/sleep_screen.dart';
 import 'package:opal/screens/today/today_screen.dart';
 import 'package:opal/screens/workout/start_workout_screen.dart';
-import 'package:opal/services/pal/pal_service.dart' show PalProposal;
+import 'package:opal/services/pal/pal_service.dart' show PalProposal, PalRole;
 import 'package:opal/theme/theme.dart';
 import 'package:opal/widgets/day_scene.dart';
-import 'package:opal/widgets/pal_ask_bar.dart';
-import 'package:opal/widgets/shortcut_ring.dart';
+import 'package:opal/widgets/pal_label.dart';
 
-import '../support/golden_harness.dart' show appRouter;
 import '../support/today_fixture.dart';
 import 'scenario_harness.dart';
 
 const _headline = 'A steady start. The morning routine is first.';
 const _rentTitle = 'Set aside \$40 for rent';
+const _capTitle = 'Cap dinner at \$10';
+const _offlineLabel = 'Pal is offline · next on the clock';
+const _why = 'Why this first';
 
 const _rent = PalProposal(
   id: 'hold-rent-40',
@@ -47,26 +41,62 @@ const _rent = PalProposal(
   doneLabel: 'Held \$40',
 );
 
-const _noGoals = Goals(dailyBudget: 0, dailyMoveKcal: 0, dailyRitualTarget: 0);
+const _legs = PalProposal(
+  id: 'move-legs',
+  tag: 'Workout',
+  colorToken: 'move',
+  icon: 'figure.run',
+  title: 'Move Legs day to Friday',
+  body: 'Friday is clear and open.',
+  approveLabel: 'Move it',
+  approveIcon: 'checkmark',
+  doneLabel: 'Moved',
+);
+
+const _cap = PalProposal(
+  id: 'cap-dinner',
+  tag: 'Money',
+  colorToken: 'money',
+  icon: 'dollarsign.circle.fill',
+  title: _capTitle,
+  body: 'Money needs care. Cap dinner at \$10 and the day evens out.',
+  approveLabel: 'Set the cap',
+  approveIcon: 'checkmark',
+  doneLabel: 'Capped',
+);
+
+/// Only the mood check-in and Log a meal, so proposals set the count.
+const _bare = TodayDay(routines: [], workout: false);
 
 TodayPal _pal() => TodayPal(headline: _headline, proposals: const [_rent]);
+
+/// Pal sends the move proposal first; Money over budget must still lead.
+TodayPal _carePal() => TodayPal(headline: _headline, proposals: const [_legs, _cap]);
 
 String _theme(bool dark) => dark ? 'dark' : 'light';
 
 Finder _onToday(Finder matching) =>
     find.descendant(of: find.byType(TodayScreen), matching: matching);
 
+Finder _label(String text) =>
+    find.descendant(of: _onToday(find.byType(PalLabel)), matching: find.text(text));
+
+/// The action card's title.
+Finder _card(String title) =>
+    find.descendant(of: find.byKey(todayCardKey), matching: find.text(title));
+
+Finder _whyButton() => _onToday(find.text(_why));
+
 Finder _later(String title, String when) =>
     find.bySemanticsLabel('$title, $when. Do this next');
 
-/// 'Any' in the time column of the done Sleep row, which has no time.
-Finder _sleepRowAny() => find.descendant(
-      of: find.ancestor(of: _onToday(find.text('Sleep')), matching: find.byType(Row)).first,
-      matching: find.text('Any'),
-    );
+Finder _rows() => find.bySemanticsLabel(RegExp(r'\. Do this next$'));
 
-Finder _areaPage(DetailTracker tracker) =>
-    find.byWidgetPredicate((w) => w is DetailScreen && w.tracker == tracker);
+Finder _more([int? n]) => _onToday(n == null
+    ? find.textContaining('more later today')
+    : find.text('$n more later today'));
+
+Finder _undo() => _onToday(find.text('Undo'));
 
 /// Scrolls [finder] into view and taps it.
 Future<void> _tap(WidgetTester tester, Finder finder) async {
@@ -76,16 +106,15 @@ Future<void> _tap(WidgetTester tester, Finder finder) async {
   await tester.pumpAndSettle();
 }
 
-Future<void> _back(WidgetTester tester) async {
-  appRouter(tester).pop();
+Future<void> _pullToRefresh(WidgetTester tester) async {
+  await tester.fling(find.byType(TodayScreen), const Offset(0, 400), 1000);
   await tester.pumpAndSettle();
 }
 
-class _FailingDelete extends EntryRepository {
-  _FailingDelete(super.db);
-
-  @override
-  Future<void> deleteById(String id) => throw StateError('database is locked');
+/// Scrolls Today back to its top, so a shot frames the lead.
+Future<void> _toTop(WidgetTester tester) async {
+  await tester.drag(find.byType(TodayScreen), const Offset(0, 600));
+  await tester.pumpAndSettle();
 }
 
 void main() {
@@ -101,12 +130,11 @@ void main() {
 
       expect(tester.widget<DayScene>(find.byType(DayScene)).phase, phase);
       expect(find.text('MON 28 SEP · $time'), findsOneWidget);
-      expect(find.byType(ShortcutRing), findsNWidgets(3));
       expect(find.text(_headline), findsOneWidget);
-      expect(_onToday(find.text('Morning')), findsOneWidget);
+      expect(_label('Pal'), findsOneWidget);
+      expect(_card(_rentTitle), findsOneWidget);
+      expect(_rows().evaluate().length, lessThanOrEqualTo(2));
       expect(find.byKey(todayRailKey), findsOneWidget);
-      expect(_onToday(find.text('Sleep')), findsOneWidget);
-      expect(_sleepRowAny(), findsNothing);
       await shot(tester, 'today_${name}_${_theme(dark)}');
     });
   }
@@ -114,34 +142,27 @@ void main() {
   scenarioTest('today action card', (tester, dark) async {
     final theme = _theme(dark);
     await bootToday(tester, dark: dark, pal: _pal());
-    expect(find.text('0 of 8 done'), findsOneWidget);
 
-    await _tap(tester, _later(_rentTitle, 'any time'));
-    await tester.drag(find.byType(TodayScreen), const Offset(0, 600));
-    await tester.pumpAndSettle();
-    expect(find.text('Hold \$40'), findsOneWidget);
-    expect(find.text('Any time'), findsOneWidget);
+    await _tap(tester, _later('Mood check-in', 'any time'));
+    await _toTop(tester);
+    expect(_card('Mood check-in'), findsOneWidget);
+    expect(_onToday(find.text('Any time')), findsOneWidget);
+    expect(_whyButton(), findsNothing);
     await shot(tester, 'today_row_selected_$theme');
 
-    await tester.tap(find.text('Hold \$40'));
-    await tester.pumpAndSettle();
-    expect(find.text('1 of 8 done'), findsOneWidget);
-    expect(find.text(_rentTitle), findsNothing);
-    expect(find.bySemanticsLabel('Undo'), findsOneWidget);
-    await shot(tester, 'today_after_action_$theme');
-
-    expect(_onToday(find.text('Morning')), findsOneWidget);
-    await tester.tap(find.text('Not today'));
-    await tester.pumpAndSettle();
-    expect(_onToday(find.text('Morning')), findsNothing);
-    expect(find.text('1 of 8 done'), findsOneWidget);
-    expect(find.bySemanticsLabel('Undo'), findsOneWidget);
+    await _tap(tester, find.text('Not today'));
+    expect(_card(_rentTitle), findsOneWidget);
+    expect(_undo(), findsOneWidget);
     await shot(tester, 'today_after_skip_$theme');
 
-    await tester.tap(find.bySemanticsLabel('Undo'));
-    await tester.pumpAndSettle();
-    expect(_onToday(find.text('Morning')), findsOneWidget);
-    expect(find.text('Now'), findsOneWidget);
+    await _tap(tester, find.text('Hold \$40'));
+    expect(find.text(_rentTitle), findsNothing);
+    expect(_undo(), findsOneWidget);
+    await shot(tester, 'today_after_action_$theme');
+
+    await _tap(tester, _undo());
+    expect(_card(_rentTitle), findsOneWidget);
+    expect(_onToday(find.text('Now')), findsNothing);
     await shot(tester, 'today_after_undo_$theme');
   });
 
@@ -159,97 +180,103 @@ void main() {
     expect(find.text('Nothing is left. Rest up.'), findsOneWidget);
     expect(find.text('Not today'), findsNothing);
     expect(find.byKey(todayRailKey), findsNothing);
+    expect(_whyButton(), findsNothing);
     await shot(tester, 'today_all_done_${_theme(dark)}');
   });
 
   scenarioTest('today offline', (tester, dark) async {
     await bootToday(tester, dark: dark, pal: TodayPal(offline: true));
 
+    expect(_label(_offlineLabel), findsOneWidget);
+    expect(_whyButton(), findsNothing);
+    // the overdue morning routine is first on the clock.
+    expect(_card('Morning'), findsOneWidget);
     expect(find.text('Ease into the day'), findsOneWidget);
-    expect(find.byType(ShortcutRing), findsNWidgets(3));
-    expect(_onToday(find.text('Morning')), findsOneWidget);
     expect(find.byKey(todayRailKey), findsOneWidget);
     expect(find.textContaining("Couldn't load today"), findsNothing);
     await shot(tester, 'today_offline_${_theme(dark)}');
   });
 
-  scenarioTest('today money worth watching', (tester, dark) async {
-    await bootToday(tester, dark: dark, pal: _pal(), day: const TodayDay(spent: 32));
+  scenarioTest('today online proposal leads', (tester, dark) async {
+    await bootToday(tester, dark: dark, pal: _pal());
 
-    expect(find.bySemanticsLabel(RegExp(r'^Money: .* left to spend\. Worth watching$')),
-        findsOneWidget);
-    expect(_onToday(find.text(AreaState.watch.word)), findsOneWidget);
-    await shot(tester, 'today_watch_${_theme(dark)}');
+    expect(_label('Pal'), findsOneWidget);
+    expect(_card(_rentTitle), findsOneWidget);
+    expect(find.text(_headline), findsOneWidget);
+    expect(_whyButton(), findsOneWidget);
+    await shot(tester, 'today_online_proposal_${_theme(dark)}');
   });
 
-  scenarioTest('today over budget', (tester, dark) async {
-    await bootToday(tester, dark: dark, pal: _pal(), day: const TodayDay(spent: 80));
+  scenarioTest('today why this first', (tester, dark) async {
+    const question = 'Why $_rentTitle first?';
+    await bootToday(tester, dark: dark, pal: _pal());
 
-    expect(find.bySemanticsLabel(RegExp(r'^Money: .* left to spend\. Needs care$')),
-        findsOneWidget);
-    final money = tester.widgetList<ShortcutRing>(find.byType(ShortcutRing)).first;
-    expect(money.fraction, 0);
-    expect(money.state, AreaState.care);
-    // never a negative amount left.
-    expect(money.value, isNot(contains(RegExp('[-−]'))));
-    await shot(tester, 'today_over_budget_${_theme(dark)}');
+    await _tap(tester, _whyButton());
+
+    final sheet = find.byType(PalComposerSheet);
+    expect(sheet, findsOneWidget);
+    expect(find.descendant(of: sheet, matching: find.text(question)), findsOneWidget);
+    final messages = ProviderScope.containerOf(tester.element(sheet))
+        .read(palComposerControllerProvider(seed: question))
+        .messages;
+    expect(messages.first.role, PalRole.user);
+    expect(messages.last.role, PalRole.assistant);
+    expect(find.descendant(of: sheet, matching: find.text(messages.last.text)), findsOneWidget);
+    await shot(tester, 'today_why_${_theme(dark)}');
   });
 
-  scenarioTest('today zero goals', (tester, dark) async {
-    await bootToday(
-      tester,
-      dark: dark,
-      pal: _pal(),
-      day: const TodayDay(goals: _noGoals, routines: [], receipt: false, spent: 38),
-    );
+  scenarioTest('today money needs care', (tester, dark) async {
+    await bootToday(tester, dark: dark, pal: _carePal(), day: const TodayDay(spent: 80));
 
-    expect(find.bySemanticsLabel(RegExp(r'^Money: .* spent\. On track$')), findsOneWidget);
-    expect(find.bySemanticsLabel('Move: 310 kcal burned. On track'), findsOneWidget);
-    expect(find.bySemanticsLabel('Routines: none today. On track'), findsOneWidget);
-    final ink3 = tester.element(find.byType(TodayScreen)).colors.ink3;
-    final words = tester.widgetList<Text>(_onToday(find.text(AreaState.good.word)));
-    expect(words, hasLength(3));
-    for (final ring in tester.widgetList<ShortcutRing>(find.byType(ShortcutRing))) {
-      expect(ring.fraction, 0);
-    }
-    for (final word in words) {
-      expect(word.style!.color, ink3);
-    }
-    await shot(tester, 'today_zero_goals_${_theme(dark)}');
+    expect(_label('Pal'), findsOneWidget);
+    expect(_card(_capTitle), findsOneWidget);
+    await shot(tester, 'today_money_care_${_theme(dark)}');
   });
 
-  // the stored ritual target (5) must not stand in for routines that are not there.
-  scenarioTest('today no routines, default goals', at: Clock.fixed(DateTime(2026, 9, 28, 21, 30)),
-      (tester, dark) async {
+  scenarioTest('today money needs care offline', (tester, dark) async {
+    final pal = _carePal();
+    await bootToday(tester, dark: dark, pal: pal, day: const TodayDay(spent: 80));
+    expect(_card(_capTitle), findsOneWidget);
+
+    pal.offline = true;
+    await _pullToRefresh(tester);
+
+    expect(_label(_offlineLabel), findsOneWidget);
+    expect(_card(_capTitle), findsOneWidget);
+    expect(_whyButton(), findsNothing);
+    await shot(tester, 'today_money_care_offline_${_theme(dark)}');
+  });
+
+  scenarioTest('today more expanded', (tester, dark) async {
     await bootToday(tester,
-        dark: dark, pal: _pal(), day: const TodayDay(goals: Goals(), routines: []));
+        dark: dark,
+        day: _bare,
+        pal: TodayPal(proposals: [proposal('a', 'A'), proposal('b', 'B'), proposal('c', 'C')]));
+    expect(_rows(), findsNWidgets(2));
 
-    expect(find.bySemanticsLabel('Routines: none today. On track'), findsOneWidget);
-    final routines = find.byType(ShortcutRing).last;
-    expect(tester.widget<ShortcutRing>(routines).fraction, 0);
-    expect(
-      tester
-          .widget<Text>(
-              find.descendant(of: routines, matching: find.text(AreaState.good.word)))
-          .style!
-          .color,
-      tester.element(find.byType(TodayScreen)).colors.ink3,
-    );
-    await shot(tester, 'today_no_routines_default_goals_${_theme(dark)}');
+    await _tap(tester, _more(2));
+    expect(_rows(), findsNWidgets(4));
+    expect(_more(), findsNothing);
+
+    await _tap(tester, find.text('Not now'));
+    expect(_card('B'), findsOneWidget);
+    expect(_rows(), findsNWidgets(3));
+    expect(_more(), findsNothing);
+    await shot(tester, 'today_more_expanded_${_theme(dark)}');
   });
 
-  scenarioTest('today scrolled to the done rows', (tester, dark) async {
-    await bootToday(tester,
-        dark: dark, pal: _pal(), day: const TodayDay(mood: true, meal: true));
+  scenarioTest('today undo restores tapped row', (tester, dark) async {
+    await bootToday(tester, dark: dark, day: _bare, pal: _pal());
 
-    final sleep = _onToday(find.text('Sleep'));
-    await tester.ensureVisible(sleep);
-    await tester.pumpAndSettle();
-    expect(sleep.hitTestable(), findsOneWidget);
-    expect(_onToday(find.text(mealTitle)).hitTestable(), findsOneWidget);
-    expect(find.text('MON 28 SEP · 9:30 AM').hitTestable(), findsNothing);
-    expect(_sleepRowAny(), findsNothing);
-    await shot(tester, 'today_scrolled_${_theme(dark)}');
+    await _tap(tester, _later('Mood check-in', 'any time'));
+    await _tap(tester, find.text('Not today'));
+    expect(_card(_rentTitle), findsOneWidget);
+    expect(_whyButton(), findsOneWidget);
+
+    await _tap(tester, _undo());
+    expect(_card('Mood check-in'), findsOneWidget);
+    expect(_whyButton(), findsNothing);
+    await shot(tester, 'today_undo_tapped_${_theme(dark)}');
   });
 
   scenarioTest('today error', (tester, dark) async {
@@ -258,7 +285,7 @@ void main() {
     ]);
 
     expect(find.text("Couldn't load today. Try again in a moment."), findsOneWidget);
-    expect(find.byType(ShortcutRing), findsNothing);
+    expect(find.byKey(todayCardKey), findsNothing);
     await shot(tester, 'today_error_${_theme(dark)}');
   });
 
@@ -269,72 +296,12 @@ void main() {
         dark: dark, overrides: [todayStateProvider.overrideWith((ref) => never.stream)]);
 
     expect(_onToday(find.text('…')), findsOneWidget);
-    expect(find.byType(ShortcutRing), findsNothing);
+    expect(find.byKey(todayCardKey), findsNothing);
     await shot(tester, 'today_loading_${_theme(dark)}');
   });
 
-  scenarioTest('today receipt undo', (tester, dark) async {
-    await bootToday(tester, dark: dark, pal: _pal());
-    expect(find.textContaining('Logged $receiptTitle, '), findsOneWidget);
-
-    await _tap(tester, find.bySemanticsLabel('Undo $receiptTitle'));
-
-    expect(find.textContaining('Logged $receiptTitle'), findsNothing);
-    expect(find.byType(SnackBar), findsNothing);
-    await shot(tester, 'today_receipt_undo_${_theme(dark)}');
-  });
-
-  scenarioTest('today receipt undo failed', (tester, dark) async {
-    await bootToday(tester, dark: dark, pal: _pal(), overrides: [
-      entryRepositoryProvider
-          .overrideWith((ref) => _FailingDelete(ref.watch(loopDatabaseProvider))),
-    ]);
-
-    await _tap(tester, find.bySemanticsLabel('Undo $receiptTitle'));
-
-    final message = find.text("Couldn't undo. Try again.");
-    expect(message, findsOneWidget);
-    expect(find.textContaining('Logged $receiptTitle, '), findsOneWidget);
-    // above the floating bars, not under them. the SnackBar widget's own box
-    // includes its margin, so measure the message.
-    expect(
-      tester.getBottomLeft(message).dy,
-      lessThanOrEqualTo(tester.getTopLeft(find.byType(PalAskBar)).dy),
-    );
-    await shot(tester, 'today_receipt_undo_failed_${_theme(dark)}');
-  });
-
-  scenarioTest('today done rows open their screens', (tester, dark) async {
-    final theme = _theme(dark);
-    await bootToday(
-      tester,
-      dark: dark,
-      pal: _pal(),
-      day: const TodayDay(mood: true, meal: true, firstRoutineDone: true),
-    );
-
-    await _tap(tester, _onToday(find.text('Sleep')));
-    expect(find.byType(SleepScreen), findsOneWidget);
-    await shot(tester, 'today_done_row_sleep_$theme');
-    await _back(tester);
-
-    await _tap(tester, _onToday(find.text('Mood check-in')));
-    expect(find.byType(MoodScreen), findsOneWidget);
-    await shot(tester, 'today_done_row_mood_$theme');
-    await _back(tester);
-
-    await _tap(tester, _onToday(find.text('Morning')));
-    expect(_areaPage(DetailTracker.rituals), findsOneWidget);
-    await shot(tester, 'today_done_row_routine_$theme');
-    await _back(tester);
-
-    await _tap(tester, _onToday(find.text(mealTitle)));
-    expect(find.byType(NutritionScreen), findsOneWidget);
-    await shot(tester, 'today_done_row_meal_$theme');
-  });
-
   // each primary pill, by the kind of item on the card.
-  final actions = <String, (TodayDay, Finder Function()?, String, Finder Function())>{
+  final actions = <String, (TodayDay, Future<void> Function(WidgetTester)?, String, Finder Function())>{
     'routine': (const TodayDay(), null, 'Start', () => find.byType(RoutinePlayerScreen)),
     'workout': (
       const TodayDay(routines: []),
@@ -343,7 +310,7 @@ void main() {
       () => find.byType(StartWorkoutScreen),
     ),
     'mood': (
-      const TodayDay(routines: [], workout: false),
+      _bare,
       null,
       'Check in',
       () => find.byType(BottomSheet),
@@ -356,7 +323,11 @@ void main() {
     ),
     'closeout': (
       const TodayDay(),
-      () => _later('Close-out', 'at 9:30 PM'),
+      // the close-out sits behind More.
+      (tester) async {
+        await _tap(tester, _more());
+        await _tap(tester, _later('Close-out', 'at 9:30 PM'));
+      },
       'Start',
       () => find.byType(EveningCloseOutScreen),
     ),
@@ -364,7 +335,7 @@ void main() {
   for (final MapEntry(key: kind, value: (day, select, pill, destination)) in actions.entries) {
     scenarioTest('today action $kind', (tester, dark) async {
       await bootToday(tester, dark: dark, day: day);
-      if (select != null) await _tap(tester, select());
+      if (select != null) await select(tester);
 
       // on the meal card the title reads the same as its pill; the pill is last.
       await _tap(tester, _onToday(find.text(pill)).last);
@@ -379,8 +350,7 @@ void main() {
     await bootToday(tester, dark: dark, pal: pal);
     final before = pal.insightsCalls;
 
-    await tester.fling(find.byType(TodayScreen), const Offset(0, 400), 1000);
-    await tester.pumpAndSettle();
+    await _pullToRefresh(tester);
 
     expect(pal.insightsCalls, before + 1);
     expect(find.text(_headline), findsOneWidget);

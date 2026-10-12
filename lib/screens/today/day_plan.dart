@@ -4,11 +4,9 @@ import '../../controllers/weekly_plan_controller.dart';
 import '../../models/models.dart';
 import '../../services/pal/pal_service.dart' show PalAgenda;
 import '../../util/dates.dart';
-import '../../util/entry_glyph.dart';
-import '../../util/mood_scale.dart' show hm;
 import 'today_logic.dart';
 
-enum PlanKind { proposal, routine, workout, mood, meal, closeOut, sleep, receipt }
+enum PlanKind { proposal, routine, workout, mood, meal, closeOut }
 
 /// When the evening close-out is due, in minutes after midnight.
 const int closeOutMinute = 21 * 60 + 30;
@@ -41,8 +39,7 @@ class PlanItem {
   /// An `AppIcon` name.
   final String icon;
 
-  /// When it is due (or, for a done row, when it happened), in minutes after
-  /// midnight. Null when it has no time.
+  /// When it is due, in minutes after midnight. Null when it has no time.
   final int? minuteOfDay;
   final String? detail;
 
@@ -52,23 +49,18 @@ class PlanItem {
   final String skipLabel;
   final bool done;
 
-  /// The proposal, routine or entry id the screen needs to act.
+  /// The proposal or routine id the screen needs to act.
   final String? ref;
 
   /// The area a Needs care state can force this item to lead for.
   final DetailTracker? area;
 
-  /// Whether the user can act on it. A logged meal is a record, not a task.
-  bool get actionable => switch (kind) {
-        PlanKind.proposal ||
-        PlanKind.routine ||
-        PlanKind.workout ||
-        PlanKind.mood ||
-        PlanKind.closeOut =>
-          true,
-        PlanKind.meal => !done,
-        PlanKind.sleep || PlanKind.receipt => false,
-      };
+  /// The card's when line: "At 9:30 PM" or "Any time", then the detail.
+  String get whenLabel {
+    final minute = minuteOfDay;
+    final when = minute == null ? 'Any time' : 'At ${clockLabel(minute)}';
+    return detail == null ? when : '$when · $detail';
+  }
 }
 
 /// What the user did with the plan this session. In [settled], true is done
@@ -138,7 +130,7 @@ class DayPlan {
   List<PlanItem> _clockOrder(PlanSession session, DateTime now) {
     final nowMinute = now.hour * 60 + now.minute;
     final pending = items
-        .where((i) => i.actionable && !i.done && !session.settled.containsKey(i.id))
+        .where((i) => !i.done && !session.settled.containsKey(i.id))
         .toList();
     bool timed(PlanItem i) => i.minuteOfDay != null;
     bool passed(PlanItem i) => timed(i) && i.minuteOfDay! <= nowMinute;
@@ -200,33 +192,6 @@ class DayPlan {
     final timed = _byMinute(inBuildOrder.where((i) => i.minuteOfDay != null));
     return untimedFirst ? [...untimed, ...timed] : [...timed, ...untimed];
   }
-
-  /// Done and informational rows, newest first; rows without a time last.
-  List<PlanItem> get doneRows {
-    final rows = items.where((i) => i.done || !i.actionable).toList();
-    return [
-      ..._byMinute(rows.where((i) => i.minuteOfDay != null)).reversed,
-      ...rows.where((i) => i.minuteOfDay == null),
-    ];
-  }
-
-  /// A skip settles an item without counting it.
-  int doneCount(PlanSession session) => items
-      .where((i) => i.actionable && (i.done || session.settled[i.id] == true))
-      .length;
-
-  int get total => items.where((i) => i.actionable).length;
-
-  String whenLabel(PlanItem item, PlanSession session, DateTime now) {
-    final first = open(session, now).firstOrNull;
-    final minute = item.minuteOfDay;
-    final when = item == first
-        ? 'Now'
-        : minute != null
-            ? 'At ${clockLabel(minute)}'
-            : 'Any time';
-    return item.detail == null ? when : '$when · ${item.detail}';
-  }
 }
 
 /// "9:00 PM" for minutes after midnight.
@@ -250,26 +215,19 @@ List<PlanItem> _byMinute(Iterable<PlanItem> items) {
 bool _isToday(DateTime at, DateTime now) =>
     startOfDay(at.toLocal()) == startOfDay(now.toLocal());
 
-int _minuteOf(DateTime at) {
-  final local = at.toLocal();
-  return local.hour * 60 + local.minute;
-}
-
 /// Builds the day from local data and Pal's pending proposals. Nothing here
 /// calls the model, so the plan stands when Pal is offline.
 DayPlan buildDayPlan({
   required PalAgenda agenda,
   required RitualsState? rituals,
   required WeekPlanDay? workout,
-  required SleepNight? lastNight,
   required MoodCheckin? lastCheckin,
   required List<NutritionMeal> meals,
-  required List<Entry> entries,
   required DateTime now,
 }) {
   final routines = rituals?.routines ?? const <RitualRoutine>[];
   final checkedIn = lastCheckin != null && _isToday(lastCheckin.timestamp, now);
-  final mealsToday = meals.where((m) => _isToday(m.timestamp, now)).toList();
+  final ateToday = meals.any((m) => _isToday(m.timestamp, now));
 
   return DayPlan([
     for (final p in agenda.proposals)
@@ -313,28 +271,16 @@ DayPlan buildDayPlan({
       kind: PlanKind.mood,
       title: 'Mood check-in',
       icon: 'heart.fill',
-      minuteOfDay: checkedIn ? _minuteOf(lastCheckin.timestamp) : null,
       actionLabel: 'Check in',
       done: checkedIn,
-      ref: checkedIn ? lastCheckin.id : null,
     ),
-    if (mealsToday.isEmpty)
+    if (!ateToday)
       const PlanItem(
         id: 'meal',
         kind: PlanKind.meal,
         title: 'Log a meal',
         icon: 'fork.knife',
         actionLabel: 'Log a meal',
-      ),
-    for (final m in mealsToday)
-      PlanItem(
-        id: 'meal:${m.id}',
-        kind: PlanKind.meal,
-        title: m.name,
-        icon: m.icon,
-        minuteOfDay: _minuteOf(m.timestamp),
-        done: true,
-        ref: m.id,
       ),
     if (routines.isNotEmpty)
       const PlanItem(
@@ -345,27 +291,5 @@ DayPlan buildDayPlan({
         minuteOfDay: closeOutMinute,
         actionLabel: _start,
       ),
-    // a night is dated by the morning the user woke on.
-    if (lastNight != null && startOfDay(lastNight.night) == startOfDay(now))
-      PlanItem(
-        id: 'sleep',
-        kind: PlanKind.sleep,
-        title: 'Sleep',
-        icon: 'moon.stars.fill',
-        detail: hm(lastNight.asleepMinutes),
-        done: true,
-        ref: lastNight.id,
-      ),
-    for (final e in entries)
-      if (isDoneByPal(e, now))
-        PlanItem(
-          id: 'receipt:${e.id}',
-          kind: PlanKind.receipt,
-          title: e.title,
-          icon: entryGlyph(e.type, category: e.category, isWorkout: e.workoutId != null),
-          minuteOfDay: _minuteOf(e.timestamp),
-          done: true,
-          ref: e.id,
-        ),
   ]);
 }

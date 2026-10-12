@@ -20,7 +20,6 @@ import 'package:opal/screens/sleep/sleep_screen.dart';
 import 'package:opal/screens/today/today_screen.dart';
 import 'package:opal/widgets/contributor_bar.dart';
 import 'package:opal/widgets/inset_section.dart';
-import 'package:opal/widgets/shortcut_ring.dart';
 import 'package:opal/widgets/week_bars.dart';
 
 import '../support/today_fixture.dart';
@@ -222,7 +221,6 @@ void main() {
 
     expect(find.byType(DetailScreen), findsNothing);
     expect(find.byType(TodayScreen), findsOneWidget);
-    expect(find.byType(ShortcutRing), findsNWidgets(3));
     expect(find.text(_dateLine), findsOneWidget);
     await shot(tester, 'area_back_${_theme(dark)}');
   });

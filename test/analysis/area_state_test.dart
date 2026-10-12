@@ -3,7 +3,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:opal/analysis/area_state.dart';
 import 'package:opal/controllers/spending_controller.dart';
 import 'package:opal/screens/today/today_logic.dart';
-import 'package:opal/util/format.dart';
 
 DateTime _at(int hour, [int minute = 0]) => DateTime(2026, 10, 3, hour, minute);
 
@@ -135,112 +134,6 @@ void main() {
         ),
         isEmpty,
       );
-    });
-  });
-
-  group('areaGlances', () {
-    test('returns money, move, routines in order', () {
-      final glances = areaGlances(_numbers(), Currency.usd, _at(9));
-      expect(glances.map((g) => g.tracker),
-          [DetailTracker.money, DetailTracker.move, DetailTracker.rituals]);
-    });
-
-    test('money states what is left of the budget', () {
-      final money = areaGlances(_numbers(), Currency.usd, _at(9)).first;
-      expect(money.value, r'$22 left');
-      expect(money.fraction, closeTo(22 / 60, 1e-9));
-      expect(money.state, AreaState.watch);
-      expect(money.semantics,
-          r'Money: $22 of $60 left to spend. Worth watching');
-    });
-
-    test('over budget shows nothing left, never a negative', () {
-      final money =
-          areaGlances(_numbers(spent: 75), Currency.usd, _at(15)).first;
-      expect(money.value, r'$0 left');
-      expect(money.fraction, 0);
-      expect(money.state, AreaState.care);
-      expect(money.semantics, r'Money: $0 of $60 left to spend. Needs care');
-    });
-
-    test('no budget shows the amount spent with an empty ring', () {
-      final money =
-          areaGlances(_numbers(budget: 0), Currency.usd, _at(15)).first;
-      expect(money.value, r'$38');
-      expect(money.fraction, 0);
-      expect(money.state, AreaState.good);
-      expect(money.semantics, r'Money: $38 spent. On track');
-    });
-
-    test('money follows the currency format', () {
-      final money = areaGlances(
-        _numbers(spent: 380000, budget: 600000),
-        Currency.vnd,
-        _at(20),
-      ).first;
-      // formatCurrency owns the spacing around a trailing symbol
-      final left = formatCurrency(220000, Currency.vnd);
-      final budget = formatCurrency(600000, Currency.vnd);
-      expect(left, contains('220.000'));
-      expect(money.value, '$left left');
-      expect(money.semantics, 'Money: $left of $budget left to spend. On track');
-    });
-
-    test('move states kcal burned against the goal', () {
-      final move = areaGlances(_numbers(), Currency.usd, _at(14))[1];
-      expect(move.value, '310 kcal');
-      expect(move.fraction, closeTo(0.62, 1e-9));
-      expect(move.state, AreaState.good);
-      expect(move.semantics, 'Move: 310 of 500 kcal burned. On track');
-    });
-
-    test('move past its goal clamps the ring and is ahead', () {
-      final move =
-          areaGlances(_numbers(moveKcal: 640), Currency.usd, _at(14))[1];
-      expect(move.value, '640 kcal');
-      expect(move.fraction, 1);
-      expect(move.state, AreaState.thriving);
-      expect(move.semantics, 'Move: 640 of 500 kcal burned. Ahead');
-    });
-
-    test('no move goal is a plain amount with an empty ring', () {
-      final move = areaGlances(_numbers(moveGoal: 0), Currency.usd, _at(21))[1];
-      expect(move.value, '310 kcal');
-      expect(move.fraction, 0);
-      expect(move.state, AreaState.good);
-      expect(move.semantics, 'Move: 310 kcal burned. On track');
-    });
-
-    test('routines state done of total', () {
-      final routines = areaGlances(_numbers(), Currency.usd, _at(14)).last;
-      expect(routines.value, '2 of 4');
-      expect(routines.fraction, 0.5);
-      expect(routines.state, AreaState.good);
-      expect(routines.semantics, 'Routines: 2 of 4 done. On track');
-    });
-
-    test('no routines is 0 with an empty ring', () {
-      final routines = areaGlances(
-        _numbers(routinesDone: 0, routinesTotal: 0),
-        Currency.usd,
-        _at(21),
-      ).last;
-      expect(routines.value, '0');
-      expect(routines.fraction, 0);
-      expect(routines.state, AreaState.good);
-      expect(routines.semantics, 'Routines: none today. On track');
-    });
-
-    test('zero goals never produce NaN or infinite fractions', () {
-      final glances = areaGlances(
-        _numbers(budget: 0, moveGoal: 0, routinesDone: 0, routinesTotal: 0),
-        Currency.usd,
-        _at(12),
-      );
-      for (final g in glances) {
-        expect(g.fraction.isFinite, isTrue);
-        expect(g.fraction, 0);
-      }
     });
   });
 }

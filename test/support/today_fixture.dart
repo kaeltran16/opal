@@ -24,14 +24,15 @@ const mealTitle = 'Oats & banana';
 const workoutRoutineId = 'seed-routine-push-a';
 
 /// A Pal whose day headline and proposals the test picks. [offline] makes
-/// both the brief and the agenda throw.
+/// both the brief and the agenda throw; a test can flip it after boot and
+/// refresh to fail a fetch that succeeded before.
 class TodayPal extends MockPalService {
   TodayPal({this.headline, this.proposals, this.offline = false})
       : super(latency: Duration.zero, seed: 0);
 
   final String? headline;
   final List<PalProposal>? proposals;
-  final bool offline;
+  bool offline;
   int insightsCalls = 0;
 
   @override
@@ -52,10 +53,12 @@ class TodayPal extends MockPalService {
   }
 }
 
-PalProposal proposal(String id, String title, {String? action}) => PalProposal(
+/// A proposal for [colorToken]'s area, money by default.
+PalProposal proposal(String id, String title, {String? action, String colorToken = 'money'}) =>
+    PalProposal(
       id: id,
-      tag: 'Money',
-      colorToken: 'money',
+      tag: colorToken,
+      colorToken: colorToken,
       icon: 'dollarsign.circle.fill',
       title: title,
       body: 'Body for $title.',

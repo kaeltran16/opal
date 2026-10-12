@@ -63,21 +63,6 @@ WeekPlanDay _workout({bool rest = false, bool done = false}) => WeekPlanDay(
       today: true,
     );
 
-SleepNight _night(DateTime night) => SleepNight(
-      id: 'n',
-      night: night,
-      asleepMinutes: 400,
-      inBedMinutes: 430,
-      bedtime: '11:32',
-      wake: '7:02',
-      deepMinutes: 60,
-      remMinutes: 90,
-      coreMinutes: 250,
-      awakeMinutes: 30,
-      wakes: 2,
-      source: EntrySource.health,
-    );
-
 MoodCheckin _checkin(DateTime at) =>
     MoodCheckin(id: 'c', timestamp: at, pleasantness: 0.7, source: EntrySource.manual);
 
@@ -93,33 +78,19 @@ NutritionMeal _meal(String id, DateTime at) => NutritionMeal(
       macros: macrosFromCal(const IntRange(400, 600)),
     );
 
-Entry _entry(String id, DateTime at, EntrySource source) => Entry(
-      id: id,
-      timestamp: at,
-      type: EntryType.money,
-      title: 'Coffee $id',
-      amount: -4,
-      category: 'Coffee',
-      source: source,
-    );
-
 DayPlan _plan({
   PalAgenda agenda = const PalAgenda(),
   RitualsState? rituals,
   WeekPlanDay? workout,
-  SleepNight? lastNight,
   MoodCheckin? lastCheckin,
   List<NutritionMeal> meals = const [],
-  List<Entry> entries = const [],
 }) =>
     buildDayPlan(
       agenda: agenda,
       rituals: rituals,
       workout: workout,
-      lastNight: lastNight,
       lastCheckin: lastCheckin,
       meals: meals,
-      entries: entries,
       now: _now,
     );
 
@@ -151,24 +122,19 @@ void main() {
       expect(_ids(plan.open(session, _now)), ['routine:odd', 'mood', 'meal', 'closeOut']);
     });
 
-    test('a completed routine is not open and counts as done', () {
+    test('a completed routine is not open', () {
       final plan = _plan(
         rituals: _rituals([_routine('morning', '7:00 AM')], progress: {
           'morning': {0},
         }),
       );
       expect(_ids(plan.open(session, _now)), isNot(contains('routine:morning')));
-      expect(_ids(plan.doneRows), ['routine:morning']);
-      expect(plan.doneCount(session), 1);
-      expect(plan.total, 4);
     });
 
-    test('a skipped item leaves open and does not raise doneCount', () {
+    test('a skipped item leaves open', () {
       final plan = full();
       final skipped = session.settle('proposal:rent', done: false);
       expect(_ids(plan.open(skipped, _now)), isNot(contains('proposal:rent')));
-      expect(plan.doneCount(skipped), 0);
-      expect(plan.total, 6);
     });
   });
 
@@ -380,19 +346,17 @@ void main() {
   });
 
   group('PlanSession', () {
-    test('settle then undo restores the item, selects it, and restores doneCount', () {
+    test('settle then undo restores the item and selects it', () {
       final plan = full();
       final settled = session.select('proposal:rent').settle('proposal:rent', done: true);
       expect(settled.selected, isNull);
       expect(settled.canUndo, isTrue);
-      expect(plan.doneCount(settled), 1);
       expect(_ids(plan.open(settled, _now)), isNot(contains('proposal:rent')));
 
       final undone = settled.undo();
       expect(undone.canUndo, isFalse);
       expect(undone.settled, isEmpty);
       expect(undone.selected, 'proposal:rent');
-      expect(plan.doneCount(undone), 0);
       expect(plan.current(undone, _now)!.id, 'proposal:rent');
     });
 
@@ -435,14 +399,12 @@ void main() {
       expect(item.title, 'Push Day A');
       expect(item.detail, '45 min');
       expect(item.minuteOfDay, isNull);
-      expect(item.actionable, isTrue);
       expect(item.done, isFalse);
     });
 
     test('a finished workout is done', () {
       final plan = _plan(workout: _workout(done: true));
       expect(_ids(plan.open(session, _now)), isNot(contains('workout')));
-      expect(plan.doneCount(session), 1);
     });
 
     test('a rest day has no workout item', () {
@@ -465,14 +427,11 @@ void main() {
     test('empty inputs leave only mood and Log a meal open; settling both ends the day', () {
       final plan = _plan();
       expect(_ids(plan.open(session, _now)), ['mood', 'meal']);
-      expect(plan.doneRows, isEmpty);
-      expect(plan.total, 2);
 
       final settled = session.settle('mood', done: true).settle('meal', done: false);
       expect(plan.open(settled, _now), isEmpty);
       expect(plan.current(settled, _now), isNull);
       expect(plan.later(settled, _now), isEmpty);
-      expect(plan.doneCount(settled), 1);
     });
 
     test('a check-in today is done; one from yesterday is still open', () {
@@ -485,14 +444,9 @@ void main() {
       expect(_ids(stale.open(session, _now)), ['mood', 'meal']);
     });
 
-    test('a logged meal replaces Log a meal with a done, informational row', () {
+    test('a meal logged today removes Log a meal', () {
       final plan = _plan(meals: [_meal('a', DateTime(2026, 10, 4, 12, 30))]);
-      expect(_ids(plan.items), isNot(contains('meal')));
-      final row = plan.items.firstWhere((i) => i.id == 'meal:a');
-      expect(row.done, isTrue);
-      expect(row.actionable, isFalse);
-      expect(plan.total, 1);
-      expect(plan.doneCount(session), 0);
+      expect(_ids(plan.items), ['mood']);
     });
 
     test('a meal from yesterday does not count as logged today', () {
@@ -500,62 +454,21 @@ void main() {
       expect(_ids(plan.items), ['mood', 'meal']);
     });
 
-    test('last night is listed with the time asleep; a night dated yesterday is not', () {
-      final plan = _plan(lastNight: _night(DateTime(2026, 10, 4)));
-      final sleep = plan.items.firstWhere((i) => i.kind == PlanKind.sleep);
-      expect(sleep.detail, '6h 40m');
-      expect(sleep.done, isTrue);
-      expect(sleep.actionable, isFalse);
-      expect(plan.total, 2);
-
-      final stale = _plan(lastNight: _night(DateTime(2026, 10, 3)));
-      expect(stale.items.where((i) => i.kind == PlanKind.sleep), isEmpty);
-    });
-
-    test("an email entry from today is a receipt; yesterday's and manual ones are not", () {
-      final plan = _plan(entries: [
-        _entry('today', DateTime(2026, 10, 4, 9), EntrySource.email),
-        _entry('old', _yesterday, EntrySource.email),
-        _entry('mine', DateTime(2026, 10, 4, 10), EntrySource.manual),
-      ]);
-      final receipts = plan.items.where((i) => i.kind == PlanKind.receipt).toList();
-      expect(_ids(receipts), ['receipt:today']);
-      expect(receipts.single.ref, 'today');
-      expect(receipts.single.done, isTrue);
-      expect(receipts.single.actionable, isFalse);
-    });
-  });
-
-  test('doneRows are newest first, with untimed rows last', () {
-    final plan = _plan(
-      lastNight: _night(DateTime(2026, 10, 4)),
-      lastCheckin: _checkin(DateTime(2026, 10, 4, 8, 15)),
-      meals: [_meal('a', DateTime(2026, 10, 4, 12, 30))],
-      entries: [_entry('e', DateTime(2026, 10, 4, 9), EntrySource.email)],
-    );
-    expect(_ids(plan.doneRows), ['meal:a', 'receipt:e', 'mood', 'sleep']);
   });
 
   group('whenLabel', () {
-    test('the first open item reads Now', () {
-      final plan = full();
-      final first = plan.open(session, _now).first;
-      expect(plan.whenLabel(first, session, _now), 'Now');
-    });
-
-    test('the first open item reads Now with its detail', () {
-      final plan = _plan(workout: _workout());
-      final workout = plan.open(session, _now).first;
-      expect(workout.id, 'workout');
-      expect(plan.whenLabel(workout, session, _now), 'Now · 45 min');
-    });
-
-    test('a timed item reads its time', () {
-      final plan = full();
-      final evening = plan.items.firstWhere((i) => i.id == 'routine:evening');
-      final closeOut = plan.items.firstWhere((i) => i.id == 'closeOut');
-      expect(plan.whenLabel(evening, session, _now), 'At 9:00 PM');
-      expect(plan.whenLabel(closeOut, session, _now), 'At 9:30 PM');
+    test('a timed item reads its time, with its detail after it', () {
+      const closeOut = PlanItem(
+        id: 'closeOut',
+        kind: PlanKind.closeOut,
+        title: 'Close-out',
+        icon: 'moon.stars.fill',
+        minuteOfDay: closeOutMinute,
+        detail: '5 min',
+      );
+      expect(closeOut.whenLabel, 'At 9:30 PM · 5 min');
+      final evening = full().items.firstWhere((i) => i.id == 'routine:evening');
+      expect(evening.whenLabel, 'At 9:00 PM');
     });
 
     test('an untimed item reads Any time, with and without detail', () {
@@ -563,18 +476,15 @@ void main() {
         agenda: const PalAgenda(proposals: [_proposal]),
         workout: _workout(),
       );
-      final workout = plan.items.firstWhere((i) => i.id == 'workout');
-      final mood = plan.items.firstWhere((i) => i.id == 'mood');
-      expect(plan.whenLabel(workout, session, _now), 'Any time · 45 min');
-      expect(plan.whenLabel(mood, session, _now), 'Any time');
+      expect(plan.items.firstWhere((i) => i.id == 'workout').whenLabel, 'Any time · 45 min');
+      expect(plan.items.firstWhere((i) => i.id == 'mood').whenLabel, 'Any time');
     });
 
-    test('Now follows the session: the next item takes it once the first is settled', () {
+    test('the lead has no Now: a proposal leading online reads Any time', () {
       final plan = full();
-      final settled = session.settle('routine:morning', done: true);
-      final proposal = plan.items.firstWhere((i) => i.id == 'proposal:rent');
-      expect(plan.whenLabel(proposal, session, _now), 'Any time');
-      expect(plan.whenLabel(proposal, settled, _now), 'Now');
+      final lead = plan.current(session, _now, const LeadRules(palOnline: true))!;
+      expect(lead.id, 'proposal:rent');
+      expect(lead.whenLabel, 'Any time');
     });
   });
 

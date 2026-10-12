@@ -10,23 +10,17 @@ import '../../analysis/area_state.dart';
 import '../../controllers/mood_controller.dart';
 import '../../controllers/nutrition_controller.dart';
 import '../../controllers/pal_agenda_controller.dart';
-import '../../controllers/providers.dart';
 import '../../controllers/rituals_controller.dart';
-import '../../controllers/sleep_controller.dart';
-import '../../controllers/spending_controller.dart' show DetailTracker;
 import '../../controllers/today_brief_controller.dart';
 import '../../controllers/today_controller.dart';
 import '../../controllers/weekly_plan_controller.dart';
-import '../../models/models.dart';
 import '../../router.dart';
 import '../../services/pal/pal_service.dart' show PalAgenda;
 import '../../theme/theme.dart';
-import '../../util/format.dart';
 import '../../widgets/app_icon.dart';
 import '../../widgets/day_scene.dart';
 import '../../widgets/pal_label.dart';
 import '../../widgets/press_scale.dart';
-import '../../widgets/shortcut_ring.dart';
 import '../mood/mood_logger_sheet.dart';
 import 'day_plan.dart';
 import 'today_logic.dart';
@@ -38,8 +32,7 @@ const double _shellOverlay = 132;
 const double _contentTop = 52;
 const double _minTap = 44;
 const double _pillHeight = 48;
-const double _cardDisc = 48;
-const double _cardIcon = 24;
+const double _cardGap = 14;
 const double _rowDisc = 28;
 const double _rowIcon = 18;
 const double _rowGap = 10;
@@ -47,23 +40,35 @@ const double _rowInset = Spacing.xs;
 // wide enough for "12:30 PM" in caption.
 const double _timeWidth = 56;
 const double _railWidth = 1;
+const double _labelHeight = 18;
+// the Why button's tap target overhangs the label row this much on each side.
+const double _labelOverhang = (_minTap - _labelHeight) / 2;
+const double _whyIcon = 14;
 const double _leadMaxWidth = 300;
 const double _leadMinHeight = 100;
-const double _leadGap = 6;
 const int _leadMaxLines = 3;
-const int _receiptTitleLines = 2;
 const double _dateTracking = 1.2;
+// the timeline stays short so the lead is the only thing that reads first.
+const int _laterShown = 2;
+// the most of its row a secondary text button takes, so large text ellipsises
+// it instead of crowding out the label or the primary pill.
+const double _sideShare = 0.5;
 const List<FontFeature> _tabular = [FontFeature.tabularFigures()];
 
 const String _restLead = 'Nothing is left. Rest up.';
-const String _doneIcon = 'moon.stars.fill';
+const String _palOnline = 'Pal';
+const String _palOffline = 'Pal is offline · next on the clock';
+const String _why = 'Why this first';
 
 /// The timeline's rail, drawn only when there are rows.
 const Key todayRailKey = ValueKey('today.rail');
 
-/// Today: the scene, the date line, three rings, Pal's lead, one action card
-/// and the day's timeline. Every number comes from local providers; Pal only
-/// supplies the lead and its proposals.
+/// The action card, always shown once the day has loaded.
+const Key todayCardKey = ValueKey('today.card');
+
+/// Today: the scene, the date line, Pal's lead, one action card and a short
+/// timeline of what is still open. Every number comes from local providers;
+/// Pal only supplies the headline and its proposals.
 class TodayScreen extends ConsumerStatefulWidget {
   const TodayScreen({super.key});
 
@@ -75,6 +80,8 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
   late final AppLifecycleListener _lifecycle;
   Timer? _minuteTick;
   PlanSession _session = const PlanSession();
+  // once opened, the rest of the day stays listed while the screen lives.
+  bool _allLater = false;
 
   @override
   void initState() {
@@ -130,38 +137,11 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
         context.pushNamed(AppRoute.palComposer.name);
       case PlanKind.closeOut:
         context.pushNamed(AppRoute.eveningCloseOut.name);
-      // informational rows never reach the card.
-      case PlanKind.sleep:
-      case PlanKind.receipt:
-        break;
     }
   }
 
-  /// Where a done row leads, or null when it has no screen of its own.
-  VoidCallback? _opener(PlanItem item) => switch (item.kind) {
-        PlanKind.sleep => () => context.pushNamed(AppRoute.todaySleep.name),
-        PlanKind.mood => () => context.pushNamed(AppRoute.todayMood.name),
-        PlanKind.meal => () => context.goNamed(AppRoute.nutrition.name),
-        PlanKind.routine => () => context.pushNamed(AppRoute.ritualsDetail.name),
-        _ => null,
-      };
-
-  Future<void> _undoReceipt(String entryId) async {
-    final messenger = ScaffoldMessenger.of(context);
-    final bottom = MediaQuery.paddingOf(context).bottom;
-    try {
-      await ref.read(entryRepositoryProvider).deleteById(entryId);
-    } catch (err) {
-      debugPrint('today: undo of entry $entryId failed: $err');
-      messenger.showSnackBar(SnackBar(
-        content: const Text("Couldn't undo. Try again."),
-        behavior: SnackBarBehavior.floating,
-        // just above the tab bar and ask bar, never over the header.
-        margin: EdgeInsets.fromLTRB(
-            Spacing.lg, 0, Spacing.lg, _shellOverlay + Spacing.sm + bottom),
-      ));
-    }
-  }
+  void _askWhy(PlanItem item) => context.pushNamed(AppRoute.palComposer.name,
+      queryParameters: {'seed': 'Why ${item.title} first?'});
 
   @override
   Widget build(BuildContext context) {
@@ -186,36 +166,42 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
 
   Widget _content(TodayState today) {
     final now = clock.now();
-    final currency = ref.watch(appSettingsControllerProvider).currency;
+    final agenda = ref.watch(palAgendaProvider);
+    final headline = ref.watch(todayBriefProvider).value;
     final plan = buildDayPlan(
-      agenda: ref.watch(palAgendaProvider).value ?? const PalAgenda(),
+      agenda: agenda.value ?? const PalAgenda(),
       rituals: ref.watch(ritualsControllerProvider).value,
       workout: ref.watch(weeklyPlanControllerProvider).value?.today,
-      lastNight: ref.watch(sleepControllerProvider).value?.lastNight,
       lastCheckin: ref.watch(moodControllerProvider).value?.lastCheckin,
       meals: ref.watch(nutritionControllerProvider).value?.meals ?? const [],
-      entries: today.entries,
       now: now,
     );
-    final current = plan.current(_session, now);
-    final later = plan.later(_session, now);
-    final done = plan.doneRows;
     // the routine count is the target, as on the routines page. with no
     // routines there is nothing to complete, so the stored fallback target and
     // the legacy step count do not apply.
     final routinesTotal = today.routines.length;
-    final glances = areaGlances(
-      GlanceNumbers(
-        spent: today.moneySpent,
-        budget: today.goals.dailyBudget,
-        moveKcal: today.moveKcal,
-        moveGoal: today.goals.dailyMoveKcal,
-        routinesDone: routinesTotal == 0 ? 0 : today.ritualsDone,
-        routinesTotal: routinesTotal,
+    // loading counts as online, so the label does not flicker on a cold start;
+    // a failed refresh still holds the old proposals but reads offline.
+    final online = !agenda.hasError;
+    final rules = LeadRules(
+      palOnline: online,
+      care: careAreas(
+        GlanceNumbers(
+          spent: today.moneySpent,
+          budget: today.goals.dailyBudget,
+          moveKcal: today.moveKcal,
+          moveGoal: today.goals.dailyMoveKcal,
+          routinesDone: routinesTotal == 0 ? 0 : today.ritualsDone,
+          routinesTotal: routinesTotal,
+        ),
+        now,
       ),
-      currency,
-      now,
     );
+    final current = plan.current(_session, now, rules);
+    final palsLead = online && plan.isPalPick(_session, now, rules);
+    final later = plan.later(_session, now, rules);
+    final hidden = _allLater ? 0 : math.max(0, later.length - _laterShown);
+    final shown = hidden > 0 ? later.take(_laterShown) : later;
     final safe = MediaQuery.paddingOf(context);
 
     return SingleChildScrollView(
@@ -243,65 +229,37 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
+              spacing: Spacing.md,
               children: [
                 _Header(
                   date: dateLine(now),
-                  progress: '${plan.doneCount(_session)} of ${plan.total} done',
                   onUndo: _session.canUndo
                       ? () => setState(() => _session = _session.undo())
                       : null,
                 ),
-                const SizedBox(height: Spacing.md),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    for (final (i, g) in glances.indexed) ...[
-                      if (i > 0) const SizedBox(width: Spacing.sm),
-                      Expanded(
-                        child: ShortcutRing(
-                          icon: _ringIcon(g.tracker),
-                          value: g.value,
-                          state: g.state,
-                          fraction: g.fraction,
-                          semanticLabel: g.semantics,
-                          onTap: () => context.pushNamed(_ringRoute(g.tracker).name),
-                        ),
-                      ),
-                    ],
-                  ],
+                _Lead(
+                  label: online ? _palOnline : _palOffline,
+                  text: _leadFor(current, palsLead ? headline : null),
+                  onWhy: palsLead ? () => _askWhy(current!) : null,
                 ),
-                const SizedBox(height: Spacing.md),
-                _Lead(text: _leadFor(current)),
-                const SizedBox(height: Spacing.md),
                 _ActionCard(
                   item: current,
-                  when: current == null ? null : plan.whenLabel(current, _session, now),
                   onAct: _act,
                   onSkip: (item) => _settle(item, done: false),
                 ),
-                const SizedBox(height: Spacing.md),
-                if (later.isNotEmpty || done.isNotEmpty)
+                if (later.isNotEmpty)
                   _Timeline(
                     rows: [
-                      for (final item in later)
+                      for (final item in shown)
                         _PlanRow(
                           item: item,
-                          title: item.title,
-                          semanticLabel: '${item.title}, '
-                              '${item.minuteOfDay == null ? 'any time' : 'at ${clockLabel(item.minuteOfDay!)}'}'
-                              '. Do this next',
                           onTap: () => setState(() => _session = _session.select(item.id)),
                         ),
-                      for (final item in done)
-                        if (item.kind == PlanKind.receipt)
-                          _receiptRow(item, today.entries, currency)
-                        else
-                          _PlanRow(
-                            item: item,
-                            title: item.title,
-                            quiet: true,
-                            onTap: _opener(item),
-                          ),
+                      if (hidden > 0)
+                        _MoreRow(
+                          label: '$hidden more later today',
+                          onTap: () => setState(() => _allLater = true),
+                        ),
                     ],
                   ),
               ],
@@ -312,65 +270,26 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
     );
   }
 
-  /// Pal's headline, else the current item's own sentence, else its title.
-  String _leadFor(PlanItem? current) {
+  /// Pal's [headline] when it leads, else the item's own sentence, else its
+  /// title.
+  String _leadFor(PlanItem? current, String? headline) {
     if (current == null) return _restLead;
-    final headline = ref.watch(todayBriefProvider).value;
     if (headline != null && headline.isNotEmpty) return headline;
     final said = current.said;
     return said != null && said.isNotEmpty ? said : current.title;
   }
-
-  Widget _receiptRow(PlanItem item, List<Entry> entries, Currency currency) {
-    final amount = entries.where((e) => e.id == item.ref).firstOrNull?.amount;
-    final title = amount == null
-        ? 'Logged ${item.title}'
-        : 'Logged ${item.title}, ${formatCurrency(amount, currency, withSign: true, trimZeroCents: false)}';
-    return _PlanRow(
-      item: item,
-      title: title,
-      // the amount is the end of the line; beside Undo one line would cut it.
-      titleLines: _receiptTitleLines,
-      quiet: true,
-      trailing: PressScale(
-        onTap: () => _undoReceipt(item.ref!),
-        semanticLabel: 'Undo ${item.title}',
-        child: Container(
-          constraints: const BoxConstraints(minHeight: _minTap),
-          padding: const EdgeInsets.symmetric(horizontal: Spacing.md),
-          alignment: Alignment.center,
-          child: Text('Undo',
-              style: AppType.subhead
-                  .copyWith(fontWeight: FontWeight.w600, color: context.colors.ink)),
-        ),
-      ),
-    );
-  }
 }
 
-String _ringIcon(DetailTracker tracker) => switch (tracker) {
-      DetailTracker.money => 'dollarsign.circle.fill',
-      DetailTracker.move => 'figure.run',
-      DetailTracker.rituals => 'sparkles',
-    };
-
-AppRoute _ringRoute(DetailTracker tracker) => switch (tracker) {
-      DetailTracker.money => AppRoute.spendingDetail,
-      DetailTracker.move => AppRoute.moveDetail,
-      DetailTracker.rituals => AppRoute.ritualsDetail,
-    };
-
-/// The date line, `Undo` while the session can undo, and the day's progress.
+/// The date line, and `Undo` while the session can undo.
 class _Header extends StatelessWidget {
-  const _Header({required this.date, required this.progress, required this.onUndo});
+  const _Header({required this.date, required this.onUndo});
 
-  final String date, progress;
+  final String date;
   final VoidCallback? onUndo;
 
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    final label = AppType.label.copyWith(color: c.ink2);
     return ConstrainedBox(
       constraints: const BoxConstraints(minHeight: _minTap),
       child: Row(
@@ -379,7 +298,7 @@ class _Header extends StatelessWidget {
             child: Text(date,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: label.copyWith(letterSpacing: _dateTracking)),
+                style: AppType.label.copyWith(color: c.ink2, letterSpacing: _dateTracking)),
           ),
           if (onUndo != null)
             PressScale(
@@ -391,40 +310,80 @@ class _Header extends StatelessWidget {
                 child: Text('Undo', style: AppType.headline.copyWith(color: c.ink)),
               ),
             ),
-          const SizedBox(width: Spacing.sm),
-          Text(progress, style: label.copyWith(fontFeatures: _tabular)),
         ],
       ),
     );
   }
 }
 
-/// Pal's line for the day, the screen's only serif.
+/// Pal's label, `Why this first` when [onWhy] is set, and the day's line, the
+/// screen's only serif.
 class _Lead extends StatelessWidget {
-  const _Lead({required this.text});
+  const _Lead({required this.label, required this.text, required this.onWhy});
 
-  final String text;
+  final String label, text;
+  final VoidCallback? onWhy;
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
+    final onWhy = this.onWhy;
     return Semantics(
       container: true,
       liveRegion: true,
       child: ConstrainedBox(
         constraints: const BoxConstraints(minHeight: _leadMinHeight),
         child: Padding(
-          padding: const EdgeInsets.only(top: Spacing.sm),
+          padding: const EdgeInsets.only(top: Spacing.xl - _labelOverhang),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const PalLabel(),
-              const SizedBox(height: _leadGap),
+              // always the tap target's height, so Why coming and going does
+              // not move the lead.
+              SizedBox(
+                height: _minTap,
+                child: LayoutBuilder(
+                  builder: (context, box) => Row(
+                    children: [
+                      Expanded(
+                        child: Align(
+                          alignment: AlignmentDirectional.centerStart,
+                          child: PalLabel(text: label),
+                        ),
+                      ),
+                      if (onWhy != null)
+                        ConstrainedBox(
+                          constraints: BoxConstraints(maxWidth: box.maxWidth * _sideShare),
+                          child: PressScale(
+                            onTap: onWhy,
+                            child: Padding(
+                              padding: const EdgeInsets.only(left: Spacing.sm),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                spacing: Spacing.xxs,
+                                children: [
+                                  Flexible(
+                                    child: Text(_why,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: AppType.label.copyWith(color: c.ink3)),
+                                  ),
+                                  AppIcon('chevron.right', size: _whyIcon, color: c.ink3),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
               ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: _leadMaxWidth),
                 child: Text(text,
                     maxLines: _leadMaxLines,
                     overflow: TextOverflow.ellipsis,
-                    style: AppType.lead.copyWith(color: context.colors.ink)),
+                    style: AppType.lead.copyWith(color: c.ink)),
               ),
             ],
           ),
@@ -436,15 +395,9 @@ class _Lead extends StatelessWidget {
 
 /// The one thing to do now, or the all-done card when [item] is null.
 class _ActionCard extends StatelessWidget {
-  const _ActionCard({
-    required this.item,
-    required this.when,
-    required this.onAct,
-    required this.onSkip,
-  });
+  const _ActionCard({required this.item, required this.onAct, required this.onSkip});
 
   final PlanItem? item;
-  final String? when;
   final void Function(PlanItem) onAct;
   final void Function(PlanItem) onSkip;
 
@@ -453,70 +406,70 @@ class _ActionCard extends StatelessWidget {
     final c = context.colors;
     final item = this.item;
     return Container(
+      key: todayCardKey,
       padding: const EdgeInsets.all(Spacing.lg),
       decoration: BoxDecoration(
         color: c.surface,
         borderRadius: BorderRadius.circular(Radii.card),
-        border: Border.all(color: c.hair),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
+        spacing: _cardGap,
         children: [
-          Row(
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            spacing: Spacing.xxs,
             children: [
-              Container(
-                width: _cardDisc,
-                height: _cardDisc,
-                decoration: BoxDecoration(color: c.surface2, shape: BoxShape.circle),
-                alignment: Alignment.center,
-                child: AppIcon(item?.icon ?? _doneIcon, size: _cardIcon, color: c.ink),
-              ),
-              const SizedBox(width: Spacing.md),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(when ?? 'All done',
-                        style: AppType.label
-                            .copyWith(color: c.ink3, fontFeatures: _tabular)),
-                    const SizedBox(height: Spacing.xxs),
-                    Semantics(
-                      header: true,
-                      child: Text(item?.title ?? "That's the day",
-                          style: AppType.title.copyWith(color: c.ink)),
-                    ),
-                  ],
-                ),
+              Text(item?.whenLabel ?? 'All done',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppType.label.copyWith(color: c.ink3, fontFeatures: _tabular)),
+              Semantics(
+                header: true,
+                child: Text(item?.title ?? "That's the day",
+                    style: AppType.title.copyWith(color: c.ink)),
               ),
             ],
           ),
-          if (item != null) ...[
-            const SizedBox(height: Spacing.lg),
-            Row(
-              children: [
-                Expanded(
-                  child: _Pill(
-                    label: item.actionLabel,
-                    primary: true,
-                    onTap: () => onAct(item),
+          if (item != null)
+            LayoutBuilder(
+              builder: (context, box) => Row(
+                spacing: Spacing.sm,
+                children: [
+                  Expanded(child: _Pill(label: item.actionLabel, onTap: () => onAct(item))),
+                  ConstrainedBox(
+                    constraints: BoxConstraints(maxWidth: box.maxWidth * _sideShare),
+                    child: PressScale(
+                      onTap: () => onSkip(item),
+                      child: Container(
+                        constraints: const BoxConstraints(minHeight: _pillHeight),
+                        padding: const EdgeInsets.symmetric(horizontal: Spacing.lg),
+                        // widthFactor keeps the button its label's width
+                        // under the cap.
+                        child: Align(
+                          widthFactor: 1,
+                          child: Text(item.skipLabel,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: AppType.headline.copyWith(color: c.ink2)),
+                        ),
+                      ),
+                    ),
                   ),
-                ),
-                const SizedBox(width: Spacing.sm),
-                _Pill(label: item.skipLabel, primary: false, onTap: () => onSkip(item)),
-              ],
+                ],
+              ),
             ),
-          ],
         ],
       ),
     );
   }
 }
 
+/// The card's primary action.
 class _Pill extends StatelessWidget {
-  const _Pill({required this.label, required this.primary, required this.onTap});
+  const _Pill({required this.label, required this.onTap});
 
   final String label;
-  final bool primary;
   final VoidCallback onTap;
 
   @override
@@ -528,21 +481,20 @@ class _Pill extends StatelessWidget {
         constraints: const BoxConstraints(minHeight: _pillHeight),
         padding: const EdgeInsets.symmetric(horizontal: Spacing.xl),
         decoration: BoxDecoration(
-          color: primary ? c.ink : c.surface2,
+          color: c.ink,
           borderRadius: BorderRadius.circular(Radii.pill),
         ),
         alignment: Alignment.center,
         child: Text(label,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: AppType.headline.copyWith(color: primary ? c.bg : c.ink)),
+            style: AppType.headline.copyWith(color: c.bg)),
       ),
     );
   }
 }
 
-/// The rows of the day on a hairline rail: what is still to do, then what is
-/// done.
+/// The open rows on a hairline rail.
 class _Timeline extends StatelessWidget {
   const _Timeline({required this.rows});
 
@@ -551,96 +503,99 @@ class _Timeline extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final timeWidth = MediaQuery.textScalerOf(context).scale(_timeWidth);
-    return Stack(
-      children: [
-        Positioned(
-          key: todayRailKey,
-          left: _rowInset + timeWidth + _rowGap + (_rowDisc - _railWidth) / 2,
-          top: _minTap / 2,
-          bottom: _minTap / 2,
-          width: _railWidth,
-          child: ColoredBox(color: context.colors.hair),
-        ),
-        Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: rows),
-      ],
+    return Padding(
+      padding: const EdgeInsets.only(top: Spacing.sm),
+      child: Stack(
+        children: [
+          Positioned(
+            key: todayRailKey,
+            left: _rowInset + timeWidth + _rowGap + (_rowDisc - _railWidth) / 2,
+            top: _minTap / 2,
+            bottom: _minTap / 2,
+            width: _railWidth,
+            child: ColoredBox(color: context.colors.hair),
+          ),
+          Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: rows),
+        ],
+      ),
     );
   }
 }
 
-/// One timeline row. [quiet] rows are done; a row with no [onTap] is a record.
+/// One open item; a tap makes it the lead.
 class _PlanRow extends StatelessWidget {
-  const _PlanRow({
-    required this.item,
-    required this.title,
-    this.titleLines = 1,
-    this.quiet = false,
-    this.semanticLabel,
-    this.onTap,
-    this.trailing,
-  });
+  const _PlanRow({required this.item, required this.onTap});
 
   final PlanItem item;
-  final String title;
-  final int titleLines;
-  final bool quiet;
-  final String? semanticLabel;
-  final VoidCallback? onTap;
-  final Widget? trailing;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    final ink = quiet ? c.ink3 : c.ink;
     final minute = item.minuteOfDay;
-    final detail = item.detail;
-    final row = ConstrainedBox(
-      constraints: const BoxConstraints(minHeight: _minTap),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: _rowInset),
-        child: Row(
-          children: [
-            SizedBox(
-              width: MediaQuery.textScalerOf(context).scale(_timeWidth),
-              // a done row with no time has nothing to say; the column keeps
-              // its width so the rows stay aligned.
-              child: minute == null && quiet
-                  ? null
-                  : Text(minute == null ? 'Any' : clockLabel(minute),
-                      maxLines: 1,
-                      style:
-                          AppType.caption.copyWith(color: c.ink3, fontFeatures: _tabular)),
-            ),
-            const SizedBox(width: _rowGap),
-            Container(
-              width: _rowDisc,
-              height: _rowDisc,
-              decoration: BoxDecoration(color: c.surface2, shape: BoxShape.circle),
-              alignment: Alignment.center,
-              child: AppIcon(item.icon, size: _rowIcon, color: ink),
-            ),
-            const SizedBox(width: _rowGap),
-            Expanded(
-              child: Text(title,
-                  maxLines: titleLines,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppType.callout.copyWith(color: ink)),
-            ),
-            if (detail != null) ...[
-              const SizedBox(width: Spacing.sm),
-              Text(detail,
-                  style: AppType.subhead.copyWith(color: c.ink3, fontFeatures: _tabular)),
+    final time = minute == null ? null : clockLabel(minute);
+    return PressScale(
+      onTap: onTap,
+      semanticLabel:
+          '${item.title}, ${time == null ? 'any time' : 'at $time'}. Do this next',
+      pressedScale: 1,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: _minTap),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: _rowInset),
+          child: Row(
+            spacing: _rowGap,
+            children: [
+              SizedBox(
+                width: MediaQuery.textScalerOf(context).scale(_timeWidth),
+                child: Text(time ?? 'Any',
+                    maxLines: 1,
+                    style: AppType.caption.copyWith(color: c.ink3, fontFeatures: _tabular)),
+              ),
+              Container(
+                width: _rowDisc,
+                height: _rowDisc,
+                decoration: BoxDecoration(color: c.surface2, shape: BoxShape.circle),
+                alignment: Alignment.center,
+                child: AppIcon(item.icon, size: _rowIcon, color: c.ink),
+              ),
+              Expanded(
+                child: Text(item.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppType.callout.copyWith(color: c.ink)),
+              ),
             ],
-            ?trailing,
-          ],
+          ),
         ),
       ),
     );
-    if (onTap == null) return row;
+  }
+}
+
+/// `N more later today`, lined up with the row titles.
+class _MoreRow extends StatelessWidget {
+  const _MoreRow({required this.label, required this.onTap});
+
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final timeWidth = MediaQuery.textScalerOf(context).scale(_timeWidth);
     return PressScale(
       onTap: onTap,
-      semanticLabel: semanticLabel,
       pressedScale: 1,
-      child: row,
+      child: Container(
+        constraints: const BoxConstraints(minHeight: _minTap),
+        padding: EdgeInsets.only(
+            left: _rowInset + timeWidth + _rowGap + _rowDisc + _rowGap, right: _rowInset),
+        alignment: AlignmentDirectional.centerStart,
+        child: Text(label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: AppType.subhead.copyWith(color: context.colors.ink3)),
+      ),
     );
   }
 }
