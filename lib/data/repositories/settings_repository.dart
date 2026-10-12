@@ -50,6 +50,7 @@ class SettingsRepository {
   static const _kSyncCadence = 'settings.email.syncCadenceMinutes';
   static const _kImportNotifications = 'settings.email.importNotifications';
   static const _kAutoCategorize = 'settings.email.autoCategorize';
+  static const _kDismissedFindings = 'settings.pal.dismissedFindings';
 
   // --- Brightness ---------------------------------------------------------
 
@@ -168,4 +169,16 @@ class SettingsRepository {
 
   Future<void> setAutoCategorize(bool enabled) =>
       _prefs.setBool(_kAutoCategorize, enabled);
+
+  // --- Pal findings -------------------------------------------------------
+
+  /// Ids of the Pal findings the user dismissed. An id encodes the claim, so a
+  /// changed finding is a new id and shows again.
+  Set<String> get dismissedFindings =>
+      (_prefs.getStringList(_kDismissedFindings) ?? const []).toSet();
+
+  /// Adds [ids] to the dismissed set, keeping the ones already there.
+  Future<void> addDismissedFindings(Iterable<String> ids) =>
+      _prefs.setStringList(
+          _kDismissedFindings, {...dismissedFindings, ...ids}.toList());
 }

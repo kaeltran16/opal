@@ -87,4 +87,26 @@ void main() {
     // An unknown stored minute count falls back to the default.
     expect(SyncCadence.fromMinutes(999), SyncCadence.every15min);
   });
+
+  test('dismissed findings union with the stored set and read back', () async {
+    SharedPreferences.setMockInitialValues({
+      'settings.pal.dismissedFindings': ['corr:money-move:-'],
+    });
+    final repo = SettingsRepository(await SharedPreferences.getInstance());
+    expect(repo.dismissedFindings, {'corr:money-move:-'});
+
+    await repo
+        .addDismissedFindings(['money:no-spend-streak', 'corr:money-move:-']);
+
+    final reloaded =
+        SettingsRepository(await SharedPreferences.getInstance());
+    expect(reloaded.dismissedFindings,
+        {'corr:money-move:-', 'money:no-spend-streak'});
+  });
+
+  test('dismissed findings default to empty', () async {
+    SharedPreferences.setMockInitialValues({});
+    final repo = SettingsRepository(await SharedPreferences.getInstance());
+    expect(repo.dismissedFindings, isEmpty);
+  });
 }
