@@ -87,10 +87,12 @@ void main() {
     expect(find.text('Back Squat'), findsOneWidget); // Legs
     expect(find.text('Plank'), findsOneWidget); // Core
 
-    // Group section headers (InsetSection uppercases them).
-    expect(find.text('PUSH'), findsOneWidget);
-    expect(find.text('LEGS'), findsOneWidget);
-    expect(find.text('CORE'), findsOneWidget);
+    // Group section headers, as written (the filter chips share the names).
+    Finder header(String group) =>
+        find.descendant(of: find.byType(InsetSection), matching: find.text(group));
+    expect(header('Push'), findsOneWidget);
+    expect(header('Legs'), findsOneWidget);
+    expect(header('Core'), findsOneWidget);
 
     // PR value renders for a lift with a fractional PR (bench = 92.5 kg).
     expect(find.text('92.5 kg'), findsOneWidget);
@@ -119,8 +121,8 @@ void main() {
     expect(find.text('Treadmill Run'), findsOneWidget); // Cardio
     expect(find.text('Barbell Bench Press'), findsOneWidget); // Push
 
-    // Tap the "Cardio" filter chip.
-    await tester.tap(find.text('Cardio'));
+    // Tap the "Cardio" filter chip (above the Cardio section header).
+    await tester.tap(find.text('Cardio').first);
     await tester.pumpAndSettle();
 
     // Only Cardio exercises remain.

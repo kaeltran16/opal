@@ -201,7 +201,7 @@ void main() {
     expect(find.text('Stop logging card\ncharges by hand.'), findsOneWidget);
 
     // "How it works" section + its three steps.
-    expect(find.text('HOW IT WORKS'), findsOneWidget);
+    expect(find.text('How it works'), findsOneWidget);
     expect(find.text('Your bank sends alerts'), findsOneWidget);
     expect(find.text('Pal reads only those'), findsOneWidget);
     expect(find.text('It lands on Today'), findsOneWidget);

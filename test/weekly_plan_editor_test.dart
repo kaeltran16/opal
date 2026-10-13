@@ -54,7 +54,7 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 400)); // sheet open anim
 
-    expect(find.text('ASSIGN ROUTINE'), findsOneWidget);
+    expect(find.text('Assign routine'), findsOneWidget);
     await tester.tap(find.text('Push A').last);
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 400)); // sheet close anim
