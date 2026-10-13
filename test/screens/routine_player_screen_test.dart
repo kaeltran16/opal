@@ -1,4 +1,5 @@
 import 'package:clock/clock.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:opal/data/seed/seed_data.dart';
@@ -64,6 +65,14 @@ void main() {
     expect(find.text('Step 2 of 5'), findsOneWidget);
     expect(find.text('1 of 5 done'), findsOneWidget);
     expect(find.bySemanticsLabel('1 of 5 done'), findsWidgets);
+  });
+
+  _playerTest('the step glyph draws as a line', (tester) async {
+    await _open(tester);
+    // seed step 1 stores drop.fill.
+    expect(find.text('Glass of water'), findsOneWidget);
+    expect(find.byIcon(CupertinoIcons.drop), findsOneWidget);
+    expect(find.byIcon(CupertinoIcons.drop_fill), findsNothing);
   });
 
   _playerTest('Skip advances without completing', (tester) async {

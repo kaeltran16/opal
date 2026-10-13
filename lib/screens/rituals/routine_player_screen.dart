@@ -368,7 +368,7 @@ class _StepCard extends StatelessWidget {
         children: [
           Align(
             alignment: Alignment.centerLeft,
-            child: AppIcon(step.icon.isEmpty ? 'sparkles' : step.icon,
+            child: AppIcon.line(step.icon.isEmpty ? 'sparkles' : step.icon,
                 size: _stepIcon, color: c.ink2),
           ),
           const SizedBox(height: _cardInnerGap),

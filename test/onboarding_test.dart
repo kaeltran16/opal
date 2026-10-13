@@ -10,6 +10,7 @@ import 'package:opal/data/repositories/repositories.dart';
 import 'package:opal/models/models.dart';
 import 'package:opal/screens/onboarding/onboarding_screen.dart';
 import 'package:opal/screens/today/today_screen.dart';
+import 'package:opal/widgets/failure_note.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'support/flush_provider_timers.dart';
@@ -163,13 +164,13 @@ void main() {
 
     await _tapAndSettle(tester, 'Start tracking');
 
-    expect(find.text("Couldn't save. Try again."), findsOneWidget);
+    expect(find.widgetWithText(FailureNote, saveFailedCopy), findsOneWidget);
     expect(find.byType(OnboardingScreen), findsOneWidget);
     expect(find.byType(TodayScreen), findsNothing);
     expect(SettingsRepository(h.prefs).onboardingComplete, isFalse);
 
     await _tapAndSettle(tester, 'Midday reset');
-    expect(find.text("Couldn't save. Try again."), findsNothing);
+    expect(find.byType(FailureNote), findsNothing);
   });
 
   testWidgets('Skip from step 2 finishes with the defaults', (tester) async {

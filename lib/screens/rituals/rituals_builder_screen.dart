@@ -7,6 +7,7 @@ import '../../models/models.dart';
 import '../../theme/theme.dart';
 import '../../widgets/app_icon.dart';
 import '../../widgets/controls.dart';
+import '../../widgets/failure_note.dart';
 import '../../widgets/nav_bar.dart';
 import '../../widgets/press_scale.dart';
 
@@ -57,6 +58,8 @@ const int _iconColumns = 7;
 // bottom inset clearing the floating tab bar
 const double _listBottomPadding = 110;
 
+const String _deleteFailedCopy = "Couldn't delete. Try again.";
+
 String _stepCount(int n) => n == 1 ? '1 step' : '$n steps';
 
 /// Screen 13b (builder): manage time-of-day routines and their ordered steps.
@@ -65,11 +68,56 @@ String _stepCount(int n) => n == 1 ? '1 step' : '$n steps';
 /// `/areas/routines/manage`). Lists every routine in a [ReorderableListView];
 /// tap to edit, drag the handle to reorder. "+" opens the editor for a new
 /// routine. All writes go through `ritualsBuilderControllerProvider`.
-class RitualsBuilderScreen extends ConsumerWidget {
+class RitualsBuilderScreen extends ConsumerStatefulWidget {
   const RitualsBuilderScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<RitualsBuilderScreen> createState() =>
+      _RitualsBuilderScreenState();
+}
+
+class _RitualsBuilderScreenState extends ConsumerState<RitualsBuilderScreen> {
+  bool _reorderFailed = false;
+
+  void _wrote() {
+    if (mounted && _reorderFailed) setState(() => _reorderFailed = false);
+  }
+
+  Future<void> _reorder(int oldIndex, int newIndex) async {
+    try {
+      await ref
+          .read(ritualsBuilderControllerProvider.notifier)
+          .reorder(oldIndex, newIndex);
+      _wrote();
+    } catch (e, st) {
+      debugPrint('manage routines: reordering failed: $e\n$st');
+      if (mounted) setState(() => _reorderFailed = true);
+    }
+  }
+
+  /// Opens the add/edit editor. [existing] null = add.
+  Future<void> _openEditor(RitualRoutine? existing) {
+    final notifier = ref.read(ritualsBuilderControllerProvider.notifier);
+    return _showSheet<void>(
+      context,
+      (sheetContext) => _RoutineEditor(
+        existing: existing,
+        onSave: (routine) async {
+          await notifier.addOrUpdate(routine);
+          _wrote();
+          if (sheetContext.mounted) Navigator.of(sheetContext).pop();
+        },
+        onDelete: (id) async {
+          await notifier.delete(id);
+          _wrote();
+          if (sheetContext.mounted) Navigator.of(sheetContext).pop();
+        },
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final c = context.colors;
     final async = ref.watch(ritualsBuilderControllerProvider);
 
@@ -89,9 +137,14 @@ class RitualsBuilderScreen extends ConsumerWidget {
             trailing: NavIconButton(
               name: 'plus',
               semanticLabel: 'New routine',
-              onTap: () => _openEditor(context, ref, null),
+              onTap: () => _openEditor(null),
             ),
           ),
+          if (_reorderFailed)
+            const Padding(
+              padding: EdgeInsets.fromLTRB(Spacing.lg, Spacing.md, Spacing.lg, 0),
+              child: FailureNote(),
+            ),
           Expanded(
             child: async.when(
               loading: () => const _Note('…'),
@@ -99,7 +152,11 @@ class RitualsBuilderScreen extends ConsumerWidget {
                 debugPrint("rituals builder: couldn't load routines: $e\n$st");
                 return const _Note("Couldn't load routines. Try again in a moment.");
               },
-              data: (routines) => _List(routines: routines),
+              data: (routines) => _List(
+                routines: routines,
+                onReorder: _reorder,
+                onEdit: _openEditor,
+              ),
             ),
           ),
         ],
@@ -123,12 +180,19 @@ class _Note extends StatelessWidget {
   }
 }
 
-class _List extends ConsumerWidget {
-  const _List({required this.routines});
+class _List extends StatelessWidget {
+  const _List({
+    required this.routines,
+    required this.onReorder,
+    required this.onEdit,
+  });
+
   final List<RitualRoutine> routines;
+  final void Function(int oldIndex, int newIndex) onReorder;
+  final ValueChanged<RitualRoutine> onEdit;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     if (routines.isEmpty) {
       return const _Note('No routines yet. Tap + to add one.');
     }
@@ -138,16 +202,14 @@ class _List extends ConsumerWidget {
           Spacing.lg, Spacing.md, Spacing.lg, _listBottomPadding),
       buildDefaultDragHandles: false,
       itemCount: routines.length,
-      onReorderItem: (oldIndex, newIndex) => ref
-          .read(ritualsBuilderControllerProvider.notifier)
-          .reorder(oldIndex, newIndex),
+      onReorderItem: onReorder,
       itemBuilder: (context, i) {
         final r = routines[i];
         return _RoutineRow(
           key: ValueKey(r.id),
           index: i,
           routine: r,
-          onTap: () => _openEditor(context, ref, r),
+          onTap: () => onEdit(r),
         );
       },
     );
@@ -231,7 +293,7 @@ class _RoutineRow extends StatelessWidget {
                 constraints: const BoxConstraints(minHeight: _routineRowHeight),
                 child: Row(
                   children: [
-                    AppIcon(routine.icon, size: _routineGlyph, color: c.ink2),
+                    AppIcon.line(routine.icon, size: _routineGlyph, color: c.ink2),
                     const SizedBox(width: _routineGlyphGap),
                     Expanded(
                       child: Column(
@@ -283,29 +345,6 @@ Future<T?> _showSheet<T>(BuildContext context, WidgetBuilder builder) {
       borderRadius: BorderRadius.vertical(top: Radius.circular(Radii.card)),
     ),
     builder: builder,
-  );
-}
-
-/// Opens the add/edit editor. [existing] null = add.
-Future<void> _openEditor(
-  BuildContext context,
-  WidgetRef ref,
-  RitualRoutine? existing,
-) {
-  final notifier = ref.read(ritualsBuilderControllerProvider.notifier);
-  return _showSheet<void>(
-    context,
-    (sheetContext) => _RoutineEditor(
-      existing: existing,
-      onSave: (routine) {
-        notifier.addOrUpdate(routine);
-        Navigator.of(sheetContext).pop();
-      },
-      onDelete: (id) {
-        notifier.delete(id);
-        Navigator.of(sheetContext).pop();
-      },
-    ),
   );
 }
 
@@ -430,8 +469,12 @@ class _RoutineEditor extends StatefulWidget {
   });
 
   final RitualRoutine? existing;
-  final ValueChanged<RitualRoutine> onSave;
-  final ValueChanged<String> onDelete;
+
+  /// Writes the routine and closes the sheet; throws if the write fails.
+  final Future<void> Function(RitualRoutine) onSave;
+
+  /// Deletes the routine and closes the sheet; throws if the write fails.
+  final Future<void> Function(String id) onDelete;
 
   @override
   State<_RoutineEditor> createState() => _RoutineEditorState();
@@ -444,6 +487,8 @@ class _RoutineEditorState extends State<_RoutineEditor> {
   late String _icon;
   late RitualTone _tone;
   late List<RitualStep> _steps;
+  bool _writing = false;
+  String? _failure;
 
   @override
   void initState() {
@@ -465,11 +510,40 @@ class _RoutineEditorState extends State<_RoutineEditor> {
     super.dispose();
   }
 
-  bool get _canSave => _name.text.trim().isNotEmpty && _steps.isNotEmpty;
+  bool get _canSave =>
+      !_writing && _name.text.trim().isNotEmpty && _steps.isNotEmpty;
 
-  void _save() {
+  /// Applies an edit to the draft; any edit clears a failure note.
+  void _edit(VoidCallback change) => setState(() {
+        _failure = null;
+        change();
+      });
+
+  /// Runs [write] once at a time, keeping the sheet open with the draft and
+  /// [failure] showing if it throws.
+  Future<void> _attempt(
+    Future<void> Function() write, {
+    required String action,
+    required String failure,
+  }) async {
+    if (_writing) return;
+    setState(() {
+      _writing = true;
+      _failure = null;
+    });
+    try {
+      await write();
+    } catch (e, st) {
+      debugPrint('manage routines: $action failed: $e\n$st');
+      if (mounted) setState(() => _failure = failure);
+    } finally {
+      if (mounted) setState(() => _writing = false);
+    }
+  }
+
+  Future<void> _save() {
     final r = widget.existing;
-    widget.onSave(RitualRoutine(
+    final routine = RitualRoutine(
       id: r?.id ?? '',
       name: _name.text.trim(),
       time: _time.text.trim(),
@@ -479,7 +553,12 @@ class _RoutineEditorState extends State<_RoutineEditor> {
       streak: r?.streak ?? 0,
       order: r?.order ?? 0,
       steps: _steps,
-    ));
+    );
+    return _attempt(
+      () => widget.onSave(routine),
+      action: 'saving ${routine.name}',
+      failure: saveFailedCopy,
+    );
   }
 
   static const _defaultTime = TimeOfDay(hour: 7, minute: 0);
@@ -513,7 +592,7 @@ class _RoutineEditorState extends State<_RoutineEditor> {
       initialTime: _parseTime(_time.text),
     );
     if (picked == null) return;
-    setState(() => _time.text = _formatTime(picked));
+    _edit(() => _time.text = _formatTime(picked));
   }
 
   Future<void> _editStep(int? index) async {
@@ -522,7 +601,7 @@ class _RoutineEditorState extends State<_RoutineEditor> {
       (_) => _StepEditor(existing: index == null ? null : _steps[index]),
     );
     if (result == null) return;
-    setState(() {
+    _edit(() {
       if (index == null) {
         _steps.add(result);
       } else {
@@ -532,6 +611,7 @@ class _RoutineEditorState extends State<_RoutineEditor> {
   }
 
   Future<void> _confirmDelete() async {
+    if (_writing) return;
     final name = _name.text.trim();
     final delete = await _showSheet<bool>(
       context,
@@ -540,7 +620,13 @@ class _RoutineEditorState extends State<_RoutineEditor> {
         stepCount: _steps.length,
       ),
     );
-    if (delete == true) widget.onDelete(widget.existing!.id);
+    if (delete != true) return;
+    final existing = widget.existing!;
+    await _attempt(
+      () => widget.onDelete(existing.id),
+      action: 'deleting ${existing.name}',
+      failure: _deleteFailedCopy,
+    );
   }
 
   @override
@@ -560,7 +646,7 @@ class _RoutineEditorState extends State<_RoutineEditor> {
           controller: _name,
           hint: 'Routine name',
           autofocus: !isEdit,
-          onChanged: () => setState(() {}),
+          onChanged: () => _edit(() {}),
         ),
         const SizedBox(height: Spacing.md),
         _Field(
@@ -575,17 +661,21 @@ class _RoutineEditorState extends State<_RoutineEditor> {
         Segmented<RitualTone>(
           options: _toneOptions,
           value: _tone,
-          onChanged: (v) => setState(() => _tone = v),
+          onChanged: (v) => _edit(() => _tone = v),
         ),
         const SizedBox(height: Spacing.lg),
         const _Label('Icon'),
         const SizedBox(height: Spacing.sm),
         _IconGrid(
           selected: _icon,
-          onSelect: (name) => setState(() => _icon = name),
+          onSelect: (name) => _edit(() => _icon = name),
         ),
         const SizedBox(height: Spacing.lg),
-        _Field(controller: _blurb, hint: 'Subtitle (e.g. Ease into the day)'),
+        _Field(
+          controller: _blurb,
+          hint: 'Subtitle (e.g. Ease into the day)',
+          onChanged: () => _edit(() {}),
+        ),
         const SizedBox(height: Spacing.lg),
         Row(
           children: [
@@ -624,7 +714,7 @@ class _RoutineEditorState extends State<_RoutineEditor> {
             buildDefaultDragHandles: false,
             physics: const NeverScrollableScrollPhysics(),
             itemCount: _steps.length,
-            onReorderItem: (oldIndex, newIndex) => setState(() {
+            onReorderItem: (oldIndex, newIndex) => _edit(() {
               final moved = _steps.removeAt(oldIndex);
               _steps.insert(newIndex, moved);
             }),
@@ -635,10 +725,14 @@ class _RoutineEditorState extends State<_RoutineEditor> {
                 index: i,
                 step: step,
                 onTap: () => _editStep(i),
-                onRemove: () => setState(() => _steps.removeAt(i)),
+                onRemove: () => _edit(() => _steps.removeAt(i)),
               );
             },
           ),
+        if (_failure case final failure?) ...[
+          const SizedBox(height: Spacing.lg),
+          FailureNote(failure),
+        ],
         if (isEdit) ...[
           const SizedBox(height: Spacing.lg),
           _HairTop(
@@ -691,7 +785,7 @@ class _StepRow extends StatelessWidget {
                 constraints: const BoxConstraints(minHeight: _stepRowHeight),
                 child: Row(
                   children: [
-                    AppIcon(step.icon, size: _stepGlyph, color: c.ink2),
+                    AppIcon.line(step.icon, size: _stepGlyph, color: c.ink2),
                     const SizedBox(width: Spacing.md),
                     Expanded(
                       child: Text(
@@ -945,7 +1039,7 @@ class _IconGrid extends StatelessWidget {
             shape: BoxShape.circle,
             border: on ? Border.all(color: c.ink, width: _iconRingWidth) : null,
           ),
-          child: AppIcon(name, size: _routineGlyph, color: on ? c.ink : c.ink2),
+          child: AppIcon.line(name, size: _routineGlyph, color: on ? c.ink : c.ink2),
         ),
       ),
     );
