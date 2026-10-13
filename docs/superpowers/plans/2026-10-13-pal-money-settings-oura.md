@@ -208,7 +208,7 @@ them.
 
 ## Review Focus
 
-1. **Non-USD currency.** A user on EUR or GBP sees their symbol on the Budgets hero and rows,
+1. **Non-USD currency.** A user on VND (the only non-USD `Currency`) sees their symbol on the Budgets hero and rows,
    the New entry amount, the meal's linked expense, Recap's spent stat and `Correlation.summary`.
    Tested in Tasks 3, 4 and 5.
 2. **Budget edge cases.** A zero-cap envelope reads On track in neutral ink with no division
@@ -387,7 +387,7 @@ then delete it and its tests.
     meal has a note), the tags line, a `Back to Nutrition` semantics label, and
     `Adjust estimate` and `Delete`.
   - The loading and missing-meal states render their ink3 text.
-  - With currency EUR the linked expense reads `€`.
+  - With currency VND the linked expense reads `₫`.
   - Adjust opens the edit sheet; Delete removes the meal.
 - `flutter test test/screens/nutrition_sheets_test.dart test/screens/nutrition_widgets_test.dart test/navigation/nutrition_nav_test.dart`
   - Slot pills select with semantics `selected`.
@@ -397,7 +397,7 @@ then delete it and its tests.
 - The legacy pattern has zero matches in the three lib files.
 
 In the Final run, these views and interactions are shown by Task 8's steps:
-- Meal detail: `meal_detail_linked` (EUR, with a note), `meal_detail_by_hand`,
+- Meal detail: `meal_detail_linked` (VND, with a note), `meal_detail_by_hand`,
   `meal_detail_loading` and `meal_detail_missing`.
 - `meal_adjust`: Adjust estimate opens the sheet in edit mode.
 - `meal_delete`: Delete removes the meal and returns to Nutrition.
@@ -434,7 +434,7 @@ Decisions 2, 12, 13 and 14. Consumes `budgetState` from Task 1.
 **Acceptance (focused tests):**
 - `flutter test test/screens/money/budgets_screen_test.dart` (new), with `budgetsDataProvider`
   overridden:
-  - The hero shows what is left in the user's currency (EUR gives `€`).
+  - The hero shows what is left in the user's currency (VND gives `₫`).
   - An envelope at 120% shows `over` and `Needs care` in `careInk`.
   - A zero-cap envelope shows no state word and its bar is ink.
   - No `SpendRing` type exists.
@@ -494,7 +494,7 @@ Decisions 17 and 18.
   - Wins render.
   - The loading notice `Pal is reviewing your recap…` and the empty notice render.
   - `Ask Pal more` opens the composer seeded `Tell me more about this recap`.
-- `flutter test test/analysis/correlations_test.dart`: `summary(Currency.eur)` contains `€`
+- `flutter test test/analysis/correlations_test.dart`: `summary(Currency.vnd)` contains `₫`
   and no `$`.
 - The legacy pattern has zero matches in `recap_screen.dart` and `correlations.dart`.
 
