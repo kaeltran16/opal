@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:clock/clock.dart';
 import 'package:drift/native.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -383,38 +384,43 @@ void main() {
     });
   });
 
-  test('the provider re-emits after a meal is logged', () async {
-    final db = LoopDatabase.forTesting(NativeDatabase.memory());
-    addTearDown(db.close);
-    SharedPreferences.setMockInitialValues({});
-    final prefs = await SharedPreferences.getInstance();
-    await GoalsRepository(db).upsert(const Goals(dailyBudget: 60));
+  // pinned to the morning: on the real clock Move at 0 kcal reads Worth
+  // watching later in the day, and the count would follow the wall time.
+  test(
+    'the provider re-emits after a meal is logged',
+    () => withClock(Clock.fixed(DateTime(2026, 10, 1, 9, 30)), () async {
+      final db = LoopDatabase.forTesting(NativeDatabase.memory());
+      addTearDown(db.close);
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+      await GoalsRepository(db).upsert(const Goals(dailyBudget: 60));
 
-    final container = ProviderContainer(
-      overrides: [
-        loopDatabaseProvider.overrideWithValue(db),
-        sharedPreferencesProvider.overrideWithValue(prefs),
-      ],
-    );
-    addTearDown(container.dispose);
+      final container = ProviderContainer(
+        overrides: [
+          loopDatabaseProvider.overrideWithValue(db),
+          sharedPreferencesProvider.overrideWithValue(prefs),
+        ],
+      );
+      addTearDown(container.dispose);
 
-    final logged = Completer<AreasSummary>();
-    container.listen(areasSummaryProvider, (_, next) {
-      final s = next.value;
-      if (s != null &&
-          s.of(Area.nutrition).number == '500' &&
-          !logged.isCompleted) {
-        logged.complete(s);
-      }
-    });
+      final logged = Completer<AreasSummary>();
+      container.listen(areasSummaryProvider, (_, next) {
+        final s = next.value;
+        if (s != null &&
+            s.of(Area.nutrition).number == '500' &&
+            !logged.isCompleted) {
+          logged.complete(s);
+        }
+      });
 
-    final first = await container.read(areasSummaryProvider.future);
-    expect(first.of(Area.nutrition).number, '0');
-    expect(first.of(Area.money).number, _usd(60));
+      final first = await container.read(areasSummaryProvider.future);
+      expect(first.of(Area.nutrition).number, '0');
+      expect(first.of(Area.money).number, _usd(60));
 
-    await NutritionRepository(db).insert(_meal(500, DateTime.now()));
+      await NutritionRepository(db).insert(_meal(500, clock.now()));
 
-    final after = await logged.future.timeout(const Duration(seconds: 5));
-    expect(after.countLabel, '3 of 3 on track');
-  });
+      final after = await logged.future.timeout(const Duration(seconds: 5));
+      expect(after.countLabel, '3 of 3 on track');
+    }),
+  );
 }
