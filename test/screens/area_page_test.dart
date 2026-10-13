@@ -9,11 +9,12 @@ import 'package:opal/controllers/area_detail_controller.dart';
 import 'package:opal/controllers/providers.dart';
 import 'package:opal/controllers/spending_controller.dart' show DetailTracker;
 import 'package:opal/models/models.dart';
+import 'package:opal/screens/areas/areas_screen.dart';
 import 'package:opal/screens/detail/detail_screen.dart';
-import 'package:opal/screens/today/today_screen.dart';
 import 'package:opal/theme/theme.dart';
 import 'package:opal/util/format.dart';
 import 'package:opal/widgets/contributor_bar.dart';
+import 'package:opal/widgets/glass_tab_bar.dart';
 import 'package:opal/widgets/inset_section.dart';
 import 'package:opal/widgets/pal_label.dart';
 import 'package:opal/widgets/week_bars.dart';
@@ -53,15 +54,13 @@ Future<void> _boot(
   await bootToday(tester, day: day, strictLayout: strictLayout);
 }
 
-/// Opens [tracker]'s page from its row in the You tab's Areas group, and
-/// returns what the provider gave the page.
+/// Opens [tracker]'s page from its row on the Areas tab, and returns what the
+/// provider gave the page.
 Future<AreaDetail> _open(WidgetTester tester, DetailTracker tracker) async {
-  await tester.tap(find.bySemanticsLabel('You'));
+  await tester.tap(find.descendant(
+      of: find.byType(GlassTabBar), matching: find.bySemanticsLabel('Areas')));
   await tester.pumpAndSettle();
-  final row = find.widgetWithText(ListRow, _areaTitle[tracker]!);
-  await tester.ensureVisible(row);
-  await tester.pumpAndSettle();
-  await tester.tap(row);
+  await tester.tap(find.widgetWithText(ListRow, _areaTitle[tracker]!));
   await tester.pumpAndSettle();
   expect(
     find.byWidgetPredicate((w) => w is DetailScreen && w.tracker == tracker),
@@ -162,7 +161,7 @@ void main() {
     expect(word.style!.color, tester.element(find.byType(DetailScreen)).colors.ink3);
   });
 
-  _pageTest('the header shows the date line and no + button, and back returns to Today',
+  _pageTest('the header shows the date line and no + button, and back returns to Areas',
       (tester) async {
     await _boot(tester);
     await _open(tester, DetailTracker.move);
@@ -175,8 +174,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(DetailScreen), findsNothing);
-    expect(find.byType(TodayScreen), findsOneWidget);
-    expect(find.text('MON 28 SEP · 9:30 AM'), findsOneWidget);
+    expect(find.byType(AreasScreen), findsOneWidget);
   });
 
   _pageTest('recent entries are grouped by day, newest day first', (tester) async {

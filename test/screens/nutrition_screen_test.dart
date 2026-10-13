@@ -63,7 +63,8 @@ void main() {
     expect(find.text('This week'), findsOneWidget);
 
     expect(find.bySemanticsLabel('Open Pal'), findsNothing);
-    expect(find.bySemanticsLabel('Back'), findsNothing);
+    // a page under the Areas tab, so it leads back there.
+    expect(find.bySemanticsLabel('Back'), findsOneWidget);
     expect(find.bySemanticsLabel('Add a meal'), findsOneWidget);
 
     await flushProviderTimers(tester);

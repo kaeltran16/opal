@@ -27,8 +27,8 @@ class _LoopShellState extends State<LoopShell> {
   /// Order must match the branches in [createRouter].
   static const _tabs = [
     GlassTab('today', 'Today', 'sun.max.fill'),
-    GlassTab('move', 'Workout', 'figure.run'),
-    GlassTab('nutrition', 'Nutrition', 'fork.knife'),
+    GlassTab('areas', 'Areas', 'square.grid.2x2.fill'),
+    GlassTab('move', 'Workout', 'dumbbell.fill'),
     GlassTab('you', 'You', 'person.crop.circle.fill'),
   ];
 

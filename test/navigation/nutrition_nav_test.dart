@@ -1,23 +1,36 @@
 import 'package:drift/native.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:opal/app.dart';
 import 'package:opal/controllers/providers.dart';
 import 'package:opal/data/db/database.dart';
 import 'package:opal/data/seed/seeder.dart';
+import 'package:opal/screens/nutrition/nutrition_meal_detail_screen.dart';
+import 'package:opal/screens/nutrition/nutrition_screen.dart';
+import 'package:opal/screens/nutrition/widgets/nutrition_widgets.dart';
 import 'package:opal/screens/profile/profile_screen.dart';
 import 'package:opal/services/pal/mock_pal_service.dart';
 import 'package:opal/widgets/glass_tab_bar.dart';
+import 'package:opal/widgets/inset_section.dart';
 
 import '../support/flush_provider_timers.dart';
 
-/// The Nutrition and You tabs of the four-tab glass shell.
+String _path(WidgetTester tester) =>
+    GoRouter.of(tester.element(find.byType(GlassTabBar)))
+        .routerDelegate
+        .currentConfiguration
+        .uri
+        .path;
+
+/// Nutrition under the Areas tab, and the You tab, in the four-tab glass shell.
 ///
-/// Boots the full seeded app and drives the real router: the Nutrition tab
-/// opens the Nutrition screen, and the You tab opens the profile as a tab root
-/// (no back button).
+/// Boots the full seeded app and drives the real router: a meal on the Areas
+/// Nutrition page opens its detail under /areas/nutrition, and the You tab
+/// opens the profile as a tab root (no back button).
 void main() {
   Future<void> bootApp(WidgetTester tester) async {
     SharedPreferences.setMockInitialValues({
@@ -42,20 +55,34 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('the Nutrition tab opens the Nutrition screen', (tester) async {
+  testWidgets('a meal opens its detail under the Areas Nutrition page',
+      (tester) async {
     await bootApp(tester);
 
-    expect(
-        find.descendant(
-            of: find.byType(GlassTabBar), matching: find.text('Nutrition')),
-        findsOneWidget);
-
     await tester.tap(find.descendant(
-        of: find.byType(GlassTabBar), matching: find.text('Nutrition')));
+        of: find.byType(GlassTabBar), matching: find.text('Areas')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(ListRow, 'Nutrition'));
+    await tester.pumpAndSettle();
+    expect(_path(tester), '/areas/nutrition');
+
+    final meal = find.byType(MealRow).first;
+    await tester.scrollUntilVisible(meal, 300,
+        scrollable: find
+            .descendant(
+                of: find.byType(NutritionScreen),
+                matching: find.byType(Scrollable))
+            .first);
+    await tester.pumpAndSettle();
+    final id = tester.widget<MealRow>(meal).meal.id;
+    await tester.tap(meal);
     await tester.pumpAndSettle();
 
-    // The (stub) Nutrition screen is on screen.
-    expect(find.textContaining('Nutrition'), findsWidgets);
+    final detail = find.byType(NutritionMealDetailScreen);
+    expect(detail, findsOneWidget);
+    // a pushed page keeps the shell's location, so read the page's own state.
+    expect(GoRouterState.of(tester.element(detail)).uri.path,
+        '/areas/nutrition/meal/$id');
 
     await flushProviderTimers(tester);
   });

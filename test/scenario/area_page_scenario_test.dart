@@ -7,18 +7,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:opal/analysis/area.dart';
 import 'package:opal/analysis/area_state.dart';
 import 'package:opal/app.dart';
 import 'package:opal/controllers/area_detail_controller.dart';
 import 'package:opal/controllers/providers.dart';
 import 'package:opal/controllers/spending_controller.dart' show DetailTracker;
 import 'package:opal/models/models.dart';
+import 'package:opal/screens/areas/areas_screen.dart';
 import 'package:opal/screens/detail/detail_screen.dart';
 import 'package:opal/screens/mood/mood_screen.dart';
-import 'package:opal/screens/profile/profile_screen.dart';
 import 'package:opal/screens/sleep/sleep_screen.dart';
-import 'package:opal/screens/today/today_screen.dart';
 import 'package:opal/widgets/contributor_bar.dart';
+import 'package:opal/widgets/glass_tab_bar.dart';
 import 'package:opal/widgets/inset_section.dart';
 import 'package:opal/widgets/week_bars.dart';
 
@@ -32,9 +33,7 @@ const _areas = {
 };
 
 const _dateLine = 'MON 28 SEP · 9:30 AM';
-const _areaRows = ['Money', 'Move', 'Routines', 'Sleep', 'Mood'];
-// a third of the way down the viewport: the whole group sits above the tab bar.
-const _areasAlignment = 0.3;
+final _areaRows = [for (final area in Area.values) area.title];
 
 String _theme(bool dark) => dark ? 'dark' : 'light';
 
@@ -43,26 +42,14 @@ Finder _onPage(Finder matching) =>
 
 Finder _areaRow(String title) => find.widgetWithText(ListRow, title);
 
-/// Opens the You tab and brings its Areas group into view, clear of the
-/// pinned header above and the tab bar below.
+/// Opens the Areas tab.
 Future<void> _toAreas(WidgetTester tester) async {
-  await tester.tap(find.bySemanticsLabel('You'));
-  await tester.pumpAndSettle();
-  final label = find.text('AREAS');
-  await tester.scrollUntilVisible(
-    label,
-    200,
-    scrollable: find
-        .descendant(of: find.byType(ProfileScreen), matching: find.byType(Scrollable))
-        .first,
-  );
-  await tester.pumpAndSettle();
-  await Scrollable.ensureVisible(tester.element(label), alignment: _areasAlignment);
+  await tester.tap(find.descendant(
+      of: find.byType(GlassTabBar), matching: find.bySemanticsLabel('Areas')));
   await tester.pumpAndSettle();
 }
 
-/// Opens an area page the way the user does: from its row in the You tab's
-/// Areas group.
+/// Opens an area page the way the user does: from its row on the Areas tab.
 Future<void> _open(WidgetTester tester, DetailTracker tracker, String title) async {
   await _toAreas(tester);
   await tester.tap(_areaRow(title));
@@ -180,7 +167,7 @@ void main() {
     await shot(tester, 'area_loading_${_theme(dark)}');
   });
 
-  scenarioTest('area you group', (tester, dark) async {
+  scenarioTest('area areas rows', (tester, dark) async {
     await bootToday(tester, dark: dark);
     await _toAreas(tester);
 
@@ -189,39 +176,40 @@ void main() {
     }
     final tops = [for (final title in _areaRows) tester.getTopLeft(_areaRow(title)).dy];
     expect(tops, orderedEquals([...tops]..sort()));
-    await shot(tester, 'area_you_group_${_theme(dark)}');
+    await shot(tester, 'area_areas_rows_${_theme(dark)}');
   });
 
-  scenarioTest('area sleep from you', (tester, dark) async {
+  scenarioTest('area sleep from areas', (tester, dark) async {
     await bootToday(tester, dark: dark);
     await _toAreas(tester);
     await tester.tap(_areaRow('Sleep'));
     await tester.pumpAndSettle();
 
     expect(find.byType(SleepScreen), findsOneWidget);
-    await shot(tester, 'area_sleep_from_you_${_theme(dark)}');
+    await shot(tester, 'area_sleep_from_areas_${_theme(dark)}');
   });
 
-  scenarioTest('area mood from you', (tester, dark) async {
+  scenarioTest('area mood from areas', (tester, dark) async {
     await bootToday(tester, dark: dark);
     await _toAreas(tester);
     await tester.tap(_areaRow('Mood'));
     await tester.pumpAndSettle();
 
     expect(find.byType(MoodScreen), findsOneWidget);
-    await shot(tester, 'area_mood_from_you_${_theme(dark)}');
+    await shot(tester, 'area_mood_from_areas_${_theme(dark)}');
   });
 
   scenarioTest('area back', (tester, dark) async {
     await bootToday(tester, dark: dark);
     await _openMoney(tester);
 
+    // the label still reads Today until the area page is rebuilt; back pops
+    // to the Areas tab, where the page was opened.
     await tester.tap(find.bySemanticsLabel('Back to Today'));
     await tester.pumpAndSettle();
 
     expect(find.byType(DetailScreen), findsNothing);
-    expect(find.byType(TodayScreen), findsOneWidget);
-    expect(find.text(_dateLine), findsOneWidget);
+    expect(find.byType(AreasScreen), findsOneWidget);
     await shot(tester, 'area_back_${_theme(dark)}');
   });
 }

@@ -343,52 +343,6 @@ class _ProfileBody extends StatelessWidget {
           ],
         ),
 
-        // --- Areas ---
-        // stands in until the Areas tab lands; Today no longer opens these.
-        // go, not push: the pages live under /today, so they open over Today
-        // and their back returns there, as their label says.
-        _Group(
-          label: 'Areas',
-          children: [
-            ListRow(
-              icon: 'dollarsign.circle.fill',
-              iconBg: c.moneyTint,
-              iconColor: c.moneyInk,
-              title: 'Money',
-              onTap: () => context.goNamed(AppRoute.spendingDetail.name),
-            ),
-            ListRow(
-              icon: 'figure.run',
-              iconBg: c.moveTint,
-              iconColor: c.moveInk,
-              title: 'Move',
-              onTap: () => context.goNamed(AppRoute.moveDetail.name),
-            ),
-            ListRow(
-              icon: 'sparkles',
-              iconBg: c.ritualsTint,
-              iconColor: c.ritualsInk,
-              title: 'Routines',
-              onTap: () => context.goNamed(AppRoute.ritualsDetail.name),
-            ),
-            ListRow(
-              icon: 'moon.stars.fill',
-              iconBg: c.sleepTint,
-              iconColor: c.sleepInk,
-              title: 'Sleep',
-              onTap: () => context.goNamed(AppRoute.todaySleep.name),
-            ),
-            ListRow(
-              icon: 'heart.fill',
-              iconBg: c.moodTint,
-              iconColor: c.moodInk,
-              title: 'Mood',
-              onTap: () => context.goNamed(AppRoute.todayMood.name),
-              last: true,
-            ),
-          ],
-        ),
-
         // --- Money ---
         _Group(
           label: 'Money',
