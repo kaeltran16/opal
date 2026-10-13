@@ -7,19 +7,23 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../analysis/area.dart';
 import '../../controllers/area_detail_controller.dart';
 import '../../controllers/providers.dart';
 import '../../controllers/spending_controller.dart';
 import '../../models/models.dart';
+import '../../router.dart';
 import '../../theme/theme.dart';
 import '../../util/dates.dart';
 import '../../util/format.dart';
 import '../../widgets/app_icon.dart';
 import '../../widgets/contributor_bar.dart';
+import '../../widgets/day_scene.dart';
 import '../../widgets/pal_label.dart';
 import '../../widgets/press_scale.dart';
 import '../../widgets/state_colors.dart';
 import '../../widgets/week_bars.dart';
+import '../nutrition/nutrition_add_sheet.dart';
 import '../today/today_logic.dart' show dateLine;
 
 // kept literal: the shell overlay under the content, tab bar gap 8 + bar 62 +
@@ -41,28 +45,30 @@ const double _palLineHeight = 24 / 17;
 const double _contributorTop = 10;
 const double _trailingMaxWidth = 160;
 const double _hairline = 1;
+const double _listRowHeight = 48;
+const double _listRowLineHeight = 22 / 16;
+const double _mealTimeWidth = 34;
+const double _mealGap = 10;
+const double _mealDisc = 28;
+const double _mealIcon = 18;
+// Add a meal lines up with the meal names: time, gap, disc, gap.
+const double _addMealInset = _mealTimeWidth + _mealGap + _mealDisc + _mealGap;
+const double _captionTracking = 0.3;
+const double _chevron = 16;
 const List<FontFeature> _tabular = [FontFeature.tabularFigures()];
 
-String _areaTitle(DetailTracker tracker) => switch (tracker) {
-      DetailTracker.money => 'Money',
-      DetailTracker.move => 'Move',
-      DetailTracker.rituals => 'Routines',
-    };
+const String _backLabel = 'Areas';
 
-String _areaGlyph(DetailTracker tracker) => switch (tracker) {
-      DetailTracker.money => 'dollarsign.circle.fill',
-      DetailTracker.move => 'figure.run',
-      DetailTracker.rituals => 'sparkles',
-    };
-
-/// The area page behind a ring on Today: the area's number and state, Pal's
-/// line, what is shaping it, the week against the goal, and recent entries.
+/// An area page under the Areas tab: the area's number and state, Pal's line,
+/// what is shaping it, today's meals or routines, the week, and recent
+/// entries. Sleep shows only its empty state: it has no data source yet.
 ///
-/// Everything shown is computed by [buildAreaDetail]; this widget only lays out.
+/// Everything shown is computed in `area_detail_controller.dart`; this widget
+/// only lays out.
 class DetailScreen extends ConsumerWidget {
-  const DetailScreen({super.key, this.tracker = DetailTracker.money});
+  const DetailScreen({super.key, required this.area});
 
-  final DetailTracker tracker;
+  final Area area;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -80,7 +86,7 @@ class DetailScreen extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              header,
+              _SceneTop(padding: padding, child: header),
               Expanded(
                 child: Center(
                   child: Text(text,
@@ -93,22 +99,50 @@ class DetailScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: c.bg,
-      body: ref.watch(areaDetailProvider(tracker)).when(
-            // the routines page rebuilds on every step toggle; keep the last
-            // value on screen instead of flashing the loading state.
-            skipLoadingOnReload: true,
-            loading: () => message('…', AppType.body),
-            error: (e, _) {
-              debugPrint('detail load failed (${tracker.title}): $e');
-              return message("Couldn't load ${tracker.title}.", AppType.subhead);
-            },
-            data: (detail) => _AreaBody(detail: detail, padding: padding, header: header),
-          ),
+      body: area == Area.sleep
+          ? _SleepBody(padding: padding, header: header)
+          : ref.watch(areaDetailProvider(area)).when(
+                // the routines page rebuilds on every step toggle; keep the last
+                // value on screen instead of flashing the loading state.
+                skipLoadingOnReload: true,
+                loading: () => message('…', AppType.body),
+                error: (e, _) {
+                  debugPrint('detail load failed (${area.title}): $e');
+                  return message("Couldn't load ${area.title}.", AppType.subhead);
+                },
+                data: (detail) =>
+                    _AreaBody(detail: detail, padding: padding, header: header),
+              ),
     );
   }
 }
 
-/// Back to Today at the left, the date line at the right.
+/// The time-of-day scene behind [child], drawn up into the top padding and out
+/// to the screen edges, so it scrolls with the page as it does on Today.
+class _SceneTop extends StatelessWidget {
+  const _SceneTop({required this.padding, required this.child});
+
+  final EdgeInsets padding;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Positioned(
+          top: -padding.top,
+          left: -padding.left,
+          right: -padding.right,
+          child: DayScene(phase: phaseFor(clock.now())),
+        ),
+        child,
+      ],
+    );
+  }
+}
+
+/// Back to Areas at the left, the date line at the right.
 class _Header extends StatelessWidget {
   const _Header({required this.date});
 
@@ -128,7 +162,7 @@ class _Header extends StatelessWidget {
               container: true,
               child: PressScale(
                 onTap: () => context.pop(),
-                semanticLabel: 'Back to Today',
+                semanticLabel: 'Back to $_backLabel',
                 child: Container(
                   constraints: const BoxConstraints(minHeight: _minTap),
                   padding: const EdgeInsets.only(right: Spacing.sm),
@@ -137,7 +171,7 @@ class _Header extends StatelessWidget {
                     children: [
                       AppIcon('chevron.left', size: _backIcon, color: c.ink),
                       const SizedBox(width: Spacing.xxs),
-                      Text('Today', style: AppType.headline.copyWith(color: c.ink)),
+                      Text(_backLabel, style: AppType.headline.copyWith(color: c.ink)),
                     ],
                   ),
                 ),
@@ -157,6 +191,68 @@ class _Header extends StatelessWidget {
   }
 }
 
+/// The area's glyph and title, the page's heading.
+class _AreaTitle extends StatelessWidget {
+  const _AreaTitle(this.area);
+
+  final Area area;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return Semantics(
+      header: true,
+      child: Row(
+        children: [
+          AppIcon(area.glyph, size: _areaIcon, color: c.ink2),
+          const SizedBox(width: _labelGap),
+          Text(area.title, style: AppType.label.copyWith(color: c.ink2)),
+        ],
+      ),
+    );
+  }
+}
+
+/// Sleep has no data source yet, so its page is the header and the empty state.
+class _SleepBody extends StatelessWidget {
+  const _SleepBody({required this.padding, required this.header});
+
+  final EdgeInsets padding;
+  final Widget header;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return ListView(
+      padding: padding,
+      children: [
+        _SceneTop(
+          padding: padding,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              header,
+              const SizedBox(height: _heroTop),
+              const _AreaTitle(Area.sleep),
+              const SizedBox(height: Spacing.sm),
+              Text('No sleep data yet', style: AppType.title3.copyWith(color: c.ink)),
+              const SizedBox(height: _labelGap),
+              Align(
+                alignment: AlignmentDirectional.centerStart,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: _palMaxWidth),
+                  child: Text('Sleep needs a data source, and none is connected yet.',
+                      style: AppType.body.copyWith(color: c.ink2, height: _palLineHeight)),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class _AreaBody extends ConsumerWidget {
   const _AreaBody({required this.detail, required this.padding, required this.header});
 
@@ -166,9 +262,9 @@ class _AreaBody extends ConsumerWidget {
 
   /// What a recent entry shows at the right: its amount, or its detail where
   /// an entry has no amount of its own.
-  String? _trailing(Entry e, Currency currency) => switch (detail.tracker) {
-        DetailTracker.money => formatCurrency(detail.tracker.magnitudeOf(e), currency),
-        DetailTracker.move => '${detail.tracker.magnitudeOf(e).round()} kcal',
+  String? _trailing(DetailTracker tracker, Entry e, Currency currency) => switch (tracker) {
+        DetailTracker.money => formatCurrency(tracker.magnitudeOf(e), currency),
+        DetailTracker.move => '${tracker.magnitudeOf(e).round()} kcal',
         DetailTracker.rituals => e.detail,
       };
 
@@ -176,52 +272,56 @@ class _AreaBody extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final c = context.colors;
     final currency = ref.watch(appSettingsControllerProvider).currency;
-    final title = _areaTitle(detail.tracker);
+    final area = detail.area;
+    final tracker = area.tracker;
+    final state = detail.state;
     final hasGoal = detail.goal > 0;
     final caption = AppType.caption.copyWith(color: c.ink3);
 
     return ListView(
       padding: padding,
       children: [
-        header,
-        const SizedBox(height: _heroTop),
-        Semantics(
-          header: true,
-          child: Row(
+        _SceneTop(
+          padding: padding,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              AppIcon(_areaGlyph(detail.tracker), size: _areaIcon, color: c.ink2),
-              const SizedBox(width: _labelGap),
-              Text(title, style: AppType.label.copyWith(color: c.ink2)),
+              header,
+              const SizedBox(height: _heroTop),
+              _AreaTitle(area),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: AlignmentDirectional.centerStart,
+                child: Text(detail.hero,
+                    maxLines: 1, style: AppType.display.copyWith(color: c.ink)),
+              ),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.baseline,
+                textBaseline: TextBaseline.alphabetic,
+                children: [
+                  Flexible(
+                    child: Text(detail.unit,
+                        style: AppType.subhead.copyWith(color: c.ink2, fontFeatures: _tabular)),
+                  ),
+                  if (state != null) ...[
+                    const SizedBox(width: Spacing.md),
+                    Text(state.word,
+                        style: AppType.label.copyWith(color: c.wordInkFor(state))),
+                  ],
+                ],
+              ),
+              const SizedBox(height: _palTop),
+              const Align(alignment: AlignmentDirectional.centerStart, child: PalLabel()),
+              const SizedBox(height: _labelGap),
+              Align(
+                alignment: AlignmentDirectional.centerStart,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: _palMaxWidth),
+                  child: Text(detail.palLine,
+                      style: AppType.body.copyWith(color: c.ink, height: _palLineHeight)),
+                ),
+              ),
             ],
-          ),
-        ),
-        FittedBox(
-          fit: BoxFit.scaleDown,
-          alignment: AlignmentDirectional.centerStart,
-          child: Text(detail.hero, maxLines: 1, style: AppType.display.copyWith(color: c.ink)),
-        ),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.baseline,
-          textBaseline: TextBaseline.alphabetic,
-          children: [
-            Flexible(
-              child: Text(detail.unit,
-                  style: AppType.subhead.copyWith(color: c.ink2, fontFeatures: _tabular)),
-            ),
-            const SizedBox(width: Spacing.md),
-            Text(detail.state.word,
-                style: AppType.label.copyWith(color: c.wordInkFor(detail.state))),
-          ],
-        ),
-        const SizedBox(height: _palTop),
-        const Align(alignment: AlignmentDirectional.centerStart, child: PalLabel()),
-        const SizedBox(height: _labelGap),
-        Align(
-          alignment: AlignmentDirectional.centerStart,
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: _palMaxWidth),
-            child: Text(detail.palLine,
-                style: AppType.body.copyWith(color: c.ink, height: _palLineHeight)),
           ),
         ),
         if (detail.contributors.isNotEmpty) ...[
@@ -239,6 +339,8 @@ class _AreaBody extends ConsumerWidget {
               ),
             ),
         ],
+        if (area == Area.nutrition) _MealsSection(meals: detail.meals),
+        if (area == Area.routines) _RoutinesSection(routines: detail.routines),
         const SizedBox(height: Spacing.xl),
         Row(
           crossAxisAlignment: CrossAxisAlignment.baseline,
@@ -256,31 +358,215 @@ class _AreaBody extends ConsumerWidget {
           todayIndex: detail.week.indexWhere((bar) => bar.today),
           goal: detail.goal,
           semanticLabel: hasGoal
-              ? '$title this week: ${detail.weekNote}. ${detail.goalLabel}'
-              : '$title this week: ${detail.weekNote}',
+              ? '${area.title} this week: ${detail.weekNote}. ${detail.goalLabel}'
+              : '${area.title} this week: ${detail.weekNote}',
         ),
         if (hasGoal) ...[
           const SizedBox(height: Spacing.md),
           Text('Dashed line: ${detail.goalLabel}', style: caption),
         ],
-        const SizedBox(height: Spacing.xxxl),
-        if (detail.days.isEmpty)
-          Text('Nothing logged yet.', style: AppType.subhead.copyWith(color: c.ink3))
-        else
-          for (final group in detail.days) ...[
-            Padding(
-              padding: const EdgeInsets.only(top: Spacing.md, bottom: Spacing.xs),
-              child: Text(_dayLabel(group.day), style: AppType.label.copyWith(color: c.ink3)),
-            ),
-            for (final (i, entry) in group.entries.indexed)
-              _EntryRow(
-                entry: entry,
-                trailing: _trailing(entry, currency),
-                divided: i > 0,
-                onDelete: () => ref.read(entryRepositoryProvider).deleteById(entry.id),
+        if (tracker != null) ...[
+          const SizedBox(height: Spacing.xxxl),
+          if (detail.days.isEmpty)
+            Text('Nothing logged yet.', style: AppType.subhead.copyWith(color: c.ink3))
+          else
+            for (final group in detail.days) ...[
+              Padding(
+                padding: const EdgeInsets.only(top: Spacing.md, bottom: Spacing.xs),
+                child: Text(_dayLabel(group.day), style: AppType.label.copyWith(color: c.ink3)),
               ),
-          ],
+              for (final (i, entry) in group.entries.indexed)
+                _EntryRow(
+                  entry: entry,
+                  trailing: _trailing(tracker, entry, currency),
+                  divided: i > 0,
+                  onDelete: () => ref.read(entryRepositoryProvider).deleteById(entry.id),
+                ),
+            ],
+        ],
       ],
+    );
+  }
+}
+
+/// Today's meals, each opening its detail, then Add a meal.
+class _MealsSection extends StatelessWidget {
+  const _MealsSection({required this.meals});
+
+  final List<NutritionMeal> meals;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      spacing: Spacing.xs,
+      children: [
+        const SizedBox(height: Spacing.xl - Spacing.xs),
+        const _Heading("Today's meals"),
+        for (final meal in meals) _MealRow(meal: meal),
+        Align(
+          alignment: AlignmentDirectional.centerStart,
+          child: PressScale(
+            onTap: () => showNutritionAddSheet(context),
+            semanticLabel: 'Add a meal',
+            child: Container(
+              constraints: const BoxConstraints(minHeight: _minTap),
+              padding: const EdgeInsetsDirectional.only(start: _addMealInset),
+              alignment: AlignmentDirectional.centerStart,
+              child: Text('Add a meal',
+                  style: AppType.subhead.copyWith(color: c.ink, fontWeight: FontWeight.w600)),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _MealRow extends StatelessWidget {
+  const _MealRow({required this.meal});
+
+  final NutritionMeal meal;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    final kcal = '${groupThousands('${meal.cal.mid}', ',')} kcal';
+    return PressScale(
+      onTap: () => context.pushNamed(
+        AppRoute.nutritionMeal.name,
+        pathParameters: {'id': meal.id},
+      ),
+      semanticLabel: '${meal.slot} at ${meal.time}, ${meal.name}, $kcal',
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: _listRowHeight),
+        child: Row(
+          children: [
+            ConstrainedBox(
+              constraints: const BoxConstraints(minWidth: _mealTimeWidth),
+              child: Text(meal.time,
+                  style: AppType.caption.copyWith(
+                      color: c.ink3, letterSpacing: _captionTracking, fontFeatures: _tabular)),
+            ),
+            const SizedBox(width: _mealGap),
+            Container(
+              width: _mealDisc,
+              height: _mealDisc,
+              decoration: BoxDecoration(color: c.surface2, shape: BoxShape.circle),
+              alignment: Alignment.center,
+              child: AppIcon(meal.icon, size: _mealIcon, color: c.ink),
+            ),
+            const SizedBox(width: _mealGap),
+            Expanded(
+              child: Text(meal.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppType.callout.copyWith(color: c.ink)),
+            ),
+            const SizedBox(width: _mealGap),
+            Text(kcal, style: AppType.subhead.copyWith(color: c.ink3, fontFeatures: _tabular)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Today's routines, an open one starting its player, then Manage routines.
+class _RoutinesSection extends StatelessWidget {
+  const _RoutinesSection({required this.routines});
+
+  final List<RoutineRow> routines;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const SizedBox(height: Spacing.xl),
+        const _Heading("Today's routines"),
+        const SizedBox(height: Spacing.xs),
+        for (final row in routines) _RoutineItem(row: row),
+        PressScale(
+          onTap: () => context.goNamed(AppRoute.areaManageRoutines.name),
+          semanticLabel: 'Manage routines',
+          child: _ListRowFrame(
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text('Manage routines',
+                      style: AppType.callout.copyWith(color: c.ink, height: _listRowLineHeight)),
+                ),
+                const SizedBox(width: Spacing.md),
+                AppIcon('chevron.right', size: _chevron, color: c.ink3),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _RoutineItem extends StatelessWidget {
+  const _RoutineItem({required this.row});
+
+  final RoutineRow row;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    final content = _ListRowFrame(
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(row.name,
+                style: AppType.callout
+                    .copyWith(color: row.done ? c.ink3 : c.ink, height: _listRowLineHeight)),
+          ),
+          const SizedBox(width: Spacing.md),
+          Text(row.detail,
+              style: AppType.subhead.copyWith(color: c.ink3, fontFeatures: _tabular)),
+        ],
+      ),
+    );
+    // a done routine has nothing left to start.
+    if (row.done) {
+      return Semantics(
+        container: true,
+        label: row.semanticLabel,
+        excludeSemantics: true,
+        child: content,
+      );
+    }
+    return PressScale(
+      onTap: () => context.pushNamed(
+        AppRoute.routinePlayer.name,
+        pathParameters: {'routineId': row.id},
+      ),
+      semanticLabel: row.semanticLabel,
+      child: content,
+    );
+  }
+}
+
+/// A list row with the hairline above it.
+class _ListRowFrame extends StatelessWidget {
+  const _ListRowFrame({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      constraints: const BoxConstraints(minHeight: _listRowHeight),
+      decoration: BoxDecoration(
+        border: Border(top: BorderSide(color: context.colors.hair, width: _hairline)),
+      ),
+      alignment: AlignmentDirectional.centerStart,
+      child: child,
     );
   }
 }

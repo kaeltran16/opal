@@ -2,10 +2,13 @@ import 'package:clock/clock.dart';
 import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../analysis/area.dart';
 import '../analysis/area_state.dart';
 import '../models/models.dart';
+import '../screens/today/day_plan.dart' show clockLabel;
 import '../util/dates.dart';
 import '../util/format.dart';
+import '../util/mood_scale.dart';
 import 'providers.dart';
 import 'rituals_controller.dart';
 import 'spending_controller.dart';
@@ -47,7 +50,8 @@ class WeekBar {
   /// Single-letter weekday label.
   final String day;
 
-  /// The day's amount, or null for a day after today.
+  /// The day's amount, or null for a day after today or a day with nothing to
+  /// average.
   final double? value;
 
   final bool today;
@@ -56,11 +60,34 @@ class WeekBar {
   final bool off;
 }
 
-/// The area page view model for one [DetailTracker].
+/// One routine under "Today's routines" on the Routines page.
+@immutable
+class RoutineRow {
+  const RoutineRow({
+    required this.id,
+    required this.name,
+    required this.detail,
+    required this.done,
+    required this.semanticLabel,
+  });
+
+  final String id, name;
+
+  /// `Done`, `<time> · <n> steps`, or `<n> steps` when the time is empty.
+  final String detail;
+
+  final bool done;
+
+  /// `<name>, done`, `<name>, at <time>, <n> steps`, or `<name>, <n> steps`.
+  final String semanticLabel;
+}
+
+/// The area page view model for one [Area]. Sleep has none: it has no data
+/// source yet.
 @immutable
 class AreaDetail {
   const AreaDetail({
-    required this.tracker,
+    required this.area,
     required this.hero,
     required this.unit,
     required this.state,
@@ -70,13 +97,17 @@ class AreaDetail {
     required this.goal,
     required this.goalLabel,
     required this.weekNote,
-    required this.days,
+    this.days = const [],
+    this.meals = const [],
+    this.routines = const [],
   });
 
-  final DetailTracker tracker;
+  final Area area;
   final String hero;
   final String unit;
-  final AreaState state;
+
+  /// Null for areas without a state rule, which show no state word.
+  final AreaState? state;
   final String palLine;
   final List<Contributor> contributors;
 
@@ -91,16 +122,32 @@ class AreaDetail {
 
   final String weekNote;
 
-  /// Recent entries grouped by day, newest day first.
+  /// Recent entries grouped by day, newest day first. Empty for areas without
+  /// an entry tracker.
   final List<DayGroup> days;
+
+  /// Today's meals, oldest first. Nutrition only.
+  final List<NutritionMeal> meals;
+
+  /// Today's routines in the rituals order. Routines only.
+  final List<RoutineRow> routines;
 }
 
 const int _topCategories = 3;
 
-/// Builds the [AreaDetail] for [tracker]. Pure: [entries] is the full entry
-/// history, [now] anchors "today" and the week.
+// energy per gram, for each macro's share of the day's macro calories.
+const int _kcalPerGramProtein = 4;
+const int _kcalPerGramCarbs = 4;
+const int _kcalPerGramFat = 9;
+
+const String _noMeals = 'No meals logged yet today.';
+const String _noCheckin = 'No check-in yet today.';
+
+/// Builds the [AreaDetail] for [area], one with an entry tracker (Money, Move
+/// or Routines). Pure: [entries] is the full entry history, [now] anchors
+/// "today" and the week.
 AreaDetail buildAreaDetail({
-  required DetailTracker tracker,
+  required Area area,
   required List<Entry> entries,
   required Goals goals,
   required List<RitualRoutine> routines,
@@ -109,17 +156,113 @@ AreaDetail buildAreaDetail({
   required Currency currency,
   required DateTime now,
 }) {
+  final tracker = area.tracker;
+  if (tracker == null) {
+    throw ArgumentError.value(area, 'area', 'has no entry tracker');
+  }
   final data =
       buildDetailData(tracker, entries, goals, routines: routines, now: now);
-  switch (tracker) {
-    case DetailTracker.money:
-      return _money(data, currency, now);
-    case DetailTracker.move:
-      return _move(data, workout, now);
-    case DetailTracker.rituals:
-      return _routines(data, entries, routines, rituals, now);
-  }
+  return switch (tracker) {
+    DetailTracker.money => _money(data, currency, now),
+    DetailTracker.move => _move(data, workout, now),
+    DetailTracker.rituals => _routines(data, entries, routines, rituals, now),
+  };
 }
+
+/// The Nutrition page. Pure: [meals] covers at least this week up to [now].
+AreaDetail buildNutritionDetail(List<NutritionMeal> meals, DateTime now) {
+  final todays = _onDay(meals, now, (m) => m.timestamp);
+  double kcalOf(Iterable<NutritionMeal> ms) =>
+      ms.fold<double>(0, (s, m) => s + m.cal.mid);
+
+  final protein = todays.fold<int>(0, (s, m) => s + m.macros.protein.mid);
+  final carbs = todays.fold<int>(0, (s, m) => s + m.macros.carbs.mid);
+  final fat = todays.fold<int>(0, (s, m) => s + m.macros.fat.mid);
+  // there are no macro targets, so each bar is its share of the macro calories
+  final macroKcal = protein * _kcalPerGramProtein +
+      carbs * _kcalPerGramCarbs +
+      fat * _kcalPerGramFat;
+  Contributor macro(String label, int grams, int kcalPerGram) => Contributor(
+        label: label,
+        value: '$grams g',
+        fraction: macroKcal == 0 ? 0 : grams * kcalPerGram / macroKcal,
+      );
+
+  final count = todays.length;
+  return AreaDetail(
+    area: Area.nutrition,
+    hero: _kcal(kcalOf(todays)),
+    unit: 'kcal eaten today',
+    state: null,
+    palLine: switch (count) {
+      0 => _noMeals,
+      1 => '1 meal logged today.',
+      _ => '$count meals logged today.',
+    },
+    contributors: [
+      macro('Protein', protein, _kcalPerGramProtein),
+      macro('Carbs', carbs, _kcalPerGramCarbs),
+      macro('Fat', fat, _kcalPerGramFat),
+    ],
+    week: _weekBars(
+      now: now,
+      valueOf: (day) => kcalOf(_onDay(meals, day, (m) => m.timestamp)),
+      isOff: (_) => false,
+    ),
+    goal: 0,
+    goalLabel: '',
+    weekNote: 'Kcal eaten each day',
+    meals: todays,
+  );
+}
+
+/// The Mood page. Pure: [checkins] covers at least this week up to [now].
+AreaDetail buildMoodDetail(List<MoodCheckin> checkins, DateTime now) {
+  final todays = _onDay(checkins, now, (c) => c.timestamp);
+  final latest = todays.isEmpty ? null : todays.last;
+  String at(MoodCheckin c) =>
+      clockLabel(c.timestamp.hour * 60 + c.timestamp.minute);
+
+  return AreaDetail(
+    area: Area.mood,
+    hero: latest == null ? '—' : moodWord(latest.pleasantness),
+    unit: latest == null ? 'No check-in yet today' : 'at ${at(latest)}',
+    state: null,
+    palLine: latest == null ? _noCheckin : 'Last check-in at ${at(latest)}.',
+    contributors: [
+      for (final c in todays)
+        Contributor(
+          label: at(c),
+          value: moodWord(c.pleasantness),
+          fraction: c.pleasantness.clamp(0.0, 1.0),
+        ),
+    ],
+    week: _weekBars(
+      now: now,
+      valueOf: (day) {
+        final ofDay = _onDay(checkins, day, (c) => c.timestamp);
+        if (ofDay.isEmpty) return null;
+        return ofDay.fold<double>(0, (s, c) => s + c.pleasantness) /
+            ofDay.length;
+      },
+      isOff: (_) => false,
+    ),
+    goal: 0,
+    goalLabel: '',
+    weekNote: 'Average of each day',
+  );
+}
+
+/// The items of [items] on [day]'s calendar date, oldest first.
+List<T> _onDay<T>(
+  List<T> items,
+  DateTime day,
+  DateTime Function(T item) timeOf,
+) =>
+    items.where((i) => startOfDay(timeOf(i)) == startOfDay(day)).toList()
+      ..sort((a, b) => timeOf(a).compareTo(timeOf(b)));
+
+String _kcal(double kcal) => groupThousands('${kcal.round()}', ',');
 
 AreaDetail _money(DetailData data, Currency currency, DateTime now) {
   final spent = data.total;
@@ -154,7 +297,7 @@ AreaDetail _money(DetailData data, Currency currency, DateTime now) {
   );
 
   return AreaDetail(
-    tracker: data.tracker,
+    area: Area.money,
     hero: hero,
     unit: unit,
     state: state,
@@ -204,7 +347,7 @@ AreaDetail _move(DetailData data, WeekPlanDay? workout, DateTime now) {
   );
 
   return AreaDetail(
-    tracker: data.tracker,
+    area: Area.move,
     hero: '$kcal',
     unit: hasGoal ? 'of $goal kcal burned' : 'kcal burned',
     state: progressState(done: kcal, goal: goal, now: now),
@@ -263,32 +406,58 @@ AreaDetail _routines(
     isOff: (v) => v < total,
   );
 
+  final rows = [
+    for (final r in routines) _routineRow(r, rituals?.isComplete(r) ?? false),
+  ];
+  final nextIndex = rows.indexWhere((r) => !r.done);
+
   return AreaDetail(
-    tracker: data.tracker,
+    area: Area.routines,
     hero: '$done',
     unit: total == 0 ? 'routines set up' : 'of $total routines done',
     state: progressState(done: done, goal: total, now: now),
     palLine: palLine,
     contributors: [
-      for (final r in routines) _routineContributor(r, rituals),
+      if (total > 0)
+        Contributor(label: 'Done', value: '$done of $total', fraction: done / total),
+      if (nextIndex >= 0) _nextContributor(routines[nextIndex]),
     ],
     week: week,
     goal: total.toDouble(),
     goalLabel: total == 0 ? '' : 'all $total routines',
     weekNote: _weekNote(week, 'missed'),
     days: data.days,
+    routines: rows,
   );
 }
 
-Contributor _routineContributor(RitualRoutine r, RitualsState? rituals) {
-  final steps = r.steps.length;
-  final done = (rituals?.doneCount(r.id) ?? 0).clamp(0, steps);
-  return Contributor(
-    label: r.name,
-    value: '$done of $steps steps',
-    fraction: steps == 0 ? 0 : done / steps,
+String _steps(RitualRoutine r) =>
+    '${r.steps.length} ${r.steps.length == 1 ? 'step' : 'steps'}';
+
+RoutineRow _routineRow(RitualRoutine r, bool done) {
+  final hasTime = r.time.isNotEmpty;
+  return RoutineRow(
+    id: r.id,
+    name: r.name,
+    detail: done
+        ? 'Done'
+        : hasTime
+            ? '${r.time} · ${_steps(r)}'
+            : _steps(r),
+    done: done,
+    semanticLabel: done
+        ? '${r.name}, done'
+        : hasTime
+            ? '${r.name}, at ${r.time}, ${_steps(r)}'
+            : '${r.name}, ${_steps(r)}',
   );
 }
+
+Contributor _nextContributor(RitualRoutine r) => Contributor(
+      label: r.time.isEmpty ? r.name : '${r.name}, ${r.time}',
+      value: _steps(r),
+      fraction: 0,
+    );
 
 /// Summed magnitude per calendar day, from the tracker's recent-entry groups.
 Map<DateTime, double> _dayTotals(DetailData data) => {
@@ -299,7 +468,7 @@ Map<DateTime, double> _dayTotals(DetailData data) => {
 
 List<WeekBar> _weekBars({
   required DateTime now,
-  required double Function(DateTime day) valueOf,
+  required double? Function(DateTime day) valueOf,
   required bool Function(double value) isOff,
 }) {
   final monday = startOfWeek(now);
@@ -315,7 +484,7 @@ List<WeekBar> _weekBars({
       day: label,
       value: value,
       today: isToday,
-      off: !isToday && isOff(value),
+      off: !isToday && value != null && isOff(value),
     );
   });
 }
@@ -326,27 +495,46 @@ String _weekNote(List<WeekBar> week, String offNoun) {
   return '$offDays ${offDays == 1 ? 'day' : 'days'} $offNoun';
 }
 
-/// Streams the [AreaDetail] for [tracker]. The entries `await for` drives entry
-/// edits; watching the goals, routines and weekly plan providers rebuilds this
-/// one when only those change.
+/// Streams the [AreaDetail] for [area]. Sleep has no data source, so its page
+/// does not watch this provider.
 @riverpod
-Stream<AreaDetail> areaDetail(Ref ref, DetailTracker tracker) async* {
+Stream<AreaDetail> areaDetail(Ref ref, Area area) {
+  final now = clock.now();
+  final monday = startOfWeek(now);
+  final tomorrow = DateTime(now.year, now.month, now.day + 1);
+  return switch (area) {
+    Area.money || Area.move || Area.routines => _trackedDetail(ref, area),
+    Area.nutrition => ref
+        .watch(nutritionRepositoryProvider)
+        .watchMealsInRange(monday, tomorrow)
+        .map((meals) => buildNutritionDetail(meals, clock.now())),
+    Area.mood => ref
+        .watch(moodRepositoryProvider)
+        .watchCheckinsInRange(monday, tomorrow)
+        .map((checkins) => buildMoodDetail(checkins, clock.now())),
+    Area.sleep => Stream.error(UnsupportedError('Sleep has no area detail')),
+  };
+}
+
+/// The entries `await for` drives entry edits; watching the goals, routines
+/// and weekly plan providers rebuilds the provider when only those change.
+Stream<AreaDetail> _trackedDetail(Ref ref, Area area) async* {
   final entriesRepo = ref.watch(entryRepositoryProvider);
   final currency = ref.watch(appSettingsControllerProvider).currency;
   final goals = await ref.watch(goalsStreamProvider.future);
-  final isRoutines = tracker == DetailTracker.rituals;
+  final isRoutines = area == Area.routines;
   final routines = isRoutines
       ? await ref.watch(ritualRoutinesStreamProvider.future)
       : const <RitualRoutine>[];
   final rituals =
       isRoutines ? await ref.watch(ritualsControllerProvider.future) : null;
-  final workout = tracker == DetailTracker.move
+  final workout = area == Area.move
       ? (await ref.watch(weeklyPlanControllerProvider.future)).today
       : null;
 
   await for (final entries in entriesRepo.watchAll()) {
     yield buildAreaDetail(
-      tracker: tracker,
+      area: area,
       entries: entries,
       goals: goals,
       routines: routines,

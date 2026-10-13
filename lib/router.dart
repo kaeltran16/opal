@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-import 'controllers/spending_controller.dart';
+import 'analysis/area.dart';
 import 'theme/theme.dart';
+import 'screens/areas/areas_screen.dart';
 import 'screens/detail/detail_screen.dart';
 import 'screens/email/email_dashboard_screen.dart';
 import 'screens/email/email_intro_screen.dart';
@@ -14,7 +15,6 @@ import 'screens/move/weekly_plan_screen.dart';
 import 'screens/move/workout_history_screen.dart';
 import 'screens/nutrition/nutrition_meal_detail_screen.dart';
 import 'screens/nutrition/nutrition_patterns_screen.dart';
-import 'screens/nutrition/nutrition_screen.dart';
 import 'screens/onboarding/onboarding_screen.dart';
 import 'screens/pal/pal_composer_screen.dart';
 import 'screens/money/budgets_screen.dart';
@@ -25,7 +25,6 @@ import 'screens/reflect/evening_close_out_screen.dart';
 import 'screens/reflect/streak_celebration_screen.dart';
 import 'screens/rituals/rituals_builder_screen.dart';
 import 'screens/rituals/routine_player_screen.dart';
-import 'screens/rituals/rituals_screen.dart';
 import 'screens/workout/routine_generator_screen.dart';
 import 'screens/settings/about_screen.dart';
 import 'screens/settings/budgets_goals_screen.dart';
@@ -42,8 +41,6 @@ import 'screens/workout/routine_editor_screen.dart';
 import 'screens/workout/start_workout_screen.dart';
 import 'screens/workout/workout_detail_screen.dart';
 import 'screens/today/today_screen.dart';
-import 'screens/sleep/sleep_screen.dart';
-import 'screens/mood/mood_screen.dart';
 
 /// Named routes for the whole app. Later units slot their real screens into the
 /// already-defined paths so deep links / Live Activity tap-through (U25) stay
@@ -51,24 +48,32 @@ import 'screens/mood/mood_screen.dart';
 enum AppRoute {
   // Tab roots (branch roots of the StatefulShellRoute).
   today('today', '/today'),
+  areas('areas', '/areas'),
   move('move', '/move'),
-  nutrition('nutrition', '/nutrition'),
   you('you', '/you'),
 
-  // Nutrition sub-routes.
-  nutritionMeal('nutritionMeal', 'meal/:id'), //   -> /nutrition/meal/:id
-  nutritionPatterns('nutritionPatterns', 'patterns'), // /nutrition/patterns
+  // Area pages, under the Areas tab.
+  areaMoney('areaMoney', 'money'), //               -> /areas/money
+  areaMove('areaMove', 'move'), //                  -> /areas/move
+  areaRoutines('areaRoutines', 'routines'), //      -> /areas/routines
+  areaManageRoutines('areaManageRoutines', 'manage'), // /areas/routines/manage
+  areaNutrition('areaNutrition', 'nutrition'), //   -> /areas/nutrition
+  areaSleep('areaSleep', 'sleep'), //               -> /areas/sleep
+  areaMood('areaMood', 'mood'), //                  -> /areas/mood
 
-  // Today sub-routes / detail (stubbed until their units).
-  spendingDetail('spendingDetail', 'spending'), // U09 -> /today/spending
+  // Nutrition sub-routes.
+  nutritionMeal('nutritionMeal', 'meal/:id'), // -> /areas/nutrition/meal/:id
+  nutritionPatterns('nutritionPatterns', 'patterns'), // /areas/nutrition/patterns
+
+  // Old paths, kept as redirects so Siri / Live Activity links resolve.
+  nutrition('nutrition', '/nutrition'),
+  spendingDetail('spendingDetail', 'spending'), //  -> /today/spending
   moveDetail('moveDetail', 'move-detail'), //       -> /today/move-detail
   ritualsDetail('ritualsDetail', 'rituals-detail'), //  /today/rituals-detail
   todayRituals('todayRituals', 'rituals'), //       -> /today/rituals
   todayManageRituals('todayManageRituals', 'manage'), // /today/rituals/manage
   todaySleep('todaySleep', 'sleep'), //             -> /today/sleep
   todayMood('todayMood', 'mood'), //                -> /today/mood
-
-  // Old tab paths, kept as redirects so Siri / Live Activity links resolve.
   rituals('rituals', '/rituals'),
   manageRituals('manageRituals', 'manage'), //      -> /rituals/manage
   sleep('sleep', '/sleep'),
@@ -130,9 +135,29 @@ enum AppRoute {
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
 final _todayNavigatorKey = GlobalKey<NavigatorState>();
+final _areasNavigatorKey = GlobalKey<NavigatorState>();
 final _moveNavigatorKey = GlobalKey<NavigatorState>();
-final _nutritionNavigatorKey = GlobalKey<NavigatorState>();
 final _youNavigatorKey = GlobalKey<NavigatorState>();
+
+/// The page route of [area], under the Areas tab.
+AppRoute areaRoute(Area area) => switch (area) {
+      Area.money => AppRoute.areaMoney,
+      Area.move => AppRoute.areaMove,
+      Area.routines => AppRoute.areaRoutines,
+      Area.nutrition => AppRoute.areaNutrition,
+      Area.sleep => AppRoute.areaSleep,
+      Area.mood => AppRoute.areaMood,
+    };
+
+/// The old Today children and where each moved under the Areas tab. The
+/// rituals pair has a child of its own, so it is wired by hand.
+const _movedFromToday = [
+  (AppRoute.spendingDetail, AppRoute.areaMoney),
+  (AppRoute.moveDetail, AppRoute.areaMove),
+  (AppRoute.ritualsDetail, AppRoute.areaRoutines),
+  (AppRoute.todaySleep, AppRoute.areaSleep),
+  (AppRoute.todayMood, AppRoute.areaMood),
+];
 
 const _lightSheetScrim = 0.12;
 const _darkSheetScrim = 0.35;
@@ -176,49 +201,105 @@ GoRouter createRouter({
                 path: AppRoute.today.path,
                 name: AppRoute.today.name,
                 builder: (context, state) => const TodayScreen(),
+                // the area pages moved under the Areas tab; these old paths
+                // redirect there.
                 routes: [
-                  GoRoute(
-                    path: AppRoute.spendingDetail.path,
-                    name: AppRoute.spendingDetail.name,
-                    builder: (context, state) =>
-                        const DetailScreen(tracker: DetailTracker.money),
-                  ),
-                  GoRoute(
-                    path: AppRoute.moveDetail.path,
-                    name: AppRoute.moveDetail.name,
-                    builder: (context, state) =>
-                        const DetailScreen(tracker: DetailTracker.move),
-                  ),
-                  GoRoute(
-                    path: AppRoute.ritualsDetail.path,
-                    name: AppRoute.ritualsDetail.name,
-                    builder: (context, state) =>
-                        const DetailScreen(tracker: DetailTracker.rituals),
-                  ),
-                  // rituals, sleep and mood live under Today so the shell
-                  // keeps four tabs; their old root paths redirect here.
+                  for (final (from, to) in _movedFromToday)
+                    GoRoute(
+                      path: from.path,
+                      name: from.name,
+                      redirect: (context, state) =>
+                          _childOf(AppRoute.areas, to, state),
+                    ),
+                  // a route-level redirect runs for every route in the match,
+                  // so the parent only redirects its own path.
                   GoRoute(
                     path: AppRoute.todayRituals.path,
                     name: AppRoute.todayRituals.name,
-                    builder: (context, state) => const RitualsScreen(),
+                    redirect: (context, state) => state.uri.path ==
+                            '${AppRoute.today.path}/${AppRoute.todayRituals.path}'
+                        ? _childOf(AppRoute.areas, AppRoute.areaRoutines, state)
+                        : null,
                     routes: [
                       GoRoute(
                         path: AppRoute.todayManageRituals.path,
                         name: AppRoute.todayManageRituals.name,
+                        redirect: (context, state) =>
+                            _childOf(AppRoute.areas, AppRoute.areaRoutines, state,
+                                '/${AppRoute.areaManageRoutines.path}'),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ],
+          ),
+          // --- Areas branch ---
+          StatefulShellBranch(
+            navigatorKey: _areasNavigatorKey,
+            routes: [
+              GoRoute(
+                path: AppRoute.areas.path,
+                name: AppRoute.areas.name,
+                builder: (context, state) => const AreasScreen(),
+                routes: [
+                  GoRoute(
+                    path: AppRoute.areaMoney.path,
+                    name: AppRoute.areaMoney.name,
+                    builder: (context, state) =>
+                        const DetailScreen(area: Area.money),
+                  ),
+                  GoRoute(
+                    path: AppRoute.areaMove.path,
+                    name: AppRoute.areaMove.name,
+                    builder: (context, state) =>
+                        const DetailScreen(area: Area.move),
+                  ),
+                  GoRoute(
+                    path: AppRoute.areaRoutines.path,
+                    name: AppRoute.areaRoutines.name,
+                    builder: (context, state) =>
+                        const DetailScreen(area: Area.routines),
+                    routes: [
+                      GoRoute(
+                        path: AppRoute.areaManageRoutines.path,
+                        name: AppRoute.areaManageRoutines.name,
                         builder: (context, state) =>
                             const RitualsBuilderScreen(),
                       ),
                     ],
                   ),
                   GoRoute(
-                    path: AppRoute.todaySleep.path,
-                    name: AppRoute.todaySleep.name,
-                    builder: (context, state) => const SleepScreen(),
+                    path: AppRoute.areaNutrition.path,
+                    name: AppRoute.areaNutrition.name,
+                    builder: (context, state) =>
+                        const DetailScreen(area: Area.nutrition),
+                    routes: [
+                      GoRoute(
+                        path: AppRoute.nutritionMeal.path,
+                        name: AppRoute.nutritionMeal.name,
+                        builder: (context, state) => NutritionMealDetailScreen(
+                            mealId: state.pathParameters['id']!),
+                      ),
+                      GoRoute(
+                        path: AppRoute.nutritionPatterns.path,
+                        name: AppRoute.nutritionPatterns.name,
+                        builder: (context, state) =>
+                            const NutritionPatternsScreen(),
+                      ),
+                    ],
                   ),
                   GoRoute(
-                    path: AppRoute.todayMood.path,
-                    name: AppRoute.todayMood.name,
-                    builder: (context, state) => const MoodScreen(),
+                    path: AppRoute.areaSleep.path,
+                    name: AppRoute.areaSleep.name,
+                    builder: (context, state) =>
+                        const DetailScreen(area: Area.sleep),
+                  ),
+                  GoRoute(
+                    path: AppRoute.areaMood.path,
+                    name: AppRoute.areaMood.name,
+                    builder: (context, state) =>
+                        const DetailScreen(area: Area.mood),
                   ),
                 ],
               ),
@@ -267,30 +348,6 @@ GoRouter createRouter({
                     path: AppRoute.routineGenerator.path,
                     name: AppRoute.routineGenerator.name,
                     builder: (context, state) => const RoutineGeneratorScreen(),
-                  ),
-                ],
-              ),
-            ],
-          ),
-          // --- Nutrition branch ---
-          StatefulShellBranch(
-            navigatorKey: _nutritionNavigatorKey,
-            routes: [
-              GoRoute(
-                path: AppRoute.nutrition.path,
-                name: AppRoute.nutrition.name,
-                builder: (context, state) => const NutritionScreen(),
-                routes: [
-                  GoRoute(
-                    path: AppRoute.nutritionMeal.path,
-                    name: AppRoute.nutritionMeal.name,
-                    builder: (context, state) =>
-                        NutritionMealDetailScreen(mealId: state.pathParameters['id']!),
-                  ),
-                  GoRoute(
-                    path: AppRoute.nutritionPatterns.path,
-                    name: AppRoute.nutritionPatterns.name,
-                    builder: (context, state) => const NutritionPatternsScreen(),
                   ),
                 ],
               ),
@@ -352,7 +409,7 @@ GoRouter createRouter({
         ],
       ),
 
-      // --- Old tab paths, now children of Today ---
+      // --- Old tab paths, now area pages under the Areas tab ---
       // a route-level redirect runs for every route in the match, so the
       // parent only redirects its own path and leaves /rituals/manage to the
       // child. /rituals/player/:routineId doesn't match here and falls through.
@@ -360,26 +417,36 @@ GoRouter createRouter({
         path: AppRoute.rituals.path,
         name: AppRoute.rituals.name,
         redirect: (context, state) => state.uri.path == AppRoute.rituals.path
-            ? _todayChild(AppRoute.todayRituals, state)
+            ? _childOf(AppRoute.areas, AppRoute.areaRoutines, state)
             : null,
         routes: [
           GoRoute(
             path: AppRoute.manageRituals.path,
             name: AppRoute.manageRituals.name,
-            redirect: (context, state) => _todayChild(AppRoute.todayRituals,
-                state, '/${AppRoute.todayManageRituals.path}'),
+            redirect: (context, state) => _childOf(AppRoute.areas,
+                AppRoute.areaRoutines, state, '/${AppRoute.areaManageRoutines.path}'),
           ),
         ],
       ),
+      for (final (from, to) in [
+        (AppRoute.sleep, AppRoute.areaSleep),
+        (AppRoute.mood, AppRoute.areaMood),
+      ])
+        GoRoute(
+          path: from.path,
+          name: from.name,
+          redirect: (context, state) => _childOf(AppRoute.areas, to, state),
+        ),
+      // the parent runs first in the match and carries the rest of the path,
+      // so the meal and patterns children redirect through it.
       GoRoute(
-        path: AppRoute.sleep.path,
-        name: AppRoute.sleep.name,
-        redirect: (context, state) => _todayChild(AppRoute.todaySleep, state),
-      ),
-      GoRoute(
-        path: AppRoute.mood.path,
-        name: AppRoute.mood.name,
-        redirect: (context, state) => _todayChild(AppRoute.todayMood, state),
+        path: AppRoute.nutrition.path,
+        name: AppRoute.nutrition.name,
+        redirect: _toAreaNutrition,
+        routes: [
+          for (final child in [AppRoute.nutritionMeal, AppRoute.nutritionPatterns])
+            GoRoute(path: child.path, redirect: _toAreaNutrition),
+        ],
       ),
 
       // --- Modal / focus routes above the shell (full-screen for now) ---
@@ -559,11 +626,20 @@ GoRouter createRouter({
 /// stand-alone use) the app behaves as if onboarding is already done.
 bool _alwaysComplete() => true;
 
-String _todayChild(AppRoute child, GoRouterState state, [String suffix = '']) {
+/// The redirect target for a moved route: [child] (plus [suffix]) under
+/// [parent], keeping [state]'s query string.
+String _childOf(AppRoute parent, AppRoute child, GoRouterState state,
+    [String suffix = '']) {
   final query = state.uri.query;
-  final path = '${AppRoute.today.path}/${child.path}$suffix';
+  final path = '${parent.path}/${child.path}$suffix';
   return query.isEmpty ? path : '$path?$query';
 }
+
+String _toAreaNutrition(BuildContext context, GoRouterState state) => _childOf(
+    AppRoute.areas,
+    AppRoute.areaNutrition,
+    state,
+    state.uri.path.substring(AppRoute.nutrition.path.length));
 
 /// Maps the Recap `?range=` query value to an [InsightRange]; anything other
 /// than `week`/`month` (including absent) opens on Day.

@@ -4,19 +4,22 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:opal/analysis/area.dart';
 import 'package:opal/controllers/providers.dart';
 import 'package:opal/data/db/database.dart';
 import 'package:opal/data/seed/seeder.dart';
 import 'package:opal/router.dart';
+import 'package:opal/screens/detail/detail_screen.dart';
 import 'package:opal/services/pal/mock_pal_service.dart';
 import 'package:opal/theme/app_colors.dart';
 
 import '../support/flush_provider_timers.dart';
 
-/// Task 13 smoke test — opens the add sheet, taps a quick pick, saves; asserts
-/// the new meal name appears in the meals list on the landing screen.
+/// Task 13 smoke test — opens the add sheet from the Nutrition area page's Add a
+/// meal, taps a quick pick, saves; asserts the new meal name appears in the
+/// page's meals list.
 void main() {
-  // Pumps the app on the nutrition landing and opens the add-meal sheet.
+  // Pumps the app on the Nutrition area page and opens the add-meal sheet.
   Future<void> openAddSheet(WidgetTester tester) async {
     SharedPreferences.setMockInitialValues({});
     final prefs = await SharedPreferences.getInstance();
@@ -43,15 +46,20 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.text('TODAY'), findsOneWidget);
+    // the old path redirects to the Areas Nutrition page.
+    final page = find.byWidgetPredicate(
+        (w) => w is DetailScreen && w.area == Area.nutrition);
+    expect(page, findsOneWidget);
 
-    final scrollable = find.byType(Scrollable).first;
+    // hit-testable, so it is not left under the floating tab bar.
+    final add = find.bySemanticsLabel('Add a meal').hitTestable();
     await tester.scrollUntilVisible(
-      find.bySemanticsLabel('Add a meal'),
-      -300,
-      scrollable: scrollable,
+      add,
+      100,
+      scrollable:
+          find.descendant(of: page, matching: find.byType(Scrollable)).first,
     );
-    await tester.tap(find.bySemanticsLabel('Add a meal'));
+    await tester.tap(add);
     await tester.pumpAndSettle();
   }
 
@@ -60,7 +68,10 @@ void main() {
     await openAddSheet(tester);
 
     // Sheet is open — header and quick picks visible.
-    expect(find.text('Add a meal'), findsOneWidget);
+    expect(
+        find.descendant(
+            of: find.byType(BottomSheet), matching: find.text('Add a meal')),
+        findsOneWidget);
     expect(find.text('OR PICK A COMMON ONE'), findsOneWidget);
 
     // Tap the 'Banana' quick pick (scroll the sheet body to it first — the

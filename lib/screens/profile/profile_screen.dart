@@ -20,7 +20,6 @@ import '../../services/pal/pal_context_builder.dart' show moveStreakDays;
 import '../../theme/theme.dart';
 import '../../util/dates.dart';
 import '../../widgets/app_icon.dart';
-import '../../widgets/inset_section.dart';
 import '../../widgets/pal_label.dart';
 import '../../widgets/press_scale.dart';
 import '../you/autopilot_screen.dart';
@@ -41,8 +40,7 @@ const double _learningMaxWidth = 320;
 const int _weekdayHorizon = 6;
 
 /// The You tab: a header line, Pal's findings (a lead, then Also seen), the
-/// Pal group opening What Pal remembers and Autopilot, the Areas stand-in,
-/// then Settings.
+/// Pal group opening What Pal remembers and Autopilot, then Settings.
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
 
@@ -91,52 +89,6 @@ class ProfileScreen extends ConsumerWidget {
           ),
           const SizedBox(height: Spacing.xxl + Spacing.md),
         ]),
-
-        // --- Areas ---
-        // stands in until the Areas tab lands; Today no longer opens these.
-        // go, not push: the pages live under /today, so they open over Today
-        // and their back returns there, as their label says.
-        _Group(
-          label: 'Areas',
-          children: [
-            ListRow(
-              icon: 'dollarsign.circle.fill',
-              iconBg: c.moneyTint,
-              iconColor: c.moneyInk,
-              title: 'Money',
-              onTap: () => context.goNamed(AppRoute.spendingDetail.name),
-            ),
-            ListRow(
-              icon: 'figure.run',
-              iconBg: c.moveTint,
-              iconColor: c.moveInk,
-              title: 'Move',
-              onTap: () => context.goNamed(AppRoute.moveDetail.name),
-            ),
-            ListRow(
-              icon: 'sparkles',
-              iconBg: c.ritualsTint,
-              iconColor: c.ritualsInk,
-              title: 'Routines',
-              onTap: () => context.goNamed(AppRoute.ritualsDetail.name),
-            ),
-            ListRow(
-              icon: 'moon.stars.fill',
-              iconBg: c.sleepTint,
-              iconColor: c.sleepInk,
-              title: 'Sleep',
-              onTap: () => context.goNamed(AppRoute.todaySleep.name),
-            ),
-            ListRow(
-              icon: 'heart.fill',
-              iconBg: c.moodTint,
-              iconColor: c.moodInk,
-              title: 'Mood',
-              onTap: () => context.goNamed(AppRoute.todayMood.name),
-              last: true,
-            ),
-          ],
-        ),
 
         _Gutter(children: [
           const _Heading('Settings'),
@@ -684,51 +636,4 @@ class _Value extends StatelessWidget {
       );
 }
 
-BoxDecoration _cardDecoration(AppColors c) => BoxDecoration(
-      color: c.surface,
-      borderRadius: BorderRadius.circular(Radii.xxl),
-      boxShadow: [BoxShadow(color: c.hair, blurRadius: 0, spreadRadius: 0.5)],
-    );
 
-/// The 13 pt bold uppercase label above a group.
-class _Label extends StatelessWidget {
-  const _Label(this.text);
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(Spacing.xs, 0, Spacing.xs, Spacing.sm),
-      child: Text(text.toUpperCase(),
-          style: AppType.footnote.copyWith(
-              fontWeight: FontWeight.w700,
-              color: context.colors.ink3,
-              letterSpacing: 0.2)),
-    );
-  }
-}
-
-/// A labelled list group on a top-level surface card.
-class _Group extends StatelessWidget {
-  const _Group({required this.label, required this.children});
-  final String label;
-  final List<Widget> children;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(Spacing.lg, 0, Spacing.lg, Spacing.xxl),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          _Label(label),
-          Container(
-            decoration: _cardDecoration(context.colors),
-            clipBehavior: Clip.antiAlias,
-            child: Column(children: children),
-          ),
-        ],
-      ),
-    );
-  }
-}

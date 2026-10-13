@@ -11,15 +11,12 @@ import 'package:opal/controllers/pal_findings_controller.dart';
 import 'package:opal/controllers/pal_memory_controller.dart';
 import 'package:opal/controllers/profile_controller.dart';
 import 'package:opal/controllers/providers.dart';
-import 'package:opal/controllers/spending_controller.dart' show DetailTracker;
 import 'package:opal/data/db/database.dart';
 import 'package:opal/data/repositories/settings_repository.dart';
 import 'package:opal/models/models.dart';
 import 'package:opal/router.dart';
-import 'package:opal/screens/detail/detail_screen.dart';
 import 'package:opal/screens/pal/pal_composer_screen.dart';
 import 'package:opal/screens/profile/profile_screen.dart';
-import 'package:opal/screens/sleep/sleep_screen.dart';
 import 'package:opal/screens/you/autopilot_screen.dart';
 import 'package:opal/screens/you/pal_memory_screen.dart';
 import 'package:opal/services/pal/mock_pal_service.dart';
@@ -552,7 +549,7 @@ void main() {
   });
 
   testWidgets(
-      'the Areas group lists the five areas in order and opens their pages',
+      'the You tab has no Areas group; the areas live on their own tab',
       (WidgetTester tester) async {
     tester.view.physicalSize = const Size(1200, 6000);
     tester.view.devicePixelRatio = 1.0;
@@ -579,31 +576,10 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    Finder row(String title) => find.widgetWithText(ListRow, title);
-    expect(find.text('AREAS'), findsOneWidget);
-    const areas = ['Money', 'Move', 'Routines', 'Sleep', 'Mood'];
-    final tops = [
-      for (final title in areas)
-        tester.getTopLeft(row(title)).dy,
-    ];
-    expect(tops, orderedEquals([...tops]..sort()));
-    // the group sits between the Pal group and Settings.
-    expect(tops.first, greaterThan(tester.getTopLeft(find.text('Autopilot')).dy));
-    expect(tops.last, lessThan(tester.getTopLeft(find.text('Settings')).dy));
-
-    await tester.tap(row('Money'));
-    await tester.pumpAndSettle();
-    expect(
-      find.byWidgetPredicate(
-          (w) => w is DetailScreen && w.tracker == DetailTracker.money),
-      findsOneWidget,
-    );
-
-    router.go('/you');
-    await tester.pumpAndSettle();
-    await tester.tap(row('Sleep'));
-    await tester.pumpAndSettle();
-    expect(find.byType(SleepScreen), findsOneWidget);
+    // the tall view lays out the whole list, so a missing group is really gone.
+    expect(find.text('Settings'), findsOneWidget);
+    expect(find.text('AREAS'), findsNothing);
+    expect(find.byType(ListRow), findsNothing);
 
     await flushProviderTimers(tester);
   });

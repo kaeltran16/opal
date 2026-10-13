@@ -8,16 +8,14 @@ part of 'area_detail_controller.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
-/// Streams the [AreaDetail] for [tracker]. The entries `await for` drives entry
-/// edits; watching the goals, routines and weekly plan providers rebuilds this
-/// one when only those change.
+/// Streams the [AreaDetail] for [area]. Sleep has no data source, so its page
+/// does not watch this provider.
 
 @ProviderFor(areaDetail)
 const areaDetailProvider = AreaDetailFamily._();
 
-/// Streams the [AreaDetail] for [tracker]. The entries `await for` drives entry
-/// edits; watching the goals, routines and weekly plan providers rebuilds this
-/// one when only those change.
+/// Streams the [AreaDetail] for [area]. Sleep has no data source, so its page
+/// does not watch this provider.
 
 final class AreaDetailProvider
     extends
@@ -27,12 +25,11 @@ final class AreaDetailProvider
           Stream<AreaDetail>
         >
     with $FutureModifier<AreaDetail>, $StreamProvider<AreaDetail> {
-  /// Streams the [AreaDetail] for [tracker]. The entries `await for` drives entry
-  /// edits; watching the goals, routines and weekly plan providers rebuilds this
-  /// one when only those change.
+  /// Streams the [AreaDetail] for [area]. Sleep has no data source, so its page
+  /// does not watch this provider.
   const AreaDetailProvider._({
     required AreaDetailFamily super.from,
-    required DetailTracker super.argument,
+    required Area super.argument,
   }) : super(
          retry: null,
          name: r'areaDetailProvider',
@@ -58,7 +55,7 @@ final class AreaDetailProvider
 
   @override
   Stream<AreaDetail> create(Ref ref) {
-    final argument = this.argument as DetailTracker;
+    final argument = this.argument as Area;
     return areaDetail(ref, argument);
   }
 
@@ -73,14 +70,13 @@ final class AreaDetailProvider
   }
 }
 
-String _$areaDetailHash() => r'9d606c2b61d03d89d3b0a4cf14952b765abdd594';
+String _$areaDetailHash() => r'bd30a99d7e89f346a0c6610a6fcd13b677f608a2';
 
-/// Streams the [AreaDetail] for [tracker]. The entries `await for` drives entry
-/// edits; watching the goals, routines and weekly plan providers rebuilds this
-/// one when only those change.
+/// Streams the [AreaDetail] for [area]. Sleep has no data source, so its page
+/// does not watch this provider.
 
 final class AreaDetailFamily extends $Family
-    with $FunctionalFamilyOverride<Stream<AreaDetail>, DetailTracker> {
+    with $FunctionalFamilyOverride<Stream<AreaDetail>, Area> {
   const AreaDetailFamily._()
     : super(
         retry: null,
@@ -90,12 +86,11 @@ final class AreaDetailFamily extends $Family
         isAutoDispose: true,
       );
 
-  /// Streams the [AreaDetail] for [tracker]. The entries `await for` drives entry
-  /// edits; watching the goals, routines and weekly plan providers rebuilds this
-  /// one when only those change.
+  /// Streams the [AreaDetail] for [area]. Sleep has no data source, so its page
+  /// does not watch this provider.
 
-  AreaDetailProvider call(DetailTracker tracker) =>
-      AreaDetailProvider._(argument: tracker, from: this);
+  AreaDetailProvider call(Area area) =>
+      AreaDetailProvider._(argument: area, from: this);
 
   @override
   String toString() => r'areaDetailProvider';

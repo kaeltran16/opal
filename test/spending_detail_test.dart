@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:opal/analysis/area.dart';
 import 'package:opal/controllers/providers.dart';
 import 'package:opal/controllers/spending_controller.dart';
 import 'package:opal/data/db/database.dart';
@@ -254,7 +255,7 @@ void main() {
           loopDatabaseProvider.overrideWithValue(db),
           sharedPreferencesProvider.overrideWithValue(prefs),
         ],
-        child: _wrap(const DetailScreen(tracker: DetailTracker.money)),
+        child: _wrap(const DetailScreen(area: Area.money)),
       ),
     );
     await tester.pumpAndSettle();

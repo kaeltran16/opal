@@ -9,22 +9,31 @@ import 'package:opal/router.dart';
 import 'package:opal/screens/rituals/routine_player_screen.dart';
 import 'package:opal/screens/shell/loop_shell.dart';
 import 'package:opal/screens/workout/active_session_screen.dart';
+import 'package:opal/widgets/glass_tab_bar.dart';
 
 import '../support/flush_provider_timers.dart';
 import '../support/golden_harness.dart' show bootApp;
 
-/// Every path that resolved before the four-tab shell still resolves: moved
-/// routes land on their new location, everything else stays put.
+/// Every path that resolved before the Areas tab still resolves: moved routes
+/// land on their new location under /areas, everything else stays put.
 const _cases = {
-  '/today': '/today', '/move': '/move', '/nutrition': '/nutrition',
-  '/rituals': '/today/rituals', '/rituals/manage': '/today/rituals/manage',
-  '/sleep': '/today/sleep', '/mood': '/today/mood',
-  '/today/spending': '/today/spending', '/today/move-detail': '/today/move-detail',
-  '/today/rituals-detail': '/today/rituals-detail',
+  '/today': '/today', '/areas': '/areas', '/move': '/move',
+  '/areas/money': '/areas/money', '/areas/move': '/areas/move',
+  '/areas/routines': '/areas/routines', '/areas/routines/manage': '/areas/routines/manage',
+  '/areas/nutrition': '/areas/nutrition', '/areas/nutrition/patterns': '/areas/nutrition/patterns',
+  '/areas/nutrition/meal/m1': '/areas/nutrition/meal/m1',
+  '/areas/sleep': '/areas/sleep', '/areas/mood': '/areas/mood',
+  '/nutrition': '/areas/nutrition', '/nutrition/patterns': '/areas/nutrition/patterns',
+  '/nutrition/meal/m1': '/areas/nutrition/meal/m1',
+  '/rituals': '/areas/routines', '/rituals/manage': '/areas/routines/manage',
+  '/sleep': '/areas/sleep', '/mood': '/areas/mood',
+  '/today/spending': '/areas/money', '/today/move-detail': '/areas/move',
+  '/today/rituals-detail': '/areas/routines', '/today/rituals': '/areas/routines',
+  '/today/rituals/manage': '/areas/routines/manage',
+  '/today/sleep': '/areas/sleep', '/today/mood': '/areas/mood',
   '/move/start': '/move/start', '/move/history': '/move/history',
   '/move/routine-editor': '/move/routine-editor', '/move/weekly-plan': '/move/weekly-plan',
   '/move/routine-generator': '/move/routine-generator',
-  '/nutrition/patterns': '/nutrition/patterns',
   '/you': '/you', '/you/budgets': '/you/budgets', '/you/insights': '/you/insights',
   '/you/budgets-goals': '/you/budgets-goals', '/you/notifications': '/you/notifications',
   '/you/appearance': '/you/appearance', '/you/privacy': '/you/privacy',
@@ -83,11 +92,15 @@ void main() {
     await bootApp(tester);
     final router = _router(tester);
     const cases = {
-      '/rituals?from=widget': '/today/rituals?from=widget',
-      '/rituals/manage?from=widget': '/today/rituals/manage?from=widget',
-      '/sleep?from=siri': '/today/sleep?from=siri',
-      '/mood?from=siri': '/today/mood?from=siri',
-      '/sleep': '/today/sleep',
+      '/nutrition?x=1': '/areas/nutrition?x=1',
+      '/nutrition/patterns?x=1': '/areas/nutrition/patterns?x=1',
+      '/today/spending?x=1': '/areas/money?x=1',
+      '/today/rituals/manage?from=widget': '/areas/routines/manage?from=widget',
+      '/rituals?from=widget': '/areas/routines?from=widget',
+      '/rituals/manage?from=widget': '/areas/routines/manage?from=widget',
+      '/sleep?from=siri': '/areas/sleep?from=siri',
+      '/mood?from=siri': '/areas/mood?from=siri',
+      '/sleep': '/areas/sleep',
     };
     for (final MapEntry(key: from, value: to) in cases.entries) {
       router.go(from);
@@ -98,25 +111,26 @@ void main() {
     await flushProviderTimers(tester);
   });
 
-  testWidgets('a moved route opened from another tab shows Today with Back',
+  testWidgets('a moved route opened from another tab shows Areas with Back',
       (tester) async {
     await bootApp(tester);
     final router = _router(tester);
 
-    router.go('/nutrition');
+    router.go('/move');
     await tester.pumpAndSettle();
     router.go('/sleep');
     await tester.pumpAndSettle();
 
-    expect(_path(router), '/today/sleep');
+    expect(_path(router), '/areas/sleep');
     expect(
-      tester.getSemantics(find.bySemanticsLabel('Today')),
-      isSemantics(label: 'Today', isButton: true, isSelected: true),
+      tester.getSemantics(find.descendant(
+          of: find.byType(GlassTabBar), matching: find.bySemanticsLabel(RegExp('^Areas')))),
+      isSemantics(isButton: true, isSelected: true),
     );
 
-    await tester.tap(find.bySemanticsLabel('Back'));
+    await tester.tap(find.bySemanticsLabel('Back to Areas'));
     await tester.pumpAndSettle();
-    expect(_path(router), '/today');
+    expect(_path(router), '/areas');
 
     await flushProviderTimers(tester);
   });

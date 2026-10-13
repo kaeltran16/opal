@@ -15,10 +15,7 @@ const _tabs = [
 
 // one instance across pumps, or AnimatedTheme lerps and the reduce motion
 // test sees a running animation that isn't the tab bar's.
-final _theme = ThemeData(
-  useMaterial3: true,
-  extensions: [AppColors.light()],
-);
+final _theme = ThemeData(useMaterial3: true, extensions: [AppColors.light()]);
 
 Widget _app(Widget child, {bool disableAnimations = false}) {
   return ProviderScope(
@@ -39,13 +36,15 @@ Widget _app(Widget child, {bool disableAnimations = false}) {
 }
 
 GlassTabBar _bar({
+  List<GlassTab> tabs = _tabs,
+  String activeId = 'today',
   bool minimized = false,
   ValueChanged<String>? onTab,
   VoidCallback? onRestore,
 }) {
   return GlassTabBar(
-    tabs: _tabs,
-    activeId: 'today',
+    tabs: tabs,
+    activeId: activeId,
     onTab: onTab ?? (_) {},
     minimized: minimized,
     onRestore: onRestore ?? () {},
@@ -92,15 +91,20 @@ void main() {
     expect(active.fontWeight, FontWeight.w600);
     expect(active.color, colors.ink);
     expect(active.fontSize, AppType.caption.fontSize);
-    expect(tester.widget<Icon>(find.byIcon(iconForSf('house.fill'))).color,
-        colors.ink);
+    expect(
+      tester.widget<Icon>(find.byIcon(iconForSf('house.fill'))).color,
+      colors.ink,
+    );
 
     for (final t in _tabs.skip(1)) {
       final style = tester.widget<Text>(find.text(t.label)).style!;
       expect(style.fontWeight, FontWeight.w400, reason: t.label);
       expect(style.color, colors.ink3, reason: t.label);
-      expect(tester.widget<Icon>(find.byIcon(iconForSf(t.icon))).color,
-          colors.ink3, reason: t.label);
+      expect(
+        tester.widget<Icon>(find.byIcon(iconForSf(t.icon))).color,
+        colors.ink3,
+        reason: t.label,
+      );
     }
   });
 
@@ -187,6 +191,116 @@ void main() {
 
     expect(find.text('Workout'), findsOneWidget);
     expect(tester.hasRunningAnimations, isFalse);
+  });
+
+  group('dot', () {
+    const watch = Color(0xFFE0A030);
+    const dotted = [
+      GlassTab('today', 'Today', 'house.fill', dot: watch),
+      GlassTab('move', 'Workout', 'figure.run'),
+    ];
+
+    BoxDecoration dotOf(WidgetTester tester, String id) =>
+        tester.widget<DecoratedBox>(find.byKey(glassTabDotKey(id))).decoration
+            as BoxDecoration;
+
+    testWidgets('renders only on the tab that sets one, in its colour', (
+      tester,
+    ) async {
+      await tester.pumpWidget(_app(_bar(tabs: dotted)));
+      await tester.pump();
+
+      expect(find.byKey(glassTabDotKey('today')), findsOneWidget);
+      expect(find.byKey(glassTabDotKey('move')), findsNothing);
+      final dot = dotOf(tester, 'today');
+      expect(dot.color, watch);
+      expect(dot.shape, BoxShape.circle);
+      expect(dot.border!.top.color, AppColors.light().surface);
+      expect(dot.border!.top.width, 2);
+      expect(
+        tester.getSize(find.byKey(glassTabDotKey('today'))),
+        const Size(8, 8),
+      );
+    });
+
+    testWidgets('sits at the icon top right', (tester) async {
+      await tester.pumpWidget(_app(_bar(tabs: dotted)));
+      await tester.pump();
+
+      final icon = tester.getRect(find.byIcon(iconForSf('house.fill')));
+      final dot = tester.getRect(find.byKey(glassTabDotKey('today')));
+      expect(dot.top, icon.top - 1);
+      expect(dot.right, icon.right + 4);
+    });
+
+    testWidgets('stays out of semantics', (tester) async {
+      final handle = tester.ensureSemantics();
+      await tester.pumpWidget(_app(_bar(tabs: dotted)));
+      await tester.pump();
+
+      expect(
+        tester.getSemantics(find.bySemanticsLabel('Today')),
+        isSemantics(label: 'Today', isButton: true, isSelected: true),
+      );
+      handle.dispose();
+    });
+
+    testWidgets('the minimized circle carries the active tab dot', (
+      tester,
+    ) async {
+      await tester.pumpWidget(_app(_bar(tabs: dotted, minimized: true)));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(glassTabDotKey('today')), findsOneWidget);
+      expect(dotOf(tester, 'today').color, watch);
+    });
+
+    testWidgets('the minimized circle has none when the active tab has none', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _app(_bar(tabs: dotted, activeId: 'move', minimized: true)),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(glassTabDotKey('today')), findsNothing);
+    });
+  });
+
+  testWidgets('semanticLabel replaces the label but not the visible text', (
+    tester,
+  ) async {
+    final handle = tester.ensureSemantics();
+    const label = 'Areas, money worth watching';
+    const tabs = [
+      GlassTab('today', 'Today', 'house.fill'),
+      GlassTab('areas', 'Areas', 'square.grid.2x2.fill', semanticLabel: label),
+    ];
+    await tester.pumpWidget(_app(_bar(tabs: tabs)));
+    await tester.pump();
+
+    expect(find.text('Areas'), findsOneWidget);
+    expect(
+      tester.getSemantics(find.bySemanticsLabel(label)),
+      isSemantics(label: label, isButton: true, isSelected: false),
+    );
+    expect(find.bySemanticsLabel(RegExp(r'^Areas$')), findsNothing);
+    handle.dispose();
+  });
+
+  testWidgets('the minimized circle uses the semanticLabel', (tester) async {
+    final handle = tester.ensureSemantics();
+    const tabs = [
+      GlassTab('today', 'Today', 'house.fill', semanticLabel: 'Today, ok'),
+    ];
+    await tester.pumpWidget(_app(_bar(tabs: tabs, minimized: true)));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.bySemanticsLabel('Today, ok tab, expand tab bar'),
+      findsOneWidget,
+    );
+    handle.dispose();
   });
 
   testWidgets('without reduce motion the swap animates', (tester) async {

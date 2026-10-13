@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart' show ScrollDirection;
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../controllers/areas_controller.dart';
 import '../../theme/theme.dart';
+import '../../widgets/state_colors.dart';
 import '../../widgets/glass_tab_bar.dart';
 import '../../widgets/pal_ask_bar.dart';
 import '../../router.dart';
@@ -13,22 +16,24 @@ import '../../router.dart';
 /// Scrolling a tab's content down minimizes the bar to a circle and slides
 /// the ask bar beside it; scrolling back up, tapping the circle or switching
 /// tabs restores it.
-class LoopShell extends StatefulWidget {
+class LoopShell extends ConsumerStatefulWidget {
   const LoopShell({super.key, required this.navigationShell});
 
   /// The branch navigator stack provided by `StatefulShellRoute.indexedStack`.
   final StatefulNavigationShell navigationShell;
 
   @override
-  State<LoopShell> createState() => _LoopShellState();
+  ConsumerState<LoopShell> createState() => _LoopShellState();
 }
 
-class _LoopShellState extends State<LoopShell> {
+class _LoopShellState extends ConsumerState<LoopShell> {
+  static const _areasId = 'areas';
+
   /// Order must match the branches in [createRouter].
   static const _tabs = [
     GlassTab('today', 'Today', 'sun.max.fill'),
-    GlassTab('move', 'Workout', 'figure.run'),
-    GlassTab('nutrition', 'Nutrition', 'fork.knife'),
+    GlassTab(_areasId, 'Areas', 'square.grid.2x2.fill'),
+    GlassTab('move', 'Workout', 'dumbbell.fill'),
     GlassTab('you', 'You', 'person.crop.circle.fill'),
   ];
 
@@ -39,6 +44,25 @@ class _LoopShellState extends State<LoopShell> {
   bool _minimized = false;
 
   String get _activeId => _tabs[widget.navigationShell.currentIndex].id;
+
+  /// [_tabs], with the Areas tab carrying its state dot and spoken states.
+  /// While the summary loads or fails, the tab is plain.
+  List<GlassTab> _tabsWith(AreasSummary? areas, AppColors c) {
+    if (areas == null) return _tabs;
+    final dot = areas.tabDot;
+    return [
+      for (final t in _tabs)
+        t.id == _areasId
+            ? GlassTab(
+                t.id,
+                t.label,
+                t.icon,
+                dot: dot == null ? null : c.arcFor(dot),
+                semanticLabel: areas.tabSemanticLabel,
+              )
+            : t,
+    ];
+  }
 
   @override
   void didUpdateWidget(LoopShell old) {
@@ -76,6 +100,7 @@ class _LoopShellState extends State<LoopShell> {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
+    final summary = ref.watch(areasSummaryProvider);
     final safeBottom = MediaQuery.paddingOf(context).bottom;
     final askBottom = safeBottom +
         GlassTabBar.bottomGap +
@@ -97,7 +122,7 @@ class _LoopShellState extends State<LoopShell> {
             right: 0,
             bottom: 0,
             child: GlassTabBar(
-              tabs: _tabs,
+              tabs: _tabsWith(summary.hasError ? null : summary.value, c),
               activeId: _activeId,
               onTab: _onTab,
               minimized: _minimized,
