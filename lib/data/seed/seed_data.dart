@@ -1001,7 +1001,7 @@ class SeedData {
           category: 'Groceries',
           source: EntrySource.email,
         ),
-        // pending nutrition card: a food expense with no linked meal yet.
+        // a food expense with no linked meal.
         Entry(
           id: 'seed-nutrition-pending',
           timestamp: _todayAt(20, 15),

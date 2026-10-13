@@ -60,7 +60,6 @@ NutritionState _state(List<NutritionMeal> meals, {Map<String, Entry> linked = co
         note: 'a fair mix',
       ),
       week: const [],
-      pending: null,
       patterns: const [],
       linkedExpenses: linked,
     );

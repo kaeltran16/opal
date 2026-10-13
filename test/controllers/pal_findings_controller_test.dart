@@ -79,7 +79,6 @@ class _FakeNutritionController extends NutritionController {
         note: '',
       ),
       week: [],
-      pending: null,
       patterns: [_nutritionPattern],
     );
   }

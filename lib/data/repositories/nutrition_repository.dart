@@ -52,17 +52,6 @@ class NutritionRepository {
   Future<void> deleteById(String id) =>
       (_db.delete(_db.nutritionMeals)..where((t) => t.id.equals(id))).go();
 
-  /// Entry ids that already have a linked meal in [from, to) — used to derive
-  /// the "an expense looks like a meal" pending card without double-counting.
-  Future<Set<String>> linkedEntryIds(DateTime from, DateTime to) async {
-    final q = _db.select(_db.nutritionMeals)
-      ..where((t) =>
-          t.linkedEntryId.isNotNull() &
-          t.timestamp.isBiggerOrEqualValue(from) &
-          t.timestamp.isSmallerThanValue(to));
-    return (await q.get()).map((r) => r.linkedEntryId!).toSet();
-  }
-
   /// The remembered estimate for [description], or null when it has not been
   /// estimated before. Matched on [normalizeFoodKey], so punctuation and spacing
   /// don't cause a miss.
