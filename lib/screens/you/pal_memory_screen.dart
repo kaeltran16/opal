@@ -265,7 +265,12 @@ class _ClearRow extends StatelessWidget {
                     padding: const EdgeInsets.only(left: Spacing.sm),
                     onTap: onClear),
               ]
-            : [_TextButton('Clear what Pal remembers', color: c.dangerInk, onTap: onAsk)],
+            : [
+                Flexible(
+                  child: _TextButton('Clear what Pal remembers',
+                      color: c.dangerInk, onTap: onAsk),
+                ),
+              ],
       ),
     );
   }
@@ -290,11 +295,16 @@ class _TextButton extends StatelessWidget {
         child: PressScale(
           onTap: onTap,
           semanticLabel: text,
-          child: Container(
+          child: ConstrainedBox(
             constraints: const BoxConstraints(minHeight: _minTap, minWidth: _minTap),
-            padding: padding,
-            alignment: Alignment.center,
-            child: Text(text, style: AppType.headline.copyWith(color: color)),
+            child: Padding(
+              padding: padding,
+              // widthFactor keeps the button as wide as its label when a Flexible bounds it.
+              child: Align(
+                widthFactor: 1,
+                child: Text(text, style: AppType.headline.copyWith(color: color)),
+              ),
+            ),
           ),
         ),
       );

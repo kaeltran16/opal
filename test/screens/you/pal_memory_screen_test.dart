@@ -296,4 +296,44 @@ void main() {
     expect(find.text(_emptyCopy), findsNothing);
     expect(find.text('Clear what Pal remembers'), findsOneWidget);
   });
+
+  testWidgets('the Clear row fits at text scale 1.3 on a 390 wide surface, idle and asking',
+      (tester) async {
+    tester.view.physicalSize = const Size(390, 2400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+    tester.platformDispatcher.textScaleFactorTestValue = 1.3;
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+
+    await _pump(tester, _FakePal(facts: [_caffeine]));
+    expect(tester.takeException(), isNull);
+    final idle = find.text('Clear what Pal remembers');
+    expect(idle, findsOneWidget);
+    expect(tester.getSize(idle).width, lessThan(390));
+
+    await tester.tap(idle);
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    for (final label in ['Cancel', 'Clear']) {
+      final size = tester.getSize(find.bySemanticsLabel(label));
+      expect(size.width, greaterThanOrEqualTo(44), reason: label);
+      expect(size.height, greaterThanOrEqualTo(44), reason: label);
+    }
+  });
+
+  testWidgets('at text scale 1.0 the idle Clear button sits left at its natural width',
+      (tester) async {
+    // wide enough that the Ahem label fits on one line, so a stretched button shows.
+    tester.view.physicalSize = const Size(800, 2400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    await _pump(tester, _FakePal(facts: [_caffeine]));
+    final button = find.bySemanticsLabel('Clear what Pal remembers');
+    final text = find.text('Clear what Pal remembers');
+    // same left edge as the fact text above it: the row's gutter.
+    expect(tester.getTopLeft(text).dx, tester.getTopLeft(find.text(_caffeine.text)).dx);
+    // not stretched across the row by the Flexible: zero padding, so as wide as its text.
+    expect(tester.getSize(button).width, lessThan(tester.getSize(text).width + 1));
+  });
 }
