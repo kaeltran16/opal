@@ -11,8 +11,8 @@ import '../support/flush_provider_timers.dart';
 import '../support/golden_harness.dart';
 
 /// Every family name the app's sans text resolves to under test: Material's
-/// default, the Cupertino system faces, `AppFonts.mono` and its fallbacks, and
-/// the engine's default family, which a style with no family at all lands on.
+/// default, the Cupertino system faces, and the engine's default family,
+/// which a style with no family at all lands on.
 const _sansFamilies = [
   'Roboto',
   'CupertinoSystemText',
@@ -21,9 +21,6 @@ const _sansFamilies = [
   '.SF UI Display',
   '.SF Pro Text',
   '.SF Pro Display',
-  'monospace',
-  'Menlo',
-  'Courier New',
   'Ahem',
   'FlutterTest',
 ];

@@ -19,10 +19,10 @@ part 'workout_history_controller.g.dart';
 /// whole page (summary, volume bars, balance, PRs, sessions).
 enum WorkoutHistoryRange { eightWeeks, sixMonths, allTime }
 
-/// Group → `AppColors.forType` token + display order for the balance card and
-/// PR rows. 'Core' borrows the nutrition hue (no dedicated token); cardio uses
-/// the accent. Pull/Legs borrow rituals/money so the four design slices stay
-/// visually distinct.
+/// Group → area token + display order for the balance card and PR rows.
+/// 'Core' borrows the nutrition token (no dedicated one); cardio falls back to
+/// 'accent'. Pull/Legs borrow rituals/money so the four slices keep distinct
+/// tokens.
 const _groupOrder = ['Push', 'Pull', 'Legs', 'Core', 'Cardio'];
 const Map<String, String> _groupToken = {
   'Push': 'move',

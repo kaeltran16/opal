@@ -491,14 +491,8 @@ void main() {
       pal: TodayPal(proposals: [proposal('a', 'Rent auto-pays')]),
     );
     final c = _colors(tester);
-    final area = {
-      c.money, c.moneyTint, c.moneyInk,
-      c.move, c.moveTint, c.moveInk,
-      c.rituals, c.ritualsTint, c.ritualsInk,
-      c.nutrition, c.nutritionTint, c.nutritionInk,
-      c.sleep, c.sleepTint, c.sleepInk,
-      c.mood, c.moodTint, c.moodInk,
-    };
+    // the ring colours are the only area hues left in the theme.
+    final area = {c.ringMove, c.ringRoutines};
 
     final used = <Color?>{
       for (final icon in tester.widgetList<AppIcon>(_onToday(find.byType(AppIcon)))) icon.color,

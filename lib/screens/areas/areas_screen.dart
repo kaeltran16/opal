@@ -173,7 +173,7 @@ class _AreasBody extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     final rings = [for (final area in _ringAreas) summary.of(area)];
-    final ringColors = [c.move, c.rituals];
+    final ringColors = [c.ringMove, c.ringRoutines];
     final vitals = summary.areas.where((a) => !_ringAreas.contains(a.area));
     final goals = [for (final a in rings) '${a.area.title} ${_value(a)}'].join(', ');
 
