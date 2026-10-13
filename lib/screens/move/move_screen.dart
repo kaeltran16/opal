@@ -25,6 +25,8 @@ const double _stripGap = Spacing.lg;
 const double _statGap = Spacing.xl;
 const double _recentHeadGap = Spacing.xs;
 const double _minTap = 44;
+// a heading's trailing value takes at most this share, so the heading keeps the rest.
+const double _trailingShare = 0.5;
 const double _kgPerTonne = 1000;
 const List<FontFeature> _tabular = [FontFeature.tabularFigures()];
 
@@ -114,25 +116,31 @@ class _Heading extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     final trailing = this.trailing;
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      spacing: Spacing.sm,
-      children: [
-        Expanded(
-          // its own node, so the header flag stays on the heading alone.
-          child: Semantics(
-            container: true,
-            header: true,
-            child: Text(
-              text,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: AppType.headline.copyWith(color: c.ink),
+    return LayoutBuilder(
+      builder: (context, box) => Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        spacing: Spacing.sm,
+        children: [
+          Expanded(
+            // its own node, so the header flag stays on the heading alone.
+            child: Semantics(
+              container: true,
+              header: true,
+              child: Text(
+                text,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: AppType.headline.copyWith(color: c.ink),
+              ),
             ),
           ),
-        ),
-        if (trailing != null) Flexible(child: trailing),
-      ],
+          if (trailing != null)
+            ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: box.maxWidth * _trailingShare),
+              child: trailing,
+            ),
+        ],
+      ),
     );
   }
 }

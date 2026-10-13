@@ -1,3 +1,4 @@
+import 'package:drift/drift.dart' hide isNull, isNotNull;
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -11,6 +12,7 @@ import 'package:opal/data/seed/seeder.dart';
 import 'package:opal/screens/workout/active_session_screen.dart';
 import 'package:opal/services/services.dart';
 import 'package:opal/theme/app_colors.dart';
+import 'package:opal/widgets/press_scale.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 const _routineId = 'seed-routine-push-a';
@@ -296,5 +298,39 @@ void main() {
     expect(tester.takeException(), isNull);
     expect(find.text('Rest'), findsOneWidget);
     await _endRest(tester);
+  });
+
+  // the ahem test font draws Best and Skip exercise wider than half a 390 row,
+  // so they would reach its end either way; the wide default shows the gap.
+  testWidgets('Best sits at its row end', (tester) async {
+    await _pump(tester, db, prefs, haptics);
+
+    final best = find.text('Best 92.5 kg × 5');
+    final row = find.ancestor(of: best, matching: find.byType(Row)).first;
+    expect(tester.getTopRight(best).dx, moreOrLessEquals(tester.getRect(row).right, epsilon: 0.5));
+  });
+
+  testWidgets('Add set sits at the action row start and Skip exercise at its end', (tester) async {
+    await _pump(tester, db, prefs, haptics);
+
+    Finder target(String label) =>
+        find.ancestor(of: find.text(label), matching: find.byType(PressScale)).first;
+    final skip = target('Skip exercise');
+    final row = tester.getRect(find.ancestor(of: skip, matching: find.byType(Row)).first);
+    expect(tester.getRect(skip).right, moreOrLessEquals(row.right, epsilon: 0.5));
+    expect(tester.getRect(target('Add set')).left, moreOrLessEquals(row.left, epsilon: 0.5));
+    expect(tester.getSize(skip).height, greaterThanOrEqualTo(44));
+  });
+
+  testWidgets('390 wide at text scale 1.3 with long titles has no overflow', (tester) async {
+    const long = 'Upper body push with a long accessory finisher block';
+    await (db.update(db.routines)..where((r) => r.id.equals(_routineId)))
+        .write(const RoutinesCompanion(name: Value(long)));
+    await (db.update(db.exercises)..where((e) => e.name.equals('Barbell Bench Press')))
+        .write(const ExercisesCompanion(name: Value('Paused barbell bench press with a long name')));
+    await _pump(tester, db, prefs, haptics, size: const Size(390, 844), textScale: 1.3);
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('Best 92.5 kg × 5'), findsOneWidget);
   });
 }

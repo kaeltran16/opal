@@ -8,6 +8,8 @@ const double _whenWidth = 44;
 const double _hairline = 1;
 const double _rowGap = Spacing.md;
 const int _titleMaxLines = 2;
+// the detail and New best take at most this share, so the title keeps the rest.
+const double _trailingShare = 0.5;
 const String _newBest = 'New best';
 const List<FontFeature> _tabular = [FontFeature.tabularFigures()];
 
@@ -41,34 +43,44 @@ class SessionRow extends StatelessWidget {
       decoration: first
           ? null
           : BoxDecoration(border: Border(top: BorderSide(color: c.hair, width: _hairline))),
-      child: Row(
-        spacing: _rowGap,
-        children: [
-          SizedBox(
-            width: MediaQuery.textScalerOf(context).scale(_whenWidth),
-            // "Yesterday" is wider than the column; shrink it rather than cut it.
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: AlignmentDirectional.centerStart,
-              child: Text(when, maxLines: 1, style: AppType.caption.copyWith(color: c.ink3)),
+      child: LayoutBuilder(
+        builder: (context, box) => Row(
+          spacing: _rowGap,
+          children: [
+            SizedBox(
+              width: MediaQuery.textScalerOf(context).scale(_whenWidth),
+              // "Yesterday" is wider than the column; shrink it rather than cut it.
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: AlignmentDirectional.centerStart,
+                child: Text(when, maxLines: 1, style: AppType.caption.copyWith(color: c.ink3)),
+              ),
             ),
-          ),
-          Expanded(
-            child: Text(title,
-                maxLines: _titleMaxLines,
-                overflow: TextOverflow.ellipsis,
-                style: AppType.callout.copyWith(color: c.ink)),
-          ),
-          Flexible(
-            child: Text(detail,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.end,
-                style: AppType.subhead.copyWith(color: c.ink3, fontFeatures: _tabular)),
-          ),
-          if (newBest)
-            Text(_newBest, maxLines: 1, style: AppType.subhead.copyWith(color: c.thrivingInk)),
-        ],
+            Expanded(
+              child: Text(title,
+                  maxLines: _titleMaxLines,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppType.callout.copyWith(color: c.ink)),
+            ),
+            ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: box.maxWidth * _trailingShare),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                spacing: _rowGap,
+                children: [
+                  Flexible(
+                    child: Text(detail,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppType.subhead.copyWith(color: c.ink3, fontFeatures: _tabular)),
+                  ),
+                  if (newBest)
+                    Text(_newBest, maxLines: 1, style: AppType.subhead.copyWith(color: c.thrivingInk)),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
     if (onTap == null) {

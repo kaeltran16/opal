@@ -1,3 +1,4 @@
+import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -24,6 +25,7 @@ Future<GoRouter> _pumpTab(
   // scrolling, and wide enough for the routine picker's grid.
   Size size = const Size(800, 1600),
   double textScale = 1,
+  Future<void> Function(LoopDatabase db)? seed,
 }) async {
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
@@ -32,6 +34,7 @@ Future<GoRouter> _pumpTab(
   final prefs = await SharedPreferences.getInstance();
   final db = LoopDatabase.forTesting(NativeDatabase.memory());
   await Seeder(db).seedIfNeeded();
+  await seed?.call(db);
   addTearDown(db.close);
 
   final router = createRouter(initialLocation: '/move');
@@ -110,6 +113,44 @@ void main() {
 
     // an overflow anywhere on the way down fails the test.
     await _scrollTo(tester, find.text('Run · Mission loop'));
+    expect(tester.takeException(), isNull);
+
+    await flushProviderTimers(tester);
+  });
+
+  testWidgets('the week count and See all sit at their heading row ends', (tester) async {
+    await _pumpTab(tester, size: const Size(390, 844));
+
+    Rect headingRow(String heading) =>
+        tester.getRect(find.ancestor(of: find.text(heading), matching: find.byType(Row)).first);
+
+    expect(
+      tester.getTopRight(find.textContaining(' of 5 workouts')).dx,
+      moreOrLessEquals(headingRow('This week').right, epsilon: 0.5),
+    );
+
+    await _scrollTo(tester, find.text('See all'));
+    expect(
+      tester.getTopRight(find.text('See all')).dx,
+      moreOrLessEquals(headingRow('Recent').right, epsilon: 0.5),
+    );
+
+    await flushProviderTimers(tester);
+  });
+
+  testWidgets('at 1.3 and 390 wide a long session title and No weekly plan yet fit', (tester) async {
+    await _pumpTab(
+      tester,
+      noPlan: true,
+      size: const Size(390, 844),
+      textScale: 1.3,
+      seed: (db) => db
+          .update(db.workouts)
+          .write(const WorkoutsCompanion(name: Value('Upper body push with a long accessory finisher block'))),
+    );
+
+    expect(find.text('No weekly plan yet'), findsOneWidget);
+    await _scrollTo(tester, find.text('See all'));
     expect(tester.takeException(), isNull);
 
     await flushProviderTimers(tester);

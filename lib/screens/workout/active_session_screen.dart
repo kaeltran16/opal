@@ -33,6 +33,8 @@ const double _restGap = 12;
 const double _weightStep = 2.5;
 const int _repStep = 1;
 const int _repFloor = 1;
+// a row's trailing text or action takes at most this share, so its lead keeps the rest.
+const double _trailingShare = 0.5;
 const List<FontFeature> _tabular = [FontFeature.tabularFigures()];
 
 /// Screen 09, the live workout (focus route, no tab bar).
@@ -391,21 +393,24 @@ class _EnterCard extends StatelessWidget {
     final ahead = pr != null && weight > pr.weightKg;
     return _Card(
       children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.baseline,
-          textBaseline: TextBaseline.alphabetic,
-          spacing: Spacing.sm,
-          children: [
-            Expanded(
-              child: Text(setLabel, style: AppType.label.copyWith(color: c.ink, fontFeatures: _tabular)),
-            ),
-            if (pr != null)
-              Flexible(
-                child: Text('Best ${formatWeight(pr.weightKg)} kg × ${pr.reps}',
-                    textAlign: TextAlign.end,
-                    style: AppType.label.copyWith(color: c.ink3, fontFeatures: _tabular)),
+        LayoutBuilder(
+          builder: (context, box) => Row(
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
+            spacing: Spacing.sm,
+            children: [
+              Expanded(
+                child: Text(setLabel, style: AppType.label.copyWith(color: c.ink, fontFeatures: _tabular)),
               ),
-          ],
+              if (pr != null)
+                ConstrainedBox(
+                  constraints: BoxConstraints(maxWidth: box.maxWidth * _trailingShare),
+                  child: Text('Best ${formatWeight(pr.weightKg)} kg × ${pr.reps}',
+                      textAlign: TextAlign.end,
+                      style: AppType.label.copyWith(color: c.ink3, fontFeatures: _tabular)),
+                ),
+            ],
+          ),
         ),
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -663,16 +668,23 @@ class _SetTools extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.only(top: Spacing.xs),
       decoration: BoxDecoration(border: Border(top: BorderSide(color: c.hair, width: _hairline))),
-      child: Row(
-        spacing: Spacing.sm,
-        children: [
-          Flexible(child: _TextButton(label: 'Add set', icon: 'plus', onTap: onAddSet)),
-          const Spacer(),
-          if (canSkip)
-            Flexible(
-              child: _TextButton(label: 'Skip exercise', color: c.ink2, onTap: onSkip),
+      child: LayoutBuilder(
+        builder: (context, box) => Row(
+          spacing: Spacing.sm,
+          children: [
+            Expanded(
+              child: Align(
+                alignment: AlignmentDirectional.centerStart,
+                child: _TextButton(label: 'Add set', icon: 'plus', onTap: onAddSet),
+              ),
             ),
-        ],
+            if (canSkip)
+              ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: box.maxWidth * _trailingShare),
+                child: _TextButton(label: 'Skip exercise', color: c.ink2, onTap: onSkip),
+              ),
+          ],
+        ),
       ),
     );
   }

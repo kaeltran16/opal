@@ -90,6 +90,56 @@ void main() {
       expect(find.text('New best'), findsNothing);
       expect(tester.takeException(), isNull);
     });
+
+    testWidgets('a short detail sits at the row end', (tester) async {
+      await _pump(tester, const SessionRow(when: 'Mon', title: 'Push Day A', detail: '45 min'));
+
+      final row = tester.getRect(find.byType(SessionRow));
+      expect(tester.getTopRight(find.text('45 min')).dx, moreOrLessEquals(row.right, epsilon: 0.5));
+    });
+
+    testWidgets('New best sits at the row end, after the detail', (tester) async {
+      await _pump(tester, const SessionRow(when: 'Mon', title: 'Run', detail: '5 min', newBest: true));
+
+      final row = tester.getRect(find.byType(SessionRow));
+      final best = tester.getRect(find.text('New best'));
+      expect(best.right, moreOrLessEquals(row.right, epsilon: 0.5));
+      expect(tester.getRect(find.text('5 min')).right, lessThan(best.left));
+    });
+
+    testWidgets('the detail lines up across rows with different titles', (tester) async {
+      await _pump(
+        tester,
+        const Column(children: [
+          SessionRow(first: true, when: 'Mon', title: 'Legs', detail: '45 min'),
+          SessionRow(when: 'Tue', title: 'Push Day A with accessories', detail: '45 min'),
+        ]),
+      );
+
+      final details = find.text('45 min');
+      expect(
+        tester.getTopRight(details.first).dx,
+        moreOrLessEquals(tester.getTopRight(details.last).dx, epsilon: 0.5),
+      );
+    });
+
+    testWidgets('a long title at 1.3 ellipsises and keeps the detail and New best', (tester) async {
+      await _pump(
+        tester,
+        const SessionRow(
+          when: 'Yesterday',
+          title: 'Upper body push with a long accessory finisher block',
+          detail: '52 min · 4.1 t',
+          newBest: true,
+        ),
+        scale: 1.3,
+      );
+
+      expect(tester.takeException(), isNull);
+      final row = tester.getRect(find.byType(SessionRow));
+      expect(tester.getRect(find.text('New best')).right, moreOrLessEquals(row.right, epsilon: 0.5));
+      expect(tester.getSize(find.text('52 min · 4.1 t')).width, greaterThan(0));
+    });
   });
 
   group('ExerciseRow', () {
