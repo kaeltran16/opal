@@ -34,12 +34,13 @@ void main() {
   // shell branches and pushed full-screen routes: go() lands on them directly.
   const goScreens = {
     'move': '/move',
-    'nutrition': '/nutrition',
-    'rituals': '/rituals',
-    'sleep': '/sleep',
-    'mood': '/mood',
+    'areas': '/areas',
+    'area_nutrition': '/areas/nutrition',
+    'area_routines': '/areas/routines',
+    'area_sleep': '/areas/sleep',
+    'area_mood': '/areas/mood',
     'profile': '/you',
-    'spending_detail': '/today/spending',
+    'spending_detail': '/areas/money',
   };
   for (final MapEntry(key: name, value: path) in goScreens.entries) {
     goldenTest(name, (tester, dark) async {

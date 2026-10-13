@@ -15,10 +15,14 @@ import 'package:opal/controllers/providers.dart';
 import 'package:opal/models/models.dart';
 import 'package:opal/screens/areas/areas_screen.dart';
 import 'package:opal/screens/detail/detail_screen.dart';
+import 'package:opal/screens/nutrition/nutrition_meal_detail_screen.dart';
+import 'package:opal/screens/rituals/rituals_builder_screen.dart';
+import 'package:opal/screens/rituals/routine_player_screen.dart';
 import 'package:opal/widgets/contributor_bar.dart';
 import 'package:opal/widgets/glass_tab_bar.dart';
 import 'package:opal/widgets/week_bars.dart';
 
+import '../support/golden_harness.dart' show appRouter;
 import '../support/today_fixture.dart';
 import 'scenario_harness.dart';
 
@@ -29,14 +33,20 @@ const _areas = {
 };
 
 const _dateLine = 'MON 28 SEP · 9:30 AM';
-final _areaRows = [for (final area in Area.values) area.title];
+const _manage = 'Manage routines';
+const _addMeal = 'Add a meal';
+const _noMeals = 'No meals logged yet today.';
+const _noRoutines = 'No routines set up yet.';
+const _seedRoutines = ['Morning', 'Midday reset', 'Evening wind-down'];
 
 String _theme(bool dark) => dark ? 'dark' : 'light';
 
 Finder _onPage(Finder matching) =>
     find.descendant(of: find.byType(DetailScreen), matching: matching);
 
-Finder _areaRow(String title) => find.bySemanticsLabel(RegExp('^$title'));
+Finder _areaRow(String title) => find.bySemanticsLabel(RegExp('^$title([:,]|\$)'));
+
+Finder get _pageScrollable => _onPage(find.byType(Scrollable)).first;
 
 /// Opens the Areas tab.
 Future<void> _toAreas(WidgetTester tester) async {
@@ -45,9 +55,12 @@ Future<void> _toAreas(WidgetTester tester) async {
   await tester.pumpAndSettle();
 }
 
-/// Opens an area page the way the user does: from its row on the Areas tab.
+/// Opens an area page the way the user does: from its row or card on the
+/// Areas tab, scrolled clear of the bars first.
 Future<void> _open(WidgetTester tester, Area area) async {
   await _toAreas(tester);
+  await tester.ensureVisible(_areaRow(area.title));
+  await tester.pumpAndSettle();
   await tester.tap(_areaRow(area.title));
   await tester.pumpAndSettle();
   expect(
@@ -57,6 +70,18 @@ Future<void> _open(WidgetTester tester, Area area) async {
 }
 
 Future<void> _openMoney(WidgetTester tester) => _open(tester, Area.money);
+
+/// Scrolls the page until [finder] is clear of the bars.
+Future<void> _reveal(WidgetTester tester, Finder finder) async {
+  await tester.scrollUntilVisible(finder, 200, scrollable: _pageScrollable);
+  await tester.pumpAndSettle();
+}
+
+/// Back to the top of the page, for the shot.
+Future<void> _toTop(WidgetTester tester) async {
+  tester.state<ScrollableState>(_pageScrollable).position.jumpTo(0);
+  await tester.pumpAndSettle();
+}
 
 void main() {
   for (final MapEntry(key: name, value: area) in _areas.entries) {
@@ -70,19 +95,156 @@ void main() {
       expect(_onPage(find.byType(ContributorBar)), findsWidgets);
       // the routines list can push the goal caption below the built rows, so
       // scroll to it, then back to the top for the shot.
-      final scrollable = _onPage(find.byType(Scrollable)).first;
-      await tester.scrollUntilVisible(
-        _onPage(find.textContaining('Dashed line: ')),
-        200,
-        scrollable: scrollable,
-      );
+      await _reveal(tester, _onPage(find.textContaining('Dashed line: ')));
       expect(_onPage(find.byType(WeekBars)), findsOneWidget);
       expect(_onPage(find.textContaining('Dashed line: ')), findsOneWidget);
-      tester.state<ScrollableState>(scrollable).position.jumpTo(0);
-      await tester.pumpAndSettle();
+      await _toTop(tester);
       await shot(tester, 'area_${name}_${_theme(dark)}');
     });
   }
+
+  scenarioTest('area nutrition', (tester, dark) async {
+    await bootToday(tester, dark: dark, day: const TodayDay(meal: true));
+    await _open(tester, Area.nutrition);
+
+    expect(_onPage(find.text('345')), findsOneWidget);
+    expect(_onPage(find.text('kcal eaten today')), findsOneWidget);
+    expect(_onPage(find.text('1 meal logged today.')), findsOneWidget);
+    for (final macro in ['Protein', 'Carbs', 'Fat']) {
+      expect(_onPage(find.text(macro)), findsOneWidget, reason: macro);
+    }
+    for (final state in AreaState.values) {
+      expect(_onPage(find.text(state.word)), findsNothing, reason: state.word);
+    }
+    await _reveal(tester, _onPage(find.text(_addMeal)));
+    expect(_onPage(find.text("Today's meals")), findsOneWidget);
+    expect(find.bySemanticsLabel(RegExp(', $mealTitle, 345 kcal\$')), findsOneWidget);
+    await _reveal(tester, _onPage(find.byType(WeekBars)));
+    expect(_onPage(find.text('Kcal eaten each day')), findsOneWidget);
+    expect(_onPage(find.textContaining('Dashed line')), findsNothing);
+    await _toTop(tester);
+    await shot(tester, 'area_nutrition_${_theme(dark)}');
+  });
+
+  scenarioTest('area nutrition empty', (tester, dark) async {
+    await bootToday(tester, dark: dark);
+    await _open(tester, Area.nutrition);
+
+    expect(_onPage(find.text('0')), findsOneWidget);
+    expect(_onPage(find.text('kcal eaten today')), findsOneWidget);
+    expect(_onPage(find.text(_noMeals)), findsOneWidget);
+    expect(
+      tester
+          .widgetList<ContributorBar>(_onPage(find.byType(ContributorBar)))
+          .map((b) => b.fraction),
+      everyElement(0),
+    );
+    await _reveal(tester, _onPage(find.text(_addMeal)));
+    expect(find.bySemanticsLabel(RegExp(', $mealTitle, ')), findsNothing);
+    await shot(tester, 'area_nutrition_empty_${_theme(dark)}');
+  });
+
+  scenarioTest('area nutrition meal', (tester, dark) async {
+    await bootToday(tester, dark: dark, day: const TodayDay(meal: true));
+    await _open(tester, Area.nutrition);
+    final meal = find.bySemanticsLabel(RegExp(', $mealTitle, '));
+    await _reveal(tester, meal);
+    await tester.tap(meal);
+    await tester.pumpAndSettle();
+
+    expect(find.byType(NutritionMealDetailScreen), findsOneWidget);
+    expect(find.text(mealTitle), findsWidgets);
+    await shot(tester, 'area_nutrition_meal_${_theme(dark)}');
+  });
+
+  scenarioTest('area nutrition add', (tester, dark) async {
+    await bootToday(tester, dark: dark, day: const TodayDay(meal: true));
+    await _open(tester, Area.nutrition);
+    await _reveal(tester, _onPage(find.text(_addMeal)));
+    await tester.tap(find.bySemanticsLabel(_addMeal));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(BottomSheet), findsOneWidget);
+    await shot(tester, 'area_nutrition_add_${_theme(dark)}');
+  });
+
+  scenarioTest('area routines empty', (tester, dark) async {
+    await bootToday(tester, dark: dark, day: const TodayDay(routines: []));
+    await _open(tester, Area.routines);
+
+    expect(_onPage(find.text('0')), findsOneWidget);
+    expect(_onPage(find.text('routines set up')), findsOneWidget);
+    expect(_onPage(find.text(_noRoutines)), findsOneWidget);
+    expect(_onPage(find.text('Done')), findsNothing);
+    await _reveal(tester, _onPage(find.text(_manage)));
+    for (final name in _seedRoutines) {
+      expect(_onPage(find.text(name)), findsNothing, reason: name);
+    }
+    await shot(tester, 'area_routines_empty_${_theme(dark)}');
+  });
+
+  scenarioTest('area routines manage', (tester, dark) async {
+    await bootToday(tester, dark: dark);
+    await _open(tester, Area.routines);
+    await _reveal(tester, _onPage(find.text(_manage)));
+    await tester.tap(find.bySemanticsLabel(_manage));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(RitualsBuilderScreen), findsOneWidget);
+    await shot(tester, 'area_routines_manage_${_theme(dark)}');
+  });
+
+  scenarioTest('area routines player', (tester, dark) async {
+    await bootToday(tester, dark: dark);
+    await _open(tester, Area.routines);
+    final morning = find.bySemanticsLabel(RegExp('^Morning, at 7:00 AM, \\d+ steps\$'));
+    await _reveal(tester, morning);
+    await tester.tap(morning);
+    await tester.pumpAndSettle();
+
+    expect(find.byType(RoutinePlayerScreen), findsOneWidget);
+    await shot(tester, 'area_routines_player_${_theme(dark)}');
+  });
+
+  scenarioTest('area sleep', (tester, dark) async {
+    await bootToday(tester, dark: dark);
+    await _open(tester, Area.sleep);
+
+    expect(_onPage(find.text('Sleep')), findsOneWidget);
+    expect(_onPage(find.text('No sleep data yet')), findsOneWidget);
+    expect(
+      _onPage(find.text('Sleep needs a data source, and none is connected yet.')),
+      findsOneWidget,
+    );
+    expect(_onPage(find.byType(ContributorBar)), findsNothing);
+    expect(_onPage(find.byType(WeekBars)), findsNothing);
+    await shot(tester, 'area_sleep_${_theme(dark)}');
+  });
+
+  scenarioTest('area mood', (tester, dark) async {
+    await bootToday(tester, dark: dark, day: const TodayDay(mood: true));
+    await _open(tester, Area.mood);
+
+    expect(_onPage(find.text('Slightly pleasant')), findsWidgets);
+    expect(_onPage(find.text('at 6:50 AM')), findsOneWidget);
+    expect(_onPage(find.text('Last check-in at 6:50 AM.')), findsOneWidget);
+    expect(_onPage(find.byType(ContributorBar)), findsOneWidget);
+    await _reveal(tester, _onPage(find.byType(WeekBars)));
+    expect(_onPage(find.text('Average of each day')), findsOneWidget);
+    await _toTop(tester);
+    await shot(tester, 'area_mood_${_theme(dark)}');
+  });
+
+  scenarioTest('area mood empty', (tester, dark) async {
+    await bootToday(tester, dark: dark);
+    await _open(tester, Area.mood);
+
+    expect(_onPage(find.text('—')), findsOneWidget);
+    expect(_onPage(find.text('No check-in yet today')), findsOneWidget);
+    expect(_onPage(find.text('No check-in yet today.')), findsOneWidget);
+    expect(_onPage(find.byType(ContributorBar)), findsNothing);
+    await shot(tester, 'area_mood_empty_${_theme(dark)}');
+  });
 
   scenarioTest('area money over budget', (tester, dark) async {
     await bootToday(tester, dark: dark, day: const TodayDay(spent: 80));
@@ -121,12 +283,7 @@ void main() {
     await tester.pumpAndSettle();
     await _openMoney(tester);
 
-    await tester.scrollUntilVisible(
-      find.text('Hardware store'),
-      200,
-      scrollable: _onPage(find.byType(Scrollable)).first,
-    );
-    await tester.pumpAndSettle();
+    await _reveal(tester, find.text('Hardware store'));
     expect(_onPage(find.text('Yesterday')), findsOneWidget);
     expect(_onPage(find.text('Bookshop')), findsOneWidget);
     expect(_onPage(find.text('Hardware store')), findsOneWidget);
@@ -173,44 +330,6 @@ void main() {
     await shot(tester, 'area_loading_${_theme(dark)}');
   });
 
-  scenarioTest('area areas rows', (tester, dark) async {
-    await bootToday(tester, dark: dark);
-    await _toAreas(tester);
-
-    for (final title in _areaRows) {
-      expect(_areaRow(title).hitTestable(), findsOneWidget);
-    }
-    final tops = [for (final title in _areaRows) tester.getTopLeft(_areaRow(title)).dy];
-    expect(tops, orderedEquals([...tops]..sort()));
-    await shot(tester, 'area_areas_rows_${_theme(dark)}');
-  });
-
-  scenarioTest('area sleep from areas', (tester, dark) async {
-    await bootToday(tester, dark: dark);
-    await _toAreas(tester);
-    await tester.tap(_areaRow('Sleep'));
-    await tester.pumpAndSettle();
-
-    expect(
-      find.byWidgetPredicate((w) => w is DetailScreen && w.area == Area.sleep),
-      findsOneWidget,
-    );
-    await shot(tester, 'area_sleep_from_areas_${_theme(dark)}');
-  });
-
-  scenarioTest('area mood from areas', (tester, dark) async {
-    await bootToday(tester, dark: dark);
-    await _toAreas(tester);
-    await tester.tap(_areaRow('Mood'));
-    await tester.pumpAndSettle();
-
-    expect(
-      find.byWidgetPredicate((w) => w is DetailScreen && w.area == Area.mood),
-      findsOneWidget,
-    );
-    await shot(tester, 'area_mood_from_areas_${_theme(dark)}');
-  });
-
   scenarioTest('area back', (tester, dark) async {
     await bootToday(tester, dark: dark);
     await _openMoney(tester);
@@ -222,5 +341,20 @@ void main() {
     expect(find.byType(DetailScreen), findsNothing);
     expect(find.byType(AreasScreen), findsOneWidget);
     await shot(tester, 'area_back_${_theme(dark)}');
+  });
+
+  scenarioTest('area deep link nutrition', (tester, dark) async {
+    await bootToday(tester, dark: dark, day: const TodayDay(meal: true));
+    final router = appRouter(tester);
+    router.go('/nutrition');
+    await tester.pumpAndSettle();
+
+    expect(router.routerDelegate.currentConfiguration.uri.path, '/areas/nutrition');
+    expect(
+      find.byWidgetPredicate((w) => w is DetailScreen && w.area == Area.nutrition),
+      findsOneWidget,
+    );
+    expect(find.bySemanticsLabel('Back to Areas'), findsOneWidget);
+    await shot(tester, 'area_deep_link_nutrition_${_theme(dark)}');
   });
 }

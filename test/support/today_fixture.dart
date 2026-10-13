@@ -83,6 +83,7 @@ class TodayDay {
     this.mood = false,
     this.meal = false,
     this.firstRoutineDone = false,
+    this.historyDays = 0,
   });
 
   /// Nothing set up and nothing logged.
@@ -96,7 +97,8 @@ class TodayDay {
         sleep = false,
         mood = false,
         meal = false,
-        firstRoutineDone = false;
+        firstRoutineDone = false,
+        historyDays = 0;
 
   final Goals goals;
 
@@ -108,6 +110,10 @@ class TodayDay {
   final double spent;
   final int moveKcal;
   final bool receipt, sleep, mood, meal, firstRoutineDone;
+
+  /// Earlier days, each with a spend, a meal and a check-in in the morning, so
+  /// the Areas cards draw where the user usually is by this hour.
+  final int historyDays;
 
   Future<void> write(LoopDatabase db) async {
     final today = startOfDay(clock.now());
@@ -183,6 +189,33 @@ class TodayDay {
       await NutritionRepository(db).insert(SeedData.nutritionMeals()
           .first
           .copyWith(id: 'meal-today', name: mealTitle, timestamp: at(6, 40)));
+    }
+    await _writeHistory(db, today);
+  }
+
+  Future<void> _writeHistory(LoopDatabase db, DateTime today) async {
+    final meals = SeedData.nutritionMeals();
+    for (var d = 1; d <= historyDays; d++) {
+      // calendar arithmetic, so a dst change keeps each day's morning
+      DateTime at(int hour, int minute) =>
+          DateTime(today.year, today.month, today.day - d, hour, minute);
+      // the values vary by day so each usual band has some width.
+      await EntryRepository(db).insert(Entry(
+        id: 'history-spend-$d',
+        timestamp: at(8, 15),
+        type: EntryType.money,
+        title: 'Coffee and pastry',
+        amount: -(4.0 + d),
+        source: EntrySource.manual,
+      ));
+      await NutritionRepository(db).insert(
+          meals[d % 2].copyWith(id: 'history-meal-$d', timestamp: at(7, 30)));
+      await MoodRepository(db).insert(MoodCheckin(
+        id: 'history-checkin-$d',
+        timestamp: at(8, 0),
+        pleasantness: 0.4 + (d % 5) / 10,
+        source: EntrySource.manual,
+      ));
     }
   }
 }
