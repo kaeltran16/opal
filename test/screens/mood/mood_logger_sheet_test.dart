@@ -11,6 +11,7 @@ import 'package:opal/screens/mood/widgets/mood_widgets.dart';
 import 'package:opal/services/services.dart';
 import 'package:opal/theme/app_colors.dart';
 import 'package:opal/util/mood_scale.dart';
+import 'package:opal/widgets/controls.dart';
 
 import '../../support/flush_provider_timers.dart';
 
@@ -72,7 +73,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Check in'), findsOneWidget);
-    expect(find.text('HOW YOU FEEL RIGHT NOW'), findsOneWidget);
+    expect(find.text('How you feel right now'), findsOneWidget);
 
     await flushProviderTimers(tester);
   });
@@ -158,6 +159,29 @@ void main() {
 
     // button may be below sheet fold; find by semantics
     expect(find.bySemanticsLabel('Log mood'), findsOneWidget);
+
+    await flushProviderTimers(tester);
+  });
+
+  testWidgets('Log mood is the primary pill, Cancel the secondary',
+      (tester) async {
+    final (db, prefs) = await _setup();
+    addTearDown(db.close);
+    await tester.pumpWidget(_buildOpener(db, prefs));
+
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+
+    final log = find.widgetWithText(PillButton, 'Log mood');
+    expect(log, findsOneWidget);
+    expect(tester.widget<PillButton>(log).primary, isTrue);
+    final cancel = find.widgetWithText(PillButton, 'Cancel');
+    expect(cancel, findsOneWidget);
+    expect(tester.widget<PillButton>(cancel).primary, isFalse);
+
+    await tester.tap(cancel);
+    await tester.pumpAndSettle();
+    expect(find.text('Check in'), findsNothing);
 
     await flushProviderTimers(tester);
   });

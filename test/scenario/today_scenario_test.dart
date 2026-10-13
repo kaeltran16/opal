@@ -17,6 +17,7 @@ import 'package:opal/screens/today/today_screen.dart';
 import 'package:opal/screens/workout/start_workout_screen.dart';
 import 'package:opal/services/pal/pal_service.dart' show PalProposal, PalRole;
 import 'package:opal/theme/theme.dart';
+import 'package:opal/widgets/controls.dart';
 import 'package:opal/widgets/day_scene.dart';
 import 'package:opal/widgets/pal_label.dart';
 
@@ -164,6 +165,24 @@ void main() {
     expect(_card(_rentTitle), findsOneWidget);
     expect(_onToday(find.text('Now')), findsNothing);
     await shot(tester, 'today_after_undo_$theme');
+  });
+
+  scenarioTest('today mood logger', (tester, dark) async {
+    await bootToday(tester, dark: dark, pal: _pal());
+
+    // the row tap only selects the check-in; its card pill opens the logger.
+    await _tap(tester, _later('Mood check-in', 'any time'));
+    await _toTop(tester);
+    expect(_card('Mood check-in'), findsOneWidget);
+    await _tap(tester, _onToday(find.text('Check in')));
+
+    final sheet = find.byType(BottomSheet);
+    expect(find.descendant(of: sheet, matching: find.text('Check in')), findsOneWidget);
+    expect(
+      find.descendant(of: sheet, matching: find.widgetWithText(PillButton, 'Log mood')),
+      findsOneWidget,
+    );
+    await shot(tester, 'today_mood_logger_${_theme(dark)}');
   });
 
   scenarioTest('today all done', (tester, dark) async {
