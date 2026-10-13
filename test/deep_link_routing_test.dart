@@ -10,6 +10,7 @@ import 'package:opal/app.dart';
 import 'package:opal/controllers/providers.dart';
 import 'package:opal/data/db/database.dart';
 import 'package:opal/data/seed/seeder.dart';
+import 'package:opal/screens/workout/start_workout_screen.dart';
 import 'package:opal/services/services.dart';
 
 /// U25/U26 — the native deep-link → GoRouter wiring in `app.dart`.
@@ -69,12 +70,12 @@ void main() {
     await tester.pumpAndSettle();
 
     // Boots to Today, not yet on Start Workout.
-    expect(find.text("PAL'S PICK FOR TODAY"), findsNothing);
+    expect(find.byType(StartWorkoutScreen), findsNothing);
 
     // A Siri "Start workout" intent / Live-Activity-style deep link arrives.
     siri.emit('/move/start');
     await tester.pumpAndSettle();
-    expect(find.text("PAL'S PICK FOR TODAY"), findsOneWidget);
+    expect(find.byType(StartWorkoutScreen), findsOneWidget);
 
     // Flush the Pal-pick mock-latency timer + drift stream-close timers before
     // teardown (autoDispose drift streams leak a zero-duration close timer).

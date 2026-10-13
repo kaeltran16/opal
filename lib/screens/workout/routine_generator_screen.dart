@@ -7,26 +7,38 @@ import '../../controllers/routine_generator_controller.dart';
 import '../../models/models.dart';
 import '../../services/pal/pal_service.dart';
 import '../../theme/theme.dart';
-import '../../widgets/app_icon.dart';
+import '../../widgets/controls.dart';
+import '../../widgets/exercise_row.dart';
 import '../../widgets/inset_section.dart';
 import '../../widgets/nav_bar.dart';
+import '../../widgets/pal_lead.dart';
 import '../../widgets/press_scale.dart';
 
-/// One quick-pick goal button (label + tinted SF Symbol). Tapping fills the
-/// prompt and immediately generates.
-class _QuickGoal {
-  const _QuickGoal(this.label, this.icon, this.color);
-  final String label;
-  final String icon;
-  final Color color;
-}
+// clears the floating tab bar at the end of the scroll.
+const double _scrollTail = 110;
+const double _sectionGap = Spacing.xl;
+const double _textButtonHeight = 48;
+const int _promptMinLines = 3;
+const int _promptMaxLines = 6;
+const String _exerciseIcon = 'dumbbell';
+const String _lead = 'Describe the workout you want.';
+const String _placeholder =
+    'What kind of workout do you want? Goal, duration, equipment…';
 
-/// Screen — AI Routine Generator (Handoff #2). Describes a goal in free text (or
-/// taps a quick-pick), Pal builds an ordered routine drawn from the exercise
-/// library, then the user reviews and saves it as a real [Routine]. All async +
-/// the save path live in [RoutineGeneratorController]; this widget lays out the
-/// hero pitch, prompt input, quick-picks, loading/error states, and the result
-/// preview.
+/// The fallback quick goals when Pal has none to offer.
+const List<String> _staticGoals = [
+  '45-min push for strength',
+  'Quick full-body, no barbell',
+  'Pull day focused on back',
+  'Short HIIT cardio',
+  'Legs — glutes and hams',
+  'Home workout, no gear',
+];
+
+/// Generate with Pal: describe a goal in free text (or tap a quick goal), Pal
+/// builds an ordered routine from the exercise library, then the user reviews
+/// and saves it as a real [Routine]. All async and the save path live in
+/// [RoutineGeneratorController]; this widget lays out.
 class RoutineGeneratorScreen extends ConsumerStatefulWidget {
   const RoutineGeneratorScreen({super.key});
 
@@ -45,16 +57,6 @@ class _RoutineGeneratorScreenState
     super.dispose();
   }
 
-  List<_QuickGoal> _goals(AppColors c) => [
-        _QuickGoal('45-min push for strength', 'flame.fill', c.move),
-        _QuickGoal('Quick full-body, no barbell', 'figure.mixed.cardio', c.accent),
-        _QuickGoal('Pull day focused on back', 'figure.pullup', c.rituals),
-        _QuickGoal('Short HIIT cardio', 'bolt.fill', c.money),
-        // kept literal: decorative per-goal accent, not the money token
-        _QuickGoal('Legs — glutes and hams', 'figure.walk', const Color(0xFFFF9500)),
-        _QuickGoal('Home workout, no gear', 'house.fill', c.red),
-      ];
-
   void _generate(String goal) {
     if (goal.trim().isEmpty) return;
     FocusScope.of(context).unfocus();
@@ -70,7 +72,7 @@ class _RoutineGeneratorScreenState
     try {
       await ref.read(routineGeneratorControllerProvider.notifier).save();
       if (!mounted) return;
-      // Back to the Start Workout picker so the new routine shows in the grid.
+      // back to the picker so the new routine shows in its list.
       context.go('/move/start');
     } catch (_) {
       if (!mounted) return;
@@ -84,300 +86,116 @@ class _RoutineGeneratorScreenState
   Widget build(BuildContext context) {
     final c = context.colors;
     final state = ref.watch(routineGeneratorControllerProvider);
-    final isResult = state is RoutineGeneratorResult;
     final isLoading = state is RoutineGeneratorLoading;
 
-    // Pal-generated goal chips when available; the static list is the fallback
-    // for loading / offline / empty.
+    // Pal's goals when available; the static list covers loading, offline and
+    // empty.
     final palGoals = ref
         .watch(palSuggestionsProvider(SuggestionSurface.routineGoal))
         .maybeWhen(
-          data: (list) => list.isEmpty
-              ? null
-              : list.map((s) => _QuickGoal(s.label, s.icon, c.forType(s.colorToken))).toList(),
+          data: (list) => list.isEmpty ? null : [for (final s in list) s.label],
           orElse: () => null,
         );
-    final goals = palGoals ?? _goals(c);
 
     return Scaffold(
       backgroundColor: c.bg,
       body: LargeTitleScrollView(
-        title: 'Generate with AI',
+        title: 'Generate with Pal',
         leading: NavAction(
           icon: 'chevron.left',
           label: 'Cancel',
           onTap: () => context.pop(),
         ),
-        // kept literal: bottom 110 is scroll-tail clearance for floating actions
-        padding: const EdgeInsets.only(bottom: 110),
+        padding: const EdgeInsets.only(bottom: _scrollTail),
         children: [
-          // The idle form is hidden while loading so the loading pill renders
-          // directly under the title instead of below the off-screen form.
-          if (!isResult && !isLoading) ...[
-            const Padding(
-              padding: EdgeInsets.fromLTRB(Spacing.lg, Spacing.xs, Spacing.lg, Spacing.xl),
-              child: _HeroCard(),
-            ),
+          if (state is RoutineGeneratorResult)
+            ..._result(state)
+          else
             Padding(
-              padding: const EdgeInsets.fromLTRB(Spacing.lg, 0, Spacing.lg, Spacing.lg),
-              child: _PromptCard(
+              padding: const EdgeInsets.fromLTRB(
+                  Spacing.lg, Spacing.xs, Spacing.lg, 0),
+              child: _Form(
                 controller: _promptController,
-                enabled: !isLoading,
+                loading: isLoading,
+                error: state is RoutineGeneratorError,
+                goals: palGoals ?? _staticGoals,
                 onGenerate: () => _generate(_promptController.text),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(Spacing.lg, 0, Spacing.lg, 0),
-              child: _QuickPicks(
-                goals: goals,
-                disabled: isLoading,
                 onPick: _runQuickGoal,
               ),
             ),
-          ],
-
-          if (isLoading) const _LoadingPill(),
-
-          if (state is RoutineGeneratorError)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(Spacing.lg, 0, Spacing.lg, 0),
-              child: _ErrorCard(message: state.message),
-            ),
-
-          if (state is RoutineGeneratorResult) ...[
-            Padding(
-              padding: const EdgeInsets.fromLTRB(Spacing.lg, Spacing.xs, Spacing.lg, Spacing.lg),
-              child: _ResultHeader(draft: state.draft),
-            ),
-            _ExerciseSection(state: state),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(Spacing.lg, Spacing.sm, Spacing.lg, 0),
-              child: _ResultActions(
-                onTryAgain:
-                    ref.read(routineGeneratorControllerProvider.notifier).reset,
-                onSave: _save,
-              ),
-            ),
-          ],
         ],
       ),
     );
   }
-}
 
-/// Dark hero card: the pitch shown before a result. Radial tints + sparkle
-/// circle + headline + example prompt.
-class _HeroCard extends StatelessWidget {
-  const _HeroCard();
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.colors;
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(Radii.lg),
-      child: Stack(
+  List<Widget> _result(RoutineGeneratorResult state) {
+    final exercises = state.draft.exercises;
+    return [
+      Padding(
+        padding: const EdgeInsets.fromLTRB(
+            Spacing.lg, Spacing.xs, Spacing.lg, _sectionGap),
+        child: _ResultHeader(draft: state.draft),
+      ),
+      InsetSection(
+        header: 'Exercises',
         children: [
-          Positioned.fill(child: ColoredBox(color: c.ink)),
-          Positioned(
-            top: -50,
-            right: -30,
-            child: _RadialTint(size: 160, color: c.move, alpha: 0.27),
-          ),
-          Positioned(
-            bottom: -40,
-            left: 40,
-            child: _RadialTint(size: 120, color: c.accent, alpha: 0.2),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(Spacing.xl),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      width: 24,
-                      height: 24,
-                      decoration: BoxDecoration(
-                          shape: BoxShape.circle, color: c.move),
-                      alignment: Alignment.center,
-                      child: AppIcon('sparkles', size: 12, color: c.onAccent),
-                    ),
-                    const SizedBox(width: Spacing.sm),
-                    Text('PAL BUILDS YOUR ROUTINE',
-                        style: AppType.caption2.copyWith(
-                            fontWeight: FontWeight.w700,
-                            color: c.onAccent.withValues(alpha: 0.85),
-                            letterSpacing: 1.2)),
-                  ],
-                ),
-                const SizedBox(height: Spacing.md),
-                Text('Describe what you want.\nPal picks the exercises.',
-                    style: AppFonts.sfr(
-                        size: 22, // kept literal: 22pt rounded figure, no matching type token
-                        weight: FontWeight.w700,
-                        color: c.onAccent,
-                        letterSpacing: -0.4,
-                        height: 1.15)),
-                const SizedBox(height: Spacing.sm),
-                Text('"A 30-min pull day I can do at the gym" or '
-                    '"legs at home with dumbbells."',
-                    style: AppType.footnote.copyWith(
-                        color: c.onAccent.withValues(alpha: 0.75),
-                        letterSpacing: -0.1,
-                        height: 1.45)),
-              ],
+          for (var i = 0; i < exercises.length; i++)
+            ExerciseRow(
+              name: state.exerciseFor(exercises[i].exerciseId)?.name ??
+                  'Unknown exercise',
+              detail: _setsDetail(exercises[i].sets),
+              icon: _exerciseIcon,
+              first: i == 0,
             ),
-          ),
         ],
       ),
-    );
-  }
-}
-
-/// A soft radial glow used behind the hero headline.
-class _RadialTint extends StatelessWidget {
-  const _RadialTint({required this.size, required this.color, required this.alpha});
-  final double size;
-  final Color color;
-  final double alpha;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        gradient: RadialGradient(
-          colors: [color.withValues(alpha: alpha), color.withValues(alpha: 0)],
-          stops: const [0, 0.7],
-        ),
-      ),
-    );
-  }
-}
-
-/// Prompt input card: multiline field + footer row (hint + Generate button).
-class _PromptCard extends StatelessWidget {
-  const _PromptCard({
-    required this.controller,
-    required this.enabled,
-    required this.onGenerate,
-  });
-  final TextEditingController controller;
-  final bool enabled;
-  final VoidCallback onGenerate;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.colors;
-    return Container(
-      padding: const EdgeInsets.all(Spacing.lg),
-      decoration: BoxDecoration(
-        color: c.surface,
-        borderRadius: BorderRadius.circular(Radii.lg),
-        border: Border.all(color: c.hair, width: 0.5),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          ConstrainedBox(
-            constraints: const BoxConstraints(minHeight: 76),
-            child: TextField(
-              controller: controller,
-              enabled: enabled,
-              minLines: 3,
-              maxLines: 6,
-              cursorColor: c.accent,
-              style: AppType.subhead.copyWith(
-                  color: c.ink, letterSpacing: -0.2, height: 1.4),
-              decoration: InputDecoration(
-                isDense: true,
-                border: InputBorder.none,
-                contentPadding: EdgeInsets.zero,
-                hintText:
-                    'What kind of workout do you want? Goal, duration, equipment…',
-                hintStyle: AppType.subhead.copyWith(
-                    color: c.ink3, letterSpacing: -0.2, height: 1.4),
-              ),
-            ),
-          ),
-          const SizedBox(height: Spacing.md),
-          Container(height: 0.5, color: c.hair),
-          const SizedBox(height: Spacing.md),
-          ValueListenableBuilder<TextEditingValue>(
-            valueListenable: controller,
-            builder: (context, value, _) {
-              final canGenerate = enabled && value.text.trim().isNotEmpty;
-              return Row(
-                children: [
-                  Expanded(
-                    child: Text('Pal uses your exercise library & recent sessions',
-                        style: AppType.caption2.copyWith(
-                            color: c.ink4, letterSpacing: -0.08)),
-                  ),
-                  const SizedBox(width: Spacing.md),
-                  _GenerateButton(
-                    enabled: canGenerate,
-                    onTap: canGenerate ? onGenerate : null,
-                  ),
-                ],
-              );
-            },
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// The "Generate" pill (sparkles + label). Move bg when enabled, fill when not.
-class _GenerateButton extends StatelessWidget {
-  const _GenerateButton({required this.enabled, this.onTap});
-  final bool enabled;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.colors;
-    final fg = enabled ? c.onAccent : c.ink4;
-    return PressScale(
-      onTap: onTap,
-      semanticLabel: 'Generate',
-      child: Container(
-        // kept literal: vertical 9 keeps the CTA pill height
-        padding: const EdgeInsets.symmetric(horizontal: Spacing.lg, vertical: 9),
-        decoration: BoxDecoration(
-          color: enabled ? c.move : c.fill,
-          borderRadius: BorderRadius.circular(Radii.pill),
-        ),
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: Spacing.lg),
         child: Row(
-          mainAxisSize: MainAxisSize.min,
+          spacing: Spacing.sm,
           children: [
-            AppIcon('sparkles', size: 11, color: fg),
-            const SizedBox(width: Spacing.xs),
-            Text('Generate',
-                style: AppType.footnote.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: fg,
-                    letterSpacing: -0.1)),
+            Expanded(
+              child: PillButton(
+                label: 'Try again',
+                primary: false,
+                onTap: ref.read(routineGeneratorControllerProvider.notifier).reset,
+              ),
+            ),
+            Expanded(child: PillButton(label: 'Save routine', onTap: _save)),
           ],
         ),
       ),
-    );
+    ];
+  }
+
+  /// "{sets} × {reps}", or minutes for timed work.
+  static String _setsDetail(List<GeneratedSetDraft> sets) {
+    final n = sets.length;
+    final first = sets.isEmpty ? null : sets.first;
+    final reps = first?.reps;
+    if (reps != null) return '$n × $reps';
+    final minutes = first?.durationMinutes;
+    if (minutes != null) return '$n × $minutes min';
+    return '$n ${n == 1 ? 'set' : 'sets'}';
   }
 }
 
-/// Quick-pick goals: "Or try one of these" + a 2-col grid of tappable goals.
-class _QuickPicks extends StatelessWidget {
-  const _QuickPicks({
+/// Pal's lead, the prompt, Generate, a failure line, then the quick goals.
+class _Form extends StatelessWidget {
+  const _Form({
+    required this.controller,
+    required this.loading,
+    required this.error,
     required this.goals,
-    required this.disabled,
+    required this.onGenerate,
     required this.onPick,
   });
-  final List<_QuickGoal> goals;
-  final bool disabled;
+
+  final TextEditingController controller;
+  final bool loading;
+  final bool error;
+  final List<String> goals;
+  final VoidCallback onGenerate;
   final ValueChanged<String> onPick;
 
   @override
@@ -386,401 +204,70 @@ class _QuickPicks extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(Spacing.xs, 0, Spacing.xs, Spacing.md),
-          child: Text('OR TRY ONE OF THESE',
-              style: AppType.caption.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: c.ink3,
-                  letterSpacing: 0.8)),
-        ),
-        GridView.count(
-          crossAxisCount: 2,
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          mainAxisSpacing: Spacing.sm,
-          crossAxisSpacing: Spacing.sm,
-          childAspectRatio: 2.6,
-          children: [
-            for (final g in goals)
-              _QuickGoalButton(
-                goal: g,
-                disabled: disabled,
-                onTap: disabled ? null : () => onPick(g.label),
-              ),
-          ],
-        ),
-      ],
-    );
-  }
-}
-
-class _QuickGoalButton extends StatelessWidget {
-  const _QuickGoalButton({
-    required this.goal,
-    required this.disabled,
-    this.onTap,
-  });
-  final _QuickGoal goal;
-  final bool disabled;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.colors;
-    return PressScale(
-      onTap: onTap,
-      semanticLabel: goal.label,
-      child: Opacity(
-        opacity: disabled ? 0.4 : 1,
-        child: Container(
-          padding: const EdgeInsets.all(Spacing.md),
+        const PalLead(text: _lead),
+        const SizedBox(height: _sectionGap),
+        Container(
+          padding: const EdgeInsets.all(Spacing.lg),
           decoration: BoxDecoration(
-            color: c.surface,
+            color: c.surface2,
             borderRadius: BorderRadius.circular(Radii.card),
-            border: Border.all(color: c.hair, width: 0.5),
           ),
-          child: Row(
-            children: [
-              Container(
-                width: 32,
-                height: 32,
-                decoration: BoxDecoration(
-                  color: goal.color.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(Radii.sm),
-                ),
-                alignment: Alignment.center,
-                child: AppIcon(goal.icon, size: 15, color: goal.color),
-              ),
-              const SizedBox(width: Spacing.md),
-              Expanded(
-                child: Text(goal.label,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: AppType.footnote.copyWith(
-                        fontWeight: FontWeight.w500,
-                        color: c.ink,
-                        letterSpacing: -0.1,
-                        height: 1.2)),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Centered spinner pill shown while Pal builds the routine.
-class _LoadingPill extends StatelessWidget {
-  const _LoadingPill();
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.colors;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(Spacing.lg, Spacing.xxl, Spacing.lg, 0),
-      child: Center(
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: Spacing.lg, vertical: Spacing.md),
-          decoration: BoxDecoration(
-            color: c.surface,
-            borderRadius: BorderRadius.circular(Radii.pill),
-            border: Border.all(color: c.hair, width: 0.5),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              SizedBox(
-                width: 14,
-                height: 14,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation(c.move),
-                  backgroundColor: c.move.withValues(alpha: 0.2),
-                ),
-              ),
-              const SizedBox(width: Spacing.sm),
-              Text('Pal is building your routine…',
-                  style: AppType.footnote.copyWith(
-                      color: c.ink2, letterSpacing: -0.1)),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Red-tinted error card with the failure message.
-class _ErrorCard extends StatelessWidget {
-  const _ErrorCard({required this.message});
-  final String message;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.colors;
-    return Container(
-      padding: const EdgeInsets.all(Spacing.lg),
-      decoration: BoxDecoration(
-        color: c.red.withValues(alpha: 0.07),
-        borderRadius: BorderRadius.circular(Radii.md),
-        border: Border.all(color: c.red.withValues(alpha: 0.27), width: 0.5),
-      ),
-      child: Text(message,
-          style: AppType.footnote.copyWith(color: c.red, letterSpacing: -0.1)),
-    );
-  }
-}
-
-/// Gradient (move → accent) result header: "Generated" badge + name + tag pill +
-/// "{N} exercises · ~{estMin} min" + rationale.
-class _ResultHeader extends StatelessWidget {
-  const _ResultHeader({required this.draft});
-  final GeneratedRoutineDraft draft;
-
-  String get _tagLabel {
-    final w = draft.tag.wire;
-    return w.isEmpty ? w : '${w[0].toUpperCase()}${w.substring(1)}';
-  }
-
-  String get _meta {
-    final n = draft.exercises.length;
-    final count = '$n ${n == 1 ? 'exercise' : 'exercises'}';
-    final min = draft.estimatedMinutes;
-    return min == null ? count : '$count · ~$min min';
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.colors;
-    return Container(
-      padding: const EdgeInsets.all(Spacing.xl),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(Radii.lg),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [c.move, c.accent],
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: Spacing.sm, vertical: Spacing.xs),
-            decoration: BoxDecoration(
-              color: c.onAccent.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(Radii.pill),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                AppIcon('sparkles', size: 9, color: c.onAccent),
-                const SizedBox(width: Spacing.xs),
-                Text('GENERATED',
-                    style: AppType.caption2.copyWith(
-                        fontWeight: FontWeight.w700,
-                        color: c.onAccent,
-                        letterSpacing: 1)),
-              ],
+          child: TextField(
+            controller: controller,
+            enabled: !loading,
+            minLines: _promptMinLines,
+            maxLines: _promptMaxLines,
+            cursorColor: c.ink,
+            style: AppType.body.copyWith(color: c.ink),
+            decoration: InputDecoration(
+              isDense: true,
+              border: InputBorder.none,
+              contentPadding: EdgeInsets.zero,
+              hintText: _placeholder,
+              hintStyle: AppType.body.copyWith(color: c.ink3),
             ),
           ),
-          const SizedBox(height: Spacing.sm),
-          Text(draft.name,
-              style: AppFonts.sfr(
-                  size: 24, // kept literal: 24pt rounded figure, no matching type token
-                  weight: FontWeight.w700,
-                  color: c.onAccent,
-                  letterSpacing: -0.5,
-                  height: 1.1)),
-          const SizedBox(height: Spacing.sm),
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: Spacing.sm, vertical: Spacing.xxs),
-                decoration: BoxDecoration(
-                  color: c.onAccent.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(Radii.pill),
-                ),
-                child: Text(_tagLabel,
-                    style: AppType.caption2.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: c.onAccent,
-                        letterSpacing: -0.08)),
-              ),
-              const SizedBox(width: Spacing.sm),
-              Flexible(
-                child: Text(_meta,
-                    style: AppType.caption.copyWith(
-                        color: c.onAccent.withValues(alpha: 0.85),
-                        letterSpacing: -0.08)),
-              ),
-            ],
-          ),
-          if (draft.rationale != null && draft.rationale!.isNotEmpty) ...[
-            const SizedBox(height: Spacing.md),
-            Container(height: 0.5, color: c.onAccent.withValues(alpha: 0.2)),
-            const SizedBox(height: Spacing.md),
-            Text(draft.rationale!,
-                style: AppType.footnote.copyWith(
-                    color: c.onAccent.withValues(alpha: 0.9),
-                    letterSpacing: -0.1,
-                    height: 1.45)),
-          ],
+        ),
+        const SizedBox(height: Spacing.md),
+        ValueListenableBuilder<TextEditingValue>(
+          valueListenable: controller,
+          builder: (context, value, _) {
+            final canGenerate = !loading && value.text.trim().isNotEmpty;
+            return PillButton(
+              label: loading ? 'Generating…' : 'Generate',
+              onTap: canGenerate ? onGenerate : null,
+            );
+          },
+        ),
+        if (error) ...[
+          const SizedBox(height: Spacing.md),
+          _ErrorLine(onRetry: onGenerate),
         ],
-      ),
-    );
-  }
-}
-
-/// "Exercises" inset section — one row per generated exercise: icon tile + name
-/// + "{group} · {equipment}" + set chips.
-class _ExerciseSection extends StatelessWidget {
-  const _ExerciseSection({required this.state});
-  final RoutineGeneratorResult state;
-
-  @override
-  Widget build(BuildContext context) {
-    final exercises = state.draft.exercises;
-    return InsetSection(
-      header: 'Exercises',
-      children: [
-        for (var i = 0; i < exercises.length; i++)
-          _ExerciseRow(
-            generated: exercises[i],
-            exercise: state.exerciseFor(exercises[i].exerciseId),
-            last: i == exercises.length - 1,
-          ),
-      ],
-    );
-  }
-}
-
-class _ExerciseRow extends StatelessWidget {
-  const _ExerciseRow({
-    required this.generated,
-    required this.exercise,
-    required this.last,
-  });
-  final GeneratedExerciseDraft generated;
-  final Exercise? exercise;
-  final bool last;
-
-  String get _subtitle {
-    final muscle = exercise?.muscle ?? '';
-    final equip = exercise?.equipment;
-    final parts = <String>[
-      if (muscle.isNotEmpty) muscle,
-      if (equip != null && equip.isNotEmpty) equip,
-    ];
-    return parts.join(' · ');
-  }
-
-  static String _setLabel(GeneratedSetDraft s) {
-    final w = s.weightKg;
-    if (w != null && w > 0) {
-      final weight = w == w.roundToDouble() ? w.toStringAsFixed(0) : w.toString();
-      return '$weight×${s.reps ?? '—'}';
-    }
-    if (s.durationMinutes != null) return '${s.durationMinutes}min';
-    if (s.reps != null) return '${s.reps} reps';
-    return '—';
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.colors;
-    final subtitle = _subtitle;
-    return Stack(
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(Spacing.lg, Spacing.md, Spacing.lg, Spacing.md),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+        const SizedBox(height: _sectionGap),
+        Text('Or try one of these',
+            style: AppType.headline.copyWith(color: c.ink)),
+        const SizedBox(height: Spacing.xs),
+        // a goal generates at once, so none starts while Pal is building.
+        IgnorePointer(
+          ignoring: loading,
+          child: Wrap(
+            spacing: Spacing.sm,
             children: [
-              Row(
-                children: [
-                  Container(
-                    width: 32,
-                    height: 32,
-                    decoration: BoxDecoration(
-                      color: c.move.withValues(alpha: 0.13),
-                      borderRadius: BorderRadius.circular(Radii.sm),
-                    ),
-                    alignment: Alignment.center,
-                    child: AppIcon(exercise?.icon ?? 'dumbbell.fill',
-                        size: 16, color: c.move),
-                  ),
-                  const SizedBox(width: Spacing.md),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(exercise?.name ?? 'Unknown exercise',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: AppType.subhead.copyWith(
-                                fontWeight: FontWeight.w600,
-                                color: c.ink,
-                                letterSpacing: -0.24)),
-                        if (subtitle.isNotEmpty)
-                          Text(subtitle,
-                              style: AppType.caption.copyWith(
-                                  color: c.ink3,
-                                  letterSpacing: -0.08)),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: Spacing.sm),
-              Padding(
-                // kept literal: left 42 aligns set chips under the title (past the 32 icon + gap)
-                padding: const EdgeInsets.only(left: 42),
-                child: Wrap(
-                  spacing: Spacing.xs,
-                  runSpacing: Spacing.xs,
-                  children: [
-                    for (final s in generated.sets)
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: Spacing.md, vertical: Spacing.xs),
-                        decoration: BoxDecoration(
-                          color: c.fill,
-                          borderRadius: BorderRadius.circular(Radii.sm),
-                        ),
-                        child: Text(_setLabel(s),
-                            style: AppFonts.sfr(
-                                size: 11, // kept literal: 11pt rounded chip figure, no matching type token
-                                weight: FontWeight.w600,
-                                color: c.ink2,
-                                letterSpacing: -0.08)),
-                      ),
-                  ],
-                ),
-              ),
+              for (final g in goals)
+                AppChip(label: g, selected: false, onTap: () => onPick(g)),
             ],
           ),
         ),
-        if (!last)
-          Positioned(
-            // left: 14 inset aligns divider with row content → keep literal
-            left: 14,
-            right: 0,
-            bottom: 0,
-            child: Container(height: 0.5, color: c.hair),
-          ),
       ],
     );
   }
 }
 
-/// Result actions: "Try again" (bordered, flex 1) + "Save routine" (move, flex 2).
-class _ResultActions extends StatelessWidget {
-  const _ResultActions({required this.onTryAgain, required this.onSave});
-  final VoidCallback onTryAgain;
-  final Future<void> Function() onSave;
+/// The failed generation: the state word first, then Try again.
+class _ErrorLine extends StatelessWidget {
+  const _ErrorLine({required this.onRetry});
+
+  final VoidCallback onRetry;
 
   @override
   Widget build(BuildContext context) {
@@ -788,55 +275,62 @@ class _ResultActions extends StatelessWidget {
     return Row(
       children: [
         Expanded(
-          flex: 1,
-          child: PressScale(
-            onTap: onTryAgain,
-            semanticLabel: 'Try again',
-            child: Container(
-              // kept literal: vertical 13 keeps the CTA button height
-              padding: const EdgeInsets.symmetric(vertical: 13),
-              decoration: BoxDecoration(
-                color: c.surface,
-                borderRadius: BorderRadius.circular(Radii.md),
-                border: Border.all(color: c.hair, width: 0.5),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  AppIcon('arrow.clockwise', size: 12, color: c.ink2),
-                  const SizedBox(width: Spacing.xs),
-                  Text('Try again',
-                      style: AppType.subhead.copyWith(
-                          fontWeight: FontWeight.w600,
-                          color: c.ink2,
-                          letterSpacing: -0.2)),
-                ],
-              ),
-            ),
+          child: Text("Couldn't generate this routine.",
+              style: AppType.subhead.copyWith(color: c.careInk)),
+        ),
+        PressScale(
+          onTap: onRetry,
+          semanticLabel: 'Try again',
+          child: Container(
+            constraints: const BoxConstraints(minHeight: _textButtonHeight),
+            padding: const EdgeInsets.only(left: Spacing.lg),
+            alignment: Alignment.center,
+            child: Text('Try again',
+                maxLines: 1,
+                style: AppType.headline.copyWith(color: c.ink2)),
           ),
         ),
-        const SizedBox(width: Spacing.md),
-        Expanded(
-          flex: 2,
-          child: PressScale(
-            onTap: onSave,
-            semanticLabel: 'Save routine',
-            child: Container(
-              // kept literal: vertical 13 keeps the CTA button height
-              padding: const EdgeInsets.symmetric(vertical: 13),
-              decoration: BoxDecoration(
-                color: c.move,
-                borderRadius: BorderRadius.circular(Radii.md),
-              ),
-              alignment: Alignment.center,
-              child: Text('Save routine',
-                  style: AppType.subhead.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: c.onAccent,
-                      letterSpacing: -0.24)),
-            ),
-          ),
+      ],
+    );
+  }
+}
+
+/// The generated routine's name, its meta and Pal's reason for it.
+class _ResultHeader extends StatelessWidget {
+  const _ResultHeader({required this.draft});
+  final GeneratedRoutineDraft draft;
+
+  String get _meta {
+    final w = draft.tag.wire;
+    final tag = w.isEmpty ? w : '${w[0].toUpperCase()}${w.substring(1)}';
+    final n = draft.exercises.length;
+    final min = draft.estimatedMinutes;
+    return [
+      if (tag.isNotEmpty) tag,
+      '$n ${n == 1 ? 'exercise' : 'exercises'}',
+      if (min != null) '~$min min',
+    ].join(' · ');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    final rationale = draft.rationale;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      spacing: Spacing.xxs,
+      children: [
+        Semantics(
+          header: true,
+          child: Text(draft.name, style: AppType.title.copyWith(color: c.ink)),
         ),
+        Text(_meta, style: AppType.label.copyWith(color: c.ink3)),
+        if (rationale != null && rationale.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: Spacing.sm),
+            child: Text(rationale,
+                style: AppType.subhead.copyWith(color: c.ink2)),
+          ),
       ],
     );
   }

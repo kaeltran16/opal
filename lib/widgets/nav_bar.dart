@@ -1,11 +1,31 @@
+import 'dart:math' as math;
+
 import 'package:flutter/widgets.dart';
 import '../theme/theme.dart';
 import 'app_icon.dart';
 import 'glass_surface.dart';
 import 'press_scale.dart';
 
-/// iOS large-title navigation header (static, non-collapsing variant used by the
-/// prototype). A scroll-collapsing version can wrap this in a SliverPersistentHeader later.
+// clears the status bar above the first header row.
+const double _statusPad = 56;
+// every header row is one 44pt touch target tall.
+const double _row = 44;
+// line heights of the text the header reserves room for.
+const double _eyebrowLine = 18;
+const double _titleLine = 27;
+const double _subtitleLine = 20;
+const double _compactGap = Spacing.sm;
+const double _bottomPad = Spacing.sm;
+const double _hairline = 1;
+const double _navGlyph = 20;
+
+TextStyle _titleStyle(AppColors c) => AppType.title.copyWith(color: c.ink);
+
+TextStyle _subtitleStyle(AppColors c) => AppType.subhead
+    .copyWith(color: c.ink3, height: _subtitleLine / AppType.subhead.fontSize!);
+
+/// Static large-title navigation header. [leading] (back) sits on its own row;
+/// the title shares the next row with [trailing].
 class LargeTitleNavBar extends StatelessWidget {
   const LargeTitleNavBar({
     super.key,
@@ -25,33 +45,32 @@ class LargeTitleNavBar extends StatelessWidget {
     final c = context.colors;
     return Container(
       color: c.bg,
-      padding: const EdgeInsets.fromLTRB(Spacing.lg, 56, Spacing.lg, Spacing.sm), // kept literal: 56 top clears the status bar
+      padding:
+          const EdgeInsets.fromLTRB(Spacing.lg, _statusPad, Spacing.lg, _bottomPad),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          ConstrainedBox(
-            constraints: const BoxConstraints(minHeight: 32),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [leading ?? const SizedBox.shrink(), trailing ?? const SizedBox.shrink()],
+          if (leading != null)
+            SizedBox(
+              height: _row,
+              child: Align(alignment: Alignment.centerLeft, child: leading),
             ),
-          ),
-          const SizedBox(height: Spacing.sm),
-          Text(
-            title,
-            style: AppType.large.copyWith(
-              color: c.ink,
-              letterSpacing: 0.37,
-              height: 41 / 34,
+          ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: _row),
+            child: Row(
+              children: [
+                Expanded(child: Text(title, style: _titleStyle(c))),
+                if (trailing != null) ...[
+                  const SizedBox(width: _compactGap),
+                  trailing!,
+                ],
+              ],
             ),
           ),
           if (subtitle != null)
             Padding(
               padding: const EdgeInsets.only(top: Spacing.xxs),
-              child: Text(
-                subtitle!,
-                style: AppType.subhead.copyWith(color: c.ink3, letterSpacing: -0.24),
-              ),
+              child: Text(subtitle!, style: _subtitleStyle(c)),
             ),
         ],
       ),
@@ -59,9 +78,8 @@ class LargeTitleNavBar extends StatelessWidget {
   }
 }
 
-/// Scroll view with an iOS-style large title that collapses to a compact,
-/// pinned inline title as the content scrolls up (README "Large-title nav bar":
-/// 34/700 large title → 17/600 compact). Drop-in replacement for the common
+/// Scroll view with a large title that collapses to a compact, pinned inline
+/// title as the content scrolls up. Drop-in replacement for the common
 /// `ListView(children: [LargeTitleNavBar(...), ...body])` pattern: pass the nav
 /// fields here and the former body children via [children].
 class LargeTitleScrollView extends StatelessWidget {
@@ -111,6 +129,7 @@ class LargeTitleScrollView extends StatelessWidget {
             pinned: true,
             delegate: _CollapsingNavDelegate(
               colors: context.colors,
+              textScaler: MediaQuery.textScalerOf(context),
               title: title,
               subtitle: subtitle,
               eyebrow: eyebrow,
@@ -129,9 +148,12 @@ class LargeTitleScrollView extends StatelessWidget {
   }
 }
 
+enum _Slot { leading, trailing, compact, eyebrow, title, subtitle }
+
 class _CollapsingNavDelegate extends SliverPersistentHeaderDelegate {
   _CollapsingNavDelegate({
     required this.colors,
+    required this.textScaler,
     required this.title,
     this.subtitle,
     this.eyebrow,
@@ -141,6 +163,7 @@ class _CollapsingNavDelegate extends SliverPersistentHeaderDelegate {
   });
 
   final AppColors colors;
+  final TextScaler textScaler;
   final String title;
   final String? subtitle;
   final String? eyebrow;
@@ -148,26 +171,24 @@ class _CollapsingNavDelegate extends SliverPersistentHeaderDelegate {
   final Widget? leading;
   final Widget? trailing;
 
-  // The status inset + a 44pt nav row form the pinned (collapsed) bar; the large
-  // title block lives in the extra extent and slides up behind the bar.
-  static const double _statusPad = 56;
-  static const double _navRow = 44;
-  static const double _titleH = 41;
-  static const double _subtitleH = 19;
-  static const double _eyebrowH = 16;
-  static const double _bottomPad = 8;
+  // the status inset + one 44pt row form the pinned (collapsed) bar. at rest
+  // the leading gets that row and the title row follows it; without a leading
+  // the title row is the bar row itself, as on the canvas.
+  double get _eyebrowBlock =>
+      eyebrow != null ? textScaler.scale(_eyebrowLine) + Spacing.xxs : 0;
+  double get _titleRow => math.max(_row, textScaler.scale(_titleLine));
+  double get _subtitleBlock =>
+      subtitle != null ? Spacing.xxs + textScaler.scale(_subtitleLine) : 0;
 
-  double get _titleBlock =>
-      (eyebrow != null ? _eyebrowH + Spacing.xxs : 0) +
-      _titleH +
-      (subtitle != null ? 2 + _subtitleH : 0) +
-      _bottomPad;
+  /// The title row's top at rest, measured from the bottom of the status inset.
+  double get _titleTop => (leading != null ? _row : 0) + _eyebrowBlock;
 
   @override
-  double get minExtent => _statusPad + _navRow;
+  double get minExtent => _statusPad + _row;
 
   @override
-  double get maxExtent => minExtent + _titleBlock;
+  double get maxExtent =>
+      _statusPad + _titleTop + _titleRow + _subtitleBlock + _bottomPad;
 
   @override
   Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
@@ -185,88 +206,23 @@ class _CollapsingNavDelegate extends SliverPersistentHeaderDelegate {
         border: Border(
           bottom: BorderSide(
             color: c.hair.withValues(alpha: compactOpacity),
-            width: 0.5,
+            width: _hairline,
           ),
-        ),
-      ),
-      padding: const EdgeInsets.only(top: _statusPad),
-      child: SizedBox(
-        height: _navRow,
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            if (compactOpacity > 0)
-              Opacity(
-                opacity: compactOpacity,
-                child: Text(
-                  title,
-                  style: AppType.headline.copyWith(color: c.ink),
-                ),
-              ),
-            if (leading != null)
-              Positioned(left: Spacing.lg, child: leading!),
-            if (trailing != null)
-              Positioned(right: Spacing.lg, child: trailing!),
-          ],
         ),
       ),
     );
 
+    // the large title, eyebrow and subtitle exist only while visible, and the
+    // compact title only once collapsing, so the title text is in the tree
+    // exactly once at rest and once collapsed.
+    Widget large(_Slot slot, Widget child) => LayoutId(
+          id: slot,
+          child: Opacity(opacity: largeOpacity, child: child),
+        );
+
     return SizedBox.expand(
       child: Stack(
-        clipBehavior: Clip.none,
         children: [
-          // large title — drawn first so the pinned bar covers it as it
-          // slides up. Omitted once fully collapsed so the title text exists
-          // exactly once in the tree (compact OR large, never both at rest).
-          if (largeOpacity > 0)
-            Positioned(
-              left: Spacing.lg,
-              right: Spacing.lg,
-              top: minExtent - shrinkOffset,
-              child: Opacity(
-                opacity: largeOpacity,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (eyebrow != null)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: Spacing.xxs),
-                        child: SizedBox(
-                          height: _eyebrowH,
-                          child: Text(
-                            eyebrow!,
-                            style: AppType.label.copyWith(color: c.ink3),
-                          ),
-                        ),
-                      ),
-                    if (largeTitle == null)
-                      Text(title, style: _largeStyle(c))
-                    else
-                      // the block has a fixed height, so a long greeting
-                      // scales down to one line instead of wrapping under
-                      // the content.
-                      FittedBox(
-                        fit: BoxFit.scaleDown,
-                        alignment: Alignment.centerLeft,
-                        child: Text(largeTitle!, maxLines: 1, style: _largeStyle(c)),
-                      ),
-                    if (subtitle != null)
-                      Padding(
-                        padding: const EdgeInsets.only(top: Spacing.xxs),
-                        child: Text(
-                          subtitle!,
-                          style: AppType.subhead
-                              .copyWith(color: c.ink3, letterSpacing: -0.24),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            ),
-          // pinned bar: page background at rest, glass once collapsing, with
-          // a hairline on collapse and the leading / compact-title / trailing
-          // row.
           Positioned(
             top: 0,
             left: 0,
@@ -275,16 +231,81 @@ class _CollapsingNavDelegate extends SliverPersistentHeaderDelegate {
                 ? bar
                 : GlassSurface(borderRadius: BorderRadius.zero, child: bar),
           ),
+          Positioned.fill(
+            top: _statusPad,
+            child: ClipRect(
+              child: CustomMultiChildLayout(
+                delegate: _NavLayout(
+                  titleTop: _titleTop - shrinkOffset,
+                  titleRow: _titleRow,
+                  eyebrowBlock: _eyebrowBlock,
+                ),
+                children: [
+                  if (largeOpacity > 0) ...[
+                    if (eyebrow != null)
+                      large(
+                        _Slot.eyebrow,
+                        Text(
+                          eyebrow!,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppType.label.copyWith(color: c.ink3),
+                        ),
+                      ),
+                    large(
+                      _Slot.title,
+                      largeTitle == null
+                          ? Text(
+                              title,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: _titleStyle(c),
+                            )
+                          // a long greeting scales down to one line rather
+                          // than being cut.
+                          : FittedBox(
+                              fit: BoxFit.scaleDown,
+                              alignment: Alignment.centerLeft,
+                              child: Text(largeTitle!,
+                                  maxLines: 1, style: _titleStyle(c)),
+                            ),
+                    ),
+                    if (subtitle != null)
+                      large(
+                        _Slot.subtitle,
+                        Text(
+                          subtitle!,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: _subtitleStyle(c),
+                        ),
+                      ),
+                  ],
+                  if (compactOpacity > 0)
+                    LayoutId(
+                      id: _Slot.compact,
+                      child: Opacity(
+                        opacity: compactOpacity,
+                        child: Text(
+                          title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppType.headline.copyWith(color: c.ink),
+                        ),
+                      ),
+                    ),
+                  if (leading != null)
+                    LayoutId(id: _Slot.leading, child: leading!),
+                  if (trailing != null)
+                    LayoutId(id: _Slot.trailing, child: trailing!),
+                ],
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
-
-  TextStyle _largeStyle(AppColors c) => AppType.large.copyWith(
-        color: c.ink,
-        letterSpacing: 0.37,
-        height: _titleH / 34,
-      );
 
   @override
   bool shouldRebuild(covariant _CollapsingNavDelegate old) =>
@@ -293,12 +314,91 @@ class _CollapsingNavDelegate extends SliverPersistentHeaderDelegate {
       old.eyebrow != eyebrow ||
       old.largeTitle != largeTitle ||
       old.colors != colors ||
+      old.textScaler != textScaler ||
       old.leading != leading ||
       old.trailing != trailing;
 }
 
-/// 32×32 circular tinted icon button used in nav trailing slots. The visible
-/// circle stays 32; the tap target is padded out to the 44pt iOS minimum.
+/// Lays the header out below the status inset. The bar row is at the top;
+/// [titleTop] is where the title row currently sits, so it already includes
+/// the scroll offset.
+class _NavLayout extends MultiChildLayoutDelegate {
+  _NavLayout({
+    required this.titleTop,
+    required this.titleRow,
+    required this.eyebrowBlock,
+  });
+
+  final double titleTop;
+  final double titleRow;
+  final double eyebrowBlock;
+
+  @override
+  void performLayout(Size size) {
+    final inner = size.width - 2 * Spacing.lg;
+    var leadW = 0.0;
+    var trailW = 0.0;
+
+    if (hasChild(_Slot.leading)) {
+      final s = layoutChild(_Slot.leading, BoxConstraints.loose(Size(inner, _row)));
+      positionChild(_Slot.leading, Offset(Spacing.lg, (_row - s.height) / 2));
+      leadW = s.width;
+    }
+    if (hasChild(_Slot.trailing)) {
+      final s = layoutChild(_Slot.trailing, BoxConstraints.loose(Size(inner, _row)));
+      // rides up with the title row, then pins in the bar row.
+      final riding = titleTop + (titleRow - s.height) / 2;
+      final pinned = (_row - s.height) / 2;
+      positionChild(
+        _Slot.trailing,
+        Offset(size.width - Spacing.lg - s.width, math.max(pinned, riding)),
+      );
+      trailW = s.width;
+    }
+    if (hasChild(_Slot.compact)) {
+      // equal insets keep the compact title centred and clear of both sides.
+      final side = Spacing.lg + math.max(leadW, trailW) + _compactGap;
+      final s = layoutChild(
+        _Slot.compact,
+        BoxConstraints.loose(Size(math.max(0.0, size.width - 2 * side), _row)),
+      );
+      positionChild(
+        _Slot.compact,
+        Offset((size.width - s.width) / 2, (_row - s.height) / 2),
+      );
+    }
+    if (hasChild(_Slot.eyebrow)) {
+      layoutChild(_Slot.eyebrow, BoxConstraints.loose(Size(inner, eyebrowBlock)));
+      positionChild(_Slot.eyebrow, Offset(Spacing.lg, titleTop - eyebrowBlock));
+    }
+    if (hasChild(_Slot.title)) {
+      final width = trailW > 0 ? inner - trailW - _compactGap : inner;
+      final s = layoutChild(
+        _Slot.title,
+        BoxConstraints.loose(Size(math.max(0.0, width), titleRow)),
+      );
+      positionChild(
+        _Slot.title,
+        Offset(Spacing.lg, titleTop + (titleRow - s.height) / 2),
+      );
+    }
+    if (hasChild(_Slot.subtitle)) {
+      layoutChild(_Slot.subtitle, BoxConstraints.loose(Size(inner, size.height)));
+      positionChild(
+        _Slot.subtitle,
+        Offset(Spacing.lg, titleTop + titleRow + Spacing.xxs),
+      );
+    }
+  }
+
+  @override
+  bool shouldRelayout(_NavLayout old) =>
+      old.titleTop != titleTop ||
+      old.titleRow != titleRow ||
+      old.eyebrowBlock != eyebrowBlock;
+}
+
+/// The 44pt `surface2` circle with an `ink` glyph used in nav trailing slots.
 class NavIconButton extends StatelessWidget {
   const NavIconButton({super.key, required this.name, this.onTap, this.semanticLabel});
 
@@ -312,18 +412,12 @@ class NavIconButton extends StatelessWidget {
     return PressScale(
       onTap: onTap,
       semanticLabel: semanticLabel,
-      child: SizedBox(
-        width: 44,
-        height: 44,
-        child: Center(
-          child: Container(
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(color: c.fill, shape: BoxShape.circle),
-            alignment: Alignment.center,
-            child: AppIcon(name, size: 17, color: c.accent),
-          ),
-        ),
+      child: Container(
+        width: _row,
+        height: _row,
+        decoration: BoxDecoration(color: c.surface2, shape: BoxShape.circle),
+        alignment: Alignment.center,
+        child: AppIcon(name, size: _navGlyph, color: c.ink),
       ),
     );
   }
@@ -357,18 +451,18 @@ class NavAction extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    final tint = enabled ? (color ?? c.accent) : c.ink4;
+    final tint = enabled ? (color ?? c.ink) : c.ink4;
     return PressScale(
       onTap: enabled ? onTap : null,
       semanticLabel: semanticLabel ?? label,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: Spacing.md),
         child: SizedBox(
-          height: 44,
+          height: _row,
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              if (icon != null) AppIcon(icon!, size: 20, color: tint),
+              if (icon != null) AppIcon(icon!, size: _navGlyph, color: tint),
               if (icon != null && label != null) const SizedBox(width: Spacing.xxs),
               if (label != null)
                 Text(

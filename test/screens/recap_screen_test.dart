@@ -125,6 +125,9 @@ void main() {
 
     await _scrollTo(tester, find.text('Ask Pal more'));
     expect(find.text('Try a short walk after lunch.'), findsOneWidget);
+    // scrollUntilVisible stops once any of the pill shows; centre it before tapping.
+    await tester.ensureVisible(find.text('Ask Pal more'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Ask Pal more'));
     await tester.pumpAndSettle();
 

@@ -16,6 +16,9 @@ part of 'workout_session_controller.dart';
 /// the snapshot, and fires haptic cues at 10s (medium) and 0s (success). The
 /// timer is cancelled on rest end and on dispose. Commands delegate to the engine
 /// and re-snapshot; persistence on [finish] is U14's concern (plan SF-5).
+///
+/// The session outlives its screen (minimise, browse other tabs, Resume) until
+/// [finish] releases it.
 
 @ProviderFor(WorkoutSessionController)
 const workoutSessionControllerProvider = WorkoutSessionControllerFamily._();
@@ -28,6 +31,9 @@ const workoutSessionControllerProvider = WorkoutSessionControllerFamily._();
 /// the snapshot, and fires haptic cues at 10s (medium) and 0s (success). The
 /// timer is cancelled on rest end and on dispose. Commands delegate to the engine
 /// and re-snapshot; persistence on [finish] is U14's concern (plan SF-5).
+///
+/// The session outlives its screen (minimise, browse other tabs, Resume) until
+/// [finish] releases it.
 final class WorkoutSessionControllerProvider
     extends
         $AsyncNotifierProvider<WorkoutSessionController, ActiveSessionState> {
@@ -39,6 +45,9 @@ final class WorkoutSessionControllerProvider
   /// the snapshot, and fires haptic cues at 10s (medium) and 0s (success). The
   /// timer is cancelled on rest end and on dispose. Commands delegate to the engine
   /// and re-snapshot; persistence on [finish] is U14's concern (plan SF-5).
+  ///
+  /// The session outlives its screen (minimise, browse other tabs, Resume) until
+  /// [finish] releases it.
   const WorkoutSessionControllerProvider._({
     required WorkoutSessionControllerFamily super.from,
     required String super.argument,
@@ -77,7 +86,7 @@ final class WorkoutSessionControllerProvider
 }
 
 String _$workoutSessionControllerHash() =>
-    r'0d12dda1d32fbb49584f2523479729620d625571';
+    r'90572433ca800b76d65dc12e909ec13b58722c4d';
 
 /// Wraps the pure [WorkoutSession] engine in a Riverpod Notifier for screen 09.
 ///
@@ -87,6 +96,9 @@ String _$workoutSessionControllerHash() =>
 /// the snapshot, and fires haptic cues at 10s (medium) and 0s (success). The
 /// timer is cancelled on rest end and on dispose. Commands delegate to the engine
 /// and re-snapshot; persistence on [finish] is U14's concern (plan SF-5).
+///
+/// The session outlives its screen (minimise, browse other tabs, Resume) until
+/// [finish] releases it.
 
 final class WorkoutSessionControllerFamily extends $Family
     with
@@ -114,6 +126,9 @@ final class WorkoutSessionControllerFamily extends $Family
   /// the snapshot, and fires haptic cues at 10s (medium) and 0s (success). The
   /// timer is cancelled on rest end and on dispose. Commands delegate to the engine
   /// and re-snapshot; persistence on [finish] is U14's concern (plan SF-5).
+  ///
+  /// The session outlives its screen (minimise, browse other tabs, Resume) until
+  /// [finish] releases it.
 
   WorkoutSessionControllerProvider call(String routineId) =>
       WorkoutSessionControllerProvider._(argument: routineId, from: this);
@@ -130,6 +145,9 @@ final class WorkoutSessionControllerFamily extends $Family
 /// the snapshot, and fires haptic cues at 10s (medium) and 0s (success). The
 /// timer is cancelled on rest end and on dispose. Commands delegate to the engine
 /// and re-snapshot; persistence on [finish] is U14's concern (plan SF-5).
+///
+/// The session outlives its screen (minimise, browse other tabs, Resume) until
+/// [finish] releases it.
 
 abstract class _$WorkoutSessionController
     extends $AsyncNotifier<ActiveSessionState> {
@@ -148,6 +166,69 @@ abstract class _$WorkoutSessionController
             as $ClassProviderElement<
               AnyNotifier<AsyncValue<ActiveSessionState>, ActiveSessionState>,
               AsyncValue<ActiveSessionState>,
+              Object?,
+              Object?
+            >;
+    element.handleValue(ref, created);
+  }
+}
+
+/// The routine id of the session that is running, or null. Only one runs at a
+/// time; `openWorkoutSession` reads it to resume rather than start another.
+
+@ProviderFor(RunningSession)
+const runningSessionProvider = RunningSessionProvider._();
+
+/// The routine id of the session that is running, or null. Only one runs at a
+/// time; `openWorkoutSession` reads it to resume rather than start another.
+final class RunningSessionProvider
+    extends $NotifierProvider<RunningSession, String?> {
+  /// The routine id of the session that is running, or null. Only one runs at a
+  /// time; `openWorkoutSession` reads it to resume rather than start another.
+  const RunningSessionProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'runningSessionProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$runningSessionHash();
+
+  @$internal
+  @override
+  RunningSession create() => RunningSession();
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(String? value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<String?>(value),
+    );
+  }
+}
+
+String _$runningSessionHash() => r'a1cd3a99e847a51b0b5b2326acdef1f4f0429536';
+
+/// The routine id of the session that is running, or null. Only one runs at a
+/// time; `openWorkoutSession` reads it to resume rather than start another.
+
+abstract class _$RunningSession extends $Notifier<String?> {
+  String? build();
+  @$mustCallSuper
+  @override
+  void runBuild() {
+    final created = build();
+    final ref = this.ref as $Ref<String?, String?>;
+    final element =
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<String?, String?>,
+              String?,
               Object?,
               Object?
             >;

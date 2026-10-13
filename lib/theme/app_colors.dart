@@ -56,6 +56,9 @@ class AppColors extends ThemeExtension<AppColors> {
     required this.shadow,
   });
 
+  /// Fully transparent, the same in both themes: an animated fill's "off" end.
+  static const Color clear = Color(0x00000000);
+
   final Brightness brightness;
   final Color bg, surface, surface2;
   final Color ink, ink2, ink3, ink4;

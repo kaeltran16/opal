@@ -85,6 +85,15 @@ const Map<String, IconData> _sfMap = {
   'plus.circle.fill': CupertinoIcons.add_circled_solid,
   'pencil': CupertinoIcons.pencil,
   'mic': CupertinoIcons.mic,
+  // workout line glyphs (oura): outline icons, drawn in ink2, never in tiles.
+  'list.bullet': CupertinoIcons.list_bullet,
+  'wand.and.stars': Icons.auto_fix_high_outlined,
+  'book': CupertinoIcons.book,
+  'chart.line.uptrend.xyaxis': Icons.show_chart,
+  'minus': CupertinoIcons.minus,
+  'dumbbell': Icons.fitness_center_outlined,
+  'star': CupertinoIcons.star,
+  'trash': CupertinoIcons.delete,
   'line.3.horizontal': CupertinoIcons.line_horizontal_3,
 };
 

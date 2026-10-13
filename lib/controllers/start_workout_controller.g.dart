@@ -14,8 +14,8 @@ part of 'start_workout_controller.dart';
 /// routine id (not stored), so it can never drift from real history.
 ///
 /// Drives off the live workouts stream (so "last done" stays current) and
-/// re-reads routines each tick — matching `moveState`'s pattern over the same
-/// small tables.
+/// awaits routines via `.future` — matching `moveState`'s pattern over the same
+/// small tables — so a saved, generated or deleted routine re-emits too.
 
 @ProviderFor(startWorkout)
 const startWorkoutProvider = StartWorkoutProvider._();
@@ -26,8 +26,8 @@ const startWorkoutProvider = StartWorkoutProvider._();
 /// routine id (not stored), so it can never drift from real history.
 ///
 /// Drives off the live workouts stream (so "last done" stays current) and
-/// re-reads routines each tick — matching `moveState`'s pattern over the same
-/// small tables.
+/// awaits routines via `.future` — matching `moveState`'s pattern over the same
+/// small tables — so a saved, generated or deleted routine re-emits too.
 
 final class StartWorkoutProvider
     extends
@@ -45,8 +45,8 @@ final class StartWorkoutProvider
   /// routine id (not stored), so it can never drift from real history.
   ///
   /// Drives off the live workouts stream (so "last done" stays current) and
-  /// re-reads routines each tick — matching `moveState`'s pattern over the same
-  /// small tables.
+  /// awaits routines via `.future` — matching `moveState`'s pattern over the same
+  /// small tables — so a saved, generated or deleted routine re-emits too.
   const StartWorkoutProvider._()
     : super(
         from: null,
@@ -73,7 +73,7 @@ final class StartWorkoutProvider
   }
 }
 
-String _$startWorkoutHash() => r'6efe1275b34721904b5378d3c5b2c3f321f70c00';
+String _$startWorkoutHash() => r'f0e847e28181d9e050883a3b1ff9c919af94f16e';
 
 /// Drives the "Pal's pick" card: holds the current [WorkoutSuggestion] with a
 /// loading state and re-requests a different pick on [another]. Mirrors the

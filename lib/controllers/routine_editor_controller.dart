@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:uuid/uuid.dart';
 
 import '../models/models.dart';
 import 'providers.dart';
@@ -78,13 +79,15 @@ class RoutineEditorController extends _$RoutineEditorController {
   void toggleAutoProgress(bool value) =>
       _setDraft(_state.draft.copyWith(autoProgress: value));
 
-  /// Appends a slot for [exerciseId] at the end (empty id → repo assigns UUID).
+  /// Appends a slot for [exerciseId] at the end. Each slot gets its own id, so
+  /// the list keys, remove and target edits tell new slots apart; the
+  /// repository stores a non-empty slot id as given.
   void addExercise(String exerciseId) {
     final draft = _state.draft;
     final next = [
       ...draft.exercises,
       RoutineExercise(
-        id: '',
+        id: const Uuid().v4(),
         exerciseId: exerciseId,
         order: draft.exercises.length,
       ),

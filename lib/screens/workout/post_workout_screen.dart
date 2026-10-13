@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -9,12 +11,31 @@ import '../../models/models.dart';
 import '../../theme/theme.dart';
 import '../../util/format.dart';
 import '../../widgets/app_icon.dart';
+import '../../widgets/contributor_bar.dart';
+import '../../widgets/controls.dart';
+import '../../widgets/nav_bar.dart' show NavIconButton;
+import '../../widgets/pal_lead.dart';
+import '../../widgets/press_scale.dart';
+import '../../widgets/stat_row.dart';
 
-/// Screen 10 — Post-Workout Summary (focus route, no tab bar).
+// where the prototype's content starts, just under the status bar.
+const double _contentTop = 52;
+const double _contentBottom = 48;
+const double _minTap = 44;
+const double _leadTop = 20;
+const double _volumeTop = 28;
+const double _recordIcon = 16;
+const double _shareIcon = 18;
+const double _barRowPad = Spacing.sm + Spacing.xxs;
+const double _barHeight = 4;
+const String _thousands = ',';
+const String _moveRoute = '/move';
+const List<FontFeature> _tabular = [FontFeature.tabularFigures()];
+
+/// Screen 10, the post-workout summary (focus route, no tab bar).
 ///
-/// Celebrates a just-finished session: a gradient hero (Time / Volume / PRs),
-/// the muscles worked (pills + a proportional stacked bar), per-exercise set
-/// chips with PR highlights, and Pal's note. "Save to timeline" persists the
+/// Pal's note leads, then the volume, the new best, the Time / Sets / Records
+/// row, the muscles worked and each exercise. "Save to timeline" persists the
 /// [Workout] + a linked move [Entry] (plan SF-5) then returns to the Move tab.
 ///
 /// The finished [workout] arrives via the route's `extra`. A null [workout]
@@ -31,38 +52,37 @@ class PostWorkoutScreen extends ConsumerWidget {
     if (w == null) return const _NoSession();
 
     final c = context.colors;
+    final safe = MediaQuery.paddingOf(context);
     final catalog = ref.watch(exercisesProvider).asData?.value ?? const [];
     final saveState = ref.watch(postWorkoutControllerProvider);
-
     final pr = buildPrHighlight(w, catalog);
+
     return Scaffold(
       backgroundColor: c.bg,
-      body: Column(
+      body: ListView(
+        padding: EdgeInsets.fromLTRB(
+          Spacing.lg,
+          math.max(_contentTop, safe.top + Spacing.xs),
+          Spacing.lg,
+          _contentBottom + safe.bottom,
+        ),
         children: [
-          Expanded(
-            child: ListView(
-              padding: EdgeInsets.zero,
-              children: [
-                _Hero(workout: w, pr: pr, onClose: () => context.go('/move')),
-                if (pr != null)
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(
-                        Spacing.lg, Spacing.xl, Spacing.lg, 0),
-                    child: _PrCard(pr: pr),
-                  ),
-                _MusclesSection(muscles: buildMuscleVolumes(w, catalog)),
-                _ExercisesSection(groups: buildExerciseGroups(w, catalog)),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(
-                      Spacing.lg, Spacing.lg, Spacing.lg, Spacing.sm),
-                  child: _PalNote(workout: w),
-                ),
-                const SizedBox(height: Spacing.sm),
-              ],
-            ),
-          ),
-          _ActionBar(
-            saveState: saveState,
+          _Header(name: w.name, onClose: () => context.go(_moveRoute)),
+          const SizedBox(height: _leadTop),
+          _Note(workout: w),
+          const SizedBox(height: _volumeTop),
+          _Volume(volumeKg: w.totalVolumeKg),
+          if (pr != null) ...[
+            const SizedBox(height: Spacing.md),
+            _NewBest(pr: pr),
+          ],
+          const SizedBox(height: Spacing.xxl),
+          _Stats(workout: w),
+          _MusclesSection(muscles: buildMuscleVolumes(w, catalog)),
+          _ExercisesSection(groups: buildExerciseGroups(w, catalog)),
+          const SizedBox(height: Spacing.xxxl),
+          _Actions(
+            saving: saveState == SaveState.saving,
             onSave: () => _save(context, ref, w),
           ),
         ],
@@ -73,7 +93,7 @@ class PostWorkoutScreen extends ConsumerWidget {
   Future<void> _save(BuildContext context, WidgetRef ref, Workout w) async {
     try {
       await ref.read(postWorkoutControllerProvider.notifier).save(w);
-      if (context.mounted) context.go('/move');
+      if (context.mounted) context.go(_moveRoute);
     } catch (_) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -83,475 +103,182 @@ class PostWorkoutScreen extends ConsumerWidget {
   }
 }
 
-// ─── Hero ────────────────────────────────────────────────────────────────────
+// ─── Header and lead ─────────────────────────────────────────────────────────
 
-class _Hero extends StatelessWidget {
-  const _Hero({required this.workout, required this.pr, required this.onClose});
-  final Workout workout;
-  final PrHighlight? pr;
+class _Header extends StatelessWidget {
+  const _Header({required this.name, required this.onClose});
+
+  final String name;
   final VoidCallback onClose;
 
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    final doneSets = workout.sets.where((s) => s.done).toList();
-    final totalReps = doneSets.fold<int>(0, (s, x) => s + x.reps);
-
-    // Time: show seconds for a sub-minute session so it doesn't read "0 min".
-    final dur = workout.duration;
-    final subMinute = dur != null && dur.inMinutes < 1;
-    final timeValue = subMinute ? '${dur.inSeconds}' : '${dur?.inMinutes ?? 0}';
-    final timeUnit = subMinute ? 'sec' : 'min';
-
-    // Volume: kg below a tonne (matches the per-muscle/per-exercise rows), only
-    // switching to tonnes once it's large enough to read cleanly.
-    final volKg = workout.totalVolumeKg;
-    final inTonnes = volKg >= 1000;
-    final volValue =
-        inTonnes ? (volKg / 1000).toStringAsFixed(1) : '${volKg.round()}';
-    final volUnit = inTonnes ? 'tonnes' : 'kg';
-
-    final setCount = doneSets.length;
-    final prs = workout.prCount;
-
-    return ClipRect(
-      child: Stack(
-        children: [
-          // 160° move → accent gradient with two soft decorative blobs.
-          Positioned.fill(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: const Alignment(-0.6, -1),
-                  end: const Alignment(0.6, 1),
-                  colors: [c.move, c.accent],
-                ),
-              ),
-            ),
-          ),
-          Positioned(
-            top: -60,
-            right: -40,
-            child: _Blob(size: 220, alpha: 0.08),
-          ),
-          Positioned(
-            bottom: -80,
-            left: -30,
-            child: _Blob(size: 180, alpha: 0.06),
-          ),
-          // diagonal hairline stripe overlay.
-          Positioned.fill(
-              child: CustomPaint(painter: _StripePainter(onAccent: c.onAccent))),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(
-                Spacing.xl, 56, Spacing.xl, Spacing.xxxl),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    _Pill(),
-                    const Spacer(),
-                    GestureDetector(
-                      behavior: HitTestBehavior.opaque,
-                      onTap: onClose,
-                      child: SizedBox(
-                        width: 44,
-                        height: 44,
-                        child: Center(
-                          child: Container(
-                            width: 32,
-                            height: 32,
-                            decoration: BoxDecoration(
-                              color: c.onAccent.withValues(alpha: 0.2),
-                              shape: BoxShape.circle,
-                            ),
-                            child: AppIcon('xmark', size: 13, color: c.onAccent),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: Spacing.md),
-                Text(
-                  'Nice session.',
-                  style: AppType.amount.copyWith(
-                      color: c.onAccent, letterSpacing: -0.7, height: 1.05),
-                ),
-                const SizedBox(height: Spacing.xs),
-                Row(
-                  children: [
-                    if (pr != null) ...[
-                      AppIcon('star.fill', size: 12, color: c.onAccent),
-                      const SizedBox(width: Spacing.sm),
-                    ],
-                    Flexible(
-                      child: Text(
-                        pr != null
-                            ? 'New PR on ${pr!.exercise} · ${workout.name}'
-                            : workout.name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppType.subhead.copyWith(
-                          fontWeight: FontWeight.w500,
-                          color: c.onAccent.withValues(alpha: 0.9),
-                          letterSpacing: -0.24,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: Spacing.xxl),
-                DecoratedBox(
-                  decoration: BoxDecoration(
-                    color: c.onAccent.withValues(alpha: 0.18),
-                    borderRadius: BorderRadius.circular(Radii.card),
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(Radii.card),
-                    child: Row(
-                      children: [
-                        _HeroStat(
-                            value: timeValue, label: 'Time', unit: timeUnit),
-                        const SizedBox(width: 1), // kept literal: 1px divider gap between cells
-                        _HeroStat(
-                          value: volValue,
-                          label: 'Volume',
-                          unit: volUnit,
-                        ),
-                        const SizedBox(width: 1), // kept literal: 1px divider gap between cells
-                        _HeroStat(
-                          value: '$setCount',
-                          label: setCount == 1 ? 'Set' : 'Sets',
-                          unit: '$totalReps reps',
-                        ),
-                        const SizedBox(width: 1), // kept literal: 1px divider gap between cells
-                        _HeroStat(
-                            value: '$prs',
-                            label: prs == 1 ? 'PR' : 'PRs',
-                            unit: 'records'),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _Blob extends StatelessWidget {
-  const _Blob({required this.size, required this.alpha});
-  final double size;
-  final double alpha;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.colors;
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: c.onAccent.withValues(alpha: alpha),
-      ),
-    );
-  }
-}
-
-/// Diagonal hairline stripe texture for the hero (~125°, 25px spacing).
-class _StripePainter extends CustomPainter {
-  _StripePainter({required this.onAccent});
-  final Color onAccent;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = onAccent.withValues(alpha: 0.04)
-      ..strokeWidth = 1;
-    const spacing = 25.0;
-    for (var d = -size.height; d < size.width + size.height; d += spacing) {
-      canvas.drawLine(
-        Offset(d, 0),
-        Offset(d + size.height * 1.43, size.height),
-        paint,
-      );
-    }
-  }
-
-  @override
-  bool shouldRepaint(_StripePainter old) => false;
-}
-
-class _Pill extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    final c = context.colors;
-    return Container(
-      padding: const EdgeInsets.symmetric(
-          horizontal: Spacing.md, vertical: Spacing.xs),
-      decoration: BoxDecoration(
-        color: c.onAccent.withValues(alpha: 0.18),
-        borderRadius: BorderRadius.circular(Radii.pill),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          AppIcon('checkmark', size: 10, color: c.onAccent),
-          const SizedBox(width: Spacing.xs),
-          Text('COMPLETE',
-              style: AppType.caption2.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: c.onAccent,
-                  letterSpacing: 1)),
-        ],
-      ),
-    );
-  }
-}
-
-class _HeroStat extends StatelessWidget {
-  const _HeroStat(
-      {required this.value, required this.unit, required this.label});
-  final String value;
-  final String unit;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.colors;
-    return Expanded(
-      child: Container(
-        color: const Color(0x24000000), // kept literal: fixed dark wash over the accent hero in both themes
-        padding: const EdgeInsets.symmetric(
-            vertical: Spacing.md, horizontal: Spacing.sm),
-        child: Column(
-          children: [
-            Text(
-              value,
-              style: AppFonts.sfr(
-                  size: 24, color: c.onAccent, letterSpacing: -0.4, height: 1), // kept literal: 24pt rounded stat, no matching type token
-            ),
-            const SizedBox(height: Spacing.xs),
-            Text(
-              label.toUpperCase(),
-              style: AppType.caption2.copyWith(
-                fontWeight: FontWeight.w700,
-                color: c.onAccent.withValues(alpha: 0.85),
-                letterSpacing: 0.5,
-              ),
-            ),
-            const SizedBox(height: 1), // kept literal: 1px gap under the stat
-            Text(
-              unit,
-              style: AppType.caption2.copyWith(
-                color: c.onAccent.withValues(alpha: 0.7),
-                letterSpacing: -0.08,
-              ),
-            ),
-          ],
+    return Row(
+      spacing: Spacing.sm,
+      children: [
+        Expanded(
+          child: Text('Done · $name',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: AppType.label.copyWith(color: c.ink3)),
         ),
-      ),
+        NavIconButton(name: 'xmark', semanticLabel: 'Back to Workout', onTap: onClose),
+      ],
     );
   }
 }
 
-/// Standalone "PERSONAL RECORD" card: money-gradient star tile + the PR set.
-class _PrCard extends StatelessWidget {
-  const _PrCard({required this.pr});
+class _Note extends ConsumerWidget {
+  const _Note({required this.workout});
+
+  final Workout workout;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final note = ref.watch(postWorkoutNoteProvider(workout));
+    return note.when(
+      loading: () => const PalLead(text: 'Pal is reading your session…', muted: true),
+      error: (_, _) => const PalLead(text: "Pal couldn't write a note just now.", muted: true),
+      data: (text) => PalLead(text: text),
+    );
+  }
+}
+
+// ─── Numbers ─────────────────────────────────────────────────────────────────
+
+class _Volume extends StatelessWidget {
+  const _Volume({required this.volumeKg});
+
+  final double volumeKg;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // scale a long total down rather than overflow at large text.
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: AlignmentDirectional.centerStart,
+          child: Text(groupThousands('${volumeKg.round()}', _thousands),
+              maxLines: 1, style: AppType.display.copyWith(color: c.ink)),
+        ),
+        Text('kg lifted', style: AppType.subhead.copyWith(color: c.ink2)),
+      ],
+    );
+  }
+}
+
+class _NewBest extends StatelessWidget {
+  const _NewBest({required this.pr});
+
   final PrHighlight pr;
 
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    final weight = formatWeight(pr.weightKg);
-    return Container(
-      padding: const EdgeInsets.all(Spacing.lg),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            c.money.withValues(alpha: 0.08),
-            c.money.withValues(alpha: 0.03),
-          ],
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      spacing: Spacing.xs + Spacing.xxs,
+      children: [
+        AppIcon('checkmark', size: _recordIcon, color: c.thrivingInk),
+        Expanded(
+          child: Text('New best · ${pr.exercise}, ${formatWeight(pr.weightKg)} kg',
+              style: AppType.subhead.copyWith(color: c.thrivingInk, fontFeatures: _tabular)),
         ),
-        borderRadius: BorderRadius.circular(Radii.lg),
-        border: Border.all(color: c.money.withValues(alpha: 0.2), width: 0.5),
+      ],
+    );
+  }
+}
+
+class _Stats extends StatelessWidget {
+  const _Stats({required this.workout});
+
+  final Workout workout;
+
+  @override
+  Widget build(BuildContext context) {
+    final done = workout.sets.where((s) => s.done).length;
+    // show seconds for a sub-minute session so it doesn't read "0 min".
+    final dur = workout.duration;
+    final subMinute = dur != null && dur.inMinutes < 1;
+    return StatRow(stats: [
+      Stat(
+        value: subMinute ? '${dur.inSeconds}' : '${dur?.inMinutes ?? 0}',
+        unit: subMinute ? 'sec' : 'min',
+        label: 'Time',
       ),
-      child: Row(
+      Stat(value: '$done', unit: 'of ${workout.sets.length}', label: 'Sets'),
+      Stat(value: '${workout.prCount}', label: 'Records'),
+    ]);
+  }
+}
+
+// ─── Sections ────────────────────────────────────────────────────────────────
+
+class _Section extends StatelessWidget {
+  const _Section({required this.title, required this.top, required this.children});
+
+  final String title;
+  final double top;
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return Padding(
+      padding: EdgeInsets.only(top: top),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [c.money, c.money.withValues(alpha: 0.8)],
-              ),
-              borderRadius: BorderRadius.circular(Radii.md),
-              boxShadow: [
-                BoxShadow(
-                  color: c.money.withValues(alpha: 0.33),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: AppIcon('star.fill', size: 22, color: c.onAccent),
-          ),
-          const SizedBox(width: Spacing.lg),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('PERSONAL RECORD',
-                    style: AppType.caption2.copyWith(
-                        fontWeight: FontWeight.w700,
-                        color: c.money,
-                        letterSpacing: 0.8)),
-                const SizedBox(height: Spacing.xxs),
-                Text('${pr.exercise} · ${weight}kg × ${pr.reps}',
-                    style: AppFonts.sfr(
-                        size: 17, // kept literal: 17pt rounded figure, no matching type token
-                        weight: FontWeight.w700,
-                        color: c.ink,
-                        letterSpacing: -0.3)),
-                const SizedBox(height: Spacing.xxs),
-                Text('New best this session',
-                    style: AppType.caption.copyWith(
-                        color: c.ink3, letterSpacing: -0.08)),
-              ],
+          Padding(
+            padding: const EdgeInsets.only(bottom: Spacing.xs),
+            child: Semantics(
+              header: true,
+              child: Text(title, style: AppType.headline.copyWith(color: c.ink)),
             ),
           ),
+          for (final child in children)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: _barRowPad),
+              child: child,
+            ),
         ],
       ),
     );
   }
 }
 
-// ─── Muscles worked ────────────────────────────────────────────────────────
-
 class _MusclesSection extends StatelessWidget {
   const _MusclesSection({required this.muscles});
+
   final List<MuscleVolume> muscles;
 
   @override
   Widget build(BuildContext context) {
     if (muscles.isEmpty) return const SizedBox.shrink();
-    final c = context.colors;
-    final palette = [c.move, c.accent, c.rituals, c.money, c.ink3];
     final total = muscles.fold<double>(0, (s, m) => s + m.volumeKg);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    final top = muscles.fold<double>(0, (m, x) => math.max(m, x.volumeKg));
+    return _Section(
+      title: 'Muscles worked',
+      top: Spacing.xxxl,
       children: [
-        const _SectionHeader('Muscles worked'),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(
-              Spacing.lg, 0, Spacing.lg, Spacing.xs),
-          child: Container(
-            padding: const EdgeInsets.all(Spacing.lg),
-            decoration: BoxDecoration(
-                color: c.surface, borderRadius: BorderRadius.circular(Radii.card)),
-            child: Column(
-              children: [
-                for (var i = 0; i < muscles.length; i++)
-                  Padding(
-                    padding: EdgeInsets.only(
-                        bottom: i < muscles.length - 1 ? Spacing.md : 0),
-                    child: _MuscleRow(
-                      color: palette[i % palette.length],
-                      label: muscles[i].muscle,
-                      volumeKg: muscles[i].volumeKg,
-                      percent: total <= 0
-                          ? 0
-                          : (muscles[i].volumeKg / total * 100).round(),
-                    ),
-                  ),
-              ],
-            ),
+        for (final m in muscles)
+          ContributorBar(
+            label: m.muscle,
+            value: '${total <= 0 ? 0 : (m.volumeKg / total * 100).round()}%',
+            fraction: top <= 0 ? 0 : m.volumeKg / top,
           ),
-        ),
       ],
     );
   }
 }
-
-/// One muscle: name + right-aligned volume + percentage, over its own bar.
-class _MuscleRow extends StatelessWidget {
-  const _MuscleRow({
-    required this.color,
-    required this.label,
-    required this.volumeKg,
-    required this.percent,
-  });
-  final Color color;
-  final String label;
-  final double volumeKg;
-  final int percent;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.colors;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.baseline,
-          textBaseline: TextBaseline.alphabetic,
-          children: [
-            Text(label,
-                style: AppType.footnote.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: c.ink,
-                    letterSpacing: -0.1)),
-            const Spacer(),
-            Text('${volumeKg.round()} kg',
-                style:
-                    AppFonts.sfr(size: 12, color: c.ink3, letterSpacing: -0.08)), // kept literal: 12pt rounded figure, no matching type token
-            const SizedBox(width: Spacing.sm),
-            Text('$percent%',
-                style: AppFonts.sfr(
-                    size: 13, // kept literal: 13pt rounded figure, no matching type token
-                    weight: FontWeight.w700,
-                    color: color,
-                    letterSpacing: -0.1)),
-          ],
-        ),
-        const SizedBox(height: Spacing.xs),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(Radii.pill),
-          child: SizedBox(
-            height: Spacing.sm,
-            child: Row(
-              children: [
-                Expanded(
-                  flex: percent.clamp(0, 100),
-                  child: ColoredBox(color: color),
-                ),
-                Expanded(
-                  flex: (100 - percent).clamp(0, 100),
-                  child: ColoredBox(color: c.fill),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-// ─── Per-exercise set chips ──────────────────────────────────────────────────
 
 class _ExercisesSection extends StatelessWidget {
   const _ExercisesSection({required this.groups});
+
   final List<ExerciseSets> groups;
 
   @override
@@ -560,356 +287,115 @@ class _ExercisesSection extends StatelessWidget {
     final shown = [
       for (final g in groups)
         if (g.sets.any((s) => s.done))
-          ExerciseSets(
-            name: g.name,
-            sets: g.sets.where((s) => s.done).toList(),
-          ),
+          ExerciseSets(name: g.name, sets: g.sets.where((s) => s.done).toList()),
     ];
     if (shown.isEmpty) return const SizedBox.shrink();
-    final c = context.colors;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    double volume(ExerciseSets g) => g.sets.fold<double>(0, (s, x) => s + x.volumeKg);
+    final top = shown.fold<double>(0, (m, g) => math.max(m, volume(g)));
+    return _Section(
+      title: 'By exercise',
+      top: Spacing.xxl,
       children: [
-        _SectionHeader('Exercises · ${shown.length}'),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(
-              Spacing.lg, 0, Spacing.lg, Spacing.xs),
-          child: Container(
-            decoration: BoxDecoration(
-                color: c.surface, borderRadius: BorderRadius.circular(Radii.card)),
-            clipBehavior: Clip.antiAlias,
-            child: Column(
-              children: [
-                for (var i = 0; i < shown.length; i++)
-                  _ExerciseRow(group: shown[i], last: i == shown.length - 1),
-              ],
-            ),
+        for (final g in shown)
+          _ExerciseBar(
+            group: g,
+            fraction: top <= 0 ? 0 : volume(g) / top,
           ),
-        ),
       ],
     );
   }
 }
 
-class _ExerciseRow extends StatelessWidget {
-  const _ExerciseRow({required this.group, required this.last});
+/// A [ContributorBar]-shaped row with the state word for a new best beside
+/// its value.
+class _ExerciseBar extends StatelessWidget {
+  const _ExerciseBar({required this.group, required this.fraction});
+
   final ExerciseSets group;
-  final bool last;
+  final double fraction;
 
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    final hasPr = group.sets.any((s) => s.isPR);
-    final total = group.sets.fold<double>(0, (s, x) => s + x.volumeKg);
-    return Container(
-      decoration: BoxDecoration(
-        border:
-            last ? null : Border(bottom: BorderSide(color: c.hair, width: 0.5)),
-      ),
-      padding: const EdgeInsets.fromLTRB(
-          Spacing.lg, Spacing.lg, Spacing.lg, Spacing.lg),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+    final heaviest = group.sets.fold<double>(0, (m, s) => math.max(m, s.weightKg));
+    final ahead = group.sets.any((s) => s.isPR);
+    final radius = BorderRadius.circular(Radii.pill);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      spacing: Spacing.sm,
+      children: [
+        MergeSemantics(
+          child: Row(
             crossAxisAlignment: CrossAxisAlignment.baseline,
             textBaseline: TextBaseline.alphabetic,
+            spacing: Spacing.md,
             children: [
-              if (hasPr) ...[
-                Container(
-                  width: 18,
-                  height: 18,
-                  decoration:
-                      BoxDecoration(color: c.money, shape: BoxShape.circle),
-                  child: AppIcon('star.fill', size: 8, color: c.onAccent),
-                ),
-                const SizedBox(width: Spacing.sm),
-              ],
-              Expanded(
-                child: Text(group.name,
-                    style: AppType.subhead.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: c.ink,
-                        letterSpacing: -0.24)),
-              ),
-              Text.rich(
-                TextSpan(
-                  text: '${total.round()}',
-                  style: AppFonts.sfr(
-                      size: 13, // kept literal: 13pt rounded figure, no matching type token
-                      weight: FontWeight.w600,
-                      color: c.ink2,
-                      letterSpacing: -0.08),
-                  children: [
-                    TextSpan(
-                      text: ' kg',
-                      style: AppType.caption2.copyWith(color: c.ink3),
-                    ),
-                  ],
-                ),
-              ),
+              Expanded(child: Text(group.name, style: AppType.subhead.copyWith(color: c.ink2))),
+              Text('${group.sets.length} × ${formatWeight(heaviest)} kg',
+                  style: AppType.subhead.copyWith(
+                      color: c.ink, fontWeight: FontWeight.w600, fontFeatures: _tabular)),
+              if (ahead) Text('Ahead', style: AppType.subhead.copyWith(color: c.thrivingInk)),
             ],
           ),
-          const SizedBox(height: Spacing.md),
-          _SetBars(sets: group.sets),
-        ],
-      ),
-    );
-  }
-}
-
-/// Per-set volume bars (scaled to the exercise's max), PR set in money color
-/// with a dot marker; "{weight}×{reps}" beneath each bar.
-class _SetBars extends StatelessWidget {
-  const _SetBars({required this.sets});
-  final List<SetLog> sets;
-
-  @override
-  Widget build(BuildContext context) {
-    final maxVol =
-        sets.fold<double>(0, (m, s) => s.volumeKg > m ? s.volumeKg : m);
-    return SizedBox(
-      height: 60,
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          for (var i = 0; i < sets.length; i++) ...[
-            if (i != 0) const SizedBox(width: Spacing.xs),
-            Expanded(child: _SetBar(set: sets[i], maxVol: maxVol)),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-class _SetBar extends StatelessWidget {
-  const _SetBar({required this.set, required this.maxVol});
-  final SetLog set;
-  final double maxVol;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.colors;
-    final pr = set.isPR;
-    final frac = maxVol > 0 ? (set.volumeKg / maxVol) : 0.0;
-    final weight = formatWeight(set.weightKg);
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.end,
-      children: [
-        Expanded(
-          child: Align(
-            alignment: Alignment.bottomCenter,
-            child: FractionallySizedBox(
-              // floor at 15% so an empty/light set still reads as a bar.
-              heightFactor: frac < 0.15 ? 0.15 : frac,
-              child: Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  Container(
-                    decoration: BoxDecoration(
-                      color: pr ? c.money : c.move.withValues(alpha: 0.53),
-                      borderRadius: const BorderRadius.vertical(
-                        top: Radius.circular(Radii.xs),
-                        // kept literal: decorative chart-bar foot, sub-token geometry
-                        bottom: Radius.circular(2),
-                      ),
-                    ),
-                  ),
-                  if (pr)
-                    Positioned(
-                      top: -3,
-                      left: 0,
-                      right: 0,
-                      child: Center(
-                        child: Container(
-                          width: 6,
-                          height: 6,
-                          decoration: BoxDecoration(
-                            color: c.money,
-                            shape: BoxShape.circle,
-                            border: Border.all(color: c.bg, width: 2),
-                          ),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
+        ),
+        DecoratedBox(
+          decoration: BoxDecoration(color: c.track, borderRadius: radius),
+          child: FractionallySizedBox(
+            alignment: AlignmentDirectional.centerStart,
+            widthFactor: fraction.clamp(0.0, 1.0),
+            child: Container(
+              height: _barHeight,
+              decoration: BoxDecoration(color: c.ink, borderRadius: radius),
             ),
           ),
         ),
-        const SizedBox(height: Spacing.xs),
-        Text('$weight×${set.reps}',
-            maxLines: 1,
-            overflow: TextOverflow.clip,
-            style: AppFonts.sfr(
-                size: 10, // kept literal: 10pt rounded chart label, below the type ramp
-                weight: FontWeight.w600,
-                color: pr ? c.money : c.ink3,
-                letterSpacing: -0.08)),
       ],
     );
   }
 }
 
-// ─── Pal's note ──────────────────────────────────────────────────────────────
+// ─── Actions ─────────────────────────────────────────────────────────────────
 
-class _PalNote extends ConsumerWidget {
-  const _PalNote({required this.workout});
-  final Workout workout;
+class _Actions extends StatelessWidget {
+  const _Actions({required this.saving, required this.onSave});
 
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final c = context.colors;
-    final note = ref.watch(postWorkoutNoteProvider(workout));
-    final loading = note.isLoading;
-    return Container(
-      padding: const EdgeInsets.all(Spacing.lg),
-      decoration: BoxDecoration(
-        color: c.accentTint,
-        borderRadius: BorderRadius.circular(Radii.card),
-        border: Border.all(color: c.accent.withValues(alpha: 0.13), width: 0.5),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              AppIcon('sparkles', size: 12, color: c.accent),
-              const SizedBox(width: Spacing.sm),
-              Text("PAL'S NOTE",
-                  style: AppType.caption2.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: c.accent,
-                      letterSpacing: 0.5)),
-            ],
-          ),
-          const SizedBox(height: Spacing.sm),
-          Text(
-            note.when(
-              loading: () => 'Pal is reading your session…',
-              error: (_, _) => "Pal couldn't write a note just now.",
-              data: (text) => text,
-            ),
-            style: AppType.subhead.copyWith(
-                color: loading ? c.ink3 : c.ink,
-                letterSpacing: -0.2,
-                height: 1.45),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ─── Bottom actions ──────────────────────────────────────────────────────────
-
-class _ActionBar extends StatelessWidget {
-  const _ActionBar({required this.saveState, required this.onSave});
-  final SaveState saveState;
+  final bool saving;
   final VoidCallback onSave;
 
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    final saving = saveState == SaveState.saving;
-    return Container(
-      padding: const EdgeInsets.fromLTRB(
-          Spacing.lg, Spacing.md, Spacing.lg, Spacing.xxxl),
-      decoration: BoxDecoration(
-        color: c.surface,
-        border: Border(top: BorderSide(color: c.hair, width: 0.5)),
-      ),
-      child: Row(
-        children: [
-          Expanded(child: _ShareButton()),
-          const SizedBox(width: Spacing.md),
-          Expanded(
-            flex: 2,
-            child: GestureDetector(
-              onTap: saving ? null : onSave,
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: Spacing.lg),
-                decoration: BoxDecoration(
-                  color: saving ? c.move.withValues(alpha: 0.6) : c.move,
-                  borderRadius: BorderRadius.circular(Radii.md),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    if (saving) ...[
-                      SizedBox(
-                        width: 14,
-                        height: 14,
-                        child: CircularProgressIndicator(
-                            strokeWidth: 2, color: c.onAccent),
-                      ),
-                      const SizedBox(width: Spacing.sm),
-                    ],
-                    Text(saving ? 'Saving…' : 'Save to timeline',
-                        style: AppType.subhead.copyWith(
-                            fontWeight: FontWeight.w700,
-                            color: c.onAccent,
-                            letterSpacing: -0.2)),
-                  ],
-                ),
+    return Row(
+      spacing: Spacing.sm,
+      children: [
+        PressScale(
+          // share is a device-only capability; surface it without a dead tap.
+          onTap: () => ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Sharing is available on device.')),
+          ),
+          semanticLabel: 'Share',
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: _minTap, minWidth: _minTap),
+            child: Padding(
+              padding: const EdgeInsets.only(right: Spacing.lg),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                spacing: Spacing.sm,
+                children: [
+                  AppIcon('square.and.arrow.up', size: _shareIcon, color: c.ink),
+                  Text('Share', style: AppType.headline.copyWith(color: c.ink)),
+                ],
               ),
             ),
           ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ShareButton extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    final c = context.colors;
-    return GestureDetector(
-      // share is a device-only capability; surface it without a dead tap.
-      onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Sharing is available on device.')),
-      ),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: Spacing.lg),
-        decoration: BoxDecoration(
-          color: c.surface,
-          borderRadius: BorderRadius.circular(Radii.md),
-          border: Border.all(color: c.hair, width: 0.5),
         ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            AppIcon('square.and.arrow.up', size: 16, color: c.ink),
-            const SizedBox(width: Spacing.sm),
-            Text('Share',
-                style: AppType.subhead.copyWith(
-                    fontWeight: FontWeight.w500,
-                    color: c.ink,
-                    letterSpacing: -0.24)),
-          ],
+        Expanded(
+          child: PillButton(
+            label: saving ? 'Saving…' : 'Save to timeline',
+            onTap: saving ? null : onSave,
+          ),
         ),
-      ),
-    );
-  }
-}
-
-// ─── Shared bits ─────────────────────────────────────────────────────────────
-
-class _SectionHeader extends StatelessWidget {
-  const _SectionHeader(this.text);
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.colors;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(
-          Spacing.xl, Spacing.lg, Spacing.xl, Spacing.sm),
-      child: Text(text.toUpperCase(),
-          style: AppType.footnote.copyWith(color: c.ink3, letterSpacing: -0.08)),
+      ],
     );
   }
 }
@@ -927,35 +413,16 @@ class _NoSession extends StatelessWidget {
           padding: const EdgeInsets.all(Spacing.xxl),
           child: Column(
             mainAxisSize: MainAxisSize.min,
+            spacing: Spacing.xs,
             children: [
-              AppIcon('checkmark', size: 28, color: c.move),
-              const SizedBox(height: Spacing.md),
               Text('No active session',
-                  style:
-                      AppFonts.sfr(size: 18, color: c.ink, letterSpacing: -0.3)), // kept literal: 18pt rounded title, no matching type token
-              const SizedBox(height: Spacing.xs),
+                  textAlign: TextAlign.center,
+                  style: AppType.title.copyWith(color: c.ink)),
               Text('Your last summary is no longer available.',
                   textAlign: TextAlign.center,
-                  style: AppType.footnote.copyWith(
-                      color: c.ink3, letterSpacing: -0.08)),
-              const SizedBox(height: Spacing.lg),
-              Builder(
-                builder: (context) => GestureDetector(
-                  onTap: () => context.go('/move'),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: Spacing.xl,
-                        vertical: 11), // 11: CTA pill height, off-grid — keep literal
-                    decoration: BoxDecoration(
-                        color: c.move, borderRadius: BorderRadius.circular(Radii.pill)),
-                    child: Text('Back to Workout',
-                        style: AppType.subhead.copyWith(
-                            fontWeight: FontWeight.w700,
-                            color: c.onAccent,
-                            letterSpacing: -0.1)),
-                  ),
-                ),
-              ),
+                  style: AppType.subhead.copyWith(color: c.ink3)),
+              const SizedBox(height: Spacing.md),
+              PillButton(label: 'Back to Workout', onTap: () => context.go(_moveRoute)),
             ],
           ),
         ),

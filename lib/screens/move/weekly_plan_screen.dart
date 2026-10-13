@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -11,25 +9,31 @@ import '../../models/models.dart';
 import '../../router.dart';
 import '../../theme/theme.dart';
 import '../../util/dates.dart';
-import '../../widgets/app_icon.dart';
+import '../../widgets/app_sheet.dart';
+import '../../widgets/controls.dart';
+import '../../widgets/day_strip.dart';
 import '../../widgets/inset_section.dart';
 import '../../widgets/nav_bar.dart';
-import '../../widgets/press_scale.dart';
+import '../../widgets/pal_lead.dart';
+import '../../widgets/session_row.dart';
+import '../workout/session_launcher.dart';
+
+// clears the shell's floating bars under the last row.
+const double _scrollTail = 110;
+const double _sectionGap = Spacing.xl;
+const String _restTitle = 'Rest';
+const String _restDay = 'Rest day';
+const String _current = 'Current';
 
 /// Screen 24 — Weekly Plan, the derived 7-day workout schedule.
 ///
 /// Reads the [WeeklyPlan] from `weeklyPlanControllerProvider` (a stream joining
 /// the persisted schedule to routines + this week's workouts) and renders the
-/// title block, the week strip, the today spotlight, the full schedule list,
-/// and a computed weekly-progress note. All derivation lives in the controller;
-/// this widget only lays out.
+/// title block, the week strip, today's card, the full schedule list, and a
+/// computed weekly-progress note. All derivation lives in the controller; this
+/// widget only lays out.
 class WeeklyPlanScreen extends ConsumerWidget {
   const WeeklyPlanScreen({super.key});
-
-  /// Maps a [WeekPlanDay.colorKey] to its theme color: the 'rest' pseudo-color
-  /// resolves to ink3, everything else through `forType` (accent falls through).
-  static Color _colorFor(AppColors c, String key) =>
-      key == 'rest' ? c.ink3 : c.forType(key);
 
   /// Monday of the current week, formatted "WEEK OF MON DD". The plan's day
   /// model only carries day-of-month, so the month comes from the current
@@ -45,734 +49,213 @@ class WeeklyPlanScreen extends ConsumerWidget {
     final plan = ref.watch(weeklyPlanControllerProvider).asData?.value ??
         const WeeklyPlan(days: []);
     final today = plan.today;
+    final todayIndex = plan.days.indexWhere((d) => d.today);
 
-    // Opaque background so the Cupertino push parallax doesn't show the
-    // outgoing page through this one (ghosting). Mirrors the shell's c.bg.
-    return ColoredBox(
-      color: c.bg,
-      child: ListView(
-        padding: const EdgeInsets.only(bottom: 110), // kept literal: 110 scroll bottom inset
+    return LargeTitleScrollView(
+      eyebrow: _weekOfLabel(),
+      title: 'Your plan',
+      subtitle:
+          '${plan.doneCount} of ${plan.totalCount} done · ${plan.totalMinutes} min planned',
+      leading: NavAction(
+        icon: 'chevron.left',
+        label: 'Workout',
+        onTap: () => context.pop(),
+        semanticLabel: 'Back',
+      ),
+      trailing: NavIconButton(
+        name: 'ellipsis',
+        semanticLabel: 'More options',
+        onTap: () => _showPlanMenu(context),
+      ),
+      padding: const EdgeInsets.only(bottom: _scrollTail),
       children: [
-        // Nav: back "Move" + trailing ellipsis.
-        Padding(
-          padding: const EdgeInsets.fromLTRB(
-              Spacing.lg, 56, Spacing.lg, Spacing.sm), // 56 = status-bar offset
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              NavAction(
-                icon: 'chevron.left',
-                label: 'Workout',
-                onTap: () => context.pop(),
-                semanticLabel: 'Back',
-              ),
-              NavIconButton(
-                name: 'ellipsis',
-                semanticLabel: 'More options',
-                onTap: () => _showPlanMenu(context),
-              ),
-            ],
-          ),
-        ),
-
-        // Title block.
-        Padding(
-          padding: const EdgeInsets.fromLTRB(
-              Spacing.xl, Spacing.xs, Spacing.xl, Spacing.lg),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                _weekOfLabel(),
-                style: AppType.caption.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: c.move,
-                    letterSpacing: 0.5),
-              ),
-              const SizedBox(height: Spacing.xs),
-              Text(
-                'Your plan.',
-                style: AppType.large.copyWith(
-                    color: c.ink,
-                    letterSpacing: 0.37,
-                    height: 41 / 34),
-              ),
-              const SizedBox(height: Spacing.xxs),
-              Text(
-                '${plan.doneCount} of ${plan.totalCount} done · ${plan.totalMinutes} min planned',
-                style: AppType.subhead
-                    .copyWith(color: c.ink3, letterSpacing: -0.24),
-              ),
-            ],
-          ),
-        ),
-
-        // Week strip.
-        Padding(
-          padding: const EdgeInsets.fromLTRB(
-              Spacing.md, 0, Spacing.md, Spacing.xl),
-          child: Row(
-            children: [
-              for (var i = 0; i < plan.days.length; i++) ...[
-                if (i > 0) const SizedBox(width: Spacing.sm),
-                Expanded(child: _WeekChip(day: plan.days[i])),
+        if (plan.days.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+                Spacing.lg, Spacing.sm, Spacing.lg, _sectionGap),
+            child: DayStrip(
+              semanticLabel: 'This week',
+              days: [
+                for (final (i, d) in plan.days.indexed)
+                  DayMark(
+                      letter: d.day[0],
+                      done: d.done,
+                      today: d.today,
+                      name: kWeekdays[i]),
               ],
-            ],
+              selected: todayIndex < 0 ? null : todayIndex,
+              // weekday = strip index + 1 (Mon..Sun, 1..7).
+              onTap: (i) => _showAssignSheet(context, ref, i + 1),
+            ),
           ),
-        ),
 
-        // Today spotlight.
         if (today != null)
           Padding(
             padding: const EdgeInsets.fromLTRB(
-                Spacing.lg, 0, Spacing.lg, Spacing.xl),
-            child: _TodaySpotlight(day: today),
+                Spacing.lg, 0, Spacing.lg, _sectionGap),
+            child: today.isRest
+                ? Text(_restDay,
+                    style: AppType.title.copyWith(color: c.ink))
+                : ActionCard(
+                    meta: 'Today',
+                    title: today.routine ?? today.type,
+                    primary: PillButton(
+                      label: 'Start workout',
+                      onTap: () => _startToday(context, ref),
+                    ),
+                  ),
           ),
 
-        // Schedule header + tap-to-assign hint (the visible affordance; the
-        // overflow "…" is no longer the only way to change the plan).
-        Padding(
-          padding: const EdgeInsets.fromLTRB(
-              Spacing.xl, 0, Spacing.xl, Spacing.md),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Schedule',
-                style:
-                    AppType.title2.copyWith(color: c.ink, letterSpacing: 0.35),
+        InsetSection(
+          header: 'Schedule',
+          footer: 'Tap a day to set or change its routine.',
+          children: [
+            for (final (i, d) in plan.days.indexed)
+              SessionRow(
+                first: i == 0,
+                when: d.day,
+                title: d.isRest ? _restTitle : (d.routine ?? d.type),
+                detail: _detail(d),
+                onTap: () => _showAssignSheet(context, ref, i + 1),
               ),
-              const SizedBox(height: Spacing.xxs),
-              Text(
-                'Tap a day to set or change its routine.',
-                style: AppType.footnote
-                    .copyWith(color: c.ink3, letterSpacing: -0.08),
-              ),
-            ],
-          ),
+          ],
         ),
 
-        // Full schedule inset list.
+        // computed from the plan, not invented coaching: coaching is Pal's
+        // and has no real source here.
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: Spacing.lg),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(Radii.card),
-            child: ColoredBox(
-              color: c.surface,
-              child: Column(
-                children: [
-                  // weekday = list index + 1 (rows are Mon..Sun, 1..7).
-                  for (var i = 0; i < plan.days.length; i++)
-                    _ScheduleRow(
-                        day: plan.days[i],
-                        last: i == plan.days.length - 1,
-                        onTap: () => _showAssignSheet(context, ref, i + 1)),
-                ],
-              ),
-            ),
-          ),
-        ),
-
-        // Weekly progress summary (computed from the plan — no fabricated coach
-        // prose; coaching is Pal-territory and has no real source here).
-        Padding(
-          padding: const EdgeInsets.fromLTRB(
-              Spacing.lg, Spacing.xl, Spacing.lg, 0),
-          child: _WeekProgressNote(plan: plan),
+          child: Text(_progressSummary(plan),
+              style: AppType.subhead.copyWith(color: c.ink2)),
         ),
       ],
-      ),
     );
   }
 }
 
-/// Overflow ("…") menu for the Weekly Plan: shortcuts to start today's session
-/// or add a routine. Matches the app's bottom-sheet menu convention.
+/// The schedule row's detail: the estimate, and the word for a done day.
+String _detail(WeekPlanDay day) {
+  if (day.isRest) return '';
+  final est = day.est == null ? null : '${day.est} min';
+  if (!day.done) return est ?? '';
+  return est == null ? 'Done' : 'Done · $est';
+}
+
+/// Factual progress line from the plan's own counts.
+String _progressSummary(WeeklyPlan plan) {
+  final done = plan.doneCount;
+  final total = plan.totalCount;
+  final remaining = total - done;
+  if (total == 0) return 'No workouts scheduled this week yet.';
+  if (done >= total) {
+    return 'All $total workouts done this week — ${plan.totalMinutes} min planned.';
+  }
+  final left = remaining == 1 ? '1 workout' : '$remaining workouts';
+  return '$done of $total done · $left left this week.';
+}
+
+/// The routine assigned to [weekday] (1=Mon..7=Sun), or null for a rest day.
+/// Read from the repo so the id is exact even when two routines share a name.
+Future<String?> _assignedRoutineId(WidgetRef ref, int weekday) async {
+  final schedule = await ref.read(weeklyPlanRepositoryProvider).getSchedule();
+  for (final a in schedule) {
+    if (a.weekday == weekday) return a.routineId;
+  }
+  return null;
+}
+
+/// Opens today's routine through the launcher, which resumes a running
+/// session instead of starting a second one.
+Future<void> _startToday(BuildContext context, WidgetRef ref) async {
+  final id = await _assignedRoutineId(ref, clock.now().weekday);
+  if (id == null || !context.mounted) return;
+  openWorkoutSession(context, ref, id);
+}
+
+/// Overflow ("…") menu for the Weekly Plan: shortcuts to start a workout or
+/// add a routine.
 Future<void> _showPlanMenu(BuildContext context) {
-  final c = context.colors;
-  return showModalBottomSheet<void>(
-    context: context,
-    backgroundColor: c.bg,
-    builder: (sheetContext) => SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.only(top: Spacing.sm, bottom: Spacing.sm),
-        child: InsetSection(
-          children: [
+  return showAppSheet<void>(
+    context,
+    builder: (sheetContext) => InsetSection(
+      margin: EdgeInsets.zero,
+      children: [
+        ListRow(
+          icon: 'figure.run',
+          title: 'Start workout',
+          onTap: () {
+            Navigator.of(sheetContext).pop();
+            context.go('/move/start');
+          },
+        ),
+        ListRow(
+          icon: 'plus',
+          title: 'New routine',
+          last: true,
+          onTap: () {
+            Navigator.of(sheetContext).pop();
+            context.pushNamed(AppRoute.routineEditor.name);
+          },
+        ),
+      ],
+    ),
+  );
+}
+
+/// Routine picker for one weekday: lists every routine (+ a Rest option) and
+/// upserts the chosen assignment, which the plan stream re-derives.
+Future<void> _showAssignSheet(
+    BuildContext context, WidgetRef ref, int weekday) async {
+  final routines =
+      ref.read(workoutRoutinesStreamProvider).asData?.value ?? const <Routine>[];
+  final currentId = await _assignedRoutineId(ref, weekday);
+  if (!context.mounted) return;
+
+  final repo = ref.read(weeklyPlanRepositoryProvider);
+  await showAppSheet<void>(
+    context,
+    scrollable: true,
+    builder: (sheetContext) => SingleChildScrollView(
+      child: InsetSection(
+        header: 'Assign routine',
+        margin: EdgeInsets.zero,
+        children: [
+          ListRow(
+            icon: 'calendar',
+            title: _restDay,
+            value: currentId == null ? _current : null,
+            chevron: false,
+            onTap: () {
+              Navigator.of(sheetContext).pop();
+              repo.upsert(weekday, null);
+            },
+          ),
+          for (final (i, r) in routines.indexed)
             ListRow(
-              icon: 'play.fill',
-              iconBg: c.move,
-              title: 'Start workout',
+              icon: r.tag == RoutineTag.cardio ? 'figure.run' : 'dumbbell',
+              title: r.name,
+              subtitle: r.estMin == null ? null : '${r.estMin} min',
+              value: currentId == r.id ? _current : null,
+              chevron: false,
+              last: i == routines.length - 1,
               onTap: () {
                 Navigator.of(sheetContext).pop();
-                context.go('/move/start');
+                repo.upsert(weekday, r.id);
               },
             ),
+          if (routines.isEmpty)
             ListRow(
               icon: 'plus',
-              iconBg: c.accent,
-              title: 'New routine',
+              title: 'Create a routine',
+              subtitle: 'Build one to add it to your plan',
               last: true,
               onTap: () {
                 Navigator.of(sheetContext).pop();
                 context.pushNamed(AppRoute.routineEditor.name);
               },
             ),
-          ],
-        ),
+        ],
       ),
     ),
   );
-}
-
-/// Routine picker for one weekday: lists every routine (+ a Rest option) and
-/// upserts the chosen assignment, which the plan stream re-derives. Resolves the
-/// current assignment from the repo so the checkmark is correct even when two
-/// routines share a name.
-Future<void> _showAssignSheet(
-    BuildContext context, WidgetRef ref, int weekday) async {
-  final routines =
-      ref.read(workoutRoutinesStreamProvider).asData?.value ?? const <Routine>[];
-  final schedule = await ref.read(weeklyPlanRepositoryProvider).getSchedule();
-  String? currentId;
-  for (final a in schedule) {
-    if (a.weekday == weekday) {
-      currentId = a.routineId;
-      break;
-    }
-  }
-  if (!context.mounted) return;
-
-  final repo = ref.read(weeklyPlanRepositoryProvider);
-  final c = context.colors;
-  await showModalBottomSheet<void>(
-    context: context,
-    backgroundColor: c.bg,
-    builder: (sheetContext) => SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.only(top: Spacing.sm, bottom: Spacing.sm),
-        child: InsetSection(
-          header: 'Assign routine',
-          children: [
-            ListRow(
-              icon: 'moon.stars.fill',
-              iconBg: c.ink3,
-              title: 'Rest day',
-              value: currentId == null ? '✓' : null,
-              valueColor: c.move,
-              chevron: false,
-              onTap: () {
-                Navigator.of(sheetContext).pop();
-                repo.upsert(weekday, null);
-              },
-            ),
-            for (var i = 0; i < routines.length; i++)
-              ListRow(
-                icon: routines[i].tag == RoutineTag.cardio
-                    ? 'figure.run'
-                    : 'dumbbell.fill',
-                iconBg: c.move,
-                title: routines[i].name,
-                subtitle: routines[i].estMin == null
-                    ? null
-                    : '${routines[i].estMin} min',
-                value: currentId == routines[i].id ? '✓' : null,
-                valueColor: c.move,
-                chevron: false,
-                last: i == routines.length - 1,
-                onTap: () {
-                  Navigator.of(sheetContext).pop();
-                  repo.upsert(weekday, routines[i].id);
-                },
-              ),
-            if (routines.isEmpty)
-              ListRow(
-                icon: 'plus',
-                iconBg: c.accent,
-                title: 'Create a routine',
-                subtitle: 'Build one to add it to your plan',
-                last: true,
-                onTap: () {
-                  Navigator.of(sheetContext).pop();
-                  context.pushNamed(AppRoute.routineEditor.name);
-                },
-              ),
-          ],
-        ),
-      ),
-    ),
-  );
-}
-
-/// One day chip in the week strip: letter + 36px circle + completion dot.
-class _WeekChip extends StatelessWidget {
-  const _WeekChip({required this.day});
-  final WeekPlanDay day;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.colors;
-    final color = WeeklyPlanScreen._colorFor(c, day.colorKey);
-    final isRest = day.isRest;
-
-    final Color circleBg;
-    final Color dateColor;
-    final BoxBorder? border;
-    // planned = not done, not rest, not today → dashed ring (design spec).
-    var dashedRing = false;
-    if (day.today) {
-      circleBg = c.move;
-      dateColor = c.onAccent;
-      border = null;
-    } else if (day.done) {
-      circleBg = color.withValues(alpha: 0.13);
-      dateColor = color;
-      border = null;
-    } else if (isRest) {
-      circleBg = c.fill;
-      dateColor = c.ink3;
-      border = null;
-    } else {
-      circleBg = c.surface;
-      dateColor = c.ink;
-      border = null;
-      dashedRing = true;
-    }
-
-    return Column(
-      children: [
-        const SizedBox(height: Spacing.sm),
-        Text(
-          day.day[0],
-          style: AppType.caption2.copyWith(
-              fontWeight: FontWeight.w600,
-              color: day.today ? c.move : c.ink3,
-              letterSpacing: 0.3),
-        ),
-        const SizedBox(height: Spacing.sm),
-        CustomPaint(
-          foregroundPainter: dashedRing
-              ? _DashedCirclePainter(color: color.withValues(alpha: 0.33))
-              : null,
-          child: Container(
-            width: 36, // fixed day circle
-            height: 36,
-            decoration: BoxDecoration(
-              color: circleBg,
-              shape: BoxShape.circle,
-              border: border,
-            ),
-            alignment: Alignment.center,
-            child: Text(
-              '${day.date}',
-              style: AppFonts.sfr(
-                  size: 14, // kept literal: 14pt rounded figure, no matching type token
-                  weight: FontWeight.w700,
-                  color: dateColor,
-                  letterSpacing: -0.3),
-            ),
-          ),
-        ),
-        const SizedBox(height: Spacing.sm),
-        Container(
-          width: 6, // fixed completion dot
-          height: 6,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: day.done ? color : const Color(0x00000000), // kept literal: transparent, no colour token
-            border: (day.done || isRest)
-                ? null
-                : Border.all(color: color, width: 1),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-/// The today=true tinted spotlight card with the radial color wash + CTAs.
-class _TodaySpotlight extends StatelessWidget {
-  const _TodaySpotlight({required this.day});
-  final WeekPlanDay day;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.colors;
-    final color = WeeklyPlanScreen._colorFor(c, day.colorKey);
-
-    return Container(
-      decoration: BoxDecoration(
-        color: c.surface,
-        borderRadius: BorderRadius.circular(Radii.lg),
-        border: Border.all(color: color.withValues(alpha: 0.27), width: 0.5),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Stack(
-        children: [
-          Positioned.fill(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: RadialGradient(
-                  center: const Alignment(-1, -1),
-                  radius: 1.1,
-                  colors: [color.withValues(alpha: 0.12), const Color(0x00000000)], // kept literal: transparent, no colour token
-                ),
-              ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(Spacing.lg),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Today pill.
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: Spacing.sm, vertical: 3), // kept literal: 3 keeps the chip compact, off-grid
-                  decoration: BoxDecoration(
-                    color: color.withValues(alpha: 0.13),
-                    borderRadius: BorderRadius.circular(Radii.pill),
-                  ),
-                  child: Text(
-                    'Today · ${day.day}'.toUpperCase(),
-                    style: AppType.caption2.copyWith(
-                        fontWeight: FontWeight.w700,
-                        color: color,
-                        letterSpacing: 0.4),
-                  ),
-                ),
-                const SizedBox(height: Spacing.md),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      width: 52, // fixed icon tile
-                      height: 52,
-                      decoration: BoxDecoration(
-                        color: color,
-                        borderRadius: BorderRadius.circular(Radii.md),
-                      ),
-                      alignment: Alignment.center,
-                      child: AppIcon(day.icon, size: 24, color: c.onAccent),
-                    ),
-                    const SizedBox(width: Spacing.lg),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            '${day.type} · ${day.routine}',
-                            style: AppFonts.sfr(
-                                size: 22, // kept literal: 22pt rounded figure, no matching type token
-                                weight: FontWeight.w700,
-                                color: c.ink,
-                                letterSpacing: -0.3,
-                                height: 1.15),
-                          ),
-                          const SizedBox(height: Spacing.xs),
-                          Text(
-                            '${day.muscles.join(' · ')} · ${day.est} min',
-                            style: AppType.footnote.copyWith(
-                                color: c.ink3,
-                                letterSpacing: -0.08,
-                                height: 1.4),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: Spacing.lg),
-                Row(
-                  children: [
-                    Expanded(
-                      child: PressScale(
-                        onTap: () => context.go('/move/start'),
-                        semanticLabel: 'Start workout',
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(vertical: Spacing.md),
-                          decoration: BoxDecoration(
-                            color: color,
-                            borderRadius: BorderRadius.circular(Radii.md),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              AppIcon('play.fill', size: 13, color: c.onAccent),
-                              const SizedBox(width: Spacing.sm),
-                              Text(
-                                'Start workout',
-                                style: AppType.subhead.copyWith(
-                                    fontWeight: FontWeight.w600,
-                                    color: c.onAccent,
-                                    letterSpacing: -0.24),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// One row in the full schedule list.
-class _ScheduleRow extends StatelessWidget {
-  const _ScheduleRow({required this.day, required this.last, this.onTap});
-  final WeekPlanDay day;
-  final bool last;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.colors;
-    final color = WeeklyPlanScreen._colorFor(c, day.colorKey);
-    final isRest = day.isRest;
-
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: onTap,
-      child: Container(
-      decoration: BoxDecoration(
-        color: day.today ? color.withValues(alpha: 0.06) : const Color(0x00000000), // kept literal: transparent, no colour token
-        border: last
-            ? null
-            : Border(bottom: BorderSide(color: c.hair, width: 0.5)),
-      ),
-      child: Stack(
-        children: [
-          if (day.today)
-            Positioned(
-              left: 0,
-              top: Spacing.sm,
-              bottom: Spacing.sm,
-              child: Container(
-                width: 3, // rail width (geometry)
-                decoration: BoxDecoration(
-                  color: color,
-                  borderRadius:
-                      const BorderRadius.horizontal(right: Radius.circular(2)), // kept literal: bar end, below the smallest radius
-                ),
-              ),
-            ),
-          Padding(
-            padding: const EdgeInsets.symmetric(
-                horizontal: Spacing.lg, vertical: Spacing.md),
-            child: Row(
-              children: [
-                // Day chip (abbr + date).
-                SizedBox(
-                  width: 40, // fixed day-chip column
-                  child: Column(
-                    children: [
-                      Text(
-                        day.day.toUpperCase(),
-                        style: AppType.caption2.copyWith(
-                            fontWeight: FontWeight.w700,
-                            color: c.ink3,
-                            letterSpacing: 0.5),
-                      ),
-                      Text(
-                        '${day.date}',
-                        style: AppFonts.sfr(
-                            size: 20, // kept literal: 20pt rounded figure, no matching type token
-                            weight: FontWeight.w700,
-                            color: c.ink,
-                            letterSpacing: -0.3,
-                            height: 1.1),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: Spacing.md),
-                // Type icon tile.
-                Container(
-                  width: 34, // fixed icon tile
-                  height: 34,
-                  decoration: BoxDecoration(
-                    color: isRest ? c.fill : color,
-                    borderRadius: BorderRadius.circular(Radii.md),
-                  ),
-                  alignment: Alignment.center,
-                  child: AppIcon(day.icon,
-                      size: 15, color: isRest ? c.ink3 : c.onAccent),
-                ),
-                const SizedBox(width: Spacing.md),
-                // Title + subtitle.
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Flexible(
-                            child: Text(
-                              isRest ? 'Rest day' : day.type,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: AppType.subhead.copyWith(
-                                  fontWeight: FontWeight.w600,
-                                  color: isRest ? c.ink2 : c.ink,
-                                  letterSpacing: -0.24),
-                            ),
-                          ),
-                          if (day.done) ...[
-                            const SizedBox(width: Spacing.sm),
-                            Container(
-                              width: 14, // fixed check badge
-                              height: 14,
-                              decoration: BoxDecoration(
-                                color: c.move,
-                                shape: BoxShape.circle,
-                              ),
-                              alignment: Alignment.center,
-                              child: AppIcon('checkmark',
-                                  size: 8, color: c.onAccent),
-                            ),
-                          ],
-                        ],
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.only(top: 1), // kept literal: hairline gap
-                        child: Text(
-                          isRest
-                              ? 'Recovery · stretch optional'
-                              : '${day.routine} · ${day.est} min',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: AppType.caption
-                              .copyWith(color: c.ink3, letterSpacing: -0.08),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: Spacing.sm),
-                AppIcon('chevron.right', size: 14, color: c.ink4),
-              ],
-            ),
-          ),
-        ],
-      ),
-      ),
-    );
-  }
-}
-
-/// Bottom weekly-progress gradient note. Renders a factual line computed from
-/// the plan (done / total workouts, minutes planned) — not invented coaching.
-class _WeekProgressNote extends StatelessWidget {
-  const _WeekProgressNote({required this.plan});
-  final WeeklyPlan plan;
-
-  /// Factual progress line from the plan's own counts.
-  String get _summary {
-    final done = plan.doneCount;
-    final total = plan.totalCount;
-    final remaining = total - done;
-    if (total == 0) return 'No workouts scheduled this week yet.';
-    if (done >= total) {
-      return 'All $total workouts done this week — ${plan.totalMinutes} min planned.';
-    }
-    final left = remaining == 1 ? '1 workout' : '$remaining workouts';
-    return '$done of $total done · $left left this week.';
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.colors;
-    return Container(
-      padding: const EdgeInsets.all(Spacing.lg),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            c.accent.withValues(alpha: 0.07),
-            c.move.withValues(alpha: 0.07),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(Radii.lg),
-        border: Border.all(color: c.accent.withValues(alpha: 0.2), width: 0.5),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 28, // fixed icon badge
-            height: 28,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [c.accent, c.move],
-              ),
-            ),
-            alignment: Alignment.center,
-            child: AppIcon('sparkles', size: 13, color: c.onAccent),
-          ),
-          const SizedBox(width: Spacing.md),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'THIS WEEK',
-                  style: AppType.caption2.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: c.ink3,
-                      letterSpacing: 0.3),
-                ),
-                const SizedBox(height: Spacing.xs),
-                Text(
-                  _summary,
-                  style: AppType.subhead.copyWith(
-                      color: c.ink,
-                      letterSpacing: -0.15,
-                      height: 1.45),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Dashed 1.5px ring for a planned (not-done) week-strip day.
-class _DashedCirclePainter extends CustomPainter {
-  _DashedCirclePainter({required this.color});
-  final Color color;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.5
-      ..color = color;
-    final center = size.center(Offset.zero);
-    final radius = (size.shortestSide - 1.5) / 2;
-    const dashes = 16;
-    final sweep = (2 * math.pi) / dashes;
-    for (var i = 0; i < dashes; i++) {
-      canvas.drawArc(
-        Rect.fromCircle(center: center, radius: radius),
-        i * sweep,
-        sweep * 0.55,
-        false,
-        paint,
-      );
-    }
-  }
-
-  @override
-  bool shouldRepaint(_DashedCirclePainter old) => old.color != color;
 }

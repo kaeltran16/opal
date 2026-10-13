@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:clock/clock.dart';
+import 'package:flutter_riverpod/misc.dart' show KeepAliveLink;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../models/models.dart';
@@ -80,9 +81,17 @@ class ActiveSessionState {
 /// the snapshot, and fires haptic cues at 10s (medium) and 0s (success). The
 /// timer is cancelled on rest end and on dispose. Commands delegate to the engine
 /// and re-snapshot; persistence on [finish] is U14's concern (plan SF-5).
+///
+/// The session outlives its screen (minimise, browse other tabs, Resume) until
+/// [finish] releases it.
 @riverpod
 class WorkoutSessionController extends _$WorkoutSessionController {
   WorkoutSession? _session;
+
+  // a keep-alive link rather than `keepAlive: true`: finish() runs while the
+  // screen still watches, and invalidating then would rebuild a new session
+  // (and Live Activity) at once. closing the link disposes once it leaves.
+  KeepAliveLink? _keepAlive;
   Map<String, Exercise> _catalog = const {};
   Timer? _timer;
 
@@ -98,6 +107,7 @@ class WorkoutSessionController extends _$WorkoutSessionController {
 
   @override
   Future<ActiveSessionState> build(String routineId) async {
+    _keepAlive = ref.keepAlive();
     final liveActivity = ref.read(liveActivityServiceProvider);
     _liveActivity = liveActivity;
     ref.onDispose(() {
@@ -118,6 +128,9 @@ class WorkoutSessionController extends _$WorkoutSessionController {
 
     final session = WorkoutSession(routine: routine, exercises: exercises);
     _session = session;
+    // past the awaits, so not during build: a deep-linked session (Live
+    // Activity, `/session/:routineId`) reads as running too.
+    ref.read(runningSessionProvider.notifier).start(routineId);
 
     // U25 — mirror the live session onto a Live Activity / Dynamic Island.
     // Fire-and-forget so the native channel round-trip never delays the session
@@ -231,6 +244,17 @@ class WorkoutSessionController extends _$WorkoutSessionController {
     _emit();
   }
 
+  /// Skips the rest of the current exercise (the last one completes the
+  /// session).
+  void skipExercise() {
+    final s = _session;
+    if (s == null) return;
+    s.skipExercise();
+    _syncTimer();
+    _syncLiveActivity();
+    _emit();
+  }
+
   /// Dismisses the rest timer immediately.
   void skipRest() {
     final s = _session;
@@ -252,7 +276,8 @@ class WorkoutSessionController extends _$WorkoutSessionController {
   }
 
   /// Finalizes the session and returns the completed [Workout]. Does NOT persist
-  /// — saving the workout + linked move entry is U14's job (plan SF-5).
+  /// — saving the workout + linked move entry is U14's job (plan SF-5). Clears
+  /// the running session and releases this one, so the next start is fresh.
   Workout finish() {
     final s = _session;
     if (s == null) {
@@ -268,6 +293,21 @@ class WorkoutSessionController extends _$WorkoutSessionController {
       _activityId = null;
     }
     _emit();
+    ref.read(runningSessionProvider.notifier).clear();
+    _keepAlive?.close();
+    _keepAlive = null;
     return workout;
   }
+}
+
+/// The routine id of the session that is running, or null. Only one runs at a
+/// time; `openWorkoutSession` reads it to resume rather than start another.
+@Riverpod(keepAlive: true)
+class RunningSession extends _$RunningSession {
+  @override
+  String? build() => null;
+
+  void start(String routineId) => state = routineId;
+
+  void clear() => state = null;
 }

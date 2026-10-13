@@ -4,12 +4,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:opal/controllers/providers.dart';
-import 'package:opal/data/db/database.dart';
+import 'package:opal/data/db/database.dart' hide ExerciseRow;
 import 'package:opal/data/repositories/routine_repository.dart';
 import 'package:opal/data/seed/seeder.dart';
 import 'package:opal/models/models.dart';
 import 'package:opal/screens/library/exercise_library_screen.dart';
 import 'package:opal/theme/app_colors.dart';
+import 'package:opal/widgets/app_icon.dart';
+import 'package:opal/widgets/controls.dart';
+import 'package:opal/widgets/exercise_row.dart';
 import 'package:opal/widgets/inset_section.dart';
 import 'package:opal/widgets/nav_bar.dart';
 
@@ -87,10 +90,12 @@ void main() {
     expect(find.text('Back Squat'), findsOneWidget); // Legs
     expect(find.text('Plank'), findsOneWidget); // Core
 
-    // Group section headers (InsetSection uppercases them).
-    expect(find.text('PUSH'), findsOneWidget);
-    expect(find.text('LEGS'), findsOneWidget);
-    expect(find.text('CORE'), findsOneWidget);
+    // Group section headers, as written (the filter chips share the names).
+    Finder header(String group) =>
+        find.descendant(of: find.byType(InsetSection), matching: find.text(group));
+    expect(header('Push'), findsOneWidget);
+    expect(header('Legs'), findsOneWidget);
+    expect(header('Core'), findsOneWidget);
 
     // PR value renders for a lift with a fractional PR (bench = 92.5 kg).
     expect(find.text('92.5 kg'), findsOneWidget);
@@ -112,20 +117,87 @@ void main() {
     expect(find.text('Back Squat'), findsNothing);
   });
 
-  testWidgets('chip filters by group', (tester) async {
+  testWidgets('chip filters by group and reports selected', (tester) async {
+    final handle = tester.ensureSemantics();
     await _pumpLibrary(tester, db, catalog);
 
     // Both a Cardio and a Push exercise are present before filtering.
     expect(find.text('Treadmill Run'), findsOneWidget); // Cardio
     expect(find.text('Barbell Bench Press'), findsOneWidget); // Push
 
-    // Tap the "Cardio" filter chip.
-    await tester.tap(find.text('Cardio'));
+    Finder chip(String label) =>
+        find.widgetWithText(AppChip, label);
+    expect(tester.getSemantics(chip('All')), matchesSemantics(
+      isButton: true,
+      hasSelectedState: true,
+      isSelected: true,
+      hasTapAction: true,
+      label: 'All',
+    ));
+
+    await tester.tap(chip('Cardio'));
     await tester.pumpAndSettle();
 
     // Only Cardio exercises remain.
     expect(find.text('Treadmill Run'), findsOneWidget);
     expect(find.text('Barbell Bench Press'), findsNothing);
     expect(find.text('Back Squat'), findsNothing); // Legs gone too
+    expect(tester.getSemantics(chip('Cardio')), matchesSemantics(
+      isButton: true,
+      hasSelectedState: true,
+      isSelected: true,
+      hasTapAction: true,
+      label: 'Cardio',
+    ));
+    expect(tester.getSemantics(chip('All')), matchesSemantics(
+      isButton: true,
+      hasSelectedState: true,
+      hasTapAction: true,
+      label: 'All',
+    ));
+    handle.dispose();
+  });
+
+  testWidgets('a search with no match shows the empty line', (tester) async {
+    await _pumpLibrary(tester, db, catalog);
+
+    await tester.enterText(find.byType(TextField), 'zzz');
+    await tester.pumpAndSettle();
+
+    expect(find.byType(ExerciseRow), findsNothing);
+    expect(find.text('No exercises match "zzz".'), findsOneWidget);
+  });
+
+  testWidgets('rows are ExerciseRows with no coloured icon tile',
+      (tester) async {
+    await _pumpLibrary(tester, db, catalog);
+
+    final row = find.widgetWithText(ExerciseRow, 'Back Squat');
+    expect(row, findsOneWidget);
+    // detail is muscle · equipment; the PR is the value.
+    final squat = catalog.firstWhere((e) => e.name == 'Back Squat');
+    expect(tester.widget<ExerciseRow>(row).detail,
+        '${squat.muscle} · ${squat.equipment}');
+    expect(tester.widget<ExerciseRow>(row).value, '115 kg');
+
+    final icons = find.descendant(
+        of: find.byType(ExerciseRow), matching: find.byType(AppIcon));
+    expect(icons, findsWidgets);
+    for (final icon in icons.evaluate()) {
+      final tiles = tester
+          .widgetList(find.ancestor(
+              of: find.byWidget(icon.widget),
+              matching: find.byWidgetPredicate(
+                  (w) => w is Container || w is DecoratedBox)))
+          .map(_decoration)
+          .where((d) => d?.color != null);
+      expect(tiles, isEmpty);
+    }
   });
 }
+
+BoxDecoration? _decoration(Widget w) => switch (w) {
+      Container(decoration: final BoxDecoration d) => d,
+      DecoratedBox(decoration: final BoxDecoration d) => d,
+      _ => null,
+    };

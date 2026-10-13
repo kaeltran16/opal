@@ -1,21 +1,30 @@
+import 'package:flutter/cupertino.dart' show CupertinoSwitch;
+import 'package:flutter/material.dart' show InputDecoration, TextField;
 import 'package:flutter/widgets.dart';
 import '../theme/theme.dart';
 import 'app_icon.dart';
+import 'press_scale.dart';
 
-/// Thin progress bar (sync, budget, rituals). Track + animated fill.
+const double _minTap = 44;
+const double _pillHeight = 48;
+const double _pillIcon = 18;
+const double _chipHeight = 32;
+const double _searchIcon = 16;
+const Duration _fillDuration = Duration(milliseconds: 240);
+const Duration _thumbDuration = Duration(milliseconds: 150);
+
+/// Thin progress bar: `ink` on `track`.
 class ProgressBar extends StatelessWidget {
   const ProgressBar({
     super.key,
     required this.value,
     this.color,
     this.height = 4,
-    this.gradient,
   });
 
   final double value; // 0..1
   final Color? color;
   final double height;
-  final Gradient? gradient;
 
   @override
   Widget build(BuildContext context) {
@@ -28,12 +37,196 @@ class ProgressBar extends StatelessWidget {
           FractionallySizedBox(
             widthFactor: value.clamp(0.0, 1.0),
             child: AnimatedContainer(
-              duration: const Duration(milliseconds: 240),
+              duration: _fillDuration,
               curve: Curves.easeOut,
               height: height,
+              decoration: BoxDecoration(color: color ?? c.ink),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The 48 pill button: primary is `ink` with `bg` text, secondary `surface2`
+/// with `ink` text. A null [onTap] renders disabled.
+class PillButton extends StatelessWidget {
+  const PillButton({
+    super.key,
+    required this.label,
+    required this.onTap,
+    this.primary = true,
+    this.icon,
+    this.semanticLabel,
+  });
+
+  final String label;
+  final VoidCallback? onTap;
+  final bool primary;
+  final String? icon;
+  final String? semanticLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    final enabled = onTap != null;
+    // a disabled pill drops to surface2 either way, so ink4 text never sits on ink.
+    final fill = primary && enabled ? c.ink : c.surface2;
+    final ink = !enabled ? c.ink4 : (primary ? c.bg : c.ink);
+    final icon = this.icon;
+    final pill = Container(
+      constraints: const BoxConstraints(minHeight: _pillHeight),
+      padding: const EdgeInsets.symmetric(horizontal: Spacing.xl),
+      decoration: BoxDecoration(color: fill, borderRadius: BorderRadius.circular(Radii.pill)),
+      child: Center(
+        widthFactor: 1,
+        heightFactor: 1,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          spacing: Spacing.sm,
+          children: [
+            if (icon != null) AppIcon(icon, size: _pillIcon, color: ink),
+            Flexible(
+              child: Text(label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppType.headline.copyWith(color: ink)),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (!enabled) {
+      return Semantics(
+        button: true,
+        enabled: false,
+        label: semanticLabel,
+        excludeSemantics: semanticLabel != null,
+        child: pill,
+      );
+    }
+    return PressScale(onTap: onTap, semanticLabel: semanticLabel, child: pill);
+  }
+}
+
+/// The app's switch: `ink` track when on, `track` when off.
+class AppSwitch extends StatelessWidget {
+  const AppSwitch({
+    super.key,
+    required this.value,
+    required this.onChanged,
+    required this.semanticLabel,
+  });
+
+  final bool value;
+  final ValueChanged<bool>? onChanged;
+  final String semanticLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return MergeSemantics(
+      child: Semantics(
+        label: semanticLabel,
+        child: CupertinoSwitch(
+          value: value,
+          onChanged: onChanged,
+          activeTrackColor: c.ink,
+          inactiveTrackColor: c.track,
+          thumbColor: c.bg,
+          inactiveThumbColor: c.ink3,
+        ),
+      ),
+    );
+  }
+}
+
+/// A filter chip: 32 visible inside a 44 tap target.
+class AppChip extends StatelessWidget {
+  const AppChip({
+    super.key,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return Semantics(
+      selected: selected,
+      child: PressScale(
+        onTap: onTap,
+        semanticLabel: label,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: _minTap),
+          child: Center(
+            widthFactor: 1,
+            child: Container(
+              constraints: const BoxConstraints(minHeight: _chipHeight),
+              padding: const EdgeInsets.symmetric(horizontal: Spacing.md),
               decoration: BoxDecoration(
-                color: gradient == null ? (color ?? c.ink) : null,
-                gradient: gradient,
+                color: selected ? c.ink : c.surface2,
+                borderRadius: BorderRadius.circular(Radii.pill),
+              ),
+              child: Center(
+                widthFactor: 1,
+                heightFactor: 1,
+                child: Text(label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppType.label.copyWith(color: selected ? c.bg : c.ink2)),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The 44 search field on a `surface2` pill.
+class SearchPill extends StatelessWidget {
+  const SearchPill({
+    super.key,
+    required this.controller,
+    this.placeholder = 'Search',
+    this.onChanged,
+  });
+
+  final TextEditingController controller;
+  final String placeholder;
+  final ValueChanged<String>? onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return Container(
+      constraints: const BoxConstraints(minHeight: _minTap),
+      padding: const EdgeInsets.symmetric(horizontal: Spacing.md),
+      decoration: BoxDecoration(color: c.surface2, borderRadius: BorderRadius.circular(Radii.pill)),
+      child: Row(
+        spacing: Spacing.sm,
+        children: [
+          AppIcon('magnifyingglass', size: _searchIcon, color: c.ink3),
+          Expanded(
+            child: Semantics(
+              label: placeholder,
+              textField: true,
+              child: TextField(
+                controller: controller,
+                onChanged: onChanged,
+                cursorColor: c.ink,
+                style: AppType.body.copyWith(color: c.ink),
+                decoration: InputDecoration.collapsed(
+                  hintText: placeholder,
+                  hintStyle: AppType.body.copyWith(color: c.ink3),
+                ),
               ),
             ),
           ),
@@ -43,71 +236,7 @@ class ProgressBar extends StatelessWidget {
   }
 }
 
-/// 28×28 rounded-square check used by rituals and workout sets.
-///
-/// The check scales down while pressed (matching [PressScale]'s tactile feel)
-/// and fills its colour over 180ms on toggle. Haptics are fired by the calling
-/// controller (ritual toggle / set complete), not here, to avoid double-firing.
-class CheckButton extends StatefulWidget {
-  const CheckButton({
-    super.key,
-    required this.checked,
-    this.typeColor,
-    this.onTap,
-  });
-
-  final bool checked;
-  final Color? typeColor; // completed fill color
-  final VoidCallback? onTap;
-
-  @override
-  State<CheckButton> createState() => _CheckButtonState();
-}
-
-class _CheckButtonState extends State<CheckButton> {
-  bool _down = false;
-
-  void _set(bool down) => setState(() => _down = down);
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.colors;
-    final fillColor = widget.typeColor ?? c.rituals;
-    final enabled = widget.onTap != null;
-    return Semantics(
-      button: enabled,
-      checked: widget.checked,
-      child: GestureDetector(
-        onTap: widget.onTap,
-        onTapDown: enabled ? (_) => _set(true) : null,
-        onTapUp: enabled ? (_) => _set(false) : null,
-        onTapCancel: enabled ? () => _set(false) : null,
-        behavior: HitTestBehavior.opaque,
-        child: AnimatedScale(
-          scale: _down ? 0.9 : 1.0,
-          duration: const Duration(milliseconds: 80),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 180),
-            width: 28,
-            height: 28,
-            decoration: BoxDecoration(
-              color: widget.checked ? fillColor : c.fill,
-              borderRadius: BorderRadius.circular(Radii.sm),
-              border:
-                  widget.checked ? null : Border.all(color: c.ink3, width: 1.5),
-            ),
-            alignment: Alignment.center,
-            child: widget.checked
-                ? AppIcon('checkmark', size: 16, color: c.onAccent)
-                : null,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// iOS sliding segmented control.
+/// Sliding segmented control: a `surface` thumb on a `surface2` pill.
 class Segmented<T> extends StatelessWidget {
   const Segmented({
     super.key,
@@ -123,33 +252,35 @@ class Segmented<T> extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    final selectedBg =
-        c.brightness == Brightness.dark ? const Color(0xFF636366) : const Color(0xFFFFFFFF); // kept literal: iOS segmented thumb colours, not a theme pair
     return Container(
       padding: const EdgeInsets.all(Spacing.xxs),
-      decoration: BoxDecoration(color: c.fill, borderRadius: BorderRadius.circular(Radii.sm)),
+      decoration: BoxDecoration(color: c.surface2, borderRadius: BorderRadius.circular(Radii.pill)),
       child: Row(
         children: [
           for (final (val, label) in options)
             Expanded(
-              child: GestureDetector(
-                onTap: () => onChanged(val),
-                behavior: HitTestBehavior.opaque,
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 150),
-                  padding: const EdgeInsets.symmetric(vertical: Spacing.sm, horizontal: Spacing.md),
-                  decoration: BoxDecoration(
-                    color: val == value ? selectedBg : const Color(0x00000000), // kept literal: transparent, no colour token
-                    borderRadius: BorderRadius.circular(Radii.sm),
-                    boxShadow: val == value ? Elevation.sm(c.shadow) : null,
-                  ),
-                  alignment: Alignment.center,
-                  child: Text(
-                    label,
-                    style: AppType.footnote.copyWith(
-                      fontWeight: val == value ? FontWeight.w600 : FontWeight.w500,
-                      color: c.ink,
-                      letterSpacing: -0.08,
+              child: Semantics(
+                button: true,
+                selected: val == value,
+                child: GestureDetector(
+                  onTap: () => onChanged(val),
+                  behavior: HitTestBehavior.opaque,
+                  child: AnimatedContainer(
+                    duration: _thumbDuration,
+                    constraints: const BoxConstraints(minHeight: _minTap),
+                    padding: const EdgeInsets.symmetric(horizontal: Spacing.md),
+                    decoration: BoxDecoration(
+                      color: val == value ? c.surface : AppColors.clear,
+                      borderRadius: BorderRadius.circular(Radii.pill),
+                    ),
+                    child: Center(
+                      heightFactor: 1,
+                      child: Text(
+                        label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppType.label.copyWith(color: val == value ? c.ink : c.ink2),
+                      ),
                     ),
                   ),
                 ),

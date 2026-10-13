@@ -9,6 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:opal/controllers/workout_detail_controller.dart';
 import 'package:opal/controllers/providers.dart';
 import 'package:opal/data/db/database.dart';
+import 'package:opal/data/repositories/workout_repository.dart';
 import 'package:opal/data/seed/seeder.dart';
 import 'package:opal/models/models.dart';
 import 'package:opal/screens/workout/workout_detail_screen.dart';
@@ -81,76 +82,139 @@ void main() {
   });
 
   // ---------------------------------------------------------------------------
-  // Widget — renders name, summary, exercise rows, and the fl_chart BarChart.
+  // Widget — the seeded push session (1,933 kg, one PR set on bench).
   // ---------------------------------------------------------------------------
-  testWidgets(
-      'WorkoutDetailScreen renders the seeded push session + volume chart',
-      (tester) async {
-    SharedPreferences.setMockInitialValues({});
-    final prefs = await SharedPreferences.getInstance();
-    final db = LoopDatabase.forTesting(NativeDatabase.memory());
-    await Seeder(db).seedIfNeeded();
-    addTearDown(db.close);
+  group('WorkoutDetailScreen', () {
+    late LoopDatabase db;
 
-    final colors = AppColors.light();
-    final router = GoRouter(
-      initialLocation: '/',
-      routes: [
-        GoRoute(
-          path: '/',
-          builder: (context, state) => const WorkoutDetailScreen(
-            workoutId: 'seed-workout-today-push',
-          ),
-        ),
-      ],
-    );
+    setUp(() async {
+      db = LoopDatabase.forTesting(NativeDatabase.memory());
+      await Seeder(db).seedIfNeeded();
+    });
 
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          sharedPreferencesProvider.overrideWithValue(prefs),
-          loopDatabaseProvider.overrideWithValue(db),
-        ],
-        child: MaterialApp.router(
-          debugShowCheckedModeBanner: false,
-          theme: ThemeData(useMaterial3: true, extensions: [colors]),
-          routerConfig: router,
-        ),
-      ),
-    );
-    // Let the controller stream + Pal note future resolve.
-    await tester.pumpAndSettle();
+    tearDown(() async => db.close());
 
-    // Workout title.
-    expect(find.text('Push Day A'), findsOneWidget);
+    testWidgets('leads with the volume in display type and keeps the chart',
+        (tester) async {
+      await _pumpDetail(tester, db);
 
-    // Above-the-fold: summary PR tile + the fl_chart bar chart. Asserted before
-    // scrolling, since the chart scrolls out of the lazy list once we move down.
-    expect(find.text('PRS'), findsOneWidget); // 'PRs' label, uppercased
-    expect(find.byType(BarChart), findsOneWidget);
+      expect(find.text('Push Day A'), findsOneWidget);
+      final volume = tester.widget<Text>(find.text('1,933'));
+      expect(volume.style?.fontSize, 64);
+      expect(volume.style?.fontWeight, FontWeight.w300);
+      expect(find.text('kg lifted'), findsOneWidget);
+      expect(find.text('New best · Barbell Bench Press, 92.5 kg'), findsOneWidget);
+      expect(find.text('Records'), findsOneWidget);
+      expect(find.byType(BarChart), findsOneWidget);
 
-    // The set tables sit below the fold; scroll the single PR badge into view.
-    // (Stopping at the PR badge keeps the Pal-note card culled, so its mock
-    // 600ms timer never starts.) The seed push workout has exactly 1 PR.
-    await tester.scrollUntilVisible(
-      find.text('PR'),
-      200,
-      scrollable: find.byType(Scrollable).first,
-    );
-    expect(find.text('PR'), findsOneWidget); // exactly one PR-flagged set
+      await _unmount(tester);
+    });
 
-    // Per-exercise row for Bench (seed name: "Barbell Bench Press").
-    expect(find.text('Barbell Bench Press'), findsOneWidget);
+    testWidgets('a PR set shows New best in its set table', (tester) async {
+      await _pumpDetail(tester, db);
 
-    // Scrolling brought the Pal-note card into view, which starts a 600ms mock
-    // timer; fire it before teardown so it isn't left pending.
-    await tester.pump(const Duration(milliseconds: 600));
-    await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(
+        find.text('New best'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      expect(find.text('New best'), findsOneWidget);
+      expect(find.text('92.5 kg × 5'), findsOneWidget);
+      expect(tester.widget<Text>(find.text('New best')).style?.color,
+          AppColors.light().thrivingInk);
 
-    // Unmount and flush: disposing the autoDispose drift stream provider makes
-    // drift schedule a zero-duration cleanup timer (StreamQueryStore
-    // .markAsClosed); pump once so it fires before teardown's timer check.
-    await tester.pumpWidget(const SizedBox());
-    await tester.pump(Duration.zero);
+      await _unmount(tester);
+    });
+
+    testWidgets('Cancel in the delete confirm keeps the workout', (tester) async {
+      await _pumpDetail(tester, db);
+
+      await _openDeleteConfirm(tester);
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Delete workout?'), findsNothing);
+      expect(await _stillThere(tester, db), isTrue);
+
+      await _unmount(tester);
+    });
+
+    testWidgets('More options deletes the workout after the confirm',
+        (tester) async {
+      await _pumpDetail(tester, db);
+
+      await _openDeleteConfirm(tester);
+      await tester.tap(find.text('Delete'));
+      await tester.pumpAndSettle();
+
+      expect(await _stillThere(tester, db), isFalse);
+      expect(find.text(_home), findsOneWidget);
+
+      await _unmount(tester);
+    });
   });
+}
+
+const _workoutId = 'seed-workout-today-push';
+const _home = 'home';
+
+/// Pumps the detail screen as a route pushed over [_home], so it can pop.
+Future<void> _pumpDetail(WidgetTester tester, LoopDatabase db) async {
+  SharedPreferences.setMockInitialValues({});
+  final prefs = await SharedPreferences.getInstance();
+  final router = GoRouter(
+    initialLocation: '/w',
+    routes: [
+      GoRoute(
+        path: '/',
+        builder: (context, state) => const Text(_home),
+        routes: [
+          GoRoute(
+            path: 'w',
+            builder: (context, state) =>
+                const WorkoutDetailScreen(workoutId: _workoutId),
+          ),
+        ],
+      ),
+    ],
+  );
+
+  await tester.pumpWidget(
+    ProviderScope(
+      overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
+        loopDatabaseProvider.overrideWithValue(db),
+      ],
+      child: MaterialApp.router(
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData(useMaterial3: true, extensions: [AppColors.light()]),
+        routerConfig: router,
+      ),
+    ),
+  );
+  // let the detail stream and the mock pal note's latency resolve.
+  await tester.pumpAndSettle();
+}
+
+Future<void> _openDeleteConfirm(WidgetTester tester) async {
+  await tester.tap(find.bySemanticsLabel('More options'));
+  await tester.pumpAndSettle();
+  expect(find.text('Delete workout'), findsOneWidget);
+
+  await tester.tap(find.text('Delete workout'));
+  await tester.pumpAndSettle();
+  expect(find.text('Delete workout?'), findsOneWidget);
+}
+
+Future<bool> _stillThere(WidgetTester tester, LoopDatabase db) async {
+  final workout = await tester
+      .runAsync(() => WorkoutRepository(db).getById(_workoutId));
+  return workout != null;
+}
+
+/// Unmounts and flushes drift's zero-duration stream cleanup timer so the
+/// teardown timer check passes.
+Future<void> _unmount(WidgetTester tester) async {
+  await tester.pumpWidget(const SizedBox());
+  await tester.pump(Duration.zero);
 }

@@ -1,0 +1,78 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:opal/theme/theme.dart';
+import 'package:opal/widgets/app_sheet.dart';
+
+/// Opens the sheet from a button and records what it returns.
+Future<List<bool?>> _open(WidgetTester tester) async {
+  final results = <bool?>[];
+  await tester.pumpWidget(MaterialApp(
+    theme: ThemeData(useMaterial3: true, extensions: [AppColors.light()]),
+    home: Scaffold(
+      body: Builder(
+        builder: (context) => TextButton(
+          onPressed: () async => results.add(await showAppSheet<bool>(
+            context,
+            builder: (context) => TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Finish'),
+            ),
+          )),
+          child: const Text('Open'),
+        ),
+      ),
+    ),
+  ));
+  await tester.tap(find.text('Open'));
+  await tester.pumpAndSettle();
+  return results;
+}
+
+void main() {
+  testWidgets('shows its grabber and content', (tester) async {
+    await _open(tester);
+
+    expect(find.byKey(appSheetGrabberKey), findsOneWidget);
+    expect(tester.getSize(find.byKey(appSheetGrabberKey)), const Size(36, 5));
+    expect(find.text('Finish'), findsOneWidget);
+  });
+
+  testWidgets('a barrier tap dismisses it with null', (tester) async {
+    final results = await _open(tester);
+
+    await tester.tapAt(const Offset(10, 10));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Finish'), findsNothing);
+    expect(results, [null]);
+  });
+
+  testWidgets('opened inside a nested navigator, it opens on the root one', (tester) async {
+    await tester.pumpWidget(MaterialApp(
+      theme: ThemeData(useMaterial3: true, extensions: [AppColors.light()]),
+      // stands in for a shell branch, whose floating bars sit above it.
+      home: Navigator(
+        onGenerateRoute: (_) => MaterialPageRoute<void>(
+          builder: (context) => TextButton(
+            onPressed: () => showAppSheet<void>(context, builder: (_) => const Text('Sheet')),
+            child: const Text('Open'),
+          ),
+        ),
+      ),
+    ));
+    await tester.tap(find.text('Open'));
+    await tester.pumpAndSettle();
+
+    final root = tester.state<NavigatorState>(find.byType(Navigator).first);
+    expect(Navigator.of(tester.element(find.text('Sheet'))), same(root));
+  });
+
+  testWidgets('pop(true) returns true', (tester) async {
+    final results = await _open(tester);
+
+    await tester.tap(find.text('Finish'));
+    await tester.pumpAndSettle();
+
+    expect(results, [true]);
+  });
+}
