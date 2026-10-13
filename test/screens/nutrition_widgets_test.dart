@@ -6,6 +6,8 @@ import 'package:opal/models/enums.dart';
 import 'package:opal/models/nutrition_meal.dart';
 import 'package:opal/screens/nutrition/widgets/nutrition_widgets.dart';
 import 'package:opal/theme/app_colors.dart';
+import 'package:opal/theme/app_type.dart';
+import 'package:opal/widgets/contributor_bar.dart';
 
 // Helper: wraps a widget in a themed ProviderScope + MaterialApp.
 Widget _wrap(Widget child) {
@@ -22,60 +24,71 @@ void main() {
   // ── CalRange ──────────────────────────────────────────────────────────────
 
   group('CalRange', () {
-    testWidgets('shows mid rounded to nearest 10 and range sub-line',
-        (tester) async {
+    testWidgets('shows the mid in score and the likely range', (tester) async {
       await tester.pumpWidget(_wrap(const CalRange(IntRange(560, 820))));
 
-      // mid = (560+820)/2 = 690, already at nearest 10
-      expect(find.text('690'), findsOneWidget);
-      expect(find.text('560–820 estimated'), findsOneWidget);
-      expect(find.text('cal'), findsOneWidget);
-      expect(find.text('≈'), findsOneWidget);
+      final mid = tester.widget<Text>(find.text('690'));
+      expect(mid.style?.fontSize, AppType.score.fontSize);
+      expect(mid.style?.fontWeight, FontWeight.w300);
+      expect(find.text('kcal, likely 560–820'), findsOneWidget);
     });
 
-    testWidgets('rounds mid to nearest 10', (tester) async {
-      // (100+115)/2 = 107.5 → rounds to 110
+    testWidgets('uses the same mid as the meal rows', (tester) async {
+      // (100+115)/2 = 107.5, which IntRange.mid rounds to 108.
       await tester.pumpWidget(_wrap(const CalRange(IntRange(100, 115))));
-      expect(find.text('110'), findsOneWidget);
-      expect(find.text('100–115 estimated'), findsOneWidget);
+      expect(find.text('108'), findsOneWidget);
+      expect(find.text('kcal, likely 100–115'), findsOneWidget);
     });
 
-    testWidgets('accepts custom size and light flag', (tester) async {
+    testWidgets('hero sets the mid in display and groups thousands',
+        (tester) async {
+      await tester.pumpWidget(_wrap(const CalRange(IntRange(1000, 1200), hero: true)));
+      final mid = tester.widget<Text>(find.text('1,100'));
+      expect(mid.style?.fontSize, AppType.display.fontSize);
+    });
+
+    testWidgets('still accepts the size and light flags', (tester) async {
       await tester
           .pumpWidget(_wrap(const CalRange(IntRange(400, 600), size: 42, light: true)));
       expect(find.text('500'), findsOneWidget);
-      expect(find.text('400–600 estimated'), findsOneWidget);
     });
   });
 
   // ── MacroSplit ────────────────────────────────────────────────────────────
 
   group('MacroSplit', () {
-    testWidgets('renders protein / carbs / fat labels and ranges',
-        (tester) async {
-      final macros = Macros(
-        protein: const IntRange(30, 50),
-        carbs: const IntRange(60, 90),
-        fat: const IntRange(15, 25),
-      );
+    final macros = Macros(
+      protein: const IntRange(30, 50),
+      carbs: const IntRange(60, 90),
+      fat: const IntRange(15, 25),
+    );
+
+    testWidgets('renders a row per macro with its grams', (tester) async {
       await tester.pumpWidget(_wrap(MacroSplit(macros)));
 
-      expect(find.text('PROTEIN'), findsOneWidget);
-      expect(find.text('CARBS'), findsOneWidget);
-      expect(find.text('FAT'), findsOneWidget);
-      expect(find.text('30–50g'), findsOneWidget);
-      expect(find.text('60–90g'), findsOneWidget);
-      expect(find.text('15–25g'), findsOneWidget);
+      expect(find.text('Protein'), findsOneWidget);
+      expect(find.text('Carbs'), findsOneWidget);
+      expect(find.text('Fat'), findsOneWidget);
+      expect(find.text('30–50 g'), findsOneWidget);
+      expect(find.text('60–90 g'), findsOneWidget);
+      expect(find.text('15–25 g'), findsOneWidget);
     });
 
-    testWidgets('light flag does not crash', (tester) async {
-      final macros = Macros(
-        protein: const IntRange(20, 40),
-        carbs: const IntRange(50, 80),
-        fat: const IntRange(10, 20),
-      );
-      await tester.pumpWidget(_wrap(MacroSplit(macros, light: true)));
-      expect(find.text('PROTEIN'), findsOneWidget);
+    testWidgets("each bar is that macro's share of the split", (tester) async {
+      await tester.pumpWidget(_wrap(MacroSplit(macros)));
+
+      final bars = tester.widgetList<ContributorBar>(find.byType(ContributorBar)).toList();
+      // mids 40 + 75 + 20 = 135.
+      expect(bars.map((b) => b.fraction), [40 / 135, 75 / 135, 20 / 135]);
+    });
+
+    testWidgets('a zero split draws empty bars without dividing by zero',
+        (tester) async {
+      const zero = IntRange(0, 0);
+      await tester.pumpWidget(
+          _wrap(MacroSplit(Macros(protein: zero, carbs: zero, fat: zero), light: true)));
+      final bars = tester.widgetList<ContributorBar>(find.byType(ContributorBar));
+      expect(bars.every((b) => b.fraction == 0), isTrue);
     });
   });
 
@@ -90,66 +103,10 @@ void main() {
       }
     });
 
-    testWidgets('plain variant renders without background pill', (tester) async {
+    testWidgets('still accepts the plain flag', (tester) async {
       await tester
           .pumpWidget(_wrap(ConfidenceChip(NutritionConfidence.med, plain: true)));
       expect(find.text('fair estimate'), findsOneWidget);
-    });
-  });
-
-  // ── SourceTag ─────────────────────────────────────────────────────────────
-
-  group('SourceTag', () {
-    testWidgets('renders label for each source', (tester) async {
-      for (final source in NutritionSource.values) {
-        await tester.pumpWidget(_wrap(SourceTag(source)));
-        expect(find.text(source.label), findsOneWidget);
-        await tester.pumpWidget(const SizedBox.shrink());
-      }
-    });
-  });
-
-  // ── MealRow ───────────────────────────────────────────────────────────────
-
-  group('MealRow', () {
-    final meal = NutritionMeal(
-      id: 'test-1',
-      timestamp: DateTime(2026, 6, 21, 12, 30),
-      slot: 'Lunch',
-      name: 'Chicken Bowl',
-      source: NutritionSource.home,
-      icon: 'fork.knife',
-      confidence: NutritionConfidence.high,
-      cal: const IntRange(550, 750),
-      macros: Macros(
-        protein: const IntRange(40, 55),
-        carbs: const IntRange(60, 80),
-        fat: const IntRange(15, 25),
-      ),
-    );
-
-    testWidgets('renders meal name, slot, time and cal range', (tester) async {
-      await tester.pumpWidget(_wrap(MealRow(meal)));
-
-      expect(find.text('Chicken Bowl'), findsOneWidget);
-      expect(find.text('Lunch'), findsOneWidget);
-      expect(find.text('12:30'), findsOneWidget);
-      expect(find.text('550–750'), findsOneWidget);
-    });
-
-    testWidgets('tapping fires onTap', (tester) async {
-      var tapped = false;
-      await tester
-          .pumpWidget(_wrap(MealRow(meal, onTap: () => tapped = true)));
-      await tester.tap(find.text('Chicken Bowl'));
-      await tester.pump();
-      expect(tapped, isTrue);
-    });
-
-    testWidgets('last flag suppresses divider', (tester) async {
-      // Should not throw — just a build check
-      await tester.pumpWidget(_wrap(MealRow(meal, last: true)));
-      expect(find.text('Chicken Bowl'), findsOneWidget);
     });
   });
 
@@ -212,6 +169,21 @@ void main() {
       await tester.tap(find.text('B'));
       await tester.pump();
       expect(selected, 'B');
+    });
+
+    testWidgets('only the active option is selected, and each is 44 tall',
+        (tester) async {
+      await tester.pumpWidget(_wrap(
+        ChipRow(const ['Breakfast', 'Lunch'], 'Lunch', (_) {}),
+      ));
+
+      expect(find.bySemanticsLabel('Lunch'), findsOneWidget);
+      expect(tester.getSemantics(find.bySemanticsLabel('Lunch')),
+          isSemantics(label: 'Lunch', isSelected: true, isButton: true));
+      expect(tester.getSemantics(find.bySemanticsLabel('Breakfast')),
+          isSemantics(label: 'Breakfast', isSelected: false));
+      expect(tester.getSize(find.bySemanticsLabel('Breakfast')).height,
+          greaterThanOrEqualTo(44));
     });
   });
 }

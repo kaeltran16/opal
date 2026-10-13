@@ -3,14 +3,30 @@ import 'package:flutter/material.dart';
 import '../../../models/enums.dart';
 import '../../../models/nutrition_meal.dart';
 import '../../../theme/theme.dart';
-import '../../../widgets/app_icon.dart';
+import '../../../util/format.dart';
+import '../../../widgets/contributor_bar.dart';
 import '../../../widgets/press_scale.dart';
+
+const double _minTap = 44;
+const double _pipWidth = 3;
+const double _pipBase = 4;
+const double _pipStep = 3;
+const int _pipCount = 3;
+// kept literal: the canvas puts 10 above a macro row and 12 below it.
+const double _macroRowTop = 10;
+const double _macroRowBottom = Spacing.md;
+const double _handleWidth = 36;
+const double _handleHeight = 5;
+const double _hairline = 1;
+// cap the sheet so tall content scrolls inside the body rather than overflowing.
+const double _sheetMaxShare = 0.94;
+const Duration _sheetSlide = Duration(milliseconds: 320);
 
 // ─── ConfidenceChip ──────────────────────────────────────────────────────────
 
-/// 3 ascending bars showing Pal's confidence level, plus a text label.
-/// [plain] drops the tinted pill background (used in MealRow).
+/// 3 ascending pips showing Pal's confidence level, plus its word.
 class ConfidenceChip extends StatelessWidget {
+  // plain is kept for callers; the tinted pill it used to drop is gone.
   const ConfidenceChip(this.level, {super.key, this.plain = false});
 
   final NutritionConfidence level;
@@ -19,123 +35,61 @@ class ConfidenceChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    final bars = level.bars;
-    final label = level.label;
-
-    Widget content = Row(
+    return Row(
       mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        // 3 ascending bars: heights 4, 7, 10 px
-        for (var i = 0; i < 3; i++) ...[
+        for (var i = 0; i < _pipCount; i++) ...[
           if (i > 0) const SizedBox(width: Spacing.xxs),
           Container(
-            width: 3,
-            height: 4 + i * 3.0,
+            width: _pipWidth,
+            height: _pipBase + i * _pipStep,
             decoration: BoxDecoration(
-              color: i < bars
-                  ? c.nutrition
-                  : c.nutrition.withValues(alpha: 0.20),
-              borderRadius: BorderRadius.circular(1.5), // kept literal: pip corner, below the smallest radius
+              color: i < level.bars ? c.ink : c.track,
+              borderRadius: BorderRadius.circular(Radii.pill),
             ),
           ),
         ],
         const SizedBox(width: Spacing.xs),
-        Text(
-          label,
-          style: AppFonts.sf(
-            size: 12, // kept literal: 12pt, no matching type token
-            weight: FontWeight.w500,
-            color: plain ? c.ink3 : c.nutrition,
-          ),
-        ),
+        Text(level.label, style: AppType.label.copyWith(color: c.ink2)),
       ],
-    );
-
-    if (plain) return content;
-
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: Spacing.sm,
-        vertical: Spacing.xxs,
-      ),
-      decoration: BoxDecoration(
-        color: c.nutritionTint,
-        borderRadius: BorderRadius.circular(Radii.pill),
-      ),
-      child: content,
     );
   }
 }
 
 // ─── CalRange ────────────────────────────────────────────────────────────────
 
-/// Displays a calorie range as a large "≈ {mid} cal" hero with a sub-line
-/// "{lo}–{hi} estimated". [size] controls the mid-value font size (default 32).
-/// [light] switches ink to white for use on dark/tinted backgrounds.
+/// A calorie estimate: its mid as a light number, then
+/// "kcal, likely {lo}–{hi}". [hero] sets it in `display` rather than `score`.
 class CalRange extends StatelessWidget {
+  // size and light are kept for callers; the type ramp and the plain sheet
+  // ground replaced free sizes and white-on-tint text.
   const CalRange(
     this.range, {
     super.key,
     this.size = 32,
     this.light = false,
+    this.hero = false,
   });
 
   final IntRange range;
   final double size;
   final bool light;
+  final bool hero;
 
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    final mainColor = light ? Colors.white : c.ink;
-    final dimColor = light ? Colors.white70 : c.ink3;
-
-    // Round mid to nearest 10
-    final rawMid = (range.lo + range.hi) / 2;
-    final mid = ((rawMid / 10).round() * 10).toString();
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.baseline,
-          textBaseline: TextBaseline.alphabetic,
-          children: [
-            Text(
-              '≈',
-              style: AppFonts.sfr(
-                size: size * 0.42,
-                weight: FontWeight.w400,
-                color: dimColor,
-              ),
-            ),
-            const SizedBox(width: 3), // kept literal: 3 gap is off the spacing grid
-            Text(
-              mid,
-              style: AppFonts.sfr(
-                size: size,
-                weight: FontWeight.w700,
-                color: mainColor,
-                height: 0.95,
-              ),
-            ),
-            const SizedBox(width: 3), // kept literal: 3 gap is off the spacing grid
-            Text(
-              'cal',
-              style: AppFonts.sf(
-                size: size * 0.32,
-                weight: FontWeight.w600,
-                color: dimColor,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: Spacing.xxs),
         Text(
-          '${range.lo}–${range.hi} estimated',
-          style: AppFonts.sf(size: 12.5, color: dimColor), // kept literal: 12.5pt, no matching type token
+          groupThousands('${range.mid}', ','),
+          style: (hero ? AppType.display : AppType.score).copyWith(color: c.ink),
+        ),
+        Text(
+          'kcal, likely ${range.lo}–${range.hi}',
+          style: AppType.subhead.copyWith(color: c.ink2),
         ),
       ],
     );
@@ -144,9 +98,9 @@ class CalRange extends StatelessWidget {
 
 // ─── MacroSplit ───────────────────────────────────────────────────────────────
 
-/// An 8px-tall segmented bar showing the protein/carbs/fat split, with a
-/// legend row beneath. [light] switches to white tiers for dark backgrounds.
+/// Protein, carbs and fat as rows, each bar that macro's share of the split.
 class MacroSplit extends StatelessWidget {
+  // light is kept for callers; there is no tinted panel to sit on any more.
   const MacroSplit(this.macros, {super.key, this.light = false});
 
   final Macros macros;
@@ -154,293 +108,24 @@ class MacroSplit extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = context.colors;
-
-    final proteinMid = macros.protein.mid;
-    final carbsMid = macros.carbs.mid;
-    final fatMid = macros.fat.mid;
-    final total = proteinMid + carbsMid + fatMid;
-
-    final segments = [
-      _MacroSegment(
-        flex: total > 0 ? proteinMid : 1,
-        color: light ? Colors.white : c.nutrition,
-        label: 'PROTEIN',
-        range: macros.protein,
-      ),
-      _MacroSegment(
-        flex: total > 0 ? carbsMid : 1,
-        color: light
-            ? Colors.white.withValues(alpha: 0.60)
-            : c.nutrition.withValues(alpha: 0.60),
-        label: 'CARBS',
-        range: macros.carbs,
-      ),
-      _MacroSegment(
-        flex: total > 0 ? fatMid : 1,
-        color: light
-            ? Colors.white.withValues(alpha: 0.30)
-            : c.nutrition.withValues(alpha: 0.30),
-        label: 'FAT',
-        range: macros.fat,
-      ),
+    final rows = [
+      ('Protein', macros.protein),
+      ('Carbs', macros.carbs),
+      ('Fat', macros.fat),
     ];
-
+    final total = rows.fold<int>(0, (sum, r) => sum + r.$2.mid);
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Bar
-        ClipRRect(
-          borderRadius: BorderRadius.circular(Radii.xs),
-          child: Row(
-            children: [
-              for (var i = 0; i < segments.length; i++) ...[
-                if (i > 0) const SizedBox(width: Spacing.xxs),
-                Expanded(
-                  flex: segments[i].flex,
-                  child: Container(
-                    height: 8,
-                    color: segments[i].color,
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ),
-        const SizedBox(height: Spacing.sm),
-        // Legend
-        Row(
-          children: [
-            for (var i = 0; i < segments.length; i++) ...[
-              if (i > 0) const SizedBox(width: Spacing.md),
-              _MacroLegendItem(segment: segments[i], light: light),
-            ],
-          ],
-        ),
-      ],
-    );
-  }
-}
-
-class _MacroSegment {
-  const _MacroSegment({
-    required this.flex,
-    required this.color,
-    required this.label,
-    required this.range,
-  });
-  final int flex;
-  final Color color;
-  final String label;
-  final IntRange range;
-}
-
-class _MacroLegendItem extends StatelessWidget {
-  const _MacroLegendItem({required this.segment, required this.light});
-  final _MacroSegment segment;
-  final bool light;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.colors;
-    final textColor = light ? Colors.white70 : c.ink3;
-
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Container(
-          width: 7,
-          height: 7,
-          decoration: BoxDecoration(
-            color: segment.color,
-            borderRadius: BorderRadius.circular(2), // kept literal: bar corner, below the smallest radius
-          ),
-        ),
-        const SizedBox(width: Spacing.xxs),
-        Text(
-          segment.label,
-          style: AppFonts.sf(
-            size: 11, // kept literal: 11pt, no matching type token
-            weight: FontWeight.w600,
-            letterSpacing: 0.4,
-            color: textColor,
-          ),
-        ),
-        const SizedBox(width: Spacing.xxs),
-        Text(
-          '${segment.range.lo}–${segment.range.hi}g',
-          style: AppFonts.sfr(size: 14, color: textColor), // kept literal: 14pt rounded figure, no matching type token
-        ),
-      ],
-    );
-  }
-}
-
-// ─── SourceTag ────────────────────────────────────────────────────────────────
-
-/// A small inline badge showing where a meal came from (home / takeout / by hand).
-class SourceTag extends StatelessWidget {
-  const SourceTag(this.source, {super.key});
-
-  final NutritionSource source;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.colors;
-
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: Spacing.xs,
-        vertical: 2,
-      ),
-      decoration: BoxDecoration(
-        color: c.nutritionTint,
-        borderRadius: BorderRadius.circular(Radii.xs),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          AppIcon(source.icon, size: 11, color: c.nutrition),
-          const SizedBox(width: 3), // kept literal: 3 gap is off the spacing grid
-          Text(
-            source.label,
-            style: AppFonts.sf(
-              size: 11, // kept literal: 11pt, no matching type token
-              weight: FontWeight.w500,
-              color: c.nutrition,
+        for (final (label, range) in rows)
+          Padding(
+            padding: const EdgeInsets.only(top: _macroRowTop, bottom: _macroRowBottom),
+            child: ContributorBar(
+              label: label,
+              value: '${range.lo}–${range.hi} g',
+              fraction: total > 0 ? range.mid / total : 0,
             ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ─── MealRow ─────────────────────────────────────────────────────────────────
-
-/// A single meal entry row: time · icon tile · name/slot/source · cal range/confidence.
-/// Hairline divider below unless [last].
-class MealRow extends StatelessWidget {
-  const MealRow(
-    this.meal, {
-    super.key,
-    this.last = false,
-    this.onTap,
-  });
-
-  final NutritionMeal meal;
-  final bool last;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.colors;
-
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        PressScale(
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: Spacing.lg,
-              vertical: Spacing.md,
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                // Time — 38px wide, tabular
-                SizedBox(
-                  width: 38,
-                  child: Text(
-                    meal.time,
-                    style: AppFonts.sfr(
-                      size: 13, // kept literal: 13pt rounded figure, no matching type token
-                      weight: FontWeight.w500,
-                      color: c.ink3,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: Spacing.sm),
-                // 32px icon tile
-                Container(
-                  width: 32,
-                  height: 32,
-                  decoration: BoxDecoration(
-                    color: c.nutritionTint,
-                    borderRadius: BorderRadius.circular(Radii.sm),
-                  ),
-                  child: Center(
-                    child: AppIcon(meal.icon, size: 17, color: c.nutrition),
-                  ),
-                ),
-                const SizedBox(width: Spacing.sm),
-                // Name + slot · SourceTag
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        meal.name,
-                        style: AppFonts.sf(
-                          size: 15, // kept literal: 15pt, no matching type token
-                          weight: FontWeight.w500,
-                          color: c.ink,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: Spacing.xxs),
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            meal.slot,
-                            style: AppType.caption.copyWith(color: c.ink3),
-                          ),
-                          const SizedBox(width: Spacing.xs),
-                          Text('·',
-                              style: TextStyle(
-                                  fontSize: 12,
-                                  color: c.ink4)),
-                          const SizedBox(width: Spacing.xs),
-                          SourceTag(meal.source),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: Spacing.sm),
-                // Right column: cal range + plain confidence chip
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      '${meal.cal.lo}–${meal.cal.hi}',
-                      style: AppFonts.sfr(
-                        size: 14, // kept literal: 14pt rounded figure, no matching type token
-                        weight: FontWeight.w600,
-                        color: c.ink,
-                      ),
-                    ),
-                    const SizedBox(height: Spacing.xxs),
-                    ConfidenceChip(meal.confidence, plain: true),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
-        if (!last)
-          Divider(
-            height: 1,
-            thickness: 0.5,
-            color: c.hair,
-            indent: Spacing.lg + 38 + Spacing.sm + 32 + Spacing.sm,
           ),
       ],
     );
@@ -472,105 +157,83 @@ class SheetShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
+    final primary = primaryLabel;
 
     return Stack(
       children: [
-        // Scrim
         GestureDetector(
           onTap: onClose,
           child: Container(color: c.scrim),
         ),
-        // Sheet
         Align(
           alignment: Alignment.bottomCenter,
           child: TweenAnimationBuilder<double>(
             tween: Tween(begin: 1.0, end: 0.0),
-            duration: const Duration(milliseconds: 320),
+            duration: _sheetSlide,
             curve: Curves.easeOutCubic,
-            builder: (context, value, child) {
-              return FractionalTranslation(
-                translation: Offset(0, value),
-                child: child,
-              );
-            },
+            builder: (context, value, child) => FractionalTranslation(
+              translation: Offset(0, value),
+              child: child,
+            ),
             child: Container(
-              // Cap the sheet at 94% of the viewport so tall content scrolls
-              // inside the body rather than overflowing the column.
               constraints: BoxConstraints(
-                maxHeight: MediaQuery.sizeOf(context).height * 0.94,
+                maxHeight: MediaQuery.sizeOf(context).height * _sheetMaxShare,
               ),
               decoration: BoxDecoration(
                 color: c.surface,
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(Radii.xxl),
-                ),
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(Radii.xl)),
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Drag handle
-                  const SizedBox(height: Spacing.md),
+                  const SizedBox(height: Spacing.sm),
                   Container(
-                    width: 36,
-                    height: 4,
+                    width: _handleWidth,
+                    height: _handleHeight,
                     decoration: BoxDecoration(
-                      color: c.hair,
-                      borderRadius: BorderRadius.circular(2), // kept literal: handle corner, below the smallest radius
+                      color: c.track,
+                      borderRadius: BorderRadius.circular(Radii.pill),
                     ),
                   ),
-                  const SizedBox(height: Spacing.sm),
-                  // Header row
                   Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: Spacing.lg,
-                      vertical: Spacing.sm,
-                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: Spacing.lg),
                     child: Row(
                       children: [
-                        // Cancel
-                        GestureDetector(
+                        _HeaderButton(
+                          label: 'Cancel',
+                          color: c.ink2,
                           onTap: onClose,
-                          child: Text(
-                            'Cancel',
-                            style: AppType.callout.copyWith(color: c.nutrition),
-                          ),
                         ),
-                        // Title
                         Expanded(
                           child: title != null
-                              ? Text(
-                                  title!,
-                                  textAlign: TextAlign.center,
-                                  style: AppFonts.sf(
-                                    size: 16, // kept literal: 16pt, no matching type token
-                                    weight: FontWeight.w600,
-                                    color: c.ink,
+                              ? Semantics(
+                                  header: true,
+                                  child: Text(
+                                    title!,
+                                    textAlign: TextAlign.center,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: AppType.headline.copyWith(color: c.ink),
                                   ),
                                 )
                               : const SizedBox.shrink(),
                         ),
-                        // Primary action
-                        if (primaryLabel != null)
-                          GestureDetector(
+                        if (primary != null)
+                          _HeaderButton(
+                            label: primary,
+                            color: primaryEnabled ? c.ink : c.ink3,
+                            bold: true,
                             onTap: primaryEnabled ? onPrimary : null,
-                            child: Text(
-                              primaryLabel!,
-                              style: AppFonts.sf(
-                                size: 16, // kept literal: 16pt, no matching type token
-                                weight: FontWeight.w600,
-                                color:
-                                    primaryEnabled ? c.nutrition : c.ink4,
-                              ),
-                            ),
                           )
                         else
-                          const SizedBox(width: 48), // kept literal: balances the Cancel width
+                          // balances Cancel so the title stays centred.
+                          const SizedBox(width: _minTap),
                       ],
                     ),
                   ),
-                  const Divider(height: 1, thickness: 0.5),
-                  // Body — Flexible so a scrollable child shrinks to the
-                  // capped height and scrolls instead of overflowing.
+                  Divider(height: _hairline, thickness: _hairline, color: c.hair),
+                  // Flexible so a scrollable child shrinks to the capped height
+                  // and scrolls instead of overflowing.
                   Flexible(child: child),
                 ],
               ),
@@ -582,10 +245,43 @@ class SheetShell extends StatelessWidget {
   }
 }
 
+/// A text button in the sheet header, at least 44 square.
+class _HeaderButton extends StatelessWidget {
+  const _HeaderButton({
+    required this.label,
+    required this.color,
+    required this.onTap,
+    this.bold = false,
+  });
+
+  final String label;
+  final Color color;
+  final VoidCallback? onTap;
+  final bool bold;
+
+  @override
+  Widget build(BuildContext context) {
+    final text = ConstrainedBox(
+      constraints: const BoxConstraints(minHeight: _minTap, minWidth: _minTap),
+      child: Align(
+        widthFactor: 1,
+        child: Text(
+          label,
+          style: (bold ? AppType.headline : AppType.body).copyWith(color: color),
+        ),
+      ),
+    );
+    // a disabled primary still reads as a button, just not an enabled one.
+    if (onTap == null) {
+      return Semantics(button: true, enabled: false, label: label, excludeSemantics: true, child: text);
+    }
+    return PressScale(onTap: onTap, semanticLabel: label, child: text);
+  }
+}
+
 // ─── ChipRow ─────────────────────────────────────────────────────────────────
 
-/// A wrap of pill-button chips. Active chip: nutrition bg / white text.
-/// Inactive: surface / ink.
+/// A wrap of pills; the selected one is ink on `surface2`, the rest ink3.
 class ChipRow extends StatelessWidget {
   const ChipRow(this.options, this.value, this.onChange, {super.key});
 
@@ -596,32 +292,34 @@ class ChipRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-
     return Wrap(
-      spacing: Spacing.sm,
-      runSpacing: Spacing.sm,
+      spacing: Spacing.xs,
+      runSpacing: Spacing.xs,
       children: [
         for (final option in options)
-          PressScale(
-            onTap: () => onChange(option),
-            child: Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: Spacing.md,
-                vertical: Spacing.xs,
-              ),
-              decoration: BoxDecoration(
-                color: option == value ? c.nutrition : c.surface,
-                borderRadius: BorderRadius.circular(Radii.pill),
-                border: option == value
-                    ? null
-                    : Border.all(color: c.hair, width: 1),
-              ),
-              child: Text(
-                option,
-                style: AppFonts.sf(
-                  size: 14, // kept literal: 14pt, no matching type token
-                  weight: FontWeight.w500,
-                  color: option == value ? Colors.white : c.ink,
+          MergeSemantics(
+            child: Semantics(
+              selected: option == value,
+              child: PressScale(
+                onTap: () => onChange(option),
+                semanticLabel: option,
+                child: Container(
+                  constraints: const BoxConstraints(minHeight: _minTap),
+                  padding: const EdgeInsets.symmetric(horizontal: Spacing.lg),
+                  decoration: BoxDecoration(
+                    color: option == value ? c.surface2 : null,
+                    borderRadius: BorderRadius.circular(Radii.pill),
+                  ),
+                  child: Align(
+                    widthFactor: 1,
+                    child: Text(
+                      option,
+                      style: AppType.subhead.copyWith(
+                        color: option == value ? c.ink : c.ink3,
+                        fontWeight: option == value ? FontWeight.w600 : null,
+                      ),
+                    ),
+                  ),
                 ),
               ),
             ),
