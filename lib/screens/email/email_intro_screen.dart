@@ -5,36 +5,34 @@ import 'package:go_router/go_router.dart';
 import '../../controllers/email_sync_controller.dart';
 import '../../theme/theme.dart';
 import '../../widgets/app_icon.dart';
-import '../../widgets/gmail_glyph.dart';
-import '../../widgets/inset_section.dart';
+import '../../widgets/press_scale.dart';
+import '../you/sub_screen.dart';
 import 'email_dashboard_screen.dart';
-import 'email_nav.dart';
 
-/// Screen 16 — Email Sync intro (mock).
-///
-/// Value prop (tray glyph + headline + read-only app-password pitch), a
-/// "How it works" 3-step section, a reassurance note, and the primary CTA that
-/// pushes the Setup screen. Provider list is implied by the secondary
-/// "iCloud, Outlook, any IMAP coming" line, matching the handoff.
+const double _pillHeight = 48;
+const double _rowHeight = 56;
+const double _hairline = 1;
+const double _leadIcon = 28;
+const double _rowIcon = 20;
+
+/// Email sync intro: what it does, how it works, and Connect, which opens
+/// Gmail setup.
 class EmailIntroScreen extends ConsumerWidget {
   const EmailIntroScreen({super.key});
 
-  static const _steps = <(String icon, String token, String title, String sub)>[
+  static const _steps = <(String icon, String title, String sub)>[
     (
       'bell.fill',
-      'money',
       'Your bank sends alerts',
       '"You spent \$12.40 at Blue Bottle" — most cards do this',
     ),
     (
       'magnifyingglass',
-      '',
       'Pal reads only those',
       'Filtered by sender list before anything is parsed',
     ),
     (
       'sparkles',
-      'rituals',
       'It lands on Today',
       'Categorized, deduped, tagged as synced',
     ),
@@ -42,256 +40,83 @@ class EmailIntroScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // The Intro is the `/email` entry and the back-stop beneath Setup/Dashboard,
-    // so a connected account must surface the dashboard here — otherwise backing
-    // out of Setup, or reopening Email from the You tab, lands on this cold-start
-    // pitch and looks like the saved connection was lost.
+    // the intro is the `/email` entry and the back-stop beneath setup and the
+    // dashboard, so a connected account must surface the dashboard here, or
+    // backing out of setup lands on this pitch and the connection looks lost.
+    // disconnecting there rebuilds this screen into the pitch, so it must not pop.
     if (ref.watch(emailDashboardControllerProvider).isConnected) {
-      return const EmailDashboardScreen();
+      return const EmailDashboardScreen(popOnDisconnect: false);
     }
     final c = context.colors;
-    return ColoredBox(
-      color: c.bg,
-      child: ListView(
-        padding: const EdgeInsets.only(bottom: 48), // kept literal: 48 scroll tail below the last section
-        children: [
-          EmailNavBar(
-            title: 'Email sync',
-            leadingLabel: 'You',
-            onLeading: () => context.pop(),
-          ),
+    final quiet = AppType.subhead.copyWith(color: c.ink3);
 
-          // --- Value prop ----------------------------------------------------
-          Padding(
-            padding: const EdgeInsets.fromLTRB(
-                Spacing.xxl, Spacing.lg, Spacing.xxl, 28), // 28: no token, keep
-            child: Column(
-              children: [
-                _IntroGlyph(),
-                const SizedBox(height: Spacing.xl),
-                Text(
-                  'Stop logging card\ncharges by hand.',
-                  textAlign: TextAlign.center,
-                  style: AppType.title1.copyWith(
-                    color: c.ink,
-                    letterSpacing: -0.5,
-                    height: 1.15,
-                  ),
-                ),
-                const SizedBox(height: Spacing.md),
-                Text(
-                  'Connect your inbox with a read-only app password. Pal scans '
-                  'for bank alert emails in the background and drops them on '
-                  'your timeline — categorized, deduped, silent.',
-                  textAlign: TextAlign.center,
-                  style: AppType.subhead.copyWith(
-                    color: c.ink2,
-                    letterSpacing: -0.2,
-                    height: 1.45,
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // --- How it works --------------------------------------------------
-          InsetSection(
-            header: 'How it works',
-            children: [
-              for (var i = 0; i < _steps.length; i++)
-                _StepRow(step: _steps[i], last: i == _steps.length - 1),
-            ],
-          ),
-
-          // --- Reassurance note ----------------------------------------------
-          Padding(
-            padding: const EdgeInsets.fromLTRB(
-                Spacing.lg, 0, Spacing.lg, Spacing.lg),
-            child: Container(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: Spacing.lg, vertical: Spacing.md),
-              decoration: BoxDecoration(
-                color: c.accent.withValues(alpha: 0.06),
-                borderRadius: BorderRadius.circular(Radii.md),
-                border: Border.all(
-                    color: c.accent.withValues(alpha: 0.20), width: 0.5),
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  AppIcon('heart.fill', size: 14, color: c.accent),
-                  const SizedBox(width: Spacing.md),
-                  Expanded(
-                    child: Text(
-                      'App password, not your real one. You generate a '
-                      'disposable password in your email settings — Pal stores '
-                      'it encrypted in the iOS keychain. Revoke it anytime from '
-                      'Gmail without touching anything else.',
-                      style: AppType.caption.copyWith(
-                        color: c.ink2,
-                        letterSpacing: -0.08,
-                        height: 1.5,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-          // --- CTA -----------------------------------------------------------
-          Padding(
-            padding: const EdgeInsets.fromLTRB(
-                Spacing.lg, 0, Spacing.lg, Spacing.xs),
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: () => context.pushNamed('emailSetup'),
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: Spacing.lg),
-                decoration: BoxDecoration(
-                  color: c.ink,
-                  borderRadius: BorderRadius.circular(Radii.card),
-                  // accent-tinted glow (matches ink fill), not neutral elevation
-                  boxShadow: [
-                    BoxShadow(
-                      color: c.ink.withValues(alpha: 0.20),
-                      blurRadius: 14,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                alignment: Alignment.center,
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const GmailGlyph(size: 18),
-                    const SizedBox(width: Spacing.md),
-                    Text(
-                      'Set up Gmail sync',
-                      style: AppType.callout.copyWith(
-                        color: c.bg,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: -0.2,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: Spacing.md),
-            child: Text(
-              'iCloud, Outlook, any IMAP coming',
-              textAlign: TextAlign.center,
-              style: AppType.footnote.copyWith(color: c.ink3, letterSpacing: -0.2),
-            ),
-          ),
-        ],
-      ),
+    return SubScreen(
+      eyebrow: 'Settings',
+      title: 'Email sync',
+      children: [
+        const SizedBox(height: Spacing.xxl),
+        AppIcon('tray.fill', size: _leadIcon, color: c.ink2),
+        const SizedBox(height: Spacing.md),
+        Text('Stop logging card charges by hand.',
+            style: AppType.headline.copyWith(color: c.ink)),
+        const SizedBox(height: Spacing.sm),
+        Text(
+          'Connect your inbox with a read-only app password. Pal scans for bank '
+          'alert emails in the background and drops them on your timeline — '
+          'categorized, deduped, silent.',
+          style: AppType.subhead.copyWith(color: c.ink2),
+        ),
+        const SizedBox(height: Spacing.xxxl),
+        Semantics(
+          header: true,
+          child: Text('How it works', style: AppType.headline.copyWith(color: c.ink)),
+        ),
+        const SizedBox(height: Spacing.sm),
+        for (final step in _steps) _StepRow(step: step),
+        const SizedBox(height: Spacing.lg),
+        Text(
+          'App password, not your real one. You generate a disposable password '
+          'in your email settings — Pal stores it encrypted in the iOS keychain. '
+          'Revoke it anytime from Gmail without touching anything else.',
+          style: quiet,
+        ),
+        const SizedBox(height: Spacing.xxl),
+        _ConnectPill(onTap: () => context.pushNamed('emailSetup')),
+        const SizedBox(height: Spacing.md),
+        Text('iCloud, Outlook, any IMAP coming',
+            textAlign: TextAlign.center, style: quiet),
+      ],
     );
   }
 }
 
-/// The 120×120 tinted tray glyph with the small sparkles badge.
-class _IntroGlyph extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    final c = context.colors;
-    return SizedBox(
-      width: 120,
-      height: 120,
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Container(
-            width: 120,
-            height: 120,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(Radii.xxl),
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [c.accentTint, c.moneyTint],
-              ),
-              border: Border.all(color: c.hair, width: 0.5),
-            ),
-            alignment: Alignment.center,
-            child: AppIcon('tray.fill', size: 56, color: c.accent),
-          ),
-          Positioned(
-            bottom: -6,
-            right: -6,
-            child: Container(
-              width: 38,
-              height: 38,
-              decoration: BoxDecoration(
-                color: c.money,
-                shape: BoxShape.circle,
-                // money-tinted glow, not neutral elevation — keep inline
-                boxShadow: [
-                  BoxShadow(
-                    color: c.money.withValues(alpha: 0.33),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              alignment: Alignment.center,
-              child: AppIcon('sparkles', size: 18, color: c.onAccent),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// One "How it works" row: tinted icon tile + title/sub, hairline below.
+/// One "How it works" step under a hairline: icon, title and detail.
 class _StepRow extends StatelessWidget {
-  const _StepRow({required this.step, required this.last});
-  final (String, String, String, String) step;
-  final bool last;
+  const _StepRow({required this.step});
+  final (String, String, String) step;
 
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    final color = c.forType(step.$2);
+    final (icon, title, sub) = step;
     return Container(
+      constraints: const BoxConstraints(minHeight: _rowHeight),
+      padding: const EdgeInsets.symmetric(vertical: Spacing.md),
       decoration: BoxDecoration(
-        border:
-            last ? null : Border(bottom: BorderSide(color: c.hair, width: 0.5)),
+        border: Border(top: BorderSide(color: c.hair, width: _hairline)),
       ),
-      padding: const EdgeInsets.all(Spacing.lg),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 34,
-            height: 34,
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.13),
-              borderRadius: BorderRadius.circular(Radii.md),
-            ),
-            alignment: Alignment.center,
-            child: AppIcon(step.$1, size: 17, color: color),
-          ),
+          AppIcon(icon, size: _rowIcon, color: c.ink2),
           const SizedBox(width: Spacing.md),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(step.$3,
-                    style: AppType.subhead.copyWith(
-                        fontWeight: FontWeight.w500,
-                        color: c.ink,
-                        letterSpacing: -0.24)),
+                Text(title, style: AppType.callout.copyWith(color: c.ink)),
                 const SizedBox(height: Spacing.xxs),
-                Text(step.$4,
-                    style: AppType.footnote.copyWith(
-                        color: c.ink3,
-                        letterSpacing: -0.08,
-                        height: 1.4)),
+                Text(sub, style: AppType.subhead.copyWith(color: c.ink3)),
               ],
             ),
           ),
@@ -301,3 +126,27 @@ class _StepRow extends StatelessWidget {
   }
 }
 
+/// The screen's one primary pill.
+class _ConnectPill extends StatelessWidget {
+  const _ConnectPill({required this.onTap});
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return PressScale(
+      onTap: onTap,
+      semanticLabel: 'Connect',
+      child: Container(
+        constraints: const BoxConstraints(minHeight: _pillHeight),
+        padding: const EdgeInsets.symmetric(horizontal: Spacing.xl),
+        decoration: BoxDecoration(
+          color: c.ink,
+          borderRadius: BorderRadius.circular(Radii.pill),
+        ),
+        alignment: Alignment.center,
+        child: Text('Connect', style: AppType.headline.copyWith(color: c.bg)),
+      ),
+    );
+  }
+}

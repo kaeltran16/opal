@@ -1,70 +1,61 @@
+import 'package:clock/clock.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../analysis/area_state.dart';
 import '../../controllers/budget_advisories_controller.dart';
 import '../../controllers/budget_recommendations_controller.dart';
 import '../../controllers/budgets_controller.dart';
 import '../../controllers/providers.dart';
 import '../../theme/theme.dart';
+import '../../util/dates.dart';
 import '../../util/format.dart';
 import '../../widgets/app_icon.dart';
-import '../../widgets/inset_section.dart';
-import '../../widgets/nav_bar.dart';
-import '../../widgets/spend_ring.dart';
+import '../../widgets/state_colors.dart';
+import '../you/sub_screen.dart';
 
-/// Money — monthly budget envelopes with live spent / left rings. Watches
-/// [budgetsDataProvider] (current-month per-category spend + pacing) and renders
-/// a total hero ring, a 2-column envelope grid, and inert action rows.
+const double _minTap = 44;
+const double _rowMinHeight = 48;
+const double _hairline = 1;
+const double _rowIcon = 20;
+const double _optionsIcon = 20;
+const double _barHeight = 4;
+const double _rowLineHeight = 22 / 16;
+const List<FontFeature> _tabular = [FontFeature.tabularFigures()];
+
+/// Money: this month's budget. What is left leads, then each envelope as a
+/// hairline row with its bar, then Pal's suggested caps and advisories.
+/// Watches [budgetsDataProvider] (current-month per-category spend + pacing).
 class BudgetsScreen extends ConsumerWidget {
   const BudgetsScreen({super.key});
-
-  static const _monthNames = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December',
-  ];
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final c = context.colors;
     final async = ref.watch(budgetsDataProvider);
     final currency = ref.watch(appSettingsControllerProvider).currency;
+    final month = async.asData?.value.month ?? clock.now();
+    final quiet = AppType.subhead.copyWith(color: c.ink3);
 
-    return ColoredBox(
-      color: c.bg,
-      child: LargeTitleScrollView(
-        title: 'Budgets',
-        leading: NavAction(
-          icon: 'chevron.left',
-          label: 'You',
-          onTap: () => Navigator.of(context).maybePop(),
+    return SubScreen(
+      eyebrow: kMonths[month.month - 1],
+      title: 'Budgets',
+      children: [
+        async.when(
+          loading: () => _notice(Text('…', style: AppType.body.copyWith(color: c.ink3))),
+          error: (e, _) {
+            debugPrint('budgets: loading failed: $e');
+            return _notice(Text("Couldn't load your budgets.", style: quiet));
+          },
+          data: (data) => _Body(data: data, currency: currency),
         ),
-        trailing: const NavIconButton(
-          name: 'slider.horizontal.3',
-          semanticLabel: 'Budget options',
-        ),
-        padding: const EdgeInsets.only(bottom: 110), // kept literal: 110 scroll-tail clearance for floating actions
-        children: [
-          async.when(
-            loading: () => _centered(
-              Text('…', style: AppType.body.copyWith(color: c.ink3)),
-            ),
-            error: (e, _) => _centered(
-              Text(
-                "Couldn't load your budgets.",
-                textAlign: TextAlign.center,
-                style: AppType.subhead.copyWith(color: c.ink3, letterSpacing: -0.24),
-              ),
-            ),
-            data: (data) => _Body(data: data, currency: currency),
-          ),
-        ],
-      ),
+      ],
     );
   }
 
-  static Widget _centered(Widget child) => Padding(
-        padding: const EdgeInsets.all(Spacing.xxl),
-        child: Center(child: child),
+  static Widget _notice(Widget child) => Padding(
+        padding: const EdgeInsets.only(top: Spacing.xxl),
+        child: child,
       );
 }
 
@@ -77,248 +68,146 @@ class _Body extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    final month = BudgetsScreen._monthNames[data.month.month - 1];
-    final progress = data.totalProgress;
-    final over = progress > 1;
-    final onPace = data.onPace;
+    final state = budgetState(
+      spent: data.totalSpent,
+      budget: data.totalCap,
+      elapsed: data.monthPaceFraction,
+    );
+    final left = data.totalLeft;
     final daysLeft = data.daysLeft;
 
-    final paceLabel = onPace
-        ? 'On pace · $daysLeft days left'
-        : '${((progress - data.monthPaceFraction) * 100).round()}% ahead of pace · $daysLeft days left';
-
-    final envelopes = data.envelopes;
-
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // --- Hero: total budget ring ---
-        Padding(
-          padding: const EdgeInsets.fromLTRB(Spacing.lg, Spacing.sm, Spacing.lg, 22), // kept literal: 22 hero bottom inset, off-grid
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: Spacing.xl, vertical: 22), // kept literal: 22 hero inset, off-grid
-            decoration: BoxDecoration(
-              color: c.surface,
-              borderRadius: BorderRadius.circular(22), // kept literal: 22 hero radius has no radii token
-            ),
-            child: Row(
-              children: [
-                SpendRing(
-                  progress: progress,
-                  color: c.money,
-                  size: 116,
-                  stroke: 12,
-                  over: over,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        '${(progress * 100).round()}%',
-                        style: AppFonts.sfr(
-                          size: 26, // kept literal: 26pt rounded figure, no matching type token
-                          weight: FontWeight.w700,
-                          color: c.ink,
-                          letterSpacing: -0.6,
-                          height: 1,
-                        ),
-                      ),
-                      const SizedBox(height: Spacing.xxs),
-                      Text(
-                        'USED',
-                        style: AppFonts.sf(
-                          size: 11, // kept literal: 11pt, no matching type token
-                          weight: FontWeight.w600,
-                          color: c.ink3,
-                          letterSpacing: 0.2,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: Spacing.xl),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        formatCurrency(data.totalLeft, currency),
-                        style: AppFonts.sfr(
-                          size: 34, // kept literal: 34pt rounded with custom tracking, amount is untracked
-                          weight: FontWeight.w700,
-                          color: c.ink,
-                          letterSpacing: -1,
-                        ),
-                      ),
-                      const SizedBox(height: Spacing.xxs),
-                      Text(
-                        'left to spend',
-                        style: AppFonts.sf(
-                          size: 15, // kept literal: 15pt, no matching type token
-                          weight: FontWeight.w600,
-                          color: c.money,
-                          letterSpacing: -0.24,
-                        ),
-                      ),
-                      const SizedBox(height: 6), // kept literal: 6 gap is off the spacing grid
-                      Text(
-                        '${formatCurrency(data.totalSpent, currency)} of ${formatCurrency(data.totalCap, currency)} · $month',
-                        style: AppFonts.sf(
-                          size: 13, // kept literal: 13pt, no matching type token
-                          color: c.ink2,
-                          letterSpacing: -0.08,
-                          tabular: true,
-                        ),
-                      ),
-                      const SizedBox(height: Spacing.md),
-                      _PaceBar(progress: progress, pace: data.monthPaceFraction),
-                      const SizedBox(height: Spacing.sm),
-                      Text(
-                        paceLabel,
-                        style: AppFonts.sf(
-                          size: 12, // kept literal: 12pt, no matching type token
-                          weight: FontWeight.w600,
-                          color: onPace ? c.move : c.money,
-                          letterSpacing: -0.08,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
+        const SizedBox(height: Spacing.xxl),
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: AlignmentDirectional.centerStart,
+          child: Text(formatCurrency(left.abs(), currency),
+              maxLines: 1, style: AppType.display.copyWith(color: c.ink)),
         ),
-
-        // --- Envelopes grid ---
-        Padding(
-          padding: const EdgeInsets.fromLTRB(Spacing.lg, 0, Spacing.lg, Spacing.xs),
-          child: Text(
-            'ENVELOPES',
-            style: AppFonts.sf(
-              size: 13, // kept literal: 13pt, no matching type token
-              color: c.ink3,
-              letterSpacing: -0.08,
-            ),
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(Spacing.lg, Spacing.sm, Spacing.lg, Spacing.xl),
-          child: Column(
-            children: [
-              for (var i = 0; i < envelopes.length; i += 2)
-                Padding(
-                  padding: EdgeInsets.only(
-                    bottom: i + 2 < envelopes.length ? Spacing.md : 0,
-                  ),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: _EnvelopeCard(spend: envelopes[i], currency: currency),
-                      ),
-                      const SizedBox(width: Spacing.md),
-                      Expanded(
-                        child: i + 1 < envelopes.length
-                            ? _EnvelopeCard(spend: envelopes[i + 1], currency: currency)
-                            : const SizedBox.shrink(),
-                      ),
-                    ],
-                  ),
-                ),
-            ],
-          ),
-        ),
-
-        // --- Suggested caps (read-only advisory) ---
-        _SuggestedCaps(currency: currency),
-
-        // --- Uncovered spend / overprovisioned caps (read-only advisory) ---
-        _BudgetAdvisories(currency: currency),
-
-        // --- Actions ---
-        InsetSection(
-          footer: 'Adjust caps anytime — Pal nudges you before an envelope runs dry.',
+        Wrap(
+          spacing: Spacing.md,
+          crossAxisAlignment: WrapCrossAlignment.center,
           children: [
-            ListRow(
-              icon: 'plus.circle.fill',
-              iconBg: c.money,
-              title: 'New envelope',
-            ),
-            ListRow(
-              icon: 'arrow.triangle.2.circlepath',
-              iconBg: c.accent,
-              title: 'Roll unused into next month',
-              value: 'On',
-              valueColor: c.move,
-              chevron: false,
-              last: true,
+            Text(left < 0 ? 'over this month' : 'left this month',
+                style: AppType.subhead.copyWith(color: c.ink2)),
+            if (_isOff(state))
+              Text(state.word, style: AppType.label.copyWith(color: c.wordInkFor(state))),
+          ],
+        ),
+        const SizedBox(height: Spacing.xs),
+        Text(
+          '${formatCurrency(data.totalSpent, currency)} of '
+          '${formatCurrency(data.totalCap, currency)} · '
+          '$daysLeft ${daysLeft == 1 ? 'day' : 'days'} left',
+          style: AppType.subhead.copyWith(color: c.ink3, fontFeatures: _tabular),
+        ),
+        const SizedBox(height: Spacing.xxxl),
+        Row(
+          children: [
+            const Expanded(child: _Heading('Envelopes')),
+            Semantics(
+              button: true,
+              label: 'Budget options',
+              child: SizedBox(
+                width: _minTap,
+                height: _minTap,
+                child: Center(
+                  child: AppIcon('slider.horizontal.3', size: _optionsIcon, color: c.ink2),
+                ),
+              ),
             ),
           ],
         ),
+        for (final spend in data.envelopes)
+          _EnvelopeRow(spend: spend, currency: currency, elapsed: data.monthPaceFraction),
+        _SuggestedCaps(currency: currency),
+        _BudgetAdvisories(currency: currency),
+        const SizedBox(height: Spacing.xxxl),
+        const _Row(icon: 'plus', title: 'New envelope'),
+        const _Row(
+          icon: 'arrow.triangle.2.circlepath',
+          title: 'Roll unused into next month',
+          value: 'On',
+        ),
+        const _Footer('Adjust caps anytime — Pal nudges you before an envelope runs dry.'),
       ],
     );
   }
 }
 
-/// The hero pace bar: a rounded fill at [progress] over a fill track, with a
-/// vertical marker at the month's calendar [pace].
-class _PaceBar extends StatelessWidget {
-  const _PaceBar({required this.progress, required this.pace});
+/// Off track: the only states that show their word.
+bool _isOff(AreaState state) => state == AreaState.watch || state == AreaState.care;
 
-  final double progress;
-  final double pace;
+/// One envelope: its icon, name, what is left or over, the state word when off
+/// track, and a bar of its spend against the cap.
+class _EnvelopeRow extends StatelessWidget {
+  const _EnvelopeRow({required this.spend, required this.currency, required this.elapsed});
+
+  final EnvelopeSpend spend;
+  final Currency currency;
+  final double elapsed;
 
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    final over = progress > 1;
-    return SizedBox(
-      height: 12,
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final w = constraints.maxWidth;
-          return Stack(
-            clipBehavior: Clip.none,
-            children: [
-              Positioned(
-                top: 3,
-                left: 0,
-                right: 0,
-                child: Container(
-                  height: 6,
-                  decoration: BoxDecoration(
-                    color: c.fill,
-                    borderRadius: BorderRadius.circular(Radii.pill),
+    final env = spend.envelope;
+    final state = budgetState(spent: spend.spent, budget: spend.cap, elapsed: elapsed);
+    final over = state == AreaState.care;
+    // a zero cap has nothing to be over, so it reads as nothing left.
+    final amount = over
+        ? '${formatCurrency(spend.remaining.abs(), currency)} over'
+        : '${formatCurrency(spend.remaining.clamp(0, double.infinity), currency)} left';
+    final radius = BorderRadius.circular(Radii.pill);
+
+    return _Hairline(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: Spacing.md),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            MergeSemantics(
+              child: Row(
+                children: [
+                  AppIcon(env.icon, size: _rowIcon, color: c.ink2),
+                  const SizedBox(width: Spacing.md),
+                  Expanded(
+                    child: Text(env.category,
+                        style: AppType.callout.copyWith(color: c.ink, height: _rowLineHeight)),
                   ),
+                  const SizedBox(width: Spacing.md),
+                  Flexible(
+                    child: Wrap(
+                      alignment: WrapAlignment.end,
+                      spacing: Spacing.sm,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        Text(amount,
+                            style: AppType.subhead.copyWith(color: c.ink2, fontFeatures: _tabular)),
+                        if (_isOff(state))
+                          Text(state.word,
+                              style: AppType.label.copyWith(color: c.wordInkFor(state))),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: Spacing.sm),
+            DecoratedBox(
+              decoration: BoxDecoration(color: c.track, borderRadius: radius),
+              child: FractionallySizedBox(
+                alignment: AlignmentDirectional.centerStart,
+                widthFactor: spend.progress.clamp(0.0, 1.0),
+                child: Container(
+                  height: _barHeight,
+                  decoration: BoxDecoration(color: c.arcFor(state), borderRadius: radius),
                 ),
               ),
-              Positioned(
-                top: 3,
-                left: 0,
-                child: Container(
-                  width: w * progress.clamp(0.0, 1.0),
-                  height: 6,
-                  decoration: BoxDecoration(
-                    color: over ? c.red : c.money,
-                    borderRadius: BorderRadius.circular(Radii.pill),
-                  ),
-                ),
-              ),
-              Positioned(
-                top: 0,
-                left: w * pace.clamp(0.0, 1.0) - 1,
-                child: Container(
-                  width: 2,
-                  height: 12,
-                  decoration: BoxDecoration(
-                    color: c.ink.withValues(alpha: 0.55),
-                    borderRadius: BorderRadius.circular(2), // kept literal: bar corner, below the smallest radius
-                  ),
-                ),
-              ),
-            ],
-          );
-        },
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -343,21 +232,17 @@ class _SuggestedCaps extends ConsumerWidget {
     final recs = ref.watch(budgetRecommendationsProvider).asData?.value ?? const [];
     if (recs.isEmpty) return const SizedBox.shrink();
 
-    final c = context.colors;
-    return InsetSection(
-      header: 'Suggested caps',
+    return _Section(
+      heading: 'Suggested caps',
       footer: 'From your spending over the last 3 months.',
-      children: [
-        for (var i = 0; i < recs.length; i++)
-          ListRow(
-            title: recs[i].category,
-            subtitle: '${formatCurrency(recs[i].monthlyAverage, currency)}/mo'
-                ' · ${_trendWord(recs[i].trend)}'
-                ' · +${(recs[i].bufferFraction * 100).round()}% buffer',
-            value: formatCurrency(recs[i].suggestedCap, currency),
-            valueColor: c.money,
-            chevron: false,
-            last: i == recs.length - 1,
+      rows: [
+        for (final rec in recs)
+          _Row(
+            title: rec.category,
+            subtitle: '${formatCurrency(rec.monthlyAverage, currency)}/mo'
+                ' · ${_trendWord(rec.trend)}'
+                ' · +${(rec.bufferFraction * 100).round()}% buffer',
+            value: formatCurrency(rec.suggestedCap, currency),
           ),
       ],
     );
@@ -378,44 +263,36 @@ class _BudgetAdvisories extends ConsumerWidget {
     final advisories = ref.watch(budgetAdvisoriesProvider).asData?.value;
     if (advisories == null || advisories.isEmpty) return const SizedBox.shrink();
 
-    final c = context.colors;
     final unbudgeted = advisories.unbudgeted;
     final savings = advisories.savings;
 
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         if (unbudgeted.isNotEmpty)
-          InsetSection(
-            header: 'No envelope yet',
+          _Section(
+            heading: 'No envelope yet',
             footer: 'Categories you are spending on without a cap.',
-            children: [
-              for (var i = 0; i < unbudgeted.length; i++)
-                ListRow(
-                  title: unbudgeted[i].category,
-                  subtitle:
-                      '${formatCurrency(unbudgeted[i].monthSpend, currency)} this month',
-                  value: formatCurrency(unbudgeted[i].suggestedCap, currency),
-                  valueColor: c.money,
-                  chevron: false,
-                  last: i == unbudgeted.length - 1,
+            rows: [
+              for (final u in unbudgeted)
+                _Row(
+                  title: u.category,
+                  subtitle: '${formatCurrency(u.monthSpend, currency)} this month',
+                  value: formatCurrency(u.suggestedCap, currency),
                 ),
             ],
           ),
         if (savings.isNotEmpty)
-          InsetSection(
-            header: 'Room to trim',
+          _Section(
+            heading: 'Room to trim',
             footer: 'Envelopes with more headroom than the last 3 months used.',
-            children: [
-              for (var i = 0; i < savings.length; i++)
-                ListRow(
-                  title: savings[i].category,
-                  subtitle:
-                      '${formatCurrency(savings[i].monthlyAverage, currency)}/mo'
-                      ' of ${formatCurrency(savings[i].cap, currency)}',
-                  value: formatCurrency(savings[i].suggestedCap, currency),
-                  valueColor: c.move,
-                  chevron: false,
-                  last: i == savings.length - 1,
+            rows: [
+              for (final s in savings)
+                _Row(
+                  title: s.category,
+                  subtitle: '${formatCurrency(s.monthlyAverage, currency)}/mo'
+                      ' of ${formatCurrency(s.cap, currency)}',
+                  value: formatCurrency(s.suggestedCap, currency),
                 ),
             ],
           ),
@@ -424,96 +301,122 @@ class _BudgetAdvisories extends ConsumerWidget {
   }
 }
 
-class _EnvelopeCard extends StatelessWidget {
-  const _EnvelopeCard({required this.spend, required this.currency});
+/// A heading, its hairline rows and a footer, a section gap above.
+class _Section extends StatelessWidget {
+  const _Section({required this.heading, required this.footer, required this.rows});
 
-  final EnvelopeSpend spend;
-  final Currency currency;
+  final String heading;
+  final String footer;
+  final List<Widget> rows;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const SizedBox(height: Spacing.xxxl),
+        _Heading(heading),
+        const SizedBox(height: Spacing.xs),
+        ...rows,
+        _Footer(footer),
+      ],
+    );
+  }
+}
+
+/// A read-only hairline row: optional icon, title over an optional subtitle,
+/// and an optional value at the right.
+class _Row extends StatelessWidget {
+  const _Row({this.icon, required this.title, this.subtitle, this.value});
+
+  final String? icon;
+  final String title;
+  final String? subtitle;
+  final String? value;
 
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    final env = spend.envelope;
-    final over = spend.over;
-    final color = over ? c.red : c.forType(env.colorToken);
-    final ringColor = c.forType(env.colorToken);
-    final progress = spend.progress;
-
-    return Container(
-      padding: const EdgeInsets.all(14), // kept literal: 14 inset is off the spacing grid
-      decoration: BoxDecoration(
-        color: c.surface,
-        borderRadius: BorderRadius.circular(18), // kept literal: 18 tile radius has no radii token
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    final icon = this.icon;
+    final subtitle = this.subtitle;
+    final value = this.value;
+    return _Hairline(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: Spacing.md),
+        child: MergeSemantics(
+          child: Row(
             children: [
-              Container(
-                width: 30,
-                height: 30,
-                decoration: BoxDecoration(
-                  color: color,
-                  borderRadius: BorderRadius.circular(Radii.sm),
-                ),
-                alignment: Alignment.center,
-                child: AppIcon(env.icon, size: 16, color: c.onAccent),
-              ),
-              SpendRing(
-                progress: progress,
-                color: ringColor,
-                size: 40,
-                stroke: 5,
-                over: over,
-                child: Text(
-                  '${(progress * 100).round()}',
-                  style: AppFonts.sf(
-                    size: 10, // kept literal: 10pt, below the type ramp
-                    weight: FontWeight.w700,
-                    color: over ? c.red : c.ink2,
-                  ),
+              if (icon != null) ...[
+                AppIcon(icon, size: _rowIcon, color: c.ink2),
+                const SizedBox(width: Spacing.md),
+              ],
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title,
+                        style: AppType.callout.copyWith(color: c.ink, height: _rowLineHeight)),
+                    if (subtitle != null)
+                      Text(subtitle, style: AppType.subhead.copyWith(color: c.ink3)),
+                  ],
                 ),
               ),
+              if (value != null) ...[
+                const SizedBox(width: Spacing.md),
+                Text(value,
+                    style: AppType.subhead.copyWith(color: c.ink2, fontFeatures: _tabular)),
+              ],
             ],
           ),
-          const SizedBox(height: Spacing.md),
-          Text(
-            env.category,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: AppFonts.sf(
-              size: 15, // kept literal: 15pt, no matching type token
-              weight: FontWeight.w600,
-              color: c.ink,
-              letterSpacing: -0.2,
-            ),
-          ),
-          const SizedBox(height: Spacing.xxs),
-          Text(
-            '${formatCurrency(spend.spent, currency)} of ${formatCurrency(spend.cap, currency)}',
-            style: AppFonts.sf(
-              size: 12, // kept literal: 12pt, no matching type token
-              color: c.ink3,
-              letterSpacing: -0.08,
-              tabular: true,
-            ),
-          ),
-          const SizedBox(height: 6), // kept literal: 6 gap is off the spacing grid
-          Text(
-            over
-                ? '${formatCurrency(spend.remaining.abs(), currency)} over'
-                : '${formatCurrency(spend.remaining, currency)} left',
-            style: AppFonts.sf(
-              size: 12, // kept literal: 12pt, no matching type token
-              weight: FontWeight.w600,
-              color: over ? c.red : c.ink2,
-              letterSpacing: -0.08,
-            ),
-          ),
-        ],
+        ),
       ),
+    );
+  }
+}
+
+/// A 1px hairline above [child].
+class _Hairline extends StatelessWidget {
+  const _Hairline({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      constraints: const BoxConstraints(minHeight: _rowMinHeight),
+      decoration: BoxDecoration(
+        border: Border(top: BorderSide(color: context.colors.hair, width: _hairline)),
+      ),
+      alignment: AlignmentDirectional.centerStart,
+      child: child,
+    );
+  }
+}
+
+class _Heading extends StatelessWidget {
+  const _Heading(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      header: true,
+      child: Text(text, style: AppType.headline.copyWith(color: context.colors.ink)),
+    );
+  }
+}
+
+class _Footer extends StatelessWidget {
+  const _Footer(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: Spacing.sm),
+      child: Text(text, style: AppType.subhead.copyWith(color: context.colors.ink3)),
     );
   }
 }

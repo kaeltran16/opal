@@ -4,7 +4,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:opal/theme/theme.dart';
 import 'package:opal/widgets/glass_surface.dart';
 import 'package:opal/widgets/pal_ask_bar.dart';
-import 'package:opal/widgets/pal_avatar.dart';
 
 const _askLabel = 'Tell Pal anything';
 
@@ -51,7 +50,6 @@ void main() {
     await tester.pump();
 
     expect(tester.getSize(find.byType(GlassSurface)).height, 52);
-    expect(find.byType(PalAvatar), findsNothing);
     final placeholder = tester.widget<Text>(find.text(_askLabel));
     expect(placeholder.style?.color, AppColors.light().ink3);
     expect(placeholder.style?.fontSize, AppType.callout.fontSize);

@@ -9,8 +9,20 @@ import '../../theme/theme.dart';
 import '../../util/format.dart';
 import '../../widgets/app_icon.dart';
 import '../../widgets/controls.dart';
-import '../../widgets/inset_section.dart';
-import '../email/email_nav.dart';
+import '../../widgets/press_scale.dart';
+import '../you/sub_screen.dart';
+
+const double _minTap = 44;
+const double _pillHeight = 48;
+const double _rowMinHeight = 48;
+const double _hairline = 1;
+const double _rowIcon = 20;
+const double _stepIcon = 16;
+const double _rowLineHeight = 22 / 16;
+const double _disabledOpacity = 0.4;
+const int _moveStep = 50;
+const int _moveMax = 5000;
+const List<FontFeature> _tabular = [FontFeature.tabularFigures()];
 
 /// Settings → Budgets & goals.
 ///
@@ -86,185 +98,207 @@ class _BudgetsGoalsScreenState extends ConsumerState<BudgetsGoalsScreen> {
     // budget steps scale with the currency so VND offers sane magnitudes
     final budgetStep = (5 * currency.budgetScale).toDouble();
     final budgetMax = (100000 * currency.budgetScale).toDouble();
-    return ColoredBox(
-      color: c.bg,
-      child: ListView(
-        padding: const EdgeInsets.only(bottom: 40), // kept literal: off-grid list bottom inset
+    return SubScreen(
+      eyebrow: 'Settings',
+      title: 'Budgets & goals',
+      children: [
+        const SizedBox(height: Spacing.xxl),
+        const _Heading('Currency'),
+        const SizedBox(height: Spacing.md),
+        Segmented<Currency>(
+          options: const [
+            (Currency.usd, 'USD (\$)'),
+            (Currency.vnd, 'VND (₫)'),
+          ],
+          value: currency,
+          onChanged: (v) =>
+              ref.read(appSettingsControllerProvider.notifier).setCurrency(v),
+        ),
+        const _Footer(
+            'Changes how amounts display across the app. Existing amounts are not converted.'),
+        const SizedBox(height: Spacing.xxxl),
+        const _Heading('Daily targets'),
+        const SizedBox(height: Spacing.xs),
+        if (!_loaded)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: Spacing.xxl),
+            child: Text('…',
+                textAlign: TextAlign.center, style: AppType.body.copyWith(color: c.ink3)),
+          )
+        else ...[
+          _StepperRow(
+            icon: 'dollarsign.circle.fill',
+            label: 'Budget',
+            value: formatCurrency(_budget, currency),
+            onMinus: () =>
+                setState(() => _budget = (_budget - budgetStep).clamp(0, budgetMax)),
+            onPlus: () =>
+                setState(() => _budget = (_budget + budgetStep).clamp(0, budgetMax)),
+          ),
+          _StepperRow(
+            icon: 'figure.run',
+            label: 'Workout',
+            value: '$_move kcal',
+            onMinus: () => setState(() => _move = (_move - _moveStep).clamp(0, _moveMax)),
+            onPlus: () => setState(() => _move = (_move + _moveStep).clamp(0, _moveMax)),
+          ),
+          _StepperRow(
+            icon: 'sparkles',
+            label: 'Routines',
+            // Derived from the number of routines you have — completing
+            // all of them closes the ring. Edit routines in Rituals.
+            value: _routineCount == 1 ? '1 routine' : '$_routineCount routines',
+          ),
+          const _Footer(
+              'Targets power your daily rings and Pal’s nudges. The Routines ring tracks how '
+              'many of your routines you complete each day — manage routines in Rituals.'),
+        ],
+        const SizedBox(height: Spacing.xxxl),
+        _SavePill(enabled: _loaded && !_saving, onTap: _save),
+      ],
+    );
+  }
+}
+
+/// One hairline row: line icon, label over its current value, then −/+
+/// steppers when [onMinus] and [onPlus] are given.
+class _StepperRow extends StatelessWidget {
+  const _StepperRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+    this.onMinus,
+    this.onPlus,
+  });
+
+  final String icon;
+  final String label;
+  final String value;
+  final VoidCallback? onMinus;
+  final VoidCallback? onPlus;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    final onMinus = this.onMinus;
+    final onPlus = this.onPlus;
+    return Container(
+      constraints: const BoxConstraints(minHeight: _rowMinHeight),
+      decoration: BoxDecoration(
+        border: Border(top: BorderSide(color: c.hair, width: _hairline)),
+      ),
+      padding: const EdgeInsets.symmetric(vertical: Spacing.sm),
+      child: Row(
         children: [
-          EmailNavBar(
-            title: 'Budgets & goals',
-            leadingLabel: 'You',
-            onLeading: () => context.pop(),
-            trailingLabel: 'Save',
-            onTrailing: _save,
-            trailingEnabled: _loaded && !_saving,
-          ),
-          const SizedBox(height: Spacing.sm),
-          InsetSection(
-            header: 'Currency',
-            footer:
-                'Changes how amounts display across the app. Existing amounts '
-                'are not converted.',
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(Spacing.lg),
-                child: Segmented<Currency>(
-                  options: const [
-                    (Currency.usd, 'USD (\$)'),
-                    (Currency.vnd, 'VND (₫)'),
-                  ],
-                  value: currency,
-                  onChanged: (v) => ref
-                      .read(appSettingsControllerProvider.notifier)
-                      .setCurrency(v),
-                ),
+          AppIcon(icon, size: _rowIcon, color: c.ink2),
+          const SizedBox(width: Spacing.md),
+          Expanded(
+            child: MergeSemantics(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(label,
+                      style: AppType.callout.copyWith(color: c.ink, height: _rowLineHeight)),
+                  Text(value,
+                      style: AppType.subhead.copyWith(color: c.ink2, fontFeatures: _tabular)),
+                ],
               ),
-            ],
-          ),
-          if (!_loaded)
-            Padding(
-              padding: const EdgeInsets.all(Spacing.xxl),
-              child: Text('…',
-                  textAlign: TextAlign.center,
-                  style: AppType.body.copyWith(color: c.ink3)),
-            )
-          else
-            InsetSection(
-              header: 'Daily targets',
-              footer:
-                  'Targets power your daily rings and Pal’s nudges. The Routines ring tracks how many of your routines you complete each day — manage routines in Rituals.',
-              children: [
-                _StepperRow(
-                  icon: 'dollarsign.circle.fill',
-                  color: c.money,
-                  label: 'Budget',
-                  value: formatCurrency(_budget, currency),
-                  onMinus: () => setState(
-                      () => _budget = (_budget - budgetStep).clamp(0, budgetMax)),
-                  onPlus: () => setState(
-                      () => _budget = (_budget + budgetStep).clamp(0, budgetMax)),
-                ),
-                _StepperRow(
-                  icon: 'figure.run',
-                  color: c.move,
-                  label: 'Workout',
-                  value: '$_move kcal',
-                  onMinus: () =>
-                      setState(() => _move = (_move - 50).clamp(0, 5000)),
-                  onPlus: () => setState(() => _move = (_move + 50).clamp(0, 5000)),
-                ),
-                _StepperRow(
-                  icon: 'sparkles',
-                  color: c.rituals,
-                  label: 'Routines',
-                  // Derived from the number of routines you have — completing
-                  // all of them closes the ring. Edit routines in Rituals.
-                  value: _routineCount == 1
-                      ? '1 routine'
-                      : '$_routineCount routines',
-                  showSteppers: false,
-                  last: true,
-                ),
-              ],
             ),
+          ),
+          if (onMinus != null && onPlus != null) ...[
+            const SizedBox(width: Spacing.md),
+            _StepButton(icon: CupertinoIcons.minus, label: 'Decrease $label', onTap: onMinus),
+            const SizedBox(width: Spacing.sm),
+            _StepButton(icon: CupertinoIcons.add, label: 'Increase $label', onTap: onPlus),
+          ],
         ],
       ),
     );
   }
 }
 
-/// One inset-grouped row: tinted icon + label + current value + −/+ steppers.
-class _StepperRow extends StatelessWidget {
-  const _StepperRow({
-    required this.icon,
-    required this.color,
-    required this.label,
-    required this.value,
-    this.onMinus,
-    this.onPlus,
-    this.showSteppers = true,
-    this.last = false,
-  });
-
-  final String icon;
-  final Color color;
-  final String label;
-  final String value;
-  final VoidCallback? onMinus;
-  final VoidCallback? onPlus;
-  final bool showSteppers;
-  final bool last;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.colors;
-    return Stack(
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: Spacing.lg, vertical: Spacing.sm),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(minHeight: 44),
-            child: Row(
-              children: [
-                Container(
-                  width: 29,
-                  height: 29,
-                  decoration: BoxDecoration(
-                      color: color, borderRadius: BorderRadius.circular(Radii.sm)),
-                  alignment: Alignment.center,
-                  child: AppIcon(icon, size: 17, color: c.onAccent),
-                ),
-                const SizedBox(width: Spacing.md),
-                Expanded(
-                  child: Text(label,
-                      style: AppType.body.copyWith(color: c.ink)),
-                ),
-                Text(value,
-                    style: AppType.body.copyWith(
-                        color: c.ink2,
-                        fontFeatures: const [FontFeature.tabularFigures()])),
-                if (showSteppers) ...[
-                  const SizedBox(width: Spacing.md),
-                  _StepButton(
-                      icon: CupertinoIcons.minus, onTap: onMinus ?? () {}),
-                  const SizedBox(width: Spacing.sm),
-                  _StepButton(icon: CupertinoIcons.add, onTap: onPlus ?? () {}),
-                ],
-              ],
-            ),
-          ),
-        ),
-        if (!last)
-          Positioned(
-            left: 57,
-            right: 0,
-            bottom: 0,
-            child: Container(height: 0.5, color: c.hair),
-          ),
-      ],
-    );
-  }
-}
-
 class _StepButton extends StatelessWidget {
-  const _StepButton({required this.icon, required this.onTap});
+  const _StepButton({required this.icon, required this.label, required this.onTap});
 
   final IconData icon;
+  final String label;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    return GestureDetector(
+    return PressScale(
       onTap: onTap,
-      behavior: HitTestBehavior.opaque,
+      semanticLabel: label,
       child: Container(
-        width: 30,
-        height: 30,
-        decoration: BoxDecoration(color: c.fill, shape: BoxShape.circle),
+        width: _minTap,
+        height: _minTap,
+        decoration: BoxDecoration(color: c.surface2, shape: BoxShape.circle),
         alignment: Alignment.center,
-        child: Icon(icon, size: 16, color: c.accent),
+        child: Icon(icon, size: _stepIcon, color: c.ink),
       ),
+    );
+  }
+}
+
+/// The screen's one primary action, dimmed until the goals have loaded.
+class _SavePill extends StatelessWidget {
+  const _SavePill({required this.enabled, required this.onTap});
+
+  final bool enabled;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return Semantics(
+      button: true,
+      enabled: enabled,
+      label: 'Save',
+      excludeSemantics: true,
+      child: Opacity(
+        opacity: enabled ? 1 : _disabledOpacity,
+        child: PressScale(
+          onTap: enabled ? onTap : null,
+          child: Container(
+            constraints: const BoxConstraints(minHeight: _pillHeight),
+            decoration: BoxDecoration(
+              color: c.ink,
+              borderRadius: BorderRadius.circular(Radii.pill),
+            ),
+            alignment: Alignment.center,
+            child: Text('Save', style: AppType.headline.copyWith(color: c.bg)),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _Heading extends StatelessWidget {
+  const _Heading(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      header: true,
+      child: Text(text, style: AppType.headline.copyWith(color: context.colors.ink)),
+    );
+  }
+}
+
+class _Footer extends StatelessWidget {
+  const _Footer(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: Spacing.sm),
+      child: Text(text, style: AppType.subhead.copyWith(color: context.colors.ink3)),
     );
   }
 }

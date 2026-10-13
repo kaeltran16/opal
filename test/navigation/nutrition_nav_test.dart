@@ -92,6 +92,15 @@ void main() {
     // a pushed page keeps the shell's location, so read the page's own state.
     expect(GoRouterState.of(tester.element(detail)).uri.path,
         '/areas/nutrition/meal/${meal.id}');
+    expect(find.descendant(of: detail, matching: find.bySemanticsLabel('Back to Nutrition')),
+        findsOneWidget);
+
+    // back returns to the Nutrition page.
+    await tester.tap(find.descendant(of: detail, matching: find.text('Nutrition')));
+    await tester.pumpAndSettle();
+    expect(detail, findsNothing);
+    expect(find.byWidgetPredicate((w) => w is DetailScreen && w.area == Area.nutrition),
+        findsOneWidget);
 
     await flushProviderTimers(tester);
   });

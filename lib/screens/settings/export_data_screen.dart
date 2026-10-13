@@ -3,13 +3,16 @@ import 'dart:convert';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../controllers/providers.dart';
 import '../../models/models.dart';
 import '../../theme/theme.dart';
 import '../../widgets/app_icon.dart';
-import '../email/email_nav.dart';
+import '../../widgets/press_scale.dart';
+import '../you/sub_screen.dart';
+
+const double _pillHeight = 48;
+const double _resultIcon = 15;
 
 /// Settings → Export data.
 ///
@@ -92,86 +95,69 @@ class _ExportDataScreenState extends ConsumerState<ExportDataScreen> {
     final label = count == null
         ? 'Copy entries as JSON'
         : 'Copy $count ${count == 1 ? 'entry' : 'entries'} as JSON';
+    final result = _result;
+    // the error reads in care ink beside its words, never colour alone.
+    final resultInk = _ok ? c.ink2 : c.careInk;
 
-    return ColoredBox(
-      color: c.bg,
-      child: ListView(
-        padding: const EdgeInsets.only(bottom: 40), // kept literal: off-grid list bottom inset
-        children: [
-          EmailNavBar(
-            title: 'Export data',
-            leadingLabel: 'You',
-            onLeading: () => context.pop(),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(Spacing.xxl, Spacing.lg, Spacing.xxl, Spacing.xxl),
-            child: Column(
-              children: [
-                Container(
-                  width: 64,
-                  height: 64,
-                  decoration: BoxDecoration(
-                    color: c.accentTint,
-                    borderRadius: BorderRadius.circular(Radii.lg),
-                  ),
-                  alignment: Alignment.center,
-                  child: AppIcon('square.and.arrow.up', size: 32, color: c.accent),
-                ),
-                const SizedBox(height: Spacing.xl),
-                Text(
-                  'Export your timeline',
-                  style: AppType.title2.copyWith(color: c.ink, letterSpacing: -0.35),
-                ),
-                const SizedBox(height: Spacing.sm),
-                Text(
-                  'Copies every logged entry as a JSON array to your '
-                  'clipboard. Paste it into a note, a spreadsheet, or a backup.',
-                  textAlign: TextAlign.center,
-                  style: AppType.subhead
-                      .copyWith(color: c.ink3, letterSpacing: -0.24, height: 1.3),
-                ),
-              ],
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: Spacing.lg),
-            child: GestureDetector(
-              onTap: _export,
-              behavior: HitTestBehavior.opaque,
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: Spacing.lg),
-                decoration: BoxDecoration(
-                  color: c.accent,
-                  borderRadius: BorderRadius.circular(Radii.card),
-                ),
-                alignment: Alignment.center,
-                child: Text(
-                  _busy ? 'Copying…' : label,
-                  style: AppType.headline.copyWith(color: c.onAccent),
-                ),
+    return SubScreen(
+      eyebrow: 'Settings',
+      title: 'Export data',
+      children: [
+        const SizedBox(height: Spacing.xxl),
+        Semantics(
+          header: true,
+          child: Text('Export your timeline',
+              style: AppType.headline.copyWith(color: c.ink)),
+        ),
+        const SizedBox(height: Spacing.sm),
+        Text(
+          'Copies every logged entry as a JSON array to your '
+          'clipboard. Paste it into a note, a spreadsheet, or a backup.',
+          style: AppType.subhead.copyWith(color: c.ink2),
+        ),
+        const SizedBox(height: Spacing.xxl),
+        _PrimaryPill(label: _busy ? 'Copying…' : label, onTap: _export),
+        if (result != null) ...[
+          const SizedBox(height: Spacing.lg),
+          Row(
+            children: [
+              AppIcon(_ok ? 'checkmark' : 'xmark', size: _resultIcon, color: resultInk),
+              const SizedBox(width: Spacing.sm),
+              Flexible(
+                child: Text(result, style: AppType.subhead.copyWith(color: resultInk)),
               ),
-            ),
+            ],
           ),
-          if (_result != null)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(Spacing.lg, Spacing.lg, Spacing.lg, 0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  AppIcon(_ok ? 'checkmark' : 'xmark',
-                      size: 15, color: _ok ? c.move : c.red),
-                  const SizedBox(width: Spacing.sm),
-                  Flexible(
-                    child: Text(
-                      _result!,
-                      style: AppType.footnote
-                          .copyWith(color: c.ink3, letterSpacing: -0.15),
-                    ),
-                  ),
-                ],
-              ),
-            ),
         ],
+      ],
+    );
+  }
+}
+
+/// The screen's one primary action.
+class _PrimaryPill extends StatelessWidget {
+  const _PrimaryPill({required this.label, required this.onTap});
+
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return PressScale(
+      onTap: onTap,
+      semanticLabel: label,
+      child: Container(
+        constraints: const BoxConstraints(minHeight: _pillHeight),
+        padding: const EdgeInsets.symmetric(horizontal: Spacing.xl, vertical: Spacing.sm),
+        decoration: BoxDecoration(
+          color: c.ink,
+          borderRadius: BorderRadius.circular(Radii.pill),
+        ),
+        alignment: Alignment.center,
+        child: Text(label,
+            textAlign: TextAlign.center,
+            style: AppType.headline.copyWith(color: c.bg)),
       ),
     );
   }

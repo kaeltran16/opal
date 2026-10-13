@@ -245,10 +245,10 @@ void main() {
 
   // ---------------------------------------------------------------------------
   // Widget — the consolidated Recap, opened on the Month segment, renders the
-  // computed tiles + the reused Pal patterns block.
+  // computed stats; Pal's patterns live on You now, not here.
   // ---------------------------------------------------------------------------
   testWidgets(
-      'RecapScreen(month) renders the computed tiles + Pal patterns',
+      'RecapScreen(month) renders the computed stats and no Patterns section',
       (tester) async {
     final db = LoopDatabase.forTesting(NativeDatabase.memory());
     addTearDown(db.close);
@@ -316,29 +316,26 @@ void main() {
     );
     await tester.pumpAndSettle();
     // Wait for the async recapData stream to emit before asserting.
-    await _pumpUntil(tester, find.text('SPENT'));
+    await _pumpUntil(tester, find.text('Spent'));
 
-    // The three tinted tiles render (labels are uppercased in the tile).
-    expect(find.text('SPENT'), findsOneWidget);
-    expect(find.text('MOVED'), findsOneWidget);
-    expect(find.text('RITUALS'), findsOneWidget);
+    expect(find.text('Spent'), findsOneWidget);
+    expect(find.text('Moved'), findsOneWidget);
+    expect(find.text('Rituals'), findsOneWidget);
 
     // Computed values for the month: spent $6, moved 40 kcal.
     expect(find.text('\$6'), findsOneWidget);
     expect(find.text('40'), findsOneWidget);
 
-    // The reused Pal patterns block (from insightsProvider) renders below the
-    // fold. Wait for the insights future to resolve, then scroll it into view.
-    final patternText = 'Morning rituals lower food spending — '
-        'On days you journal, food costs drop 32%';
-    await _pumpUntil(tester, find.text('Patterns'));
+    // Pal's insights resolve with a pattern, yet the Recap points to You
+    // instead of listing it.
+    await tester.pumpAndSettle();
     await tester.scrollUntilVisible(
-      find.text(patternText),
+      find.text('Patterns are on You'),
       120,
       scrollable: find.byType(Scrollable).first,
     );
-    expect(find.text('Patterns'), findsOneWidget);
-    expect(find.text(patternText), findsOneWidget);
+    expect(find.text('Patterns'), findsNothing);
+    expect(find.textContaining('Morning rituals lower food spending'), findsNothing);
 
     await flushProviderTimers(tester);
   });

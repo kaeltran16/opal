@@ -8,6 +8,7 @@ import 'package:opal/theme/theme.dart';
 import 'package:opal/widgets/glass_surface.dart';
 
 final _colors = AppColors.light();
+final _glassFill = _colors.surface.withValues(alpha: 0.78);
 
 Widget _app(Stream<bool> reduceTransparency, {bool highContrast = false}) {
   return ProviderScope(
@@ -41,6 +42,16 @@ BoxDecoration _fill(WidgetTester tester) {
 
 BorderSide _side(BoxDecoration d) => (d.border! as Border).top;
 
+Iterable<List<BoxShadow>> _shadows(WidgetTester tester) => tester
+    .widgetList<DecoratedBox>(
+      find.descendant(
+        of: find.byType(GlassSurface),
+        matching: find.byType(DecoratedBox),
+      ),
+    )
+    .map((box) => (box.decoration as BoxDecoration).boxShadow)
+    .nonNulls;
+
 void main() {
   testWidgets('renders glass when reduce transparency is off', (tester) async {
     await tester.pumpWidget(_app(Stream.value(false)));
@@ -48,23 +59,13 @@ void main() {
 
     expect(find.byType(BackdropFilter), findsOneWidget);
     final fill = _fill(tester);
-    expect(fill.color, _colors.glass);
+    expect(fill.color, _glassFill);
     expect(_side(fill).color, _colors.hair);
     expect(_side(fill).width, 1.0);
     expect(find.text('ask pal'), findsOneWidget);
 
     expect(GlassSurface.blurSigma, 30);
-    final shadows = tester
-        .widgetList<DecoratedBox>(
-          find.descendant(
-            of: find.byType(GlassSurface),
-            matching: find.byType(DecoratedBox),
-          ),
-        )
-        .map((box) => (box.decoration as BoxDecoration).boxShadow)
-        .nonNulls
-        .single;
-    expect(shadows, Elevation.fab(_colors.shadow));
+    expect(_shadows(tester).single, Elevation.fab(_colors.shadow));
   });
 
   testWidgets(
@@ -85,6 +86,7 @@ void main() {
       expect(fill.color, _colors.surface);
       expect(_side(fill).color, _colors.hair);
       expect(_side(fill).width, 0.5);
+      expect(_shadows(tester).where((s) => s.isNotEmpty), isEmpty);
     },
   );
 
@@ -100,6 +102,7 @@ void main() {
     expect(fill.color!.a, 1.0);
     expect(_side(fill).color, _colors.ink3);
     expect(_side(fill).width, 1.0);
+    expect(_shadows(tester).where((s) => s.isNotEmpty), isEmpty);
   });
 
   testWidgets('renders glass while the setting is still loading', (
@@ -111,6 +114,6 @@ void main() {
     await tester.pump();
 
     expect(find.byType(BackdropFilter), findsOneWidget);
-    expect(_fill(tester).color, _colors.glass);
+    expect(_fill(tester).color, _glassFill);
   });
 }

@@ -34,6 +34,7 @@ class PalMessage {
     required this.timestamp,
     this.actions = const [],
     this.undone = false,
+    this.offline = false,
   });
 
   final PalRole role;
@@ -46,12 +47,16 @@ class PalMessage {
   /// True once [actions] have been reversed via undo.
   final bool undone;
 
+  /// True for a reply written because Pal was unreachable, not by Pal.
+  final bool offline;
+
   PalMessage copyWith({
     PalRole? role,
     String? text,
     DateTime? timestamp,
     List<PalAction>? actions,
     bool? undone,
+    bool? offline,
   }) =>
       PalMessage(
         role: role ?? this.role,
@@ -59,6 +64,7 @@ class PalMessage {
         timestamp: timestamp ?? this.timestamp,
         actions: actions ?? this.actions,
         undone: undone ?? this.undone,
+        offline: offline ?? this.offline,
       );
 
   @override
@@ -69,11 +75,12 @@ class PalMessage {
           other.text == text &&
           other.timestamp == timestamp &&
           other.undone == undone &&
+          other.offline == offline &&
           _listEquals(other.actions, actions);
 
   @override
   int get hashCode =>
-      Object.hash(role, text, timestamp, undone, Object.hashAll(actions));
+      Object.hash(role, text, timestamp, undone, offline, Object.hashAll(actions));
 }
 
 bool _listEquals<T>(List<T> a, List<T> b) {

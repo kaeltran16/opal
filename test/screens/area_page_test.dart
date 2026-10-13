@@ -233,7 +233,7 @@ void main() {
     await tester.tap(find.bySemanticsLabel('Add a meal'));
     await tester.pumpAndSettle();
 
-    expect(find.text('OR PICK A COMMON ONE'), findsOneWidget);
+    expect(find.text('Or pick a common one'), findsOneWidget);
   });
 
   _pageTest('nutrition with no meals today: zero, the empty line, and Add a meal',

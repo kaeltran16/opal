@@ -7,6 +7,7 @@ import 'package:opal/app.dart';
 import 'package:opal/controllers/providers.dart';
 import 'package:opal/data/db/database.dart';
 import 'package:opal/data/seed/seeder.dart';
+import 'package:opal/screens/pal/pal_composer_screen.dart';
 
 import 'support/flush_provider_timers.dart';
 
@@ -37,22 +38,22 @@ void main() {
     await tester.pumpAndSettle();
 
     // Composer not present before opening.
-    expect(find.text('Log, ask, or start anything'), findsNothing);
+    expect(find.byType(PalComposerSheet), findsNothing);
 
     final askBar = find.bySemanticsLabel('Tell Pal anything');
     expect(askBar, findsOneWidget);
     await tester.tap(askBar);
     await tester.pumpAndSettle();
 
-    // The compact composer surface is up.
-    expect(find.text('Log, ask, or start anything'), findsOneWidget);
-    expect(find.text('Start a workout'), findsOneWidget);
+    // The idle composer surface is up.
+    expect(find.byType(PalComposerSheet), findsOneWidget);
+    expect(find.text('You could ask'), findsOneWidget);
 
     // Tap the backdrop (top of the screen, above the sheet) to dismiss.
     await tester.tapAt(const Offset(8, 8));
     await tester.pumpAndSettle();
 
-    expect(find.text('Log, ask, or start anything'), findsNothing);
+    expect(find.byType(PalComposerSheet), findsNothing);
 
     await flushProviderTimers(tester);
   });

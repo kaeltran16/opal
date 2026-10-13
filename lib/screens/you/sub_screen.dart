@@ -16,19 +16,23 @@ const double _backIcon = 24;
 // the chevron hangs into the gutter so its stroke lines up with the text edge.
 const double _backHang = Spacing.sm;
 
-/// A screen pushed from You: a back control to You, an [eyebrow] over a
-/// [title], then [children].
+/// A screen pushed from You: a back control to [backLabel], an [eyebrow] over
+/// a [title], then [children].
 class SubScreen extends StatelessWidget {
   const SubScreen({
     super.key,
     required this.eyebrow,
     required this.title,
     required this.children,
+    this.backLabel = 'You',
   });
 
   final String eyebrow;
   final String title;
   final List<Widget> children;
+
+  /// The screen the back control returns to.
+  final String backLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -45,7 +49,7 @@ class SubScreen extends StatelessWidget {
           kSubScreenShellOverlay + Spacing.xxl + safe.bottom,
         ),
         children: [
-          const _BackHeader(),
+          _BackHeader(label: backLabel),
           const SizedBox(height: Spacing.md + Spacing.sm),
           Semantics(
             header: true,
@@ -65,9 +69,11 @@ class SubScreen extends StatelessWidget {
   }
 }
 
-/// Back to You at the left.
+/// Back to [label] at the left.
 class _BackHeader extends StatelessWidget {
-  const _BackHeader();
+  const _BackHeader({required this.label});
+
+  final String label;
 
   @override
   Widget build(BuildContext context) {
@@ -78,7 +84,7 @@ class _BackHeader extends StatelessWidget {
         offset: const Offset(-_backHang, 0),
         child: PressScale(
           onTap: () => Navigator.of(context).pop(),
-          semanticLabel: 'Back to You',
+          semanticLabel: 'Back to $label',
           child: Container(
             constraints: const BoxConstraints(minHeight: _minTap),
             padding: const EdgeInsets.only(right: Spacing.sm),
@@ -87,7 +93,7 @@ class _BackHeader extends StatelessWidget {
               children: [
                 AppIcon('chevron.left', size: _backIcon, color: c.ink),
                 const SizedBox(width: Spacing.xxs),
-                Text('You', style: AppType.headline.copyWith(color: c.ink)),
+                Text(label, style: AppType.headline.copyWith(color: c.ink)),
               ],
             ),
           ),

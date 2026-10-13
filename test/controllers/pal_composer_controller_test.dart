@@ -113,6 +113,7 @@ void main() {
           [PalRole.user, PalRole.assistant]);
       expect(state.messages.first.text, 'what did I spend today?');
       expect(state.messages.last.text, 'Sure thing.');
+      expect(state.messages.last.offline, isFalse);
       expect(state.isLoading, isFalse);
       expect(state.expanded, isTrue);
     });
@@ -165,6 +166,7 @@ void main() {
       final reply = state.messages.last;
       expect(reply.role, PalRole.assistant);
       expect(reply.text, contains("couldn't reach the server"));
+      expect(reply.offline, isTrue);
       // nothing was logged: no structured payload to fall back to.
       expect(await EntryRepository(db).getAll(), isEmpty);
     });
@@ -183,6 +185,7 @@ void main() {
       final state = container.read(palComposerControllerProvider());
       expect(state.isLoading, isFalse);
       expect(state.messages.last.text, contains("couldn't reach the server"));
+      expect(state.messages.last.offline, isTrue);
       // still nothing logged here — the manual sheet captures it.
       expect(await EntryRepository(db).getAll(), isEmpty);
     });
@@ -215,6 +218,7 @@ void main() {
           container.read(palComposerControllerProvider()).messages.last;
       expect(reply.text, contains('Logged Coffee'));
       expect(reply.text, contains('offline'));
+      expect(reply.offline, isTrue);
     });
 
     test('a starter without a payload falls back to the offline reply',
@@ -230,6 +234,7 @@ void main() {
       final reply =
           container.read(palComposerControllerProvider()).messages.last;
       expect(reply.text, contains("couldn't reach the server"));
+      expect(reply.offline, isTrue);
     });
   });
 
