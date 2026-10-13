@@ -115,7 +115,7 @@ class _GradientCircle extends StatelessWidget {
 
 /// Modal bottom sheet exposing the full breakdown + provenance for a correlation.
 ///
-/// Signature is stable — changing it would break Recap + NutritionPatterns.
+/// Signature is stable — changing it would break Recap.
 Future<void> showCorrelationTrustSheet(
     BuildContext context, Correlation correlation) {
   final bg = context.colors.bg;

@@ -14,11 +14,9 @@ import 'screens/move/move_screen.dart';
 import 'screens/move/weekly_plan_screen.dart';
 import 'screens/move/workout_history_screen.dart';
 import 'screens/nutrition/nutrition_meal_detail_screen.dart';
-import 'screens/nutrition/nutrition_patterns_screen.dart';
 import 'screens/onboarding/onboarding_screen.dart';
 import 'screens/pal/pal_composer_screen.dart';
 import 'screens/money/budgets_screen.dart';
-import 'screens/money/insights_screen.dart';
 import 'screens/profile/profile_screen.dart';
 import 'screens/recap/recap_screen.dart';
 import 'screens/reflect/evening_close_out_screen.dart';
@@ -63,7 +61,7 @@ enum AppRoute {
 
   // Nutrition sub-routes.
   nutritionMeal('nutritionMeal', 'meal/:id'), // -> /areas/nutrition/meal/:id
-  nutritionPatterns('nutritionPatterns', 'patterns'), // /areas/nutrition/patterns
+  nutritionPatterns('nutritionPatterns', 'patterns'), // /areas/nutrition/patterns -> /you
 
   // Old paths, kept as redirects so Siri / Live Activity links resolve.
   nutrition('nutrition', '/nutrition'),
@@ -91,7 +89,7 @@ enum AppRoute {
 
   // You / Settings sub-routes (push within the You branch).
   youBudgets('youBudgets', 'budgets'), //           -> /you/budgets
-  youInsights('youInsights', 'insights'), //        -> /you/insights
+  youInsights('youInsights', 'insights'), //        /you/insights -> /you
   budgetsGoals('budgetsGoals', 'budgets-goals'), // -> /you/budgets-goals
   notificationSettings('notificationSettings', 'notifications'), // /you/notifications
   appearance('appearance', 'appearance'), //        -> /you/appearance
@@ -281,11 +279,11 @@ GoRouter createRouter({
                         builder: (context, state) => NutritionMealDetailScreen(
                             mealId: state.pathParameters['id']!),
                       ),
+                      // patterns live in Pal's findings on the You tab now.
                       GoRoute(
                         path: AppRoute.nutritionPatterns.path,
                         name: AppRoute.nutritionPatterns.name,
-                        builder: (context, state) =>
-                            const NutritionPatternsScreen(),
+                        redirect: (context, state) => AppRoute.you.path,
                       ),
                     ],
                   ),
@@ -367,10 +365,11 @@ GoRouter createRouter({
                     name: AppRoute.youBudgets.name,
                     builder: (context, state) => const BudgetsScreen(),
                   ),
+                  // insights live in Pal's findings on this tab now.
                   GoRoute(
                     path: AppRoute.youInsights.path,
                     name: AppRoute.youInsights.name,
-                    builder: (context, state) => const InsightsScreen(),
+                    redirect: (context, state) => AppRoute.you.path,
                   ),
                   GoRoute(
                     path: AppRoute.budgetsGoals.path,

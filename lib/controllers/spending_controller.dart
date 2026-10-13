@@ -1,11 +1,7 @@
 import 'package:clock/clock.dart';
 import 'package:flutter/widgets.dart';
-import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../models/models.dart';
-import 'providers.dart';
-
-part 'spending_controller.g.dart';
 
 /// Which tracker a [DetailScreen] is rendering: one widget and one provider
 /// serve the Money, Move and Routines area pages, switching only this value.
@@ -254,31 +250,3 @@ DetailData buildDetailData(
     days: days,
   );
 }
-
-/// Streams the [DetailData] for a [tracker]. Reactive: re-emits whenever the
-/// entries or goals change. Reads all entries (the detail shows recent history
-/// across days, not just today) and folds them via [buildDetailData].
-@riverpod
-Stream<DetailData> detailData(Ref ref, DetailTracker tracker) async* {
-  final entriesRepo = ref.watch(entryRepositoryProvider);
-  final goalsRepo = ref.watch(goalsRepositoryProvider);
-  final ritualRepo = ref.watch(ritualRepositoryProvider);
-
-  await for (final entries in entriesRepo.watchAll()) {
-    final goals = await goalsRepo.get();
-    // Rituals hero counts completed routines ÷ routine count (matches Today);
-    // other trackers don't need routine structure.
-    final routines = tracker == DetailTracker.rituals
-        ? await ritualRepo.getAll()
-        : const <RitualRoutine>[];
-    yield buildDetailData(tracker, entries, goals, routines: routines);
-  }
-}
-
-/// The money spending detail (handoff screen 06). A thin alias over
-/// [detailDataProvider] fixed to [DetailTracker.money] — the named
-/// "spending controller / breakdown provider" the unit calls for. Move/Rituals
-/// detail just request `detailDataProvider(DetailTracker.move|rituals)`.
-@riverpod
-Stream<DetailData> spendingDetail(Ref ref) =>
-    ref.watch(detailDataProvider(DetailTracker.money).future).asStream();

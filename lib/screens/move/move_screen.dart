@@ -240,8 +240,7 @@ class _WeekHero extends StatelessWidget {
       );
 }
 
-/// 56px progress ring with a centered "%" label (private to the hero — the
-/// shared ActivityRings widget is intentionally untouched).
+/// 56px progress ring with a centered "%" label, private to the hero.
 class _MiniRing extends StatelessWidget {
   const _MiniRing({required this.progress, required this.percent});
   final double progress;
