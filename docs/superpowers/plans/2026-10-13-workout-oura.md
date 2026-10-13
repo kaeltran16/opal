@@ -28,6 +28,10 @@
 - **Pal's line is `WorkoutSuggestion.rationale`** (run goal), never the canvas's sample sentence.
 - **Post-workout reading copy** (run goal): it keeps the app's `Pal is reading your session…`, not the canvas's `Reading your session…`.
 - **Settled day** (user, 10-14): built. Once a workout is logged today, the lead settles as the canvas does (Task 5).
+- **Weight step** (plan review): the session's weight stepper moves a flat 2.5 kg. The exercise catalog has no per-exercise step for the canvas's step to read.
+- **Pick card meta** (plan review): `{min} min · {focus}`. A `WorkoutSuggestion` carries no exercise or set counts for the canvas's meta.
+- **New routine row and See all** (plan review): both stay, beyond the canvas, because the run keeps every feature.
+- **Canvas coverage** (plan review): the canvas is dark-only and draws no error states, so the light shots and the error steps are this plan's designs. Its Ask Pal composer state has no step here; that sheet is run B's.
 
 ## Plan-owned designs (not on the canvas)
 
