@@ -235,4 +235,49 @@ void main() {
       expect(benchIds.toSet().length, benchIds.length); // all unique
     });
   });
+
+  group('skipExercise', () {
+    test('on the first exercise moves to exercise 2, set 1, and drops '
+        "exercise 1's open sets", () {
+      final s = _session();
+      s.logCurrentSet(weightKg: 50, reps: 6); // bench set 0 done
+      s.skipExercise();
+
+      expect(s.currentExerciseIndex, 1);
+      expect(s.currentSetIndex, 0);
+      expect(s.currentSet?.exerciseId, 'row');
+      final bench = s.sets.where((x) => x.exerciseId == 'bench').toList();
+      expect(bench.length, 1); // the logged set stays, the two open ones go
+      expect(bench.single.done, isTrue);
+      expect(s.sets.where((x) => x.exerciseId == 'row').length, 2);
+    });
+
+    test('mid-rest stops the rest', () {
+      final s = _session();
+      s.logCurrentSet(weightKg: 50, reps: 6);
+      expect(s.isResting, isTrue);
+
+      s.skipExercise();
+
+      expect(s.isResting, isFalse);
+      expect(s.restRemaining, 0);
+    });
+
+    test('on the last exercise completes the session', () {
+      final s = _session();
+      s.skipExercise(); // bench
+      s.logCurrentSet(weightKg: 40, reps: 8); // row set 0
+      s.skipExercise(); // row, the last exercise
+
+      expect(s.isComplete, isTrue);
+      expect(s.currentSet, isNull);
+      expect(s.sets.where((x) => !x.done), isEmpty);
+      expect(s.sets.length, 1);
+
+      // no-op once complete
+      s.skipExercise();
+      expect(s.isComplete, isTrue);
+      expect(s.sets.length, 1);
+    });
+  });
 }

@@ -149,6 +149,24 @@ class WorkoutSession {
     return newSet;
   }
 
+  /// Drops the current exercise's not-done sets, stops any rest, and moves the
+  /// cursor to the first open set of a later exercise. On the last exercise
+  /// this completes the session. No-op when already complete.
+  void skipExercise() {
+    if (isComplete) return;
+    final exerciseId = exerciseIds[_currentExerciseIndex];
+    _workout = _workout.copyWith(
+      sets: _workout.sets
+          .where((s) => s.exerciseId != exerciseId || s.done)
+          .toList(),
+    );
+    skipRest();
+    // start the walk at set 0 of the next exercise
+    _currentExerciseIndex++;
+    _currentSetIndex = -1;
+    _advanceCursor();
+  }
+
   /// Dismisses the rest timer immediately.
   void skipRest() {
     _restRemaining = 0;
