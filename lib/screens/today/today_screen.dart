@@ -120,13 +120,7 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
   void _act(PlanItem item) {
     switch (item.kind) {
       case PlanKind.proposal:
-        final proposals = ref.read(palAgendaProvider).value?.proposals ?? const [];
-        final toCloseOut = proposals.any((p) => p.id == item.ref && p.navigatesToCloseOut);
-        if (toCloseOut) {
-          context.pushNamed(AppRoute.eveningCloseOut.name);
-        } else {
-          _settle(item, done: true);
-        }
+        _settle(item, done: true);
       case PlanKind.routine:
         context.pushNamed(AppRoute.routinePlayer.name,
             pathParameters: {'routineId': item.ref!});

@@ -150,7 +150,7 @@ class DayPlan {
       DetailTracker.move =>
         candidates.where((i) => i.kind == PlanKind.workout).firstOrNull,
       DetailTracker.rituals => _timeOrder(
-          candidates.where((i) => i.kind == PlanKind.routine),
+          candidates.where((i) => i.kind == PlanKind.routine || i.kind == PlanKind.closeOut),
           untimedFirst: false,
         ).firstOrNull,
     };
@@ -216,7 +216,9 @@ bool _isToday(DateTime at, DateTime now) =>
     startOfDay(at.toLocal()) == startOfDay(now.toLocal());
 
 /// Builds the day from local data and Pal's pending proposals. Nothing here
-/// calls the model, so the plan stands when Pal is offline.
+/// calls the model, so the plan stands when Pal is offline. The evening
+/// routine is the close-out row, and Pal's close-out proposal only lends it
+/// a sentence.
 DayPlan buildDayPlan({
   required PalAgenda agenda,
   required RitualsState? rituals,
@@ -226,35 +228,40 @@ DayPlan buildDayPlan({
   required DateTime now,
 }) {
   final routines = rituals?.routines ?? const <RitualRoutine>[];
+  final evening = rituals?.evening;
+  final closeOut = evening != null && evening.steps.isNotEmpty ? evening : null;
+  final closeOutSaid = agenda.proposals.where((p) => p.navigatesToCloseOut).firstOrNull?.body;
   final checkedIn = lastCheckin != null && _isToday(lastCheckin.timestamp, now);
   final ateToday = meals.any((m) => _isToday(m.timestamp, now));
 
   return DayPlan([
     for (final p in agenda.proposals)
-      PlanItem(
-        id: 'proposal:${p.id}',
-        kind: PlanKind.proposal,
-        title: p.title,
-        icon: p.icon,
-        said: p.body,
-        actionLabel: p.approveLabel,
-        skipLabel: _notNow,
-        ref: p.id,
-        area: DetailTracker.values.asNameMap()[p.colorToken],
-      ),
+      if (!p.navigatesToCloseOut)
+        PlanItem(
+          id: 'proposal:${p.id}',
+          kind: PlanKind.proposal,
+          title: p.title,
+          icon: p.icon,
+          said: p.body,
+          actionLabel: p.approveLabel,
+          skipLabel: _notNow,
+          ref: p.id,
+          area: DetailTracker.values.asNameMap()[p.colorToken],
+        ),
     for (final r in trackedRoutines(routines))
-      PlanItem(
-        id: 'routine:${r.id}',
-        kind: PlanKind.routine,
-        title: r.name,
-        icon: r.icon,
-        minuteOfDay: routineMinute(r.time),
-        said: r.blurb,
-        actionLabel: _start,
-        done: rituals!.isComplete(r),
-        ref: r.id,
-        area: DetailTracker.rituals,
-      ),
+      if (r.id != eveningRoutineId)
+        PlanItem(
+          id: 'routine:${r.id}',
+          kind: PlanKind.routine,
+          title: r.name,
+          icon: r.icon,
+          minuteOfDay: routineMinute(r.time),
+          said: r.blurb,
+          actionLabel: _start,
+          done: rituals!.isComplete(r),
+          ref: r.id,
+          area: DetailTracker.rituals,
+        ),
     if (workout != null && !workout.isRest)
       PlanItem(
         id: 'workout',
@@ -282,14 +289,18 @@ DayPlan buildDayPlan({
         icon: 'fork.knife',
         actionLabel: 'Log a meal',
       ),
-    if (routines.isNotEmpty)
-      const PlanItem(
+    if (closeOut != null)
+      PlanItem(
         id: 'closeOut',
         kind: PlanKind.closeOut,
         title: 'Close-out',
         icon: 'moon.stars.fill',
-        minuteOfDay: closeOutMinute,
+        minuteOfDay: routineMinute(closeOut.time) ?? closeOutMinute,
+        said: closeOutSaid ?? closeOut.blurb,
         actionLabel: _start,
+        done: rituals!.isComplete(closeOut),
+        ref: closeOut.id,
+        area: DetailTracker.rituals,
       ),
   ]);
 }

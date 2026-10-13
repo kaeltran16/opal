@@ -256,6 +256,12 @@ void main() {
     expect(state.routines.map((r) => r.id), containsAll(['morning', 'evening']));
   });
 
+  test('evening is the routine with the evening id, or null without one', () {
+    final evening = _morning.copyWith(id: 'evening', name: 'Evening');
+    expect(RitualsState(routines: [_morning, evening], progress: const {}).evening, evening);
+    expect(RitualsState(routines: const [_morning], progress: const {}).evening, isNull);
+  });
+
   group('an empty routine', () {
     final empty = _morning.copyWith(id: 'empty', name: 'Empty', steps: const []);
 

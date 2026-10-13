@@ -144,7 +144,8 @@ void main() {
     // untimed items first, then by time.
     expect(_row('Push Day A', 'any time'), findsOneWidget);
     expect(_row('Mood check-in', 'any time'), findsOneWidget);
-    expect(_more(4), findsOneWidget);
+    // the evening routine is the close-out row, not a row of its own.
+    expect(_more(3), findsOneWidget);
     expect(find.byKey(todayRailKey), findsOneWidget);
     expect(find.textContaining("Couldn't load today"), findsNothing);
   });
