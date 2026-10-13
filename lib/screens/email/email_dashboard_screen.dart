@@ -1,38 +1,47 @@
 import 'dart:async';
 
 import 'package:clock/clock.dart';
-import 'package:flutter/cupertino.dart' show CupertinoActivityIndicator;
+import 'package:flutter/cupertino.dart' show CupertinoActivityIndicator, CupertinoSwitch;
 import 'package:flutter/material.dart' show ScaffoldMessenger, SnackBar;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../controllers/email_sync_controller.dart';
+import '../../controllers/providers.dart';
 import '../../data/repositories/settings_repository.dart' show SyncCadence;
 import '../../models/models.dart';
 import '../../services/email/email_sync_service.dart';
 import '../../theme/theme.dart';
+import '../../util/format.dart';
 import '../../widgets/app_icon.dart';
 import '../../widgets/controls.dart';
-import '../../widgets/gmail_glyph.dart';
-import '../../widgets/inset_section.dart';
-import '../../widgets/nav_bar.dart';
+import '../../widgets/press_scale.dart';
+import '../you/sub_screen.dart';
 import 'sender_filter_section.dart';
 
-/// Screen 18 — Synced dashboard (mock).
-///
-/// A sync-job hero (connection chip with a pulse while syncing, a STAGED status
-/// line + animated progress bar, a Sync-now button, a schedule chip), a recent-
-/// imports list with a NEW badge that fades after the items settle, and a
-/// Disconnect action. The staged status/progress are driven entirely by
-/// [syncStatusProvider]; Sync-now/disconnect go through
-/// [EmailDashboardController].
-class EmailDashboardScreen extends ConsumerWidget {
-  const EmailDashboardScreen({super.key});
+const double _pillHeight = 48;
+const double _minTap = 44;
+const double _rowHeight = 56;
+const double _hairline = 1;
+const double _rowIcon = 20;
+const double _spinnerRadius = 7;
+const Duration _newFade = Duration(milliseconds: 600);
+const List<FontFeature> _tabular = [FontFeature.tabularFigures()];
 
-  /// Human status line + progress fraction (0..1) for each [SyncStatus].
-  static (String, double) _stage(SyncStatus s, DateTime? lastSync) =>
-      switch (s) {
+/// Email sync, connected: the account and its sync status as words, Sync now,
+/// import counts, recent imports, sync settings, the sender allowlist and
+/// Disconnect. The staged status and progress come from [syncStatusProvider];
+/// Sync now and Disconnect go through [EmailDashboardController].
+class EmailDashboardScreen extends ConsumerWidget {
+  const EmailDashboardScreen({super.key, this.popOnDisconnect = true});
+
+  /// Whether Disconnect pops this route. False where the intro hosts the
+  /// dashboard, since the intro itself turns back into the pitch.
+  final bool popOnDisconnect;
+
+  /// Status words and progress fraction (0..1) for each [SyncStatus].
+  static (String, double) _stage(SyncStatus s, DateTime? lastSync) => switch (s) {
         SyncStatus.idle => (_lastSyncLabel(lastSync), 0),
         SyncStatus.scanning => ('Scanning INBOX…', 0.28),
         SyncStatus.filtering => ('Filtering by sender…', 0.55),
@@ -54,452 +63,319 @@ class EmailDashboardScreen extends ConsumerWidget {
     return 'Last sync $mins min ago';
   }
 
+  Future<void> _disconnect(BuildContext context, WidgetRef ref) async {
+    try {
+      await ref.read(emailDashboardControllerProvider.notifier).disconnect();
+    } catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Couldn\'t disconnect — try again')),
+        );
+      }
+      return;
+    }
+    if (popOnDisconnect && context.mounted) context.pop();
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final c = context.colors;
     final dash = ref.watch(emailDashboardControllerProvider);
-    final statusAsync = ref.watch(syncStatusProvider);
-    final status = statusAsync.asData?.value ?? SyncStatus.idle;
+    final controller = ref.read(emailDashboardControllerProvider.notifier);
+    final status = ref.watch(syncStatusProvider).asData?.value ?? SyncStatus.idle;
+    final quiet = AppType.subhead.copyWith(color: c.ink3);
 
-    // single source of truth for every connection-dependent affordance: the
-    // chip/badge, the Disconnect action, the stats, and the empty-state text
-    // all derive from this, so the card can't contradict itself.
+    // single source of truth for every connection-dependent affordance, so the
+    // screen can't contradict itself.
     final connected = dash.isConnected;
     final syncing = status == SyncStatus.scanning ||
         status == SyncStatus.filtering ||
         status == SyncStatus.categorizing;
+    final failed = status == SyncStatus.error;
     final (line, progress) = _stage(status, dash.lastSyncAt);
-    final address = dash.account?.address ?? 'Not connected';
+    final statusText = !connected
+        ? 'Not connected'
+        : failed
+            ? line
+            : '${syncing ? 'Syncing' : 'Connected'} · $line';
 
-    return ColoredBox(
-      color: c.bg,
-      child: LargeTitleScrollView(
-        title: 'Email sync',
-        subtitle: dash.isConnected ? 'Gmail · connected' : 'Gmail · not connected',
-        leading: NavAction(
-          icon: 'chevron.left',
-          label: 'You',
-          onTap: () => context.pop(),
-          semanticLabel: 'Back',
-        ),
-        padding: const EdgeInsets.only(bottom: 48), // kept literal: 48 scroll tail below the last section
-        children: [
-          // --- Sync-job hero -------------------------------------------------
-          Padding(
-            padding: const EdgeInsets.fromLTRB(
-                Spacing.lg, Spacing.xs, Spacing.lg, Spacing.lg),
-            child: Container(
-              padding: const EdgeInsets.all(Spacing.lg),
-              decoration: BoxDecoration(
-                color: c.surface,
-                borderRadius: BorderRadius.circular(Radii.lg),
-                border: Border.all(color: c.hair, width: 0.5),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      const GmailGlyph(size: 32),
-                      const SizedBox(width: Spacing.md),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Flexible(
-                                  child: Text(address,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: AppType.subhead.copyWith(
-                                          fontWeight: FontWeight.w600,
-                                          color: c.ink,
-                                          letterSpacing: -0.24)),
-                                ),
-                                const SizedBox(width: Spacing.sm),
-                                if (connected) _ConnectionChip(syncing: syncing),
-                              ],
-                            ),
-                            const SizedBox(height: Spacing.xxs),
-                            Text(line,
-                                style: AppType.caption.copyWith(
-                                    color: c.ink3,
-                                    letterSpacing: -0.08,
-                                    fontFeatures: const [
-                                      FontFeature.tabularFigures()
-                                    ])),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: Spacing.lg), // 14→16
-                  ProgressBar(
-                    value: progress,
-                    color: status == SyncStatus.upToDate ? c.move : c.accent,
-                  ),
-                  const SizedBox(height: Spacing.lg), // 14→16
-                  Row(
-                    children: [
-                      Expanded(
-                        // Sync-now is a no-op without an account, so the
-                        // disconnected hero offers Connect Gmail instead — the
-                        // action this state actually needs.
-                        child: connected
-                            ? _SyncNowButton(
-                                syncing: syncing,
-                                done: status == SyncStatus.upToDate,
-                                onTap: () => unawaited(ref
-                                    .read(emailDashboardControllerProvider
-                                        .notifier)
-                                    .syncNow()),
-                              )
-                            : _ConnectButton(
-                                onTap: () => context.pushNamed('emailSetup'),
-                              ),
-                      ),
-                      if (connected) ...[
-                        const SizedBox(width: Spacing.sm),
-                        _ScheduleChip(cadence: dash.syncCadence),
-                      ],
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-          // --- Stats tiles --------------------------------------------------
-          // Real counts of email-sourced entries from the dashboard controller.
-          // No "recurring"/subscription tile: that data model was removed and is
-          // not reconstructed here (would be fabricated).
-          Padding(
-            padding: const EdgeInsets.fromLTRB(
-                Spacing.lg, 0, Spacing.lg, Spacing.lg),
-            child: Container(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: Spacing.md, vertical: Spacing.lg),
-              decoration: BoxDecoration(
-                color: c.surface,
-                borderRadius: BorderRadius.circular(Radii.card),
-                border: Border.all(color: c.hair, width: 0.5),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                      child: _StatTile(
-                          label: 'This month',
-                          value: '${connected ? dash.importsThisMonth : 0}',
-                          color: c.accent)),
-                  Expanded(
-                      child: _StatTile(
-                          label: 'All time',
-                          value: '${connected ? dash.importsAllTime : 0}',
-                          color: c.money)),
-                ],
-              ),
-            ),
-          ),
-
-          // --- Recently synced ----------------------------------------------
-          // The "Recently synced" list shows this session's freshly synced
-          // items; the empty state keys off the persisted all-time count so it
-          // can't contradict the stat tile (e.g. "2 All time" + "No imports").
-          if (dash.imports.isNotEmpty)
-            InsetSection(
-              header: 'Recently synced',
-              footer:
-                  'Tap any entry to edit or correct the category. Pal learns from your edits.',
-              children: [
-                for (var i = 0; i < dash.imports.length; i++)
-                  _ImportRow(
-                    item: dash.imports[i],
-                    last: i == dash.imports.length - 1,
-                  ),
-              ],
-            )
-          else
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                  Spacing.lg, 0, Spacing.lg, Spacing.lg),
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 28), // kept literal: 28 has no spacing token
-                decoration: BoxDecoration(
-                  color: c.surface,
-                  borderRadius: BorderRadius.circular(Radii.card),
-                  border: Border.all(color: c.hair, width: 0.5),
-                ),
-                alignment: Alignment.center,
-                child: Text(
-                    !connected
-                        ? 'Connect Gmail to start importing receipts.'
-                        : dash.importsAllTime > 0
-                            ? 'Synced earlier — tap Sync now to refresh.'
-                            : 'No imports yet — tap Sync now.',
-                    style: AppType.subhead.copyWith(
-                        color: c.ink3, letterSpacing: -0.24)),
-              ),
-            ),
-
-          // --- Sync settings ------------------------------------------------
-          // Wired to persisted prefs (SettingsRepository) via the dashboard
-          // controller: tapping cadence cycles options; the toggles flip.
-          InsetSection(
-            header: 'Sync settings',
-            children: [
-              ListRow(
-                icon: 'arrow.triangle.2.circlepath',
-                iconBg: c.accent,
-                title: 'Background sync',
-                value: dash.syncCadence.label,
-                onTap: () => ref
-                    .read(emailDashboardControllerProvider.notifier)
-                    .setSyncCadence(_nextCadence(dash.syncCadence)),
-              ),
-              ListRow(
-                icon: 'bell.fill',
-                iconBg: c.money,
-                title: 'Notify on new detection',
-                value: dash.importNotifications ? 'On' : 'Off',
-                onTap: () => ref
-                    .read(emailDashboardControllerProvider.notifier)
-                    .setImportNotifications(!dash.importNotifications),
-              ),
-              ListRow(
-                icon: 'sparkles',
-                iconBg: c.rituals,
-                title: 'Pal auto-categorize',
-                value: dash.autoCategorize ? 'On' : 'Off',
-                onTap: () => ref
-                    .read(emailDashboardControllerProvider.notifier)
-                    .setAutoCategorize(!dash.autoCategorize),
-                last: true,
-              ),
-            ],
-          ),
-
-          // --- Sender allowlist ----------------------------------------------
-          // Editable live: writes straight onto the connected account and rides
-          // along on the next sync — no disconnect/reconnect.
-          if (connected)
-            SenderFilterSection(
-              senders: dash.account?.senderFilters ?? const [],
-              onChanged: (list) => ref
-                  .read(emailDashboardControllerProvider.notifier)
-                  .setSenderFilters(list),
-            ),
-
-          // --- Disconnect ----------------------------------------------------
-          // Only meaningful when an account is connected.
-          if (connected)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                  Spacing.lg, Spacing.sm, Spacing.lg, 0),
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: () async {
-                  try {
-                    await ref
-                        .read(emailDashboardControllerProvider.notifier)
-                        .disconnect();
-                  } catch (_) {
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                            content: Text('Couldn\'t disconnect — try again')),
-                      );
-                    }
-                    return;
-                  }
-                  if (context.mounted) context.pop();
-                },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: Spacing.md), // 13→12
-                  alignment: Alignment.center,
-                  child: Text('Disconnect Gmail',
-                      style: AppType.subhead.copyWith(
-                          fontWeight: FontWeight.w500,
-                          color: c.red,
-                          letterSpacing: -0.24)),
-                ),
-              ),
-            ),
+    return SubScreen(
+      eyebrow: 'Settings',
+      title: 'Email sync',
+      children: [
+        const SizedBox(height: Spacing.xxl),
+        Text(dash.account?.address ?? 'Gmail',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: AppType.headline.copyWith(color: c.ink)),
+        const SizedBox(height: Spacing.xxs),
+        Text(statusText,
+            style: AppType.subhead.copyWith(
+                color: failed ? c.careInk : c.ink2, fontFeatures: _tabular)),
+        if (syncing) ...[
+          const SizedBox(height: Spacing.md),
+          ProgressBar(value: progress, color: c.ink),
         ],
-      ),
+        const SizedBox(height: Spacing.lg),
+        // sync now is a no-op without an account, so the disconnected screen
+        // offers Connect instead, the action that state actually needs.
+        if (connected)
+          _SyncNowPill(
+            syncing: syncing,
+            done: status == SyncStatus.upToDate,
+            onTap: () => unawaited(controller.syncNow()),
+          )
+        else
+          _ConnectPill(onTap: () => context.pushNamed('emailSetup')),
+        const SizedBox(height: Spacing.xxxl),
+
+        // real counts of email-sourced entries. no recurring count: that data
+        // model was removed and is not reconstructed here.
+        const _Heading('Imports'),
+        const SizedBox(height: Spacing.sm),
+        _ValueRow(title: 'This month', value: '${connected ? dash.importsThisMonth : 0}'),
+        _ValueRow(title: 'All time', value: '${connected ? dash.importsAllTime : 0}'),
+        const SizedBox(height: Spacing.xxxl),
+
+        // the list shows this session's freshly synced items; the empty line
+        // keys off the persisted all-time count so it can't contradict it.
+        const _Heading('Recently synced'),
+        const SizedBox(height: Spacing.sm),
+        if (dash.imports.isNotEmpty) ...[
+          for (final item in dash.imports) _ImportRow(item: item),
+          const SizedBox(height: Spacing.sm),
+          Text('Tap any entry to edit or correct the category. Pal learns from your edits.',
+              style: quiet),
+        ] else
+          Text(
+            !connected
+                ? 'Connect Gmail to start importing receipts.'
+                : dash.importsAllTime > 0
+                    ? 'Synced earlier — tap Sync now to refresh.'
+                    : 'No imports yet — tap Sync now.',
+            style: quiet,
+          ),
+        const SizedBox(height: Spacing.xxxl),
+
+        // persisted prefs: tapping cadence cycles its options; the switches flip.
+        const _Heading('Sync settings'),
+        const SizedBox(height: Spacing.sm),
+        _ValueRow(
+          title: 'Background sync',
+          value: dash.syncCadence.label,
+          onTap: () => controller.setSyncCadence(_nextCadence(dash.syncCadence)),
+        ),
+        _SwitchRow(
+          title: 'Notify on new detection',
+          value: dash.importNotifications,
+          onChanged: controller.setImportNotifications,
+        ),
+        _SwitchRow(
+          title: 'Pal auto-categorize',
+          value: dash.autoCategorize,
+          onChanged: controller.setAutoCategorize,
+        ),
+
+        // editable live: writes onto the connected account and rides along on
+        // the next sync, with no reconnect.
+        if (connected) ...[
+          const SizedBox(height: Spacing.xxxl),
+          SenderFilterSection(
+            senders: dash.account?.senderFilters ?? const [],
+            onChanged: controller.setSenderFilters,
+          ),
+          const SizedBox(height: Spacing.xxl),
+          _DisconnectButton(onTap: () => _disconnect(context, ref)),
+        ],
+      ],
     );
   }
 }
 
-/// Connected/Syncing pill; the dot pulses while syncing.
-class _ConnectionChip extends StatelessWidget {
-  const _ConnectionChip({required this.syncing});
-  final bool syncing;
+class _Heading extends StatelessWidget {
+  const _Heading(this.text);
+  final String text;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+        header: true,
+        child: Text(text, style: AppType.headline.copyWith(color: context.colors.ink)),
+      );
+}
+
+/// A pill: ink when [primary], surface2 otherwise.
+class _Pill extends StatelessWidget {
+  const _Pill({
+    required this.label,
+    required this.onTap,
+    this.primary = false,
+    this.leading,
+  });
+  final String label;
+  final VoidCallback? onTap;
+  final bool primary;
+  final Widget? leading;
 
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: Spacing.sm, vertical: Spacing.xxs),
-      decoration: BoxDecoration(
-        color: c.move.withValues(alpha: 0.13),
-        borderRadius: BorderRadius.circular(Radii.pill),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _PulseDot(active: syncing, color: c.move),
-          const SizedBox(width: Spacing.xs),
-          Text(syncing ? 'Syncing' : 'Connected',
-              style: AppType.caption2.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: c.move,
-                  letterSpacing: -0.05)),
-        ],
-      ),
-    );
-  }
-}
-
-/// A 6×6 dot that pulses (opacity) while [active].
-class _PulseDot extends StatefulWidget {
-  const _PulseDot({required this.active, required this.color});
-  final bool active;
-  final Color color;
-
-  @override
-  State<_PulseDot> createState() => _PulseDotState();
-}
-
-class _PulseDotState extends State<_PulseDot>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _ctrl = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 1200),
-  );
-
-  @override
-  void initState() {
-    super.initState();
-    if (widget.active) _ctrl.repeat(reverse: true);
-  }
-
-  @override
-  void didUpdateWidget(_PulseDot old) {
-    super.didUpdateWidget(old);
-    if (widget.active && !_ctrl.isAnimating) {
-      _ctrl.repeat(reverse: true);
-    } else if (!widget.active && _ctrl.isAnimating) {
-      _ctrl.stop();
-      _ctrl.value = 1;
-    }
-  }
-
-  @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return FadeTransition(
-      opacity: widget.active
-          ? Tween<double>(begin: 0.3, end: 1).animate(_ctrl)
-          : const AlwaysStoppedAnimation(1),
-      child: Container(
-        width: 6,
-        height: 6,
-        decoration: BoxDecoration(color: widget.color, shape: BoxShape.circle),
+    return Semantics(
+      button: true,
+      enabled: onTap != null,
+      label: label,
+      excludeSemantics: true,
+      child: PressScale(
+        onTap: onTap,
+        child: Container(
+          constraints: const BoxConstraints(minHeight: _pillHeight),
+          padding: const EdgeInsets.symmetric(horizontal: Spacing.xl),
+          decoration: BoxDecoration(
+            color: primary ? c.ink : c.surface2,
+            borderRadius: BorderRadius.circular(Radii.pill),
+          ),
+          alignment: Alignment.center,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (leading != null) ...[leading!, const SizedBox(width: Spacing.sm)],
+              Text(label,
+                  style: AppType.headline.copyWith(color: primary ? c.bg : c.ink)),
+            ],
+          ),
+        ),
       ),
     );
   }
 }
 
-/// Primary Sync-now button reflecting syncing/done state.
-class _SyncNowButton extends StatelessWidget {
-  const _SyncNowButton({
-    required this.syncing,
-    required this.done,
-    required this.onTap,
-  });
+/// Sync now as the secondary pill, worded for syncing and done.
+class _SyncNowPill extends StatelessWidget {
+  const _SyncNowPill({required this.syncing, required this.done, required this.onTap});
   final bool syncing;
   final bool done;
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) {
-    final c = context.colors;
-    final fg = syncing ? c.ink2 : c.bg;
-    final Widget leading = syncing
-        ? CupertinoActivityIndicator(radius: 7, color: fg)
-        : AppIcon(
-            done ? 'checkmark' : 'arrow.triangle.2.circlepath',
-            size: 13,
-            color: fg,
-          );
-    final label = syncing
-        ? 'Syncing…'
-        : done
-            ? 'Done'
-            : 'Sync now';
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: syncing ? null : onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(
-            vertical: Spacing.md, horizontal: Spacing.lg), // 11→12
-        decoration: BoxDecoration(
-          color: syncing ? c.fill : c.ink,
-          borderRadius: BorderRadius.circular(Radii.md),
-        ),
-        alignment: Alignment.center,
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            leading,
-            const SizedBox(width: Spacing.sm),
-            Text(label,
-                style: AppType.subhead.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: fg,
-                    letterSpacing: -0.1)),
-          ],
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => _Pill(
+        label: syncing
+            ? 'Syncing…'
+            : done
+                ? 'Done'
+                : 'Sync now',
+        onTap: syncing ? null : onTap,
+        leading: syncing
+            ? CupertinoActivityIndicator(radius: _spinnerRadius, color: context.colors.ink2)
+            : null,
+      );
 }
 
-/// Primary connect CTA shown in place of Sync-now when no account is linked.
-class _ConnectButton extends StatelessWidget {
-  const _ConnectButton({required this.onTap});
+/// The primary pill shown in place of Sync now when no account is linked.
+class _ConnectPill extends StatelessWidget {
+  const _ConnectPill({required this.onTap});
   final VoidCallback onTap;
 
   @override
+  Widget build(BuildContext context) =>
+      _Pill(label: 'Connect', onTap: onTap, primary: true);
+}
+
+/// Disconnect as a care text button.
+class _DisconnectButton extends StatelessWidget {
+  const _DisconnectButton({required this.onTap});
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => PressScale(
+        onTap: onTap,
+        semanticLabel: 'Disconnect',
+        child: Container(
+          constraints: const BoxConstraints(minHeight: _minTap),
+          alignment: Alignment.center,
+          child: Text('Disconnect',
+              style: AppType.headline.copyWith(color: context.colors.careInk)),
+        ),
+      );
+}
+
+/// A row under a hairline, at least [_rowHeight] tall.
+class _HairlineRow extends StatelessWidget {
+  const _HairlineRow({required this.child});
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        constraints: const BoxConstraints(minHeight: _rowHeight),
+        padding: const EdgeInsets.symmetric(vertical: Spacing.sm),
+        decoration: BoxDecoration(
+          border: Border(top: BorderSide(color: context.colors.hair, width: _hairline)),
+        ),
+        child: child,
+      );
+}
+
+/// A title with its value at the right; tappable when [onTap] is set.
+class _ValueRow extends StatelessWidget {
+  const _ValueRow({required this.title, required this.value, this.onTap});
+  final String title;
+  final String value;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    final row = _HairlineRow(
+      child: Row(
+        children: [
+          Expanded(child: Text(title, style: AppType.callout.copyWith(color: c.ink))),
+          const SizedBox(width: Spacing.md),
+          Text(value, style: AppType.callout.copyWith(color: c.ink2, fontFeatures: _tabular)),
+        ],
+      ),
+    );
+    if (onTap == null) return row;
+    return Semantics(
+      button: true,
+      label: '$title, $value',
+      excludeSemantics: true,
+      child: GestureDetector(behavior: HitTestBehavior.opaque, onTap: onTap, child: row),
+    );
+  }
+}
+
+/// A title with its switch. The whole row takes the tap so the target is more
+/// than the track.
+class _SwitchRow extends StatelessWidget {
+  const _SwitchRow({required this.title, required this.value, required this.onChanged});
+  final String title;
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
+  @override
   Widget build(BuildContext context) {
     final c = context.colors;
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(
-            vertical: Spacing.md, horizontal: Spacing.lg),
-        decoration: BoxDecoration(
-          color: c.ink,
-          borderRadius: BorderRadius.circular(Radii.md),
-        ),
-        alignment: Alignment.center,
+      onTap: () => onChanged(!value),
+      // the switch below carries the row's semantics.
+      excludeFromSemantics: true,
+      child: _HairlineRow(
         child: Row(
-          mainAxisSize: MainAxisSize.min,
           children: [
-            AppIcon('envelope.fill', size: 13, color: c.bg),
-            const SizedBox(width: Spacing.sm),
-            Text('Connect Gmail',
-                style: AppType.subhead.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: c.bg,
-                    letterSpacing: -0.1)),
+            Expanded(child: Text(title, style: AppType.callout.copyWith(color: c.ink))),
+            const SizedBox(width: Spacing.md),
+            MergeSemantics(
+              child: Semantics(
+                label: title,
+                child: CupertinoSwitch(
+                  value: value,
+                  onChanged: onChanged,
+                  activeTrackColor: c.ink,
+                  inactiveTrackColor: c.track,
+                  thumbColor: c.bg,
+                  inactiveThumbColor: c.ink3,
+                ),
+              ),
+            ),
           ],
         ),
       ),
@@ -507,47 +383,17 @@ class _ConnectButton extends StatelessWidget {
   }
 }
 
-/// Schedule chip reflecting the persisted [SyncCadence] (label from the enum).
-class _ScheduleChip extends StatelessWidget {
-  const _ScheduleChip({required this.cadence});
-  final SyncCadence cadence;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.colors;
-    return Container(
-      padding: const EdgeInsets.symmetric(
-          vertical: Spacing.md, horizontal: Spacing.lg), // 11→12
-      decoration: BoxDecoration(
-          color: c.fill, borderRadius: BorderRadius.circular(Radii.md)),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          AppIcon('clock.fill', size: 13, color: c.ink2),
-          const SizedBox(width: Spacing.sm),
-          Text(cadence.label,
-              style: AppType.subhead.copyWith(
-                  fontWeight: FontWeight.w500,
-                  color: c.ink,
-                  letterSpacing: -0.1)),
-        ],
-      ),
-    );
-  }
-}
-
-/// One imported receipt row: tinted category tile + merchant/meta + amount,
-/// with a NEW badge that fades out a few seconds after the item appears.
-class _ImportRow extends StatefulWidget {
-  const _ImportRow({required this.item, required this.last});
+/// One imported receipt: merchant and category, then the amount. A new item
+/// carries a "New" word that fades a few seconds after it appears.
+class _ImportRow extends ConsumerStatefulWidget {
+  const _ImportRow({required this.item});
   final EmailImportItem item;
-  final bool last;
 
   @override
-  State<_ImportRow> createState() => _ImportRowState();
+  ConsumerState<_ImportRow> createState() => _ImportRowState();
 }
 
-class _ImportRowState extends State<_ImportRow> {
+class _ImportRowState extends ConsumerState<_ImportRow> {
   static const _fadeAfter = Duration(seconds: 6);
   bool _badgeVisible = true;
   Timer? _timer;
@@ -574,33 +420,12 @@ class _ImportRowState extends State<_ImportRow> {
   Widget build(BuildContext context) {
     final c = context.colors;
     final item = widget.item;
-    final amount = item.amount.abs().toStringAsFixed(2);
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 400),
-      decoration: BoxDecoration(
-        color: _badgeVisible
-            ? c.accent.withValues(alpha: 0.05)
-            // kept literal: Colors.transparent unavailable, material imported with show-clause
-            : const Color(0x00000000),
-        border: widget.last
-            ? null
-            : Border(bottom: BorderSide(color: c.hair, width: 0.5)),
-      ),
-      padding: const EdgeInsets.symmetric(
-          horizontal: Spacing.lg, vertical: Spacing.md),
+    final currency = ref.watch(appSettingsControllerProvider).currency;
+    return _HairlineRow(
       child: Row(
         children: [
-          Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              color: c.money.withValues(alpha: 0.13),
-              borderRadius: BorderRadius.circular(Radii.md),
-            ),
-            alignment: Alignment.center,
-            child: AppIcon('basket.fill', size: 16, color: c.money),
-          ),
-          const SizedBox(width: Spacing.md), // 11→12
+          AppIcon('basket.fill', size: _rowIcon, color: c.ink2),
+          const SizedBox(width: Spacing.md),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -611,75 +436,28 @@ class _ImportRowState extends State<_ImportRow> {
                       child: Text(item.merchant,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: AppType.subhead.copyWith(
-                              fontWeight: FontWeight.w500,
-                              color: c.ink,
-                              letterSpacing: -0.24)),
+                          style: AppType.callout.copyWith(color: c.ink)),
                     ),
                     if (item.isNew) ...[
                       const SizedBox(width: Spacing.sm),
                       AnimatedOpacity(
                         opacity: _badgeVisible ? 1 : 0,
-                        duration: const Duration(milliseconds: 600),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: Spacing.sm, vertical: 1), // 1px — keep
-                          decoration: BoxDecoration(
-                              color: c.accent,
-                              borderRadius: BorderRadius.circular(Radii.pill)),
-                          child: Text('NEW',
-                              style: AppType.caption2.copyWith(
-                                  fontWeight: FontWeight.w700,
-                                  color: c.onAccent,
-                                  letterSpacing: 0.3)),
-                        ),
+                        duration: _newFade,
+                        child: Text('New', style: AppType.label.copyWith(color: c.ink2)),
                       ),
                     ],
                   ],
                 ),
-                const SizedBox(height: 1), // kept literal: 1px gap
                 Text(item.category ?? 'Uncategorized',
-                    style: AppType.caption.copyWith(
-                        color: c.ink3, letterSpacing: -0.08)),
+                    style: AppType.subhead.copyWith(color: c.ink3)),
               ],
             ),
           ),
-          Text('−\$$amount',
-              style: AppFonts.sfr(
-                  size: 16, // kept literal: 16pt rounded figure, no matching type token
-                  weight: FontWeight.w600,
-                  color: c.ink,
-                  letterSpacing: -0.2)),
+          const SizedBox(width: Spacing.md),
+          Text('−${formatCurrency(item.amount.abs(), currency, trimZeroCents: false)}',
+              style: AppType.callout.copyWith(color: c.ink, fontFeatures: _tabular)),
         ],
       ),
     );
   }
 }
-
-/// One stats tile: a colored SF-Rounded value over a muted caption.
-class _StatTile extends StatelessWidget {
-  const _StatTile(
-      {required this.label, required this.value, required this.color});
-  final String label;
-  final String value;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.colors;
-    return Column(
-      children: [
-        Text(value,
-            style: AppFonts.sfr(
-                size: 22, // kept literal: 22pt rounded figure, no matching type token
-                weight: FontWeight.w700,
-                color: color,
-                letterSpacing: -0.3)),
-        const SizedBox(height: 1), // kept literal: 1px gap
-        Text(label,
-            style: AppType.caption2.copyWith(color: c.ink3, letterSpacing: -0.08)),
-      ],
-    );
-  }
-}
-

@@ -198,17 +198,17 @@ void main() {
     await _pump(tester, const EmailIntroScreen(), prefs: prefs, db: db);
 
     // Value prop headline + read-only app-password pitch.
-    expect(find.text('Stop logging card\ncharges by hand.'), findsOneWidget);
+    expect(find.text('Stop logging card charges by hand.'), findsOneWidget);
 
     // "How it works" section + its three steps.
-    expect(find.text('HOW IT WORKS'), findsOneWidget);
+    expect(find.text('How it works'), findsOneWidget);
     expect(find.text('Your bank sends alerts'), findsOneWidget);
     expect(find.text('Pal reads only those'), findsOneWidget);
     expect(find.text('It lands on Today'), findsOneWidget);
 
     // Primary CTA + provider/IMAP affordance (below the fold — scroll each in).
-    await tester.scrollUntilVisible(find.text('Set up Gmail sync'), 200);
-    expect(find.text('Set up Gmail sync'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('Connect'), 200);
+    expect(find.text('Connect'), findsOneWidget);
     await tester.scrollUntilVisible(
       find.text('iCloud, Outlook, any IMAP coming'),
       200,
@@ -239,7 +239,7 @@ void main() {
 
     // Dashboard hero (connected account), not the cold-start pitch.
     expect(find.text('me@gmail.com'), findsOneWidget);
-    expect(find.text('Stop logging card\ncharges by hand.'), findsNothing);
+    expect(find.text('Stop logging card charges by hand.'), findsNothing);
   });
 
   // --- Widget: Setup renders its credential form without crashing -----------
@@ -279,7 +279,9 @@ void main() {
     // Add a sender via the trailing field + submit.
     await tester.enterText(find.byType(TextField).last, 'info@mail.lazada.vn');
     await tester.testTextInput.receiveAction(TextInputAction.done);
-    await tester.pump();
+    // settle the scroll that brought the field into view; a scrolling list
+    // ignores taps.
+    await tester.pumpAndSettle();
     expect(find.text('info@mail.lazada.vn'), findsOneWidget);
 
     // Remove the first sender via its xmark control.
