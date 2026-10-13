@@ -301,25 +301,31 @@ void main() {
   });
 
   // each primary pill, by the kind of item on the card.
-  final actions = <String, (TodayDay, Future<void> Function(WidgetTester)?, String, Finder Function())>{
-    'routine': (const TodayDay(), null, 'Start', () => find.byType(RoutinePlayerScreen)),
+  // the destination's finders, each expected once: the screen and its lead.
+  final actions = <String, (TodayDay, Future<void> Function(WidgetTester)?, String, List<Finder> Function())>{
+    'routine': (
+      const TodayDay(),
+      null,
+      'Start',
+      () => [find.byType(RoutinePlayerScreen), find.text('Mark done')],
+    ),
     'workout': (
       const TodayDay(routines: []),
       null,
       'Start',
-      () => find.byType(StartWorkoutScreen),
+      () => [find.byType(StartWorkoutScreen)],
     ),
     'mood': (
       _bare,
       null,
       'Check in',
-      () => find.byType(BottomSheet),
+      () => [find.byType(BottomSheet)],
     ),
     'meal': (
       const TodayDay(routines: [], workout: false, mood: true),
       null,
       'Log a meal',
-      () => find.byType(PalComposerSheet),
+      () => [find.byType(PalComposerSheet)],
     ),
     'closeout': (
       const TodayDay(),
@@ -329,7 +335,11 @@ void main() {
         await _tap(tester, _later('Close-out', 'at 9:30 PM'));
       },
       'Start',
-      () => find.byType(EveningCloseOutScreen),
+      () => [
+        find.byType(EveningCloseOutScreen),
+        find.text('Close out your day.'),
+        find.text('Now'),
+      ],
     ),
   };
   for (final MapEntry(key: kind, value: (day, select, pill, destination)) in actions.entries) {
@@ -340,7 +350,9 @@ void main() {
       // on the meal card the title reads the same as its pill; the pill is last.
       await _tap(tester, _onToday(find.text(pill)).last);
 
-      expect(destination(), findsOneWidget);
+      for (final lead in destination()) {
+        expect(lead, findsOneWidget);
+      }
       await shot(tester, 'today_action_${kind}_${_theme(dark)}');
     });
   }
