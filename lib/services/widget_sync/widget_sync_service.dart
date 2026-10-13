@@ -7,6 +7,61 @@ import 'package:http/http.dart' as http;
 
 import '../pal/http_pal_service.dart' show TokenProvider;
 
+/// One change in an area's state word, effective from [at] until the next.
+@immutable
+class StateChange {
+  const StateChange({required this.at, required this.state, required this.word});
+
+  final DateTime at;
+  final String state;
+  final String word;
+
+  Map<String, Object?> toJson() =>
+      {'at': _epochSeconds(at), 'state': state, 'word': word};
+}
+
+/// One widget row, display-ready. [fraction] is null on rows without a ring.
+@immutable
+class WidgetRow {
+  const WidgetRow({this.fraction, required this.value, required this.states});
+
+  final double? fraction;
+  final String value;
+  final List<StateChange> states;
+
+  Map<String, Object?> toJson() => {
+        if (fraction != null) 'fraction': fraction,
+        'value': value,
+        'states': [for (final s in states) s.toJson()],
+      };
+}
+
+/// The v2 widget payload. The widget shows each row's states on schedule and
+/// falls back to dashes at [until].
+@immutable
+class WidgetSnapshot {
+  const WidgetSnapshot({
+    required this.until,
+    required this.move,
+    required this.routines,
+    required this.money,
+  });
+
+  final DateTime until;
+  final WidgetRow move;
+  final WidgetRow routines;
+  final WidgetRow money;
+
+  Map<String, Object?> toJson() => {
+        'until': _epochSeconds(until),
+        'move': move.toJson(),
+        'routines': routines.toJson(),
+        'money': money.toJson(),
+      };
+}
+
+int _epochSeconds(DateTime t) => t.millisecondsSinceEpoch ~/ 1000;
+
 /// Pushes today's progress to the iOS home-screen rings widget.
 ///
 /// A free Apple team can't provision an App Group, so the app and the widget
@@ -15,23 +70,13 @@ import '../pal/http_pal_service.dart' show TokenProvider;
 /// after a successful push we nudge WidgetKit to reload immediately via the
 /// thin native `opal/widget_sync` [MethodChannel]. No-op everywhere off iOS.
 ///
-/// Takes pre-computed fractions and counts (never a view model) so it stays in
+/// Takes a display-ready [WidgetSnapshot] (never a view model) so it stays in
 /// the services layer with no dependency on the controllers layer — the
-/// `TodayState` -> args mapping lives in `WidgetSyncController`.
+/// `TodayState` -> snapshot mapping lives in `WidgetSyncController`.
 abstract interface class WidgetSyncService {
   /// Pushes the latest snapshot. Safe to call often; a failed sync never throws
   /// (the widget keeps its last snapshot).
-  Future<void> sync({
-    required double moneyRing,
-    required double moveRing,
-    required double ritualsRing,
-    required double moneySpent,
-    required double dailyBudget,
-    required int moveKcal,
-    required int dailyMoveKcal,
-    required int ritualsDone,
-    required int dailyRitualTarget,
-  });
+  Future<void> sync(WidgetSnapshot snapshot);
 }
 
 /// No-op [WidgetSyncService] for non-iOS platforms, web, and tests.
@@ -39,17 +84,7 @@ class NoopWidgetSyncService implements WidgetSyncService {
   const NoopWidgetSyncService();
 
   @override
-  Future<void> sync({
-    required double moneyRing,
-    required double moveRing,
-    required double ritualsRing,
-    required double moneySpent,
-    required double dailyBudget,
-    required int moveKcal,
-    required int dailyMoveKcal,
-    required int ritualsDone,
-    required int dailyRitualTarget,
-  }) async {}
+  Future<void> sync(WidgetSnapshot snapshot) async {}
 }
 
 /// HTTP-backed [WidgetSyncService]: POSTs the snapshot to the proxy, then asks
@@ -78,28 +113,8 @@ class HttpWidgetSyncService implements WidgetSyncService {
   final Duration timeout;
 
   @override
-  Future<void> sync({
-    required double moneyRing,
-    required double moveRing,
-    required double ritualsRing,
-    required double moneySpent,
-    required double dailyBudget,
-    required int moveKcal,
-    required int dailyMoveKcal,
-    required int ritualsDone,
-    required int dailyRitualTarget,
-  }) async {
-    final body = <String, dynamic>{
-      'moneyRing': moneyRing,
-      'moveRing': moveRing,
-      'ritualsRing': ritualsRing,
-      'moneySpent': moneySpent,
-      'dailyBudget': dailyBudget,
-      'moveKcal': moveKcal,
-      'dailyMoveKcal': dailyMoveKcal,
-      'ritualsDone': ritualsDone,
-      'dailyRitualTarget': dailyRitualTarget,
-    };
+  Future<void> sync(WidgetSnapshot snapshot) async {
+    final body = snapshot.toJson();
 
     try {
       Future<http.Response> send() async {

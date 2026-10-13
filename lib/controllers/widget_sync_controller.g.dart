@@ -10,28 +10,28 @@ part of 'widget_sync_controller.dart';
 // ignore_for_file: type=lint, type=warning
 /// Keeps the iOS rings widget in sync with today's progress.
 ///
-/// Listens to [todayStateProvider] and maps each new [TodayState] onto the
-/// primitive args [WidgetSyncService] expects (the services layer stays free of
-/// view-model types). Has no UI surface; instantiated once at app start
-/// (see `app.dart`). `fireImmediately` seeds the widget on launch.
+/// Listens to [todayStateProvider] and the currency setting, and maps each
+/// change onto a [WidgetSnapshot] (the services layer stays free of view-model
+/// types). Has no UI surface; instantiated once at app start (see `app.dart`).
+/// `fireImmediately` seeds the widget on launch.
 
 @ProviderFor(WidgetSyncController)
 const widgetSyncControllerProvider = WidgetSyncControllerProvider._();
 
 /// Keeps the iOS rings widget in sync with today's progress.
 ///
-/// Listens to [todayStateProvider] and maps each new [TodayState] onto the
-/// primitive args [WidgetSyncService] expects (the services layer stays free of
-/// view-model types). Has no UI surface; instantiated once at app start
-/// (see `app.dart`). `fireImmediately` seeds the widget on launch.
+/// Listens to [todayStateProvider] and the currency setting, and maps each
+/// change onto a [WidgetSnapshot] (the services layer stays free of view-model
+/// types). Has no UI surface; instantiated once at app start (see `app.dart`).
+/// `fireImmediately` seeds the widget on launch.
 final class WidgetSyncControllerProvider
     extends $NotifierProvider<WidgetSyncController, void> {
   /// Keeps the iOS rings widget in sync with today's progress.
   ///
-  /// Listens to [todayStateProvider] and maps each new [TodayState] onto the
-  /// primitive args [WidgetSyncService] expects (the services layer stays free of
-  /// view-model types). Has no UI surface; instantiated once at app start
-  /// (see `app.dart`). `fireImmediately` seeds the widget on launch.
+  /// Listens to [todayStateProvider] and the currency setting, and maps each
+  /// change onto a [WidgetSnapshot] (the services layer stays free of view-model
+  /// types). Has no UI surface; instantiated once at app start (see `app.dart`).
+  /// `fireImmediately` seeds the widget on launch.
   const WidgetSyncControllerProvider._()
     : super(
         from: null,
@@ -60,14 +60,14 @@ final class WidgetSyncControllerProvider
 }
 
 String _$widgetSyncControllerHash() =>
-    r'dc0b8ab7d8f7a2cd4637131c118894a1bb3e18f0';
+    r'4c8dfda6f1f98516ae7c953d7df04701bfc8e944';
 
 /// Keeps the iOS rings widget in sync with today's progress.
 ///
-/// Listens to [todayStateProvider] and maps each new [TodayState] onto the
-/// primitive args [WidgetSyncService] expects (the services layer stays free of
-/// view-model types). Has no UI surface; instantiated once at app start
-/// (see `app.dart`). `fireImmediately` seeds the widget on launch.
+/// Listens to [todayStateProvider] and the currency setting, and maps each
+/// change onto a [WidgetSnapshot] (the services layer stays free of view-model
+/// types). Has no UI surface; instantiated once at app start (see `app.dart`).
+/// `fireImmediately` seeds the widget on launch.
 
 abstract class _$WidgetSyncController extends $Notifier<void> {
   void build();

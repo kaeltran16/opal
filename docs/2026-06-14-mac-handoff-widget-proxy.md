@@ -74,13 +74,14 @@ Confirm on the device:
 - [ ] Widget shows **real** money/move/rituals values, not zeros.
 - [ ] Logging an entry with the app foregrounded refreshes the widget within seconds.
 - [ ] With the app closed, the widget refreshes on the ~20-min fallback.
-- [ ] Airplane mode: the widget keeps its last values (cached), doesn't blank.
+- [ ] Airplane mode: the widget keeps its last values (cached), doesn't blank, until local
+      midnight, when the cached snapshot expires and it shows dashes (v2, below).
 - [ ] `+` FAB and tile deep links still work.
 
 Manual server check (token from `POST /v1/register` with the provisioning key):
 ```bash
 curl -s https://opal.kael.life/v1/widget/snapshot -H "Authorization: Bearer <token>"
-# -> {"moneyRing":...,"moveKcal":...,...}   (404 before the app has posted once)
+# -> {"until":...,"move":{...},"routines":{...},"money":{...}}   (404 before the app has posted once)
 ```
 
 ## Trade-offs accepted (decided 2026-06-14)
@@ -90,3 +91,38 @@ curl -s https://opal.kael.life/v1/widget/snapshot -H "Authorization: Bearer <tok
 - To make the widget instant + offline-capable again, provision the App Group with a
   **paid** Apple Developer account — the original code path still works, just re-add the
   entitlement. Decision note: `Obsidian Vault/Decisions/2026-06-14 widget-data-via-proxy.md`.
+
+## Rings widget v2 (2026-10-13)
+
+**Owner:** the human (repo owner). **Due:** before the new build is next sideloaded.
+The run that rebuilt the widget ended with Final exit 3: SwiftUI can't be built or
+rendered on Windows, so this checklist is the render check.
+
+The widget now reads a v2 snapshot of display-ready rows (`until`, `move`, `routines`,
+`money`; each row has a `value`, a ring `fraction` on Move and Routines, and a schedule
+of `states` until local midnight). The app works out every value and state word; the
+widget only picks the state for the current minute and makes one timeline entry per
+change. Files: `ios/OpalWidgets/OpalRingsSnapshot.swift`, `ios/OpalWidgets/OpalRingsWidget.swift`.
+The canvas is the Widget board of the oura-ai-first design (`Widget.dc.html`); the rules
+are DESIGN.md section 7, "Rings widget". No entitlement or Info.plist key changed.
+
+On a Mac:
+- [ ] 1. Build the OpalWidgets target. Fix any compile error in the two Swift files above.
+- [ ] 2. Open the `#Preview`s in `OpalRingsWidget.swift` (Watch, Care, Ahead, Empty, plus
+      Cached v1) and compare Watch, Care, Ahead and Empty against the canvas Widget board,
+      in light and dark. Care reads `$4 over $60` with Needs care (the canvas shows
+      `$4 left`; the state rules only give Needs care when over budget). Cached v1 must
+      look exactly like Empty.
+- [ ] 3. Confirm the worker (`server/worker`) deployed before installing the build, so the
+      server accepts and returns the v2 body. `.github/workflows/worker.yml` deploys it on
+      push to `main`; from then until the new build is installed, the old app's v1 POST
+      gets a 400 and the widget keeps its last cached snapshot.
+- [ ] 4. On the device, confirm the "+" opens the Pal composer and a tap anywhere else
+      opens Today. VoiceOver reads `Tell Pal anything` on the "+" and
+      `Opal. Move ... Opens Today` on the rest.
+- [ ] 5. Confirm a cached v1 snapshot shows dashes: install over the old build without
+      opening the app (the widget still holds the v1 cache) and check for empty tracks
+      and `–` on all three rows, never zeros.
+- [ ] 6. Confirm the word changes at a scheduled minute while the app is closed: open the
+      app, read the next `at` from `GET /v1/widget/snapshot`, close the app, and watch the
+      widget flip at that minute. At local midnight it falls back to dashes.

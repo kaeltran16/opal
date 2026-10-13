@@ -4,6 +4,7 @@ import 'package:clock/clock.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../models/models.dart';
+import '../screens/today/today_logic.dart';
 import '../util/dates.dart';
 import 'providers.dart';
 
@@ -109,6 +110,17 @@ class TodayState {
       ritualsTarget == 0 ? 0 : ritualsDone / ritualsTarget;
 
   List<double> get rings => [moneyRing, moveRing, ritualsRing];
+
+  /// The widget's [GlanceNumbers], counting routines the way Today does: the
+  /// total is today's routines, and none done when there are none.
+  GlanceNumbers get glance => GlanceNumbers(
+        spent: moneySpent,
+        budget: goals.dailyBudget,
+        moveKcal: moveKcal,
+        moveGoal: goals.dailyMoveKcal,
+        routinesTotal: routines.length,
+        routinesDone: routines.isEmpty ? 0 : ritualsDone,
+      );
 
   /// Rituals remaining to hit target (never negative).
   int get ritualsRemaining =>

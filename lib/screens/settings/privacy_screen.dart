@@ -1,15 +1,17 @@
 import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../router.dart';
 import '../../theme/theme.dart';
 import '../../widgets/inset_section.dart';
 import '../email/email_nav.dart';
 
-/// Settings → Privacy.
+/// You → Data and privacy.
 ///
-/// Informational: Opal is local-first, so this explains what is stored on the
-/// device and the only two cases where data leaves it (Pal and email sync,
-/// both opt-in). No toggles — there is nothing collected to turn off.
+/// Opal is local-first, so this explains what is stored on the device and the
+/// only two cases where data leaves it (Pal and email sync, both opt-in), then
+/// links to exporting data and notification settings. No toggles — there is
+/// nothing collected to turn off.
 class PrivacyScreen extends StatelessWidget {
   const PrivacyScreen({super.key});
 
@@ -22,7 +24,7 @@ class PrivacyScreen extends StatelessWidget {
         padding: const EdgeInsets.only(bottom: 40), // kept literal: off-grid list bottom inset
         children: [
           EmailNavBar(
-            title: 'Privacy',
+            title: 'Data and privacy',
             leadingLabel: 'You',
             onLeading: () => context.pop(),
           ),
@@ -75,6 +77,25 @@ class PrivacyScreen extends StatelessWidget {
                 subtitle: 'Only if connected; reads filtered bank alerts.',
                 chevron: false,
                 last: true,
+              ),
+            ],
+          ),
+          InsetSection(
+            children: [
+              ListRow(
+                icon: 'tray.fill',
+                iconBg: c.ink3,
+                title: 'Export data',
+                onTap: () => context.pushNamed(AppRoute.exportData.name),
+              ),
+              ListRow(
+                icon: 'bell.fill',
+                iconBg: c.moneyTint,
+                iconColor: c.moneyInk,
+                title: 'Notifications',
+                last: true,
+                onTap: () =>
+                    context.pushNamed(AppRoute.notificationSettings.name),
               ),
             ],
           ),
