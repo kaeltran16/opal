@@ -128,7 +128,7 @@ void main() {
       isSemantics(label: 'Areas', isButton: true, isSelected: true),
     );
 
-    await tester.tap(find.bySemanticsLabel('Back'));
+    await tester.tap(find.bySemanticsLabel('Back to Areas'));
     await tester.pumpAndSettle();
     expect(_path(router), '/areas');
 
