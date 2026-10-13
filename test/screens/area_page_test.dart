@@ -66,7 +66,7 @@ Future<void> _openPage(WidgetTester tester, Area area) async {
   await tester.tap(find.descendant(
       of: find.byType(GlassTabBar), matching: find.bySemanticsLabel(RegExp('^Areas'))));
   await tester.pumpAndSettle();
-  await tester.tap(find.bySemanticsLabel(RegExp('^${area.title}')));
+  await tester.tap(find.bySemanticsLabel(RegExp('^${area.title}([:,]|\$)')));
   await tester.pumpAndSettle();
   expect(
     find.byWidgetPredicate((w) => w is DetailScreen && w.area == area),

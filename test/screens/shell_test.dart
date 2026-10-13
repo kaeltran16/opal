@@ -1,24 +1,32 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:opal/analysis/area_state.dart';
+import 'package:opal/controllers/areas_controller.dart';
 import 'package:opal/screens/areas/areas_screen.dart';
 import 'package:opal/screens/detail/detail_screen.dart';
 import 'package:opal/screens/move/workout_history_screen.dart';
 import 'package:opal/screens/pal/pal_composer_screen.dart';
 import 'package:opal/screens/shell/loop_shell.dart';
+import 'package:opal/screens/today/today_logic.dart';
+import 'package:opal/theme/theme.dart';
+import 'package:opal/util/format.dart';
 import 'package:opal/widgets/glass_tab_bar.dart';
-import 'package:opal/widgets/inset_section.dart';
 
 import '../support/flush_provider_timers.dart';
 import '../support/golden_harness.dart' show bootApp;
+import '../support/today_fixture.dart';
 
 const _tabLabels = ['Today', 'Areas', 'Workout', 'You'];
 
 Finder get _todayList => find.byType(Scrollable).first;
 
+/// A tab by its label. Areas speaks its off areas after its name.
 Finder _tab(String label) => find.descendant(
-    of: find.byType(GlassTabBar), matching: find.bySemanticsLabel(label));
+    of: find.byType(GlassTabBar), matching: find.bySemanticsLabel(RegExp('^$label(,|\$)')));
 
 GoRouter _router(WidgetTester tester) =>
     GoRouter.of(tester.element(find.byType(LoopShell)));
@@ -26,19 +34,45 @@ GoRouter _router(WidgetTester tester) =>
 String _path(WidgetTester tester) =>
     _router(tester).routerDelegate.currentConfiguration.uri.path;
 
+// thursday 1 october 2026, half way through the waking day
+final _midday = DateTime(2026, 10, 1, 14, 30);
+
+AreasSummary _areas({double spent = 20, int moveKcal = 300}) => buildAreasSummary(
+      today: GlanceNumbers(
+        spent: spent,
+        budget: 60,
+        moveKcal: moveKcal,
+        moveGoal: 500,
+        routinesDone: 2,
+        routinesTotal: 4,
+      ),
+      entries: const [],
+      meals: const [],
+      checkins: const [],
+      currency: Currency.usd,
+      now: _midday,
+    );
+
+Future<void> _bootWith(WidgetTester tester, Stream<AreasSummary> summary) => bootToday(
+    tester, overrides: [areasSummaryProvider.overrideWith((ref) => summary)]);
+
+Finder get _areasDot => find.byKey(glassTabDotKey('areas'));
+
+Color? _dotColor(WidgetTester tester) =>
+    (tester.widget<DecoratedBox>(_areasDot).decoration as BoxDecoration).color;
+
+AppColors _colors(WidgetTester tester) => tester.element(find.byType(GlassTabBar)).colors;
+
+/// The Areas tab's whole accessible label.
+Finder _areasLabel(String label) => find.descendant(
+    of: find.byType(GlassTabBar), matching: find.bySemanticsLabel(label));
+
 void main() {
   testWidgets('the tabs carry their semantic labels', (tester) async {
     await bootApp(tester);
 
     for (final label in _tabLabels) {
-      expect(
-        find.descendant(
-          of: find.byType(GlassTabBar),
-          matching: find.bySemanticsLabel(label),
-        ),
-        findsOneWidget,
-        reason: label,
-      );
+      expect(_tab(label), findsOneWidget, reason: label);
     }
 
     await flushProviderTimers(tester);
@@ -60,7 +94,7 @@ void main() {
 
     await tester.tap(_tab('Areas'));
     await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(ListRow, 'Money'));
+    await tester.tap(find.bySemanticsLabel(RegExp(r'^Money([:,]|$)')));
     await tester.pumpAndSettle();
     expect(find.byType(DetailScreen), findsOneWidget);
     expect(_path(tester), '/areas/money');
@@ -106,14 +140,7 @@ void main() {
     // only the active tab's circle is left.
     expect(find.bySemanticsLabel(RegExp('Today tab')), findsOneWidget);
     for (final label in _tabLabels.skip(1)) {
-      expect(
-        find.descendant(
-          of: find.byType(GlassTabBar),
-          matching: find.bySemanticsLabel(label),
-        ),
-        findsNothing,
-        reason: label,
-      );
+      expect(_tab(label), findsNothing, reason: label);
     }
 
     await tester.drag(_todayList, const Offset(0, 100));
@@ -121,14 +148,7 @@ void main() {
 
     expect(find.bySemanticsLabel(RegExp('Today tab')), findsNothing);
     for (final label in _tabLabels) {
-      expect(
-        find.descendant(
-          of: find.byType(GlassTabBar),
-          matching: find.bySemanticsLabel(label),
-        ),
-        findsOneWidget,
-        reason: label,
-      );
+      expect(_tab(label), findsOneWidget, reason: label);
     }
 
     await flushProviderTimers(tester);
@@ -146,6 +166,53 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(PalComposerSheet), findsOneWidget);
+
+      await flushProviderTimers(tester);
+    });
+  }
+
+  testWidgets('the Areas tab shows a watch dot when Money is worth watching',
+      (tester) async {
+    await _bootWith(tester, Stream.value(_areas(spent: 50)));
+
+    expect(_areasDot, findsOneWidget);
+    expect(_dotColor(tester), _colors(tester).watch);
+    expect(_areasLabel('Areas, money worth watching'), findsOneWidget);
+
+    await flushProviderTimers(tester);
+  });
+
+  testWidgets('the Areas tab shows a care dot when an area needs care',
+      (tester) async {
+    final summary = _areas(spent: 70, moveKcal: 100);
+    expect(summary.tabDot, AreaState.care);
+    await _bootWith(tester, Stream.value(summary));
+
+    expect(_dotColor(tester), _colors(tester).care);
+    expect(_areasLabel('Areas, money needs care, move worth watching'), findsOneWidget);
+
+    await flushProviderTimers(tester);
+  });
+
+  testWidgets('the Areas tab has no dot when every area is on track',
+      (tester) async {
+    await _bootWith(tester, Stream.value(_areas()));
+
+    expect(_areasDot, findsNothing);
+    expect(_areasLabel('Areas'), findsOneWidget);
+
+    await flushProviderTimers(tester);
+  });
+
+  for (final (name, summary) in [
+    ('loads', () => StreamController<AreasSummary>().stream),
+    ('fails', () => Stream<AreasSummary>.error(Exception('db'))),
+  ]) {
+    testWidgets('while the summary $name the Areas tab is plain', (tester) async {
+      await _bootWith(tester, summary());
+
+      expect(_areasDot, findsNothing);
+      expect(_areasLabel('Areas'), findsOneWidget);
 
       await flushProviderTimers(tester);
     });

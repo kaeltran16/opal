@@ -124,8 +124,8 @@ void main() {
     expect(_path(router), '/areas/sleep');
     expect(
       tester.getSemantics(find.descendant(
-          of: find.byType(GlassTabBar), matching: find.bySemanticsLabel('Areas'))),
-      isSemantics(label: 'Areas', isButton: true, isSelected: true),
+          of: find.byType(GlassTabBar), matching: find.bySemanticsLabel(RegExp('^Areas')))),
+      isSemantics(isButton: true, isSelected: true),
     );
 
     await tester.tap(find.bySemanticsLabel('Back to Areas'));

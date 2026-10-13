@@ -378,7 +378,17 @@ Stream<List<MoodCheckin>> _recentCheckins(Ref ref) {
 @riverpod
 Stream<AreasSummary> areasSummary(Ref ref) async* {
   final currency = ref.watch(appSettingsControllerProvider).currency;
-  final today = await ref.watch(todayStateProvider.future);
+  // watch the value, not its future: a today that never settles would make
+  // the pending future throw when the container is torn down.
+  final todayAsync = ref.watch(todayStateProvider);
+  if (todayAsync.hasError) {
+    Error.throwWithStackTrace(
+      todayAsync.error!,
+      todayAsync.stackTrace ?? StackTrace.current,
+    );
+  }
+  final today = todayAsync.value;
+  if (today == null) return;
   final entries = await ref.watch(_recentEntriesProvider.future);
   final meals = await ref.watch(_recentMealsProvider.future);
   final checkins = await ref.watch(_recentCheckinsProvider.future);

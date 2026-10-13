@@ -60,10 +60,13 @@ void main() {
     await bootApp(tester);
 
     await tester.tap(find.descendant(
-        of: find.byType(GlassTabBar),
-        matching: find.bySemanticsLabel(RegExp('^Areas'))));
+        of: find.byType(GlassTabBar), matching: find.bySemanticsLabel(RegExp('^Areas'))));
     await tester.pumpAndSettle();
-    await tester.tap(find.bySemanticsLabel(RegExp('^Nutrition')));
+    final nutrition = find.bySemanticsLabel(RegExp(r'^Nutrition([:,]|$)'));
+    // the card can sit under the floating tab bar; bring it clear first.
+    await Scrollable.ensureVisible(tester.element(nutrition), alignment: 0.5);
+    await tester.pumpAndSettle();
+    await tester.tap(nutrition);
     await tester.pumpAndSettle();
     expect(_path(tester), '/areas/nutrition');
 

@@ -178,4 +178,4 @@ final class AreasSummaryProvider
   }
 }
 
-String _$areasSummaryHash() => r'29d1f2da98c97ac10bcb565cd1f641ee2db7e185';
+String _$areasSummaryHash() => r'7182a687dd59eb65a18157326be5125053cbe217';
