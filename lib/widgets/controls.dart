@@ -12,7 +12,6 @@ const double _chipHeight = 32;
 const double _searchIcon = 16;
 const Duration _fillDuration = Duration(milliseconds: 240);
 const Duration _thumbDuration = Duration(milliseconds: 150);
-const Color _clear = Color(0x00000000); // kept literal: transparent, no colour token
 
 /// Thin progress bar: `ink` on `track`.
 class ProgressBar extends StatelessWidget {
@@ -271,7 +270,7 @@ class Segmented<T> extends StatelessWidget {
                     constraints: const BoxConstraints(minHeight: _minTap),
                     padding: const EdgeInsets.symmetric(horizontal: Spacing.md),
                     decoration: BoxDecoration(
-                      color: val == value ? c.surface : _clear,
+                      color: val == value ? c.surface : AppColors.clear,
                       borderRadius: BorderRadius.circular(Radii.pill),
                     ),
                     child: Center(

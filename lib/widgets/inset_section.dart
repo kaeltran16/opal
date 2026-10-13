@@ -11,7 +11,6 @@ const double _hairline = 1;
 const int _titleMaxLines = 2;
 const double _valueShare = 0.5;
 const Duration _highlightFade = Duration(milliseconds: 180);
-const Color _clear = Color(0x00000000); // kept literal: transparent, no colour token
 const List<FontFeature> _tabular = [FontFeature.tabularFigures()];
 
 /// An open list section: an optional heading, its rows on the screen gutter,
@@ -120,7 +119,7 @@ class _ListRowState extends State<ListRow> {
           children: [
             // the highlight is a layer behind the row so nothing paints under the icon
             Positioned.fill(
-              child: AnimatedContainer(duration: _highlightFade, color: _down ? c.fill : _clear),
+              child: AnimatedContainer(duration: _highlightFade, color: _down ? c.fill : AppColors.clear),
             ),
             ConstrainedBox(
               constraints: const BoxConstraints(minHeight: _rowMinHeight),
