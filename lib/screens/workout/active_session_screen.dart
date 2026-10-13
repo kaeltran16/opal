@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
@@ -11,17 +12,36 @@ import '../../router.dart';
 import '../../theme/theme.dart';
 import '../../util/format.dart';
 import '../../widgets/app_icon.dart';
+import '../../widgets/app_sheet.dart';
+import '../../widgets/controls.dart';
+import '../../widgets/nav_bar.dart' show NavIconButton;
 import '../../widgets/press_scale.dart';
 
-/// Screen 09 — the live workout (focus route, no tab bar).
+// where the prototype's content starts, just under the status bar.
+const double _contentTop = 52;
+const double _contentBottom = 48;
+const double _minTap = 44;
+const double _rowMinHeight = 48;
+const double _rowDisc = 28;
+const double _discGlyph = 14;
+const double _hairline = 1;
+const double _textIcon = 16;
+const double _cardGap = 16;
+const double _exerciseTop = 28;
+const double _upNextTop = 24;
+const double _restGap = 12;
+const double _weightStep = 2.5;
+const int _repStep = 1;
+const int _repFloor = 1;
+const List<FontFeature> _tabular = [FontFeature.tabularFigures()];
+
+/// Screen 09, the live workout (focus route, no tab bar).
 ///
-/// Reads [WorkoutSessionController] (keyed by [routineId]) and renders the
-/// colored header band + elapsed timer, the rest-timer banner, the current-
-/// exercise card with its set table, the "Add set" affordance, the up-next card,
-/// and the exercise progress dots. Logging the active set delegates to the
-/// controller (which owns the engine + real rest timer); Finish confirms then
-/// pushes the post-workout summary. The widget is dumb — all logic lives in the
-/// controller/engine.
+/// Reads [WorkoutSessionController] (keyed by [routineId]). The set card has
+/// three states, one at a time: entering (steppers + Complete set), resting
+/// (rest clock, +30 s, Skip rest) and finished (See your summary). Weight and
+/// reps are stepped on screen and handed to the controller when the set is
+/// logged; every other rule lives in the controller and engine.
 class ActiveSessionScreen extends ConsumerStatefulWidget {
   const ActiveSessionScreen({super.key, required this.routineId});
 
@@ -35,6 +55,12 @@ class ActiveSessionScreen extends ConsumerStatefulWidget {
 class _ActiveSessionScreenState extends ConsumerState<ActiveSessionScreen> {
   // ticks the header elapsed clock; the controller's rest timer is separate.
   Timer? _clock;
+
+  // the stepped values, seeded from the current set's target and re-seeded
+  // whenever the cursor moves to another set.
+  String? _seededFor;
+  double _weight = 0;
+  int _reps = _repFloor;
 
   @override
   void initState() {
@@ -50,18 +76,32 @@ class _ActiveSessionScreenState extends ConsumerState<ActiveSessionScreen> {
     super.dispose();
   }
 
+  void _seed(SetLog? set) {
+    if (set == null || set.id == _seededFor) return;
+    _seededFor = set.id;
+    _weight = set.weightKg;
+    _reps = math.max(_repFloor, set.reps);
+  }
+
+  void _stepWeight(double by) =>
+      setState(() => _weight = math.max(0, _weight + by));
+
+  void _stepReps(int by) =>
+      setState(() => _reps = math.max(_repFloor, _reps + by));
+
+  WorkoutSessionController get _controller =>
+      ref.read(workoutSessionControllerProvider(widget.routineId).notifier);
+
   @override
   Widget build(BuildContext context) {
-    final routineId = widget.routineId;
     final c = context.colors;
-    final async = ref.watch(workoutSessionControllerProvider(routineId));
+    final async = ref.watch(workoutSessionControllerProvider(widget.routineId));
 
     return Scaffold(
       backgroundColor: c.bg,
       body: async.when(
         loading: () => Center(
-          child: Text('…',
-              style: AppType.body.copyWith(color: c.ink3)),
+          child: Text('…', style: AppType.body.copyWith(color: c.ink3)),
         ),
         error: (e, _) => Center(
           child: Padding(
@@ -69,192 +109,166 @@ class _ActiveSessionScreenState extends ConsumerState<ActiveSessionScreen> {
             child: Text(
               "Couldn't start the session.\n$e",
               textAlign: TextAlign.center,
-              style: AppType.subhead.copyWith(color: c.ink3, letterSpacing: -0.24),
+              style: AppType.subhead.copyWith(color: c.ink3),
             ),
           ),
         ),
-        data: (state) => _Body(routineId: routineId, state: state),
+        data: (state) {
+          _seed(state.currentSet);
+          return _body(context, state);
+        },
       ),
     );
   }
-}
 
-class _Body extends ConsumerWidget {
-  const _Body({required this.routineId, required this.state});
-
-  final String routineId;
-  final ActiveSessionState state;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final c = context.colors;
-    final controller =
-        workoutSessionControllerProvider(routineId).notifier;
+  Widget _body(BuildContext context, ActiveSessionState state) {
+    final safe = MediaQuery.paddingOf(context);
+    final shownIndex =
+        math.min(state.currentExerciseIndex, state.exerciseIds.length - 1);
+    final shownId = shownIndex < 0 ? null : state.exerciseIds[shownIndex];
+    final exercise = shownId == null ? null : state.catalog[shownId];
+    final shownSets = shownId == null
+        ? const <SetLog>[]
+        : state.sets.where((s) => s.exerciseId == shownId).toList();
 
     return ListView(
-      padding: const EdgeInsets.only(bottom: 100), // kept literal: scroll tail past finish CTA
+      padding: EdgeInsets.fromLTRB(
+        Spacing.lg,
+        math.max(_contentTop, safe.top + Spacing.xs),
+        Spacing.lg,
+        _contentBottom + safe.bottom,
+      ),
       children: [
         _Header(
-          state: state,
-          onBack: () => context.pop(),
-          onFinish: () => _confirmFinish(context, ref),
+          name: state.activeWorkout.name,
+          startedAt: state.activeWorkout.startedAt,
+          onMinimise: () => context.pop(),
+          onFinish: () => _confirmFinish(context, state),
         ),
-        if (state.isResting)
-          _RestBanner(
-            restRemaining: state.restRemaining,
-            onAddTime: () => ref.read(controller).addRestTime(),
-            onSkip: () => ref.read(controller).skipRest(),
+        const SizedBox(height: Spacing.lg),
+        _Progress(state: state, shownIndex: shownIndex),
+        const SizedBox(height: _exerciseTop),
+        _ExerciseHeading(exercise: exercise),
+        const SizedBox(height: Spacing.xl),
+        _card(context, state, exercise),
+        const SizedBox(height: Spacing.sm),
+        for (final (i, set) in shownSets.indexed)
+          _SetRow(
+            number: i + 1,
+            set: set,
+            current: set.id == state.currentSet?.id,
+            resting: state.isResting,
+            weight: _weight,
+            reps: _reps,
+            divided: i > 0,
           ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(Spacing.lg, Spacing.xl, Spacing.lg, 0),
-          child: state.isComplete
-              ? _CompleteCard(c: c)
-              : _CurrentExerciseCard(
-                  state: state,
-                  onLog: () {
-                    final set = state.currentSet;
-                    if (set == null) return;
-                    ref.read(controller).logCurrentSet(
-                          weightKg: set.weightKg,
-                          reps: set.reps,
-                        );
-                  },
-                  onAddSet: () => ref.read(controller).addSet(),
-                ),
-        ),
-        if (state.nextExercise != null)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(Spacing.lg, Spacing.lg, Spacing.lg, 0),
-            child: _UpNextCard(state: state),
+        if (!state.isComplete)
+          _SetTools(
+            canSkip: state.nextExercise != null,
+            onAddSet: _controller.addSet,
+            onSkip: _controller.skipExercise,
           ),
+        if (!state.isComplete && state.nextExercise != null) ...[
+          const SizedBox(height: _upNextTop),
+          _UpNext(state: state),
+        ],
       ],
     );
   }
 
-  Future<void> _confirmFinish(BuildContext context, WidgetRef ref) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Finish workout?'),
-        content: const Text('This ends the session and shows your summary.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Keep going'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Finish'),
-          ),
-        ],
-      ),
+  Widget _card(BuildContext context, ActiveSessionState state, Exercise? exercise) {
+    final set = state.currentSet;
+    if (state.isComplete || set == null) {
+      final logged = state.sets.where((s) => s.done).length;
+      return _FinishedCard(
+        logged: logged,
+        total: state.sets.length,
+        onSummary: () => _finish(context),
+      );
+    }
+    final setNumber = state.currentSetIndex + 1;
+    if (state.isResting) {
+      return _RestCard(
+        remaining: state.restRemaining,
+        next: 'set $setNumber · ${formatWeight(_weight)} kg × $_reps',
+        onAddTime: _controller.addRestTime,
+        onSkip: _controller.skipRest,
+      );
+    }
+    return _EnterCard(
+      setLabel: 'Set $setNumber of ${state.currentExerciseSets.length}',
+      pr: exercise?.pr,
+      weight: _weight,
+      reps: _reps,
+      onWeight: _stepWeight,
+      onReps: _stepReps,
+      onComplete: () => _controller.logCurrentSet(weightKg: _weight, reps: _reps),
+    );
+  }
+
+  Future<void> _confirmFinish(BuildContext context, ActiveSessionState state) async {
+    final logged = state.sets.where((s) => s.done).length;
+    final confirmed = await showAppSheet<bool>(
+      context,
+      builder: (ctx) => _FinishSheet(logged: logged, total: state.sets.length),
     );
     if (confirmed != true || !context.mounted) return;
+    _finish(context);
+  }
 
-    final workout =
-        ref.read(workoutSessionControllerProvider(routineId).notifier).finish();
+  void _finish(BuildContext context) {
+    final workout = _controller.finish();
     context.pushReplacementNamed(AppRoute.postWorkout.name, extra: workout);
   }
 }
 
-// ─── Header band ─────────────────────────────────────────────────────────────
+// ─── Header ──────────────────────────────────────────────────────────────────
 
 class _Header extends StatelessWidget {
   const _Header({
-    required this.state,
-    required this.onBack,
+    required this.name,
+    required this.startedAt,
+    required this.onMinimise,
     required this.onFinish,
   });
 
-  final ActiveSessionState state;
-  final VoidCallback onBack;
+  final String name;
+  final DateTime startedAt;
+  final VoidCallback onMinimise;
   final VoidCallback onFinish;
 
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    final move = c.move;
-    final name = state.activeWorkout.name;
-    final exCount = state.exerciseIds.length;
-    final exNum = (state.currentExerciseIndex + 1).clamp(1, exCount);
-
-    final completed = state.sets.where((s) => s.done).length;
-    final total = state.sets.length;
-    final volume = state.activeWorkout.totalVolumeKg;
-
-    return Container(
-      padding: const EdgeInsets.fromLTRB(Spacing.lg, 54, Spacing.lg, Spacing.xl), // kept literal: 54 is the status-bar inset
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [move, move.withValues(alpha: 0.93)],
+    final elapsed = _elapsed(startedAt);
+    return Row(
+      spacing: Spacing.sm,
+      children: [
+        NavIconButton(
+          name: 'chevron.down',
+          semanticLabel: 'Minimise, the session keeps running',
+          onTap: onMinimise,
         ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
+        Expanded(
+          child: Column(
             children: [
-              _CircleButton(
-                icon: 'chevron.down',
-                onTap: onBack,
-                background: c.onAccent.withValues(alpha: 0.2),
-              ),
-              Expanded(
-                child: Column(
-                  children: [
-                    Text(
-                      '● ${name.toUpperCase()}',
-                      style: AppFonts.mono(
-                        size: 10, // kept literal: 10pt mono, below the eyebrow size
-                        weight: FontWeight.w700,
-                        color: c.onAccent.withValues(alpha: 0.75),
-                        letterSpacing: 1.8,
-                      ),
-                    ),
-                    const SizedBox(height: Spacing.xxs),
-                    Text(
-                      _elapsed(state.activeWorkout.startedAt),
-                      style: AppFonts.sfr(
-                        size: 32, // kept literal: 32pt rounded timer, no matching type token
-                        color: c.onAccent,
-                        letterSpacing: -0.6,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              GestureDetector(
-                onTap: onFinish,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: Spacing.lg, vertical: 9), // kept literal: 9 keeps the pill height
-                  decoration: BoxDecoration(
-                    color: c.onAccent,
-                    borderRadius: BorderRadius.circular(Radii.pill),
-                  ),
-                  child: Text(
-                    'Finish',
-                    style: AppType.footnote.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: move,
-                      letterSpacing: -0.1,
-                    ),
-                  ),
-                ),
+              Text(name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppType.label.copyWith(color: c.ink3)),
+              Semantics(
+                container: true,
+                label: 'Elapsed $elapsed',
+                excludeSemantics: true,
+                child: Text(elapsed,
+                    style: AppType.headline.copyWith(
+                        color: c.ink, fontWeight: FontWeight.w400, fontFeatures: _tabular)),
               ),
             ],
           ),
-          const SizedBox(height: Spacing.lg),
-          _ProgressDots(count: exCount, current: state.currentExerciseIndex),
-          const SizedBox(height: Spacing.xl),
-          _HeaderStats(
-            exerciseLabel: '$exNum/$exCount',
-            setsLabel: '$completed/$total',
-            volumeLabel: formatWeight(volume),
-          ),
-        ],
-      ),
+        ),
+        _TextButton(label: 'Finish', onTap: onFinish),
+      ],
     );
   }
 
@@ -267,651 +281,406 @@ class _Header extends StatelessWidget {
   }
 }
 
-class _ProgressDots extends StatelessWidget {
-  const _ProgressDots({required this.count, required this.current});
-  final int count;
-  final int current;
+class _Progress extends StatelessWidget {
+  const _Progress({required this.state, required this.shownIndex});
+
+  final ActiveSessionState state;
+  final int shownIndex;
 
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
+    final logged = state.sets.where((s) => s.done).length;
+    final total = state.sets.length;
+    final style = AppType.caption.copyWith(color: c.ink3, fontFeatures: _tabular);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      spacing: Spacing.sm,
       children: [
-        for (var i = 0; i < count; i++)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 2.5), // kept literal: 2.5 progress-segment gap, below the smallest token
-            child: Container(
-              width: i == current ? 24 : 6,
-              height: 4,
-              decoration: BoxDecoration(
-                color: i <= current
-                    ? c.onAccent
-                    : c.onAccent.withValues(alpha: 0.3),
-                borderRadius: BorderRadius.circular(Radii.pill),
-              ),
+        Row(
+          spacing: Spacing.sm,
+          children: [
+            Expanded(
+              child: Text('Exercise ${shownIndex + 1} of ${state.exerciseIds.length}',
+                  style: style),
             ),
-          ),
+            Text('$logged of $total sets', style: style),
+          ],
+        ),
+        ProgressBar(value: total == 0 ? 0 : logged / total),
       ],
     );
   }
 }
 
-class _HeaderStats extends StatelessWidget {
-  const _HeaderStats({
-    required this.exerciseLabel,
-    required this.setsLabel,
-    required this.volumeLabel,
-  });
-  final String exerciseLabel;
-  final String setsLabel;
-  final String volumeLabel;
+class _ExerciseHeading extends StatelessWidget {
+  const _ExerciseHeading({required this.exercise});
+
+  final Exercise? exercise;
 
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    Widget cell(String value, String label) => Expanded(
-          child: Container(
-            color: const Color(0x1F000000), // kept literal: fixed dark wash over the accent header in both themes
-            padding: const EdgeInsets.symmetric(horizontal: Spacing.md, vertical: Spacing.sm),
-            child: Column(
-              children: [
-                Text(
-                  value,
-                  style: AppFonts.sfr(
-                      size: 16, color: c.onAccent, letterSpacing: -0.2, height: 1), // kept literal: 16pt rounded stat, no matching type token
-                ),
-                const SizedBox(height: Spacing.xxs),
-                Text(
-                  label.toUpperCase(),
-                  style: AppType.caption2.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: c.onAccent.withValues(alpha: 0.75),
-                    letterSpacing: 0.6,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
+    final meta = [exercise?.muscle, exercise?.equipment]
+        .whereType<String>()
+        .where((x) => x.isNotEmpty)
+        .join(' · ');
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      spacing: Spacing.xxs,
+      children: [
+        if (meta.isNotEmpty) Text(meta, style: AppType.label.copyWith(color: c.ink3)),
+        Semantics(
+          header: true,
+          child: Text(exercise?.name ?? 'Exercise',
+              style: AppType.title.copyWith(color: c.ink)),
+        ),
+      ],
+    );
+  }
+}
 
+// ─── Set card ────────────────────────────────────────────────────────────────
+
+/// The `surface` card that holds the one live state.
+class _Card extends StatelessWidget {
+  const _Card({required this.children, this.gap = _cardGap, this.center = false});
+
+  final List<Widget> children;
+  final double gap;
+  final bool center;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
     return Container(
-      decoration: BoxDecoration(
-        color: c.onAccent.withValues(alpha: 0.18),
-        borderRadius: BorderRadius.circular(Radii.md),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Row(
-        children: [
-          cell(exerciseLabel, 'Exercise'),
-          const SizedBox(width: 1), // kept literal: 1px divider gap between cells
-          cell(setsLabel, 'Sets'),
-          const SizedBox(width: 1), // kept literal: 1px divider gap between cells
-          cell(volumeLabel, 'Volume'),
-        ],
+      padding: const EdgeInsets.all(Spacing.lg),
+      decoration: BoxDecoration(color: c.surface, borderRadius: BorderRadius.circular(Radii.card)),
+      child: Column(
+        crossAxisAlignment: center ? CrossAxisAlignment.center : CrossAxisAlignment.stretch,
+        spacing: gap,
+        children: children,
       ),
     );
   }
 }
 
-// ─── Rest banner ─────────────────────────────────────────────────────────────
+class _EnterCard extends StatelessWidget {
+  const _EnterCard({
+    required this.setLabel,
+    required this.pr,
+    required this.weight,
+    required this.reps,
+    required this.onWeight,
+    required this.onReps,
+    required this.onComplete,
+  });
 
-class _RestBanner extends StatefulWidget {
-  const _RestBanner({
-    required this.restRemaining,
+  final String setLabel;
+  final ExercisePR? pr;
+  final double weight;
+  final int reps;
+  final ValueChanged<double> onWeight;
+  final ValueChanged<int> onReps;
+  final VoidCallback onComplete;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    final pr = this.pr;
+    final ahead = pr != null && weight > pr.weightKg;
+    return _Card(
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.baseline,
+          textBaseline: TextBaseline.alphabetic,
+          spacing: Spacing.sm,
+          children: [
+            Expanded(
+              child: Text(setLabel, style: AppType.label.copyWith(color: c.ink, fontFeatures: _tabular)),
+            ),
+            if (pr != null)
+              Flexible(
+                child: Text('Best ${formatWeight(pr.weightKg)} kg × ${pr.reps}',
+                    textAlign: TextAlign.end,
+                    style: AppType.label.copyWith(color: c.ink3, fontFeatures: _tabular)),
+              ),
+          ],
+        ),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          spacing: Spacing.md,
+          children: [
+            Expanded(
+              child: _Stepper(
+                label: 'Weight',
+                value: formatWeight(weight),
+                unit: 'kg',
+                lessLabel: 'Less weight',
+                moreLabel: 'More weight',
+                onLess: () => onWeight(-_weightStep),
+                onMore: () => onWeight(_weightStep),
+              ),
+            ),
+            Expanded(
+              child: _Stepper(
+                label: 'Reps',
+                value: '$reps',
+                lessLabel: 'Fewer reps',
+                moreLabel: 'More reps',
+                onLess: () => onReps(-_repStep),
+                onMore: () => onReps(_repStep),
+              ),
+            ),
+          ],
+        ),
+        if (ahead)
+          Text('Ahead of your best by ${formatWeight(weight - pr.weightKg)} kg',
+              textAlign: TextAlign.center,
+              style: AppType.subhead.copyWith(color: c.thrivingInk, fontFeatures: _tabular)),
+        PillButton(label: 'Complete set', icon: 'checkmark', onTap: onComplete),
+      ],
+    );
+  }
+}
+
+class _Stepper extends StatelessWidget {
+  const _Stepper({
+    required this.label,
+    required this.value,
+    this.unit,
+    required this.lessLabel,
+    required this.moreLabel,
+    required this.onLess,
+    required this.onMore,
+  });
+
+  final String label;
+  final String value;
+  final String? unit;
+  final String lessLabel;
+  final String moreLabel;
+  final VoidCallback onLess;
+  final VoidCallback onMore;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    final unit = this.unit;
+    return Column(
+      spacing: Spacing.sm,
+      children: [
+        Text(label, style: AppType.label.copyWith(color: c.ink3)),
+        // scale a long value down rather than overflow the column.
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text.rich(
+            TextSpan(children: [
+              TextSpan(text: value),
+              if (unit != null)
+                TextSpan(text: ' $unit', style: AppType.subhead.copyWith(color: c.ink3)),
+            ]),
+            maxLines: 1,
+            style: AppType.score.copyWith(color: c.ink),
+          ),
+        ),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          spacing: Spacing.sm,
+          children: [
+            NavIconButton(name: 'minus', semanticLabel: lessLabel, onTap: onLess),
+            NavIconButton(name: 'plus', semanticLabel: moreLabel, onTap: onMore),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _RestCard extends StatelessWidget {
+  const _RestCard({
+    required this.remaining,
+    required this.next,
     required this.onAddTime,
     required this.onSkip,
   });
 
-  final int restRemaining;
+  final int remaining;
+  final String next;
   final VoidCallback onAddTime;
   final VoidCallback onSkip;
 
   @override
-  State<_RestBanner> createState() => _RestBannerState();
-}
-
-class _RestBannerState extends State<_RestBanner>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _spin =
-      AnimationController(vsync: this, duration: const Duration(seconds: 1))
-        ..repeat();
-
-  // The controller exposes only the remaining seconds, so capture the high-water
-  // mark across this rest period (incl. +30s bumps) as the progress denominator.
-  int _total = 0;
-
-  @override
-  void initState() {
-    super.initState();
-    _total = widget.restRemaining;
-  }
-
-  @override
-  void didUpdateWidget(_RestBanner old) {
-    super.didUpdateWidget(old);
-    if (widget.restRemaining > _total) _total = widget.restRemaining;
-  }
-
-  @override
-  void dispose() {
-    _spin.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    final m = (widget.restRemaining ~/ 60).toString();
-    final s = (widget.restRemaining % 60).toString().padLeft(2, '0');
-    final elapsedFrac =
-        _total <= 0 ? 0.0 : (1 - widget.restRemaining / _total).clamp(0.0, 1.0);
-
-    return Container(
-      color: c.accent,
-      padding: const EdgeInsets.symmetric(horizontal: Spacing.lg, vertical: Spacing.md),
-      child: Stack(
-        children: [
-          // left-anchored progress fill that grows as rest elapses.
-          Positioned.fill(
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: FractionallySizedBox(
-                widthFactor: elapsedFrac,
-                child: ColoredBox(color: c.onAccent.withValues(alpha: 0.12)),
-              ),
-            ),
-          ),
-          Row(
+    final m = remaining ~/ 60;
+    final s = (remaining % 60).toString().padLeft(2, '0');
+    return _Card(
+      gap: _restGap,
+      center: true,
+      children: [
+        Text('Rest', style: AppType.label.copyWith(color: c.ink3)),
+        Text('$m:$s', style: AppType.display.copyWith(color: c.ink)),
+        Text('Next: $next',
+            textAlign: TextAlign.center,
+            style: AppType.subhead.copyWith(color: c.ink2, fontFeatures: _tabular)),
+        Padding(
+          padding: const EdgeInsets.only(top: Spacing.xs),
+          child: Row(
+            spacing: Spacing.sm,
             children: [
-              SizedBox(
-                width: 32,
-                height: 32,
-                child: RotationTransition(
-                  turns: _spin,
-                  child: CustomPaint(
-                    painter: _RestSpinnerPainter(
-                        color: c.onAccent.withValues(alpha: 0.3)),
-                  ),
-                ),
-              ),
-              const SizedBox(width: Spacing.md),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'REST',
-                    style: AppType.caption2.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: c.onAccent.withValues(alpha: 0.85),
-                      letterSpacing: 1,
-                    ),
-                  ),
-                  Text(
-                    '$m:$s',
-                    style: AppFonts.sfr(
-                        size: 22, color: c.onAccent, letterSpacing: -0.3), // kept literal: 22pt rounded stat, no matching type token
-                  ),
-                ],
-              ),
-              const Spacer(),
-              PressScale(
-                onTap: widget.onAddTime,
+              PillButton(
+                label: '+30 s',
+                primary: false,
                 semanticLabel: 'Add 30 seconds rest',
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: Spacing.md, vertical: Spacing.sm),
-                  decoration: BoxDecoration(
-                    color: c.onAccent.withValues(alpha: 0.22),
-                    borderRadius: BorderRadius.circular(Radii.pill),
-                  ),
-                  child: Text('+30s',
-                      style: AppType.caption.copyWith(
-                          fontWeight: FontWeight.w600,
-                          color: c.onAccent,
-                          letterSpacing: -0.08)),
-                ),
+                onTap: onAddTime,
               ),
-              const SizedBox(width: Spacing.sm),
-              PressScale(
-                onTap: widget.onSkip,
-                semanticLabel: 'Skip rest',
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: Spacing.lg, vertical: Spacing.sm),
-                  decoration: BoxDecoration(
-                    color: c.onAccent,
-                    borderRadius: BorderRadius.circular(Radii.pill),
-                  ),
-                  child: Text('Skip',
-                      style: AppType.caption.copyWith(
-                          fontWeight: FontWeight.w700,
-                          color: c.accent,
-                          letterSpacing: -0.08)),
-                ),
-              ),
+              Expanded(child: PillButton(label: 'Skip rest', onTap: onSkip)),
             ],
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
 
-/// A 270° arc used as the rest-timer spinner (rotated by a RotationTransition).
-class _RestSpinnerPainter extends CustomPainter {
-  _RestSpinnerPainter({required this.color});
-  final Color color;
+class _FinishedCard extends StatelessWidget {
+  const _FinishedCard({required this.logged, required this.total, required this.onSummary});
 
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.5
-      ..strokeCap = StrokeCap.round
-      ..color = color;
-    final rect = Rect.fromCircle(
-      center: size.center(Offset.zero),
-      radius: (size.shortestSide - 2.5) / 2,
-    );
-    canvas.drawArc(rect, 0, 4.71239, false, paint); // ~270°
-  }
-
-  @override
-  bool shouldRepaint(_RestSpinnerPainter old) => old.color != color;
-}
-
-// ─── Current exercise card ───────────────────────────────────────────────────
-
-class _CurrentExerciseCard extends StatelessWidget {
-  const _CurrentExerciseCard({
-    required this.state,
-    required this.onLog,
-    required this.onAddSet,
-  });
-
-  final ActiveSessionState state;
-  final VoidCallback onLog;
-  final VoidCallback onAddSet;
+  final int logged;
+  final int total;
+  final VoidCallback onSummary;
 
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    final exercise = state.currentExercise;
-    final sets = state.currentExerciseSets;
-    final activeId = state.currentSet?.id;
-
-    return Container(
-      padding: const EdgeInsets.all(Spacing.xl),
-      decoration: BoxDecoration(
-        color: c.surface,
-        borderRadius: BorderRadius.circular(Radii.lg),
-        boxShadow: [
-          BoxShadow(color: c.hair, blurRadius: 0, spreadRadius: 0.5),
-          ...Elevation.sm(c.shadow),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 52,
-                height: 52,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [c.move, c.move.withValues(alpha: 0.8)],
-                  ),
-                  borderRadius: BorderRadius.circular(Radii.md),
-                ),
-                child: Center(
-                  child: AppIcon(exercise?.icon ?? 'dumbbell.fill',
-                      size: 26, color: c.onAccent),
-                ),
-              ),
-              const SizedBox(width: Spacing.md),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '● Now · exercise ${state.currentExerciseIndex + 1}',
-                      style: AppType.caption2.copyWith(
-                          fontWeight: FontWeight.w700,
-                          color: c.move,
-                          letterSpacing: 1.2),
-                    ),
-                    const SizedBox(height: Spacing.xxs),
-                    Text(
-                      exercise?.name ?? 'Exercise',
-                      style: AppFonts.sfr(
-                          size: 22, color: c.ink, letterSpacing: -0.4), // kept literal: 22pt rounded stat, no matching type token
-                    ),
-                    const SizedBox(height: Spacing.xs),
-                    Text(
-                      [exercise?.muscle, exercise?.equipment]
-                          .where((x) => x != null && x.isNotEmpty)
-                          .join(' · '),
-                      style: AppType.caption.copyWith(
-                          color: c.ink3, letterSpacing: -0.08),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          if (exercise?.pr != null) ...[
-            const SizedBox(height: Spacing.lg),
-            _PrChip(pr: exercise!.pr!),
+    return _Card(
+      gap: Spacing.md + Spacing.xxs,
+      children: [
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          spacing: Spacing.xxs,
+          children: [
+            Text('$logged of $total sets',
+                style: AppType.label.copyWith(color: c.ink3, fontFeatures: _tabular)),
+            Text('All sets logged', style: AppType.title.copyWith(color: c.ink)),
           ],
-          const SizedBox(height: Spacing.lg),
-          for (var i = 0; i < sets.length; i++) ...[
-            _SetRow(
-              number: i + 1,
-              set: sets[i],
-              isActive: sets[i].id == activeId,
-              onLog: onLog,
-            ),
-            if (i != sets.length - 1) const SizedBox(height: Spacing.sm),
-          ],
-          const SizedBox(height: Spacing.md),
-          _AddSetButton(onTap: onAddSet),
-        ],
-      ),
+        ),
+        PillButton(label: 'See your summary', onTap: onSummary),
+      ],
     );
   }
 }
 
-class _PrChip extends StatelessWidget {
-  const _PrChip({required this.pr});
-  final ExercisePR pr;
+// ─── Set list ────────────────────────────────────────────────────────────────
 
-  @override
-  Widget build(BuildContext context) {
-    final c = context.colors;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: Spacing.md, vertical: Spacing.sm),
-      decoration: BoxDecoration(
-        color: c.money.withValues(alpha: 0.07),
-        border: Border.all(color: c.money.withValues(alpha: 0.2)),
-        borderRadius: BorderRadius.circular(Radii.md),
-      ),
-      child: Row(
-        children: [
-          AppIcon('star.fill', size: 12, color: c.money),
-          const SizedBox(width: Spacing.sm),
-          Text('Your PR:',
-              style: AppType.caption.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: c.ink2,
-                  letterSpacing: -0.08)),
-          const SizedBox(width: Spacing.sm),
-          Text('${formatWeight(pr.weightKg)}kg × ${pr.reps}',
-              style: AppFonts.sfr(
-                  size: 13, color: c.ink, letterSpacing: -0.1)), // kept literal: 13pt rounded figure, no matching type token
-          const Spacer(),
-          Text('Beat it today?',
-              style: AppType.caption2.copyWith(
-                  color: c.ink3, letterSpacing: -0.08)),
-        ],
-      ),
-    );
-  }
-}
-
-/// A single set row: done (compact), active (input-ready hero), or upcoming.
 class _SetRow extends StatelessWidget {
   const _SetRow({
     required this.number,
     required this.set,
-    required this.isActive,
-    required this.onLog,
+    required this.current,
+    required this.resting,
+    required this.weight,
+    required this.reps,
+    required this.divided,
   });
 
   final int number;
   final SetLog set;
-  final bool isActive;
-  final VoidCallback onLog;
+  final bool current;
+  final bool resting;
+  final double weight;
+  final int reps;
+  final bool divided;
 
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    if (set.done) return _doneRow(c);
-    if (isActive) return _activeRow(c);
-    return _upcomingRow(c);
+    final done = set.done;
+    final value = current && !done
+        ? '${formatWeight(weight)} kg × $reps'
+        : '${formatWeight(set.weightKg)} kg × ${set.reps}';
+    return Container(
+      constraints: const BoxConstraints(minHeight: _rowMinHeight),
+      decoration: divided
+          ? BoxDecoration(border: Border(top: BorderSide(color: c.hair, width: _hairline)))
+          : null,
+      child: Row(
+        spacing: Spacing.md,
+        children: [
+          _disc(c, done),
+          Expanded(
+            child: Text.rich(
+              TextSpan(children: [
+                TextSpan(text: 'Set $number'),
+                if (current && !resting && !done)
+                  TextSpan(text: ' · now', style: AppType.label.copyWith(color: c.ink3)),
+              ]),
+              style: AppType.callout.copyWith(color: done ? c.ink3 : c.ink),
+            ),
+          ),
+          Text(value,
+              style: AppType.subhead.copyWith(
+                  color: done ? c.ink3 : c.ink2, fontFeatures: _tabular)),
+        ],
+      ),
+    );
   }
 
-  Widget _doneRow(AppColors c) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: Spacing.lg, vertical: Spacing.md),
-        decoration: BoxDecoration(
-          color: c.move.withValues(alpha: 0.055),
-          border: Border.all(color: c.move.withValues(alpha: 0.13)),
-          borderRadius: BorderRadius.circular(Radii.md),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 28,
-              height: 28,
-              decoration: BoxDecoration(color: c.move, shape: BoxShape.circle),
-              child: AppIcon('checkmark', size: 12, color: c.onAccent),
-            ),
-            const SizedBox(width: Spacing.md),
-            Text('SET $number',
-                style: AppType.footnote.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: c.ink3,
-                    letterSpacing: 0.3)),
-            const Spacer(),
-            if (set.isPR) ...[
-              AppIcon('star.fill', size: 11, color: c.money),
-              const SizedBox(width: Spacing.sm),
-            ],
-            Text(
-              '${formatWeight(set.weightKg)}kg × ${set.reps}',
-              style: AppFonts.sfr(
-                  size: 17, color: c.ink, letterSpacing: -0.2), // kept literal: 17pt rounded figure, no matching type token
-            ),
-          ],
-        ),
-      );
-
-  Widget _activeRow(AppColors c) => Container(
-        padding: const EdgeInsets.all(Spacing.lg),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [c.accentTint, c.accent.withValues(alpha: 0.08)],
-          ),
-          border: Border.all(color: c.accent, width: 1.5),
-          borderRadius: BorderRadius.circular(Radii.card),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              children: [
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: Spacing.md, vertical: Spacing.xs),
-                  decoration: BoxDecoration(
-                    color: c.accent,
-                    borderRadius: BorderRadius.circular(Radii.pill),
-                  ),
-                  child: Text('SET $number',
-                      style: AppType.caption2.copyWith(
-                          fontWeight: FontWeight.w700,
-                          color: c.onAccent,
-                          letterSpacing: 0.5)),
-                ),
-                const SizedBox(width: Spacing.md),
-                Expanded(
-                  child: Text(
-                    'Target: ${formatWeight(set.weightKg)}kg × ${set.reps} reps',
-                    style: AppType.caption2.copyWith(
-                        color: c.ink3, letterSpacing: -0.08),
-                  ),
-                ),
-                Text('ACTIVE',
-                    style: AppType.caption2.copyWith(
-                        fontWeight: FontWeight.w700,
-                        color: c.accent,
-                        letterSpacing: 0.8)),
-              ],
-            ),
-            const SizedBox(height: Spacing.md),
-            Row(
-              children: [
-                Expanded(child: _valueBox(c, 'Weight', formatWeight(set.weightKg), 'kg')),
-                const SizedBox(width: Spacing.md),
-                Expanded(child: _valueBox(c, 'Reps', '${set.reps}', null)),
-              ],
-            ),
-            const SizedBox(height: Spacing.md),
-            PressScale(
-              onTap: onLog,
-              semanticLabel: 'Complete set',
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 11), // kept literal: 11 keeps the CTA height
-                decoration: BoxDecoration(
-                  color: c.accent,
-                  borderRadius: BorderRadius.circular(Radii.md),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    AppIcon('checkmark', size: 13, color: c.onAccent),
-                    const SizedBox(width: Spacing.sm),
-                    Text('Complete set',
-                        style: AppType.subhead.copyWith(
-                            fontWeight: FontWeight.w700,
-                            color: c.onAccent,
-                            letterSpacing: -0.1)),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      );
-
-  Widget _valueBox(AppColors c, String label, String value, String? unit) =>
-      Container(
-        padding: const EdgeInsets.symmetric(horizontal: Spacing.md, vertical: Spacing.md),
-        decoration: BoxDecoration(
-          color: c.surface,
-          borderRadius: BorderRadius.circular(Radii.md),
-        ),
-        child: Column(
-          children: [
-            Text(label.toUpperCase(),
-                style: AppType.caption2.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: c.ink3,
-                    letterSpacing: 0.8)),
-            const SizedBox(height: Spacing.xxs),
-            Text.rich(
-              TextSpan(
-                text: value,
-                style: AppFonts.sfr(
-                    size: 28, color: c.ink, letterSpacing: -0.5, height: 1.1), // kept literal: 28pt rounded figure, no matching type token
-                children: unit == null
-                    ? null
-                    : [
-                        TextSpan(
-                          text: unit,
-                          style: AppType.footnote.copyWith(
-                              fontWeight: FontWeight.w500,
-                              color: c.ink3),
-                        ),
-                      ],
-              ),
-            ),
-          ],
-        ),
-      );
-
-  Widget _upcomingRow(AppColors c) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: Spacing.lg, vertical: Spacing.md),
-        decoration: BoxDecoration(
-          color: c.fill,
-          border: Border.all(color: c.hair),
-          borderRadius: BorderRadius.circular(Radii.md),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 28,
-              height: 28,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: c.ink4, width: 1.5),
-              ),
-              child: Text('$number',
-                  style: AppType.caption.copyWith(
-                      fontWeight: FontWeight.w700, color: c.ink3)),
-            ),
-            const SizedBox(width: Spacing.md),
-            Text('SET $number',
-                style: AppType.footnote.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: c.ink3,
-                    letterSpacing: 0.3)),
-            const Spacer(),
-            Text('${formatWeight(set.weightKg)}kg × ${set.reps}',
-                style: AppFonts.sfr(
-                    size: 15, // kept literal: 15pt rounded figure, no matching type token
-                    weight: FontWeight.w500,
-                    color: c.ink3,
-                    letterSpacing: -0.2)),
-          ],
-        ),
-      );
+  Widget _disc(AppColors c, bool done) {
+    final now = current && !done;
+    return Container(
+      width: _rowDisc,
+      height: _rowDisc,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: done ? c.surface2 : (now ? c.ink : null),
+        border: done || now ? null : Border.all(color: c.hair, width: _hairline),
+      ),
+      child: done
+          ? Semantics(
+              label: 'Done',
+              child: AppIcon('checkmark', size: _discGlyph, color: c.ink3),
+            )
+          : Text('$number',
+              style: AppType.caption.copyWith(
+                  color: now ? c.bg : c.ink3, fontFeatures: _tabular)),
+    );
+  }
 }
 
-class _AddSetButton extends StatelessWidget {
-  const _AddSetButton({required this.onTap});
-  final VoidCallback onTap;
+class _SetTools extends StatelessWidget {
+  const _SetTools({required this.canSkip, required this.onAddSet, required this.onSkip});
+
+  final bool canSkip;
+  final VoidCallback onAddSet;
+  final VoidCallback onSkip;
 
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    return PressScale(
-      onTap: onTap,
-      semanticLabel: 'Add set',
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: Spacing.md),
-        decoration: BoxDecoration(
-          border: Border.all(color: c.hair, width: 1.5),
-          borderRadius: BorderRadius.circular(Radii.md),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            AppIcon('plus', size: 12, color: c.ink3),
-            const SizedBox(width: Spacing.sm),
-            Text('Add set',
-                style: AppType.subhead.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: c.ink3,
-                    letterSpacing: -0.1)),
-          ],
-        ),
+    return Container(
+      padding: const EdgeInsets.only(top: Spacing.xs),
+      decoration: BoxDecoration(border: Border(top: BorderSide(color: c.hair, width: _hairline))),
+      child: Row(
+        spacing: Spacing.sm,
+        children: [
+          Flexible(child: _TextButton(label: 'Add set', icon: 'plus', onTap: onAddSet)),
+          const Spacer(),
+          if (canSkip)
+            Flexible(
+              child: _TextButton(label: 'Skip exercise', color: c.ink2, onTap: onSkip),
+            ),
+        ],
       ),
     );
   }
 }
 
-// ─── Up next ─────────────────────────────────────────────────────────────────
+class _UpNext extends StatelessWidget {
+  const _UpNext({required this.state});
 
-class _UpNextCard extends StatelessWidget {
-  const _UpNextCard({required this.state});
   final ActiveSessionState state;
 
   @override
@@ -919,128 +688,99 @@ class _UpNextCard extends StatelessWidget {
     final c = context.colors;
     final next = state.nextExercise!;
     final nextId = state.exerciseIds[state.currentExerciseIndex + 1];
-    final nextSets =
-        state.sets.where((s) => s.exerciseId == nextId).toList();
-    final first = nextSets.isEmpty ? null : nextSets.first;
-
-    return Container(
-      padding: const EdgeInsets.all(Spacing.lg),
-      decoration: BoxDecoration(
-        color: c.surface,
-        borderRadius: BorderRadius.circular(Radii.card),
-        boxShadow: [
-          BoxShadow(color: c.hair, blurRadius: 0, spreadRadius: 0.5),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: Spacing.sm, vertical: Spacing.xs),
-            decoration: BoxDecoration(
-              color: c.fill,
-              borderRadius: BorderRadius.circular(Radii.xs),
-            ),
-            child: Text('NEXT',
-                style: AppType.caption2.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: c.ink3,
-                    letterSpacing: 1)),
-          ),
-          const SizedBox(width: Spacing.md),
-          Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              color: c.move.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(Radii.md),
-            ),
-            child: AppIcon(next.icon, size: 18, color: c.move),
-          ),
-          const SizedBox(width: Spacing.md),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(next.name,
-                    style: AppType.subhead.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: c.ink,
-                        letterSpacing: -0.24)),
-                if (first != null) ...[
-                  const SizedBox(height: 1), // kept literal: 1px gap under the title
-                  Text(
-                    '${nextSets.length} sets · ${formatWeight(first.weightKg)}kg × ${first.reps}',
-                    style: AppType.caption.copyWith(
-                        color: c.ink3, letterSpacing: -0.08),
-                  ),
-                ],
-              ],
-            ),
-          ),
-          AppIcon('chevron.right', size: 13, color: c.ink4),
-        ],
-      ),
+    final count = state.sets.where((s) => s.exerciseId == nextId).length;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      spacing: Spacing.xs,
+      children: [
+        Text('Up next', style: AppType.label.copyWith(color: c.ink3)),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.baseline,
+          textBaseline: TextBaseline.alphabetic,
+          spacing: Spacing.sm,
+          children: [
+            Expanded(child: Text(next.name, style: AppType.callout.copyWith(color: c.ink))),
+            Text('$count sets', style: AppType.subhead.copyWith(color: c.ink3)),
+          ],
+        ),
+      ],
     );
   }
 }
 
-class _CompleteCard extends StatelessWidget {
-  const _CompleteCard({required this.c});
-  final AppColors c;
+// ─── Finish sheet ────────────────────────────────────────────────────────────
+
+class _FinishSheet extends StatelessWidget {
+  const _FinishSheet({required this.logged, required this.total});
+
+  final int logged;
+  final int total;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(Spacing.xxl),
-      decoration: BoxDecoration(
-        color: c.surface,
-        borderRadius: BorderRadius.circular(Radii.lg),
-        boxShadow: [
-          BoxShadow(color: c.hair, blurRadius: 0, spreadRadius: 0.5),
-        ],
-      ),
-      child: Column(
-        children: [
-          AppIcon('checkmark', size: 28, color: c.move),
-          const SizedBox(height: Spacing.md),
-          Text('All sets logged',
-              style: AppFonts.sfr(size: 18, color: c.ink, letterSpacing: -0.3)), // kept literal: 18pt rounded title, no matching type token
-          const SizedBox(height: Spacing.xs),
-          Text('Tap Finish to see your summary.',
-              style: AppType.footnote.copyWith(color: c.ink3, letterSpacing: -0.08)),
-        ],
-      ),
+    final c = context.colors;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      spacing: Spacing.lg,
+      children: [
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          spacing: Spacing.xs + Spacing.xxs,
+          children: [
+            Semantics(
+              header: true,
+              child: Text('Finish workout?', style: AppType.title.copyWith(color: c.ink)),
+            ),
+            Text(
+              '$logged of $total sets logged. This ends the session and shows your summary.',
+              style: AppType.subhead.copyWith(color: c.ink2, fontFeatures: _tabular),
+            ),
+          ],
+        ),
+        PillButton(label: 'Finish', onTap: () => Navigator.of(context).pop(true)),
+        PillButton(
+          label: 'Keep going',
+          primary: false,
+          onTap: () => Navigator.of(context).pop(false),
+        ),
+      ],
     );
   }
 }
 
 // ─── Shared bits ─────────────────────────────────────────────────────────────
 
-class _CircleButton extends StatelessWidget {
-  const _CircleButton({
-    required this.icon,
-    required this.onTap,
-    required this.background,
-  });
-  final String icon;
+/// A `headline` text button with no fill, at least 44 tall.
+class _TextButton extends StatelessWidget {
+  const _TextButton({required this.label, required this.onTap, this.icon, this.color});
+
+  final String label;
   final VoidCallback onTap;
-  final Color background;
+  final String? icon;
+  final Color? color;
 
   @override
   Widget build(BuildContext context) {
-    final c = context.colors;
+    final ink = color ?? context.colors.ink;
+    final icon = this.icon;
     return PressScale(
       onTap: onTap,
-      child: SizedBox(
-        width: 44,
-        height: 44,
-        child: Center(
-          child: Container(
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(color: background, shape: BoxShape.circle),
-            child: AppIcon(icon, size: 14, color: c.onAccent),
-          ),
+      semanticLabel: label,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: _minTap, minWidth: _minTap),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          spacing: Spacing.xs + Spacing.xxs,
+          children: [
+            if (icon != null) AppIcon(icon, size: _textIcon, color: ink),
+            Flexible(
+              child: Text(label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppType.headline.copyWith(color: ink)),
+            ),
+          ],
         ),
       ),
     );
