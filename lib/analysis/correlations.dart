@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import '../models/models.dart';
+import '../util/format.dart' show Currency, formatCurrency;
 import '../util/mood_scale.dart' show moodWord, hm;
 
 /// Statistical bar for surfacing a correlation (see the design spec). A pair
@@ -153,8 +154,11 @@ String inactiveDayLabel(Dimension binaryDim) => switch (binaryDim) {
       _ => 'other days',
     };
 
-String formatValue(Dimension d, double v) => switch (d) {
-      Dimension.money => '\$${v.round()}',
+/// [currency] only shapes Money; a daily mean is rounded since its cents are
+/// noise.
+String formatValue(Dimension d, double v, {Currency currency = Currency.usd}) =>
+    switch (d) {
+      Dimension.money => formatCurrency(v.roundToDouble(), currency),
       Dimension.move => '${v.round()} kcal',
       Dimension.nutrition => '${v.round()} cal',
       Dimension.rituals => v.round().toString(),

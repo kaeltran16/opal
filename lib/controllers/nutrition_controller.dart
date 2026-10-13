@@ -98,7 +98,10 @@ class NutritionState {
 }
 
 /// Streams the Nutrition view model and owns meal logging actions.
-@riverpod
+///
+/// No retry: a failing local query would fail again, and retrying holds Pal's
+/// findings loading.
+@Riverpod(retry: noRetry)
 class NutritionController extends _$NutritionController {
   /// Portion-size scale factors shared with the confirm sheet preview.
   static const Map<String, double> portionFactors = {

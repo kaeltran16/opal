@@ -14,7 +14,10 @@ part 'spend_patterns_controller.g.dart';
 /// Reactive: re-emits whenever in-window entries change. Every finding is
 /// independently gated, so an [sp.SpendPatterns.isEmpty] result is the honest
 /// answer for a thin history rather than a failure.
-@riverpod
+///
+/// No retry: a failing local query would fail again, and retrying holds Pal's
+/// findings loading.
+@Riverpod(retry: noRetry)
 Stream<sp.SpendPatterns> spendPatterns(Ref ref) async* {
   final entriesRepo = ref.watch(entryRepositoryProvider);
 

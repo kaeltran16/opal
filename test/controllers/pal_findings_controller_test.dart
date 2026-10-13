@@ -85,21 +85,38 @@ class _FakeNutritionController extends NutritionController {
   }
 }
 
+class _FailingNutritionController extends NutritionController {
+  @override
+  Stream<NutritionState> build() => Stream.error(Exception('db locked'));
+}
+
 ProviderContainer _container(
   SharedPreferences prefs, {
   Future<PalMemoryDigest> Function()? memory,
+  bool failingDbSources = false,
 }) {
-  // no auto-retry: a retrying source re-enters loading and rebuilds the
-  // findings forever, where the real palMemory catches and settles at once.
+  final dbError = Exception('db locked');
+  // no auto-retry by default: a retrying source re-enters loading and
+  // rebuilds the findings forever, where the real palMemory catches and
+  // settles at once. failing DB sources keep riverpod's default, so their own
+  // retry setting is what the test exercises.
   final c = ProviderContainer(
-    retry: (_, _) => null,
+    retry: failingDbSources ? null : (_, _) => null,
     overrides: [
       sharedPreferencesProvider.overrideWithValue(prefs),
       surfacedCorrelationsProvider.overrideWith(
-        (_) async => const [_corrWithBars, _corrNoBars],
+        (_) async => failingDbSources
+            ? throw dbError
+            : const [_corrWithBars, _corrNoBars],
       ),
-      spendPatternsProvider.overrideWith((_) => Stream.value(_spend)),
-      nutritionControllerProvider.overrideWith(_FakeNutritionController.new),
+      spendPatternsProvider.overrideWith(
+        (_) => failingDbSources ? Stream.error(dbError) : Stream.value(_spend),
+      ),
+      nutritionControllerProvider.overrideWith(
+        failingDbSources
+            ? _FailingNutritionController.new
+            : _FakeNutritionController.new,
+      ),
       palMemoryProvider.overrideWith((_) => (memory ?? () async => _memory)()),
     ],
   );
@@ -191,6 +208,30 @@ void main() {
       'money:no-spend-streak',
       'nutrition:Takeout vs. home',
     ]);
+  });
+
+  test(
+    'with the DB sources failing, Pal memory findings return promptly',
+    () async {
+      final c = _container(prefs, failingDbSources: true);
+      // well under riverpod's default retry schedule, which takes tens of
+      // seconds to give up.
+      final findings = await c
+          .read(palFindingsControllerProvider.future)
+          .timeout(const Duration(seconds: 5));
+
+      expect(_ids(findings), ['pal:Walks help']);
+    },
+  );
+
+  test('money comparisons use the chosen currency', () async {
+    SharedPreferences.setMockInitialValues({'settings.currency': 'VND'});
+    final c = _container(await SharedPreferences.getInstance());
+    final findings = await c.read(palFindingsControllerProvider.future);
+
+    final corr = findings.firstWhere((f) => f.id == 'corr:money-move:-');
+    expect(corr.a!.value, '20\u00a0₫');
+    expect(corr.b!.value, '60\u00a0₫');
   });
 
   test(

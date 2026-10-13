@@ -12,6 +12,9 @@ part of 'correlations_controller.dart';
 /// first. Computed on-device from entries + meals; empty when nothing clears
 /// the confidence bar (the honest empty state). Single source of truth shared
 /// by the Insights and Nutrition surfaces.
+///
+/// No retry: a failing local query would fail again, and retrying holds Pal's
+/// findings loading.
 
 @ProviderFor(surfacedCorrelations)
 const surfacedCorrelationsProvider = SurfacedCorrelationsProvider._();
@@ -20,6 +23,9 @@ const surfacedCorrelationsProvider = SurfacedCorrelationsProvider._();
 /// first. Computed on-device from entries + meals; empty when nothing clears
 /// the confidence bar (the honest empty state). Single source of truth shared
 /// by the Insights and Nutrition surfaces.
+///
+/// No retry: a failing local query would fail again, and retrying holds Pal's
+/// findings loading.
 
 final class SurfacedCorrelationsProvider
     extends
@@ -35,11 +41,14 @@ final class SurfacedCorrelationsProvider
   /// first. Computed on-device from entries + meals; empty when nothing clears
   /// the confidence bar (the honest empty state). Single source of truth shared
   /// by the Insights and Nutrition surfaces.
+  ///
+  /// No retry: a failing local query would fail again, and retrying holds Pal's
+  /// findings loading.
   const SurfacedCorrelationsProvider._()
     : super(
         from: null,
         argument: null,
-        retry: null,
+        retry: noRetry,
         name: r'surfacedCorrelationsProvider',
         isAutoDispose: true,
         dependencies: null,
@@ -62,4 +71,4 @@ final class SurfacedCorrelationsProvider
 }
 
 String _$surfacedCorrelationsHash() =>
-    r'7fbf6fdc23eca855700dbde8f0434778ee5c02cf';
+    r'5300244381e6bcf6b0f81977cd1cdade83318144';

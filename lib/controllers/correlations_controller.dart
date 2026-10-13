@@ -12,7 +12,10 @@ part 'correlations_controller.g.dart';
 /// first. Computed on-device from entries + meals; empty when nothing clears
 /// the confidence bar (the honest empty state). Single source of truth shared
 /// by the Insights and Nutrition surfaces.
-@riverpod
+///
+/// No retry: a failing local query would fail again, and retrying holds Pal's
+/// findings loading.
+@Riverpod(retry: noRetry)
 Future<List<corr.Correlation>> surfacedCorrelations(Ref ref) async {
   final entryRepo = ref.watch(entryRepositoryProvider);
   final nutritionRepo = ref.watch(nutritionRepositoryProvider);

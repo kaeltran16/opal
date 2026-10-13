@@ -46,7 +46,7 @@ final class PalFindingsControllerProvider
 }
 
 String _$palFindingsControllerHash() =>
-    r'6b1652b8132e37553d740d781d93939a4fa10c71';
+    r'f816b322cdae4f0ac2061a73babc2077b24e83bf';
 
 /// Every Pal finding, in source order (correlations, spend patterns,
 /// Nutrition's patterns, Pal's memory patterns), with the dismissed ones

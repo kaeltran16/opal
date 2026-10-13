@@ -38,7 +38,7 @@ void main() {
             countInactive: 20,
           ),
         ),
-      ]).single;
+      ], Currency.usd).single;
 
       expect(f.id, 'corr:money-move:-');
       expect(f.areas, ['Money', 'Move']);
@@ -54,10 +54,32 @@ void main() {
       expect(f.b!.fraction, 1.0);
     });
 
+    test('money sides are formatted in the given currency', () {
+      final f = findingsFromCorrelations(const [
+        Correlation(
+          a: Dimension.money,
+          b: Dimension.move,
+          r: -0.55,
+          n: 30,
+          breakdown: GroupBreakdown(
+            binaryDim: Dimension.move,
+            continuousDim: Dimension.money,
+            meanWhenActive: 20000.4,
+            meanWhenInactive: 60000,
+            countActive: 10,
+            countInactive: 20,
+          ),
+        ),
+      ], Currency.vnd).single;
+
+      expect(f.a!.value, '20.000\u00a0₫');
+      expect(f.b!.value, '60.000\u00a0₫');
+    });
+
     test('without a breakdown it states the direction and has no bars', () {
       final f = findingsFromCorrelations(const [
         Correlation(a: Dimension.nutrition, b: Dimension.mood, r: 0.5, n: 40),
-      ]).single;
+      ], Currency.usd).single;
 
       expect(f.id, 'corr:nutrition-mood:+');
       expect(f.areas, ['Nutrition', 'Mood']);
@@ -69,7 +91,7 @@ void main() {
     test('a negative r gets a minus id and says less', () {
       final f = findingsFromCorrelations(const [
         Correlation(a: Dimension.money, b: Dimension.mood, r: -0.45, n: 25),
-      ]).single;
+      ], Currency.usd).single;
 
       expect(f.id, 'corr:money-mood:-');
       expect(f.line, 'More spending goes with less mood.');

@@ -123,11 +123,12 @@ PalFinding _finding({
 );
 
 /// One finding per surfaced correlation, keeping their strongest-first order.
-List<PalFinding> findingsFromCorrelations(List<Correlation> correlations) => [
-  for (final c in correlations) _fromCorrelation(c),
-];
+List<PalFinding> findingsFromCorrelations(
+  List<Correlation> correlations,
+  Currency currency,
+) => [for (final c in correlations) _fromCorrelation(c, currency)];
 
-PalFinding _fromCorrelation(Correlation c) {
+PalFinding _fromCorrelation(Correlation c, Currency currency) {
   final id = 'corr:${c.a.name}-${c.b.name}:${c.r < 0 ? '-' : '+'}';
   final areas = [_areaOf(c.a), _areaOf(c.b)];
   final bd = c.breakdown;
@@ -152,10 +153,10 @@ PalFinding _fromCorrelation(Correlation c) {
     evidence: '${bd.countActive} $active, ${bd.countInactive} $inactive',
     sides: _sides(
       _capitalise(active),
-      formatValue(bd.continuousDim, bd.meanWhenActive),
+      formatValue(bd.continuousDim, bd.meanWhenActive, currency: currency),
       bd.meanWhenActive,
       _capitalise(inactive),
-      formatValue(bd.continuousDim, bd.meanWhenInactive),
+      formatValue(bd.continuousDim, bd.meanWhenInactive, currency: currency),
       bd.meanWhenInactive,
     ),
   );

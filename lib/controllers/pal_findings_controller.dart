@@ -27,6 +27,7 @@ class PalFindingsController extends _$PalFindingsController {
         'correlations',
         () async => findingsFromCorrelations(
           await ref.watch(surfacedCorrelationsProvider.future),
+          currency,
         ),
       ),
       _source(

@@ -14,6 +14,9 @@ part of 'spend_patterns_controller.dart';
 /// Reactive: re-emits whenever in-window entries change. Every finding is
 /// independently gated, so an [sp.SpendPatterns.isEmpty] result is the honest
 /// answer for a thin history rather than a failure.
+///
+/// No retry: a failing local query would fail again, and retrying holds Pal's
+/// findings loading.
 
 @ProviderFor(spendPatterns)
 const spendPatternsProvider = SpendPatternsProvider._();
@@ -24,6 +27,9 @@ const spendPatternsProvider = SpendPatternsProvider._();
 /// Reactive: re-emits whenever in-window entries change. Every finding is
 /// independently gated, so an [sp.SpendPatterns.isEmpty] result is the honest
 /// answer for a thin history rather than a failure.
+///
+/// No retry: a failing local query would fail again, and retrying holds Pal's
+/// findings loading.
 
 final class SpendPatternsProvider
     extends
@@ -39,11 +45,14 @@ final class SpendPatternsProvider
   /// Reactive: re-emits whenever in-window entries change. Every finding is
   /// independently gated, so an [sp.SpendPatterns.isEmpty] result is the honest
   /// answer for a thin history rather than a failure.
+  ///
+  /// No retry: a failing local query would fail again, and retrying holds Pal's
+  /// findings loading.
   const SpendPatternsProvider._()
     : super(
         from: null,
         argument: null,
-        retry: null,
+        retry: noRetry,
         name: r'spendPatternsProvider',
         isAutoDispose: true,
         dependencies: null,
@@ -65,4 +74,4 @@ final class SpendPatternsProvider
   }
 }
 
-String _$spendPatternsHash() => r'6bfc13821bc9e70e85ddeb82855160f9f693e5a2';
+String _$spendPatternsHash() => r'4aeb10af4f2f1f26072f9af270b6b45fc5043533';

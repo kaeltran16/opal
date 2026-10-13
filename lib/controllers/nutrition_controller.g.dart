@@ -9,19 +9,28 @@ part of 'nutrition_controller.dart';
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
 /// Streams the Nutrition view model and owns meal logging actions.
+///
+/// No retry: a failing local query would fail again, and retrying holds Pal's
+/// findings loading.
 
 @ProviderFor(NutritionController)
 const nutritionControllerProvider = NutritionControllerProvider._();
 
 /// Streams the Nutrition view model and owns meal logging actions.
+///
+/// No retry: a failing local query would fail again, and retrying holds Pal's
+/// findings loading.
 final class NutritionControllerProvider
     extends $StreamNotifierProvider<NutritionController, NutritionState> {
   /// Streams the Nutrition view model and owns meal logging actions.
+  ///
+  /// No retry: a failing local query would fail again, and retrying holds Pal's
+  /// findings loading.
   const NutritionControllerProvider._()
     : super(
         from: null,
         argument: null,
-        retry: null,
+        retry: noRetry,
         name: r'nutritionControllerProvider',
         isAutoDispose: true,
         dependencies: null,
@@ -37,9 +46,12 @@ final class NutritionControllerProvider
 }
 
 String _$nutritionControllerHash() =>
-    r'2ff18707ca17d940ba79d6f91599c2c4519e4a57';
+    r'118ff3e7d806b998fdf53c3b293991bd8ea2153c';
 
 /// Streams the Nutrition view model and owns meal logging actions.
+///
+/// No retry: a failing local query would fail again, and retrying holds Pal's
+/// findings loading.
 
 abstract class _$NutritionController extends $StreamNotifier<NutritionState> {
   Stream<NutritionState> build();

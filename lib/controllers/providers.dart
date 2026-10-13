@@ -18,6 +18,11 @@ import 'correlations_controller.dart';
 
 part 'providers.g.dart';
 
+/// `retry:` for a provider whose failure must show at once: riverpod's
+/// auto-retry holds a failure as loading (and keeps every watcher loading)
+/// until its retries give up.
+Duration? noRetry(int retryCount, Object error) => null;
+
 // ---------------------------------------------------------------------------
 // Database
 // ---------------------------------------------------------------------------

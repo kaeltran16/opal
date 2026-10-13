@@ -16,6 +16,9 @@ part of 'pal_agenda_controller.dart';
 /// error as Pal being offline and falls back to the clock. A failed refresh
 /// keeps the last proposals as the error's value, so callers read
 /// `.value ?? const PalAgenda()`.
+///
+/// No retry: a failure held as loading reads as online on Today. Pull to
+/// refresh and resume fetch again.
 
 @ProviderFor(palAgenda)
 const palAgendaProvider = PalAgendaProvider._();
@@ -28,6 +31,9 @@ const palAgendaProvider = PalAgendaProvider._();
 /// error as Pal being offline and falls back to the clock. A failed refresh
 /// keeps the last proposals as the error's value, so callers read
 /// `.value ?? const PalAgenda()`.
+///
+/// No retry: a failure held as loading reads as online on Today. Pull to
+/// refresh and resume fetch again.
 
 final class PalAgendaProvider
     extends
@@ -45,11 +51,14 @@ final class PalAgendaProvider
   /// error as Pal being offline and falls back to the clock. A failed refresh
   /// keeps the last proposals as the error's value, so callers read
   /// `.value ?? const PalAgenda()`.
+  ///
+  /// No retry: a failure held as loading reads as online on Today. Pull to
+  /// refresh and resume fetch again.
   const PalAgendaProvider._()
     : super(
         from: null,
         argument: null,
-        retry: _noRetry,
+        retry: noRetry,
         name: r'palAgendaProvider',
         isAutoDispose: true,
         dependencies: null,
@@ -70,4 +79,4 @@ final class PalAgendaProvider
   }
 }
 
-String _$palAgendaHash() => r'cde3b80044a82f4b978e759e87e7ea56a2103c77';
+String _$palAgendaHash() => r'90846f961c503a21b2dd42f1019210755bff9f95';
