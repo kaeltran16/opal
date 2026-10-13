@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opal/analysis/correlations.dart';
 import 'package:opal/models/models.dart';
+import 'package:opal/util/format.dart' show Currency;
 
 void main() {
   group('pearson', () {
@@ -60,9 +61,15 @@ void main() {
           'strong');
     });
     test('summary states the two-group comparison factually', () {
-      expect(c.summary, contains('workout days'));
-      expect(c.summary, contains('\$34'));
-      expect(c.summary, contains('\$52'));
+      final s = c.summary(Currency.usd);
+      expect(s, contains('workout days'));
+      expect(s, contains('\$34'));
+      expect(s, contains('\$52'));
+    });
+    test('summary formats money in the user currency', () {
+      final s = c.summary(Currency.vnd);
+      expect(s, contains('₫'));
+      expect(s, isNot(contains('\$')));
     });
   });
 

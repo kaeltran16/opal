@@ -332,7 +332,8 @@ PalService palService(Ref ref) {
         streakDays: moveStreakDays(lookback, now: now),
         routines: await ritualRoutines.getAll(),
         periodStart: start,
-        correlationSummary: surfaced.isEmpty ? null : surfaced.first.summary,
+        correlationSummary:
+            surfaced.isEmpty ? null : surfaced.first.summary(settings.currency),
         currency: settings.currency,
       );
     },

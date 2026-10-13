@@ -115,15 +115,15 @@ class Correlation {
     return 'slight';
   }
 
-  String get summary {
+  String summary(Currency currency) {
     final bd = breakdown;
     if (bd != null) {
       final active = activeDayLabel(bd.binaryDim);
       final inactive = inactiveDayLabel(bd.binaryDim);
       return 'On your ${bd.countActive} $active you averaged '
-          '${formatValue(bd.continuousDim, bd.meanWhenActive)}; '
+          '${formatValue(bd.continuousDim, bd.meanWhenActive, currency: currency)}; '
           'on your ${bd.countInactive} $inactive, '
-          '${formatValue(bd.continuousDim, bd.meanWhenInactive)}.';
+          '${formatValue(bd.continuousDim, bd.meanWhenInactive, currency: currency)}.';
     }
     final dir = r >= 0 ? 'higher' : 'lower';
     return 'Days with more ${dimensionNoun(a)} tend to run $dir on '
