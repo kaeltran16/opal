@@ -3,6 +3,10 @@ import 'package:flutter/widgets.dart';
 import '../theme/theme.dart';
 import 'app_icon.dart';
 
+const double _keyHeight = 52;
+const double _deleteIcon = 22;
+const Duration _pressFade = Duration(milliseconds: 120);
+
 /// A custom 3×4 numeric keypad (digits 0–9, a decimal key, and a delete key).
 ///
 /// Stateless and value-agnostic: it only emits *intents* and lets the caller
@@ -70,7 +74,7 @@ class Keypad extends StatelessWidget {
   }
 }
 
-class _Key extends StatelessWidget {
+class _Key extends StatefulWidget {
   const _Key({
     required this.token,
     required this.showDecimal,
@@ -85,48 +89,60 @@ class _Key extends StatelessWidget {
   final VoidCallback onDecimal;
   final VoidCallback onDelete;
 
-  bool get _isDecimal => token == '.';
-  bool get _isDelete => token == 'del';
-  bool get _isInert => _isDecimal && !showDecimal;
+  @override
+  State<_Key> createState() => _KeyState();
+}
+
+class _KeyState extends State<_Key> {
+  bool _down = false;
+
+  bool get _isDecimal => widget.token == '.';
+  bool get _isDelete => widget.token == 'del';
+  bool get _isInert => _isDecimal && !widget.showDecimal;
 
   void _tap() {
     if (_isDelete) {
-      onDelete();
+      widget.onDelete();
     } else if (_isDecimal) {
-      onDecimal();
+      widget.onDecimal();
     } else {
-      onDigit(token);
+      widget.onDigit(widget.token);
     }
   }
+
+  void _set(bool down) => setState(() => _down = down);
 
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
     if (_isInert) {
       // Keep the grid balanced but render nothing tappable.
-      return const SizedBox(height: 52); // kept literal: matches the 52 key height below
+      return const SizedBox(height: _keyHeight);
     }
     return Semantics(
       button: true,
-      label: _isDelete ? 'delete' : token,
+      label: _isDelete ? 'delete' : widget.token,
       child: GestureDetector(
         onTap: _tap,
+        onTapDown: (_) => _set(true),
+        onTapUp: (_) => _set(false),
+        onTapCancel: () => _set(false),
         behavior: HitTestBehavior.opaque,
-        child: Container(
-          height: 52,
+        child: AnimatedContainer(
+          duration: _pressFade,
+          height: _keyHeight,
           decoration: BoxDecoration(
-            color: c.surface,
-            borderRadius: BorderRadius.circular(Radii.card),
+            color: _down ? c.surface2 : null,
+            borderRadius: BorderRadius.circular(Radii.pill),
           ),
           alignment: Alignment.center,
           child: _isDelete
-              ? AppIcon('delete.left.fill', size: 22, color: c.ink2)
+              ? AppIcon('delete.left.fill', size: _deleteIcon, color: c.ink)
               : Text(
-                  token,
-                  style: AppFonts.sfr(
-                    size: 26, // kept literal: 26pt rounded key digit, no matching type token
-                    weight: FontWeight.w500,
+                  widget.token,
+                  style: AppType.title.copyWith(
                     color: c.ink,
+                    fontFeatures: const [FontFeature.tabularFigures()],
                   ),
                 ),
         ),

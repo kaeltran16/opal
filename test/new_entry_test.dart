@@ -11,6 +11,8 @@ import 'package:opal/models/models.dart';
 import 'package:opal/screens/entry/new_entry_sheet.dart';
 import 'package:opal/services/services.dart';
 import 'package:opal/theme/app_colors.dart';
+import 'package:opal/theme/app_type.dart';
+import 'package:opal/util/format.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Pumps the [NewEntrySheet] inside a ProviderScope + GoRouter so that
@@ -20,6 +22,8 @@ Future<EntryRepository> _pumpSheet(
   WidgetTester tester,
   LoopDatabase db, {
   PalService? pal,
+  String? notice,
+  Map<String, Object> prefsValues = const {},
 }) async {
   final router = GoRouter(
     initialLocation: '/host',
@@ -30,7 +34,7 @@ Future<EntryRepository> _pumpSheet(
         routes: [
           GoRoute(
             path: 'new',
-            builder: (context, state) => const NewEntrySheet(),
+            builder: (context, state) => NewEntrySheet(notice: notice),
           ),
         ],
       ),
@@ -39,7 +43,7 @@ Future<EntryRepository> _pumpSheet(
 
   // The expense-add path now nudges the budget-alert controller, which reads
   // settings (shared_preferences) — provide a mock instance.
-  SharedPreferences.setMockInitialValues({});
+  SharedPreferences.setMockInitialValues(prefsValues);
   final prefs = await SharedPreferences.getInstance();
 
   await tester.pumpWidget(
@@ -92,8 +96,13 @@ void main() {
     await tapKey('7');
     await tapKey('5');
 
-    // Display reflects the typed amount (number run, "$" rendered separately).
+    // Display reflects the typed amount (number run, "$" rendered separately),
+    // light and tabular in the display role.
     expect(find.text('5.75'), findsOneWidget);
+    final amount = tester.widget<Text>(find.text('5.75')).style!;
+    expect(amount.fontWeight, FontWeight.w300);
+    expect(amount.fontSize, AppType.display.fontSize);
+    expect(amount.fontFeatures, contains(const FontFeature.tabularFigures()));
 
     // Tap Add.
     await tester.tap(find.text('Add'));
@@ -153,6 +162,8 @@ void main() {
 
     await tester.tap(find.text('Add'));
     await tester.pumpAndSettle();
+    // Add closes the sheet once the entry is written.
+    expect(find.byType(NewEntrySheet), findsNothing);
 
     final all = await repo.getAll();
     expect(all, hasLength(1));
@@ -175,7 +186,7 @@ void main() {
     );
 
     // The "Log with Pal" NL box sits inline at the top of the scrollable list.
-    expect(find.text('LOG WITH PAL'), findsOneWidget);
+    expect(find.text('Log with Pal'), findsOneWidget);
 
     // Enter natural-language text into the NL field and tap Parse.
     await tester.enterText(find.byType(TextField).first, 'coffee 5');
@@ -231,5 +242,66 @@ void main() {
     final e = (await repo.getAll()).single;
     expect(e.type, EntryType.money);
     expect(e.category, 'Groceries');
+  });
+
+  testWidgets('the typed amount follows the user currency', (tester) async {
+    final db = LoopDatabase.forTesting(NativeDatabase.memory());
+    addTearDown(db.close);
+
+    await _pumpSheet(tester, db, prefsValues: {'settings.currency': Currency.vnd.code});
+
+    for (final key in ['5', '0', '0', '0']) {
+      await tester.tap(find.text(key));
+      await tester.pump();
+    }
+
+    expect(find.text('5.000'), findsOneWidget);
+    expect(find.text(Currency.vnd.symbol), findsOneWidget);
+    expect(find.text('\$'), findsNothing);
+    // VND has no cents, so the keypad drops its decimal key.
+    expect(find.text('.'), findsNothing);
+  });
+
+  testWidgets('arriving from an offline Pal explains the hand-off', (tester) async {
+    final db = LoopDatabase.forTesting(NativeDatabase.memory());
+    addTearDown(db.close);
+
+    await _pumpSheet(tester, db, notice: 'pal-offline');
+
+    expect(find.text("Pal's unreachable — log it here."), findsOneWidget);
+  });
+
+  testWidgets('Cancel closes the sheet without writing', (tester) async {
+    final db = LoopDatabase.forTesting(NativeDatabase.memory());
+    addTearDown(db.close);
+
+    final repo = await _pumpSheet(tester, db);
+    await tester.tap(find.text('5'));
+    await tester.pump();
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(NewEntrySheet), findsNothing);
+    expect(await repo.getAll(), isEmpty);
+  });
+
+  testWidgets('a ritual entry logs its typed title', (tester) async {
+    final db = LoopDatabase.forTesting(NativeDatabase.memory());
+    addTearDown(db.close);
+
+    final repo = await _pumpSheet(tester, db);
+    await tester.tap(find.text('Routine'));
+    await tester.pumpAndSettle();
+
+    final title = find.byWidgetPredicate(
+        (w) => w is TextField && w.decoration?.hintText == 'Routine title');
+    await tester.enterText(title, 'Stretch');
+    await tester.pump();
+    await tester.tap(find.text('Add'));
+    await tester.pumpAndSettle();
+
+    final e = (await repo.getAll()).single;
+    expect(e.type, EntryType.rituals);
+    expect(e.title, 'Stretch');
   });
 }
