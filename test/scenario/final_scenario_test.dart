@@ -4,14 +4,13 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:opal/controllers/spending_controller.dart' show DetailTracker;
+import 'package:opal/analysis/area.dart';
 import 'package:opal/screens/detail/detail_screen.dart';
 import 'package:opal/screens/today/today_screen.dart';
 import 'package:opal/widgets/contributor_bar.dart';
 import 'package:opal/widgets/day_scene.dart';
 import 'package:opal/widgets/glass_tab_bar.dart';
 import 'package:opal/widgets/pal_ask_bar.dart';
-import 'package:opal/widgets/inset_section.dart';
 import 'package:opal/widgets/pal_label.dart';
 import 'package:opal/widgets/week_bars.dart';
 
@@ -53,18 +52,18 @@ void main() {
     await shot(tester, 'final_today_$theme');
 
     await tester.tap(find.descendant(
-        of: find.byType(GlassTabBar), matching: find.bySemanticsLabel('Areas')));
+        of: find.byType(GlassTabBar), matching: find.bySemanticsLabel(RegExp('^Areas'))));
     await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(ListRow, 'Money'));
+    await tester.tap(find.bySemanticsLabel(RegExp('^Money')));
     await tester.pumpAndSettle();
 
     expect(
       find.byWidgetPredicate(
-        (w) => w is DetailScreen && w.tracker == DetailTracker.money,
+        (w) => w is DetailScreen && w.area == Area.money,
       ),
       findsOneWidget,
     );
-    expect(find.bySemanticsLabel('Back to Today'), findsOneWidget);
+    expect(find.bySemanticsLabel('Back to Areas'), findsOneWidget);
     expect(_onPage(find.text('Money')), findsOneWidget);
     expect(_onPage(find.text(_dateLine)), findsOneWidget);
     expect(_onPage(find.text('What is shaping it')), findsOneWidget);

@@ -5,11 +5,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:opal/analysis/area.dart';
 import 'package:opal/analysis/area_state.dart';
 import 'package:opal/controllers/area_detail_controller.dart';
 import 'package:opal/controllers/providers.dart';
 import 'package:opal/controllers/rituals_controller.dart';
-import 'package:opal/controllers/spending_controller.dart';
 import 'package:opal/controllers/weekly_plan_controller.dart';
 import 'package:opal/data/db/database.dart';
 import 'package:opal/data/repositories/repositories.dart';
@@ -90,7 +90,7 @@ const _pushDay = WeekPlanDay(
 );
 
 AreaDetail _build(
-  DetailTracker tracker,
+  Area area,
   List<Entry> entries, {
   Goals goals = const Goals(dailyBudget: 60, dailyMoveKcal: 500),
   List<RitualRoutine> routines = const [],
@@ -99,7 +99,7 @@ AreaDetail _build(
   DateTime? now,
 }) =>
     buildAreaDetail(
-      tracker: tracker,
+      area: area,
       entries: entries,
       goals: goals,
       routines: routines,
@@ -107,6 +107,45 @@ AreaDetail _build(
       workout: workout,
       currency: Currency.usd,
       now: now ?? _now,
+    );
+
+NutritionMeal _meal(
+  String id,
+  int kcal, {
+  int daysAgo = 0,
+  int hour = 9,
+  int protein = 0,
+  int carbs = 0,
+  int fat = 0,
+}) =>
+    NutritionMeal(
+      id: id,
+      timestamp: _at(daysAgo, hour),
+      slot: 'Lunch',
+      name: id,
+      source: NutritionSource.home,
+      icon: 'fork.knife',
+      confidence: NutritionConfidence.med,
+      cal: IntRange(kcal, kcal),
+      macros: Macros(
+        protein: IntRange(protein, protein),
+        carbs: IntRange(carbs, carbs),
+        fat: IntRange(fat, fat),
+      ),
+    );
+
+MoodCheckin _checkin(
+  String id,
+  double pleasantness, {
+  int daysAgo = 0,
+  int hour = 9,
+  int minute = 0,
+}) =>
+    MoodCheckin(
+      id: id,
+      timestamp: _at(daysAgo, hour).add(Duration(minutes: minute)),
+      pleasantness: pleasantness,
+      source: EntrySource.manual,
     );
 
 String _usd(num v) => formatCurrency(v, Currency.usd);
@@ -132,7 +171,7 @@ void main() {
     ];
 
     test('under budget on pace', () {
-      final d = _build(DetailTracker.money, today);
+      final d = _build(Area.money, today);
 
       expect(d.hero, _usd(22));
       expect(d.unit, 'left of ${_usd(60)} today');
@@ -152,7 +191,7 @@ void main() {
     });
 
     test('ahead of the day\'s pace is worth watching', () {
-      final d = _build(DetailTracker.money, today,
+      final d = _build(Area.money, today,
           now: DateTime(2026, 10, 1, 9));
 
       expect(d.state, AreaState.watch);
@@ -160,7 +199,7 @@ void main() {
     });
 
     test('over budget shows the overage, never a negative', () {
-      final d = _build(DetailTracker.money, [...today, _spend(27, 'Food')]);
+      final d = _build(Area.money, [...today, _spend(27, 'Food')]);
 
       expect(d.hero, _usd(5));
       expect(d.unit, 'over ${_usd(60)} today');
@@ -173,7 +212,7 @@ void main() {
 
     test('no budget reads as a plain amount', () {
       final d = _build(
-        DetailTracker.money,
+        Area.money,
         [...today, _spend(90, 'Food', daysAgo: 1)],
         goals: const Goals(dailyBudget: 0),
       );
@@ -191,7 +230,7 @@ void main() {
     });
 
     test('week runs Monday first and only past days can be off', () {
-      final d = _build(DetailTracker.money, [
+      final d = _build(Area.money, [
         _spend(48, 'Food', daysAgo: 3),
         _spend(61, 'Food', daysAgo: 2),
         _spend(35, 'Food', daysAgo: 1),
@@ -209,7 +248,7 @@ void main() {
     });
 
     test('last week does not leak into this week', () {
-      final d = _build(DetailTracker.money, [_spend(500, 'Rent', daysAgo: 4)]);
+      final d = _build(Area.money, [_spend(500, 'Rent', daysAgo: 4)]);
 
       expect(d.week.map((b) => b.value), [0, 0, 0, 0, null, null, null]);
       expect(d.weekNote, 'Every day on track');
@@ -219,7 +258,7 @@ void main() {
   group('move', () {
     test('under goal with a workout planned', () {
       final d = _build(
-        DetailTracker.move,
+        Area.move,
         [
           _burn(310),
           _burn(520, daysAgo: 3),
@@ -250,7 +289,7 @@ void main() {
 
     test('a finished workout reads Done and drops out of the Pal line', () {
       final d = _build(
-        DetailTracker.move,
+        Area.move,
         [_burn(310)],
         workout: const WeekPlanDay(
           day: 'Thu',
@@ -272,7 +311,7 @@ void main() {
 
     test('a rest day adds no contributor', () {
       final d = _build(
-        DetailTracker.move,
+        Area.move,
         [_burn(310)],
         workout: const WeekPlanDay(
           day: 'Thu',
@@ -289,7 +328,7 @@ void main() {
     });
 
     test('goal met', () {
-      final d = _build(DetailTracker.move, [_burn(520)], workout: _pushDay);
+      final d = _build(Area.move, [_burn(520)], workout: _pushDay);
 
       expect(d.state, AreaState.thriving);
       expect(d.palLine, 'Goal met.');
@@ -298,7 +337,7 @@ void main() {
 
     test('no goal reads as a plain amount', () {
       final d = _build(
-        DetailTracker.move,
+        Area.move,
         [_burn(310), _burn(40, daysAgo: 1)],
         goals: const Goals(dailyMoveKcal: 0),
       );
@@ -324,7 +363,7 @@ void main() {
 
     test('two of four done', () {
       final d = _build(
-        DetailTracker.rituals,
+        Area.routines,
         [
           ..._allSteps(morning),
           ..._allSteps(midday),
@@ -346,17 +385,53 @@ void main() {
       expect(d.goal, 4);
       expect(d.goalLabel, 'all 4 routines');
 
-      expect(d.contributors.map((c) => c.label),
-          ['Morning', 'Midday', 'Evening', 'Night']);
-      expect(d.contributors.map((c) => c.value),
-          ['2 of 2 steps', '1 of 1 steps', '2 of 5 steps', '0 of 1 steps']);
-      expect(d.contributors.map((c) => c.fraction), [1, 1, closeTo(0.4, 1e-9), 0]);
+      expect(
+        [for (final c in d.contributors) (c.label, c.value, c.fraction)],
+        [('Done', '2 of 4', 0.5), ('Evening, 9:00 PM', '5 steps', 0)],
+      );
+      expect(
+        [for (final r in d.routines) (r.id, r.name, r.detail, r.done)],
+        [
+          ('morning', 'Morning', 'Done', true),
+          ('midday', 'Midday', 'Done', true),
+          ('evening', 'Evening', '9:00 PM · 5 steps', false),
+          ('night', 'Night', '10:30 PM · 1 step', false),
+        ],
+      );
+      expect(d.routines.map((r) => r.semanticLabel), [
+        'Morning, done',
+        'Midday, done',
+        'Evening, at 9:00 PM, 5 steps',
+        'Night, at 10:30 PM, 1 step',
+      ]);
+    });
+
+    test('an empty time and zero steps leave no stray separator', () {
+      final untimed = _routine('untimed', 'Untimed', '', 3);
+      final empty = _routine('empty', 'Empty', '8:00 AM', 0);
+      final d = _build(
+        Area.routines,
+        const [],
+        routines: [untimed, empty],
+        rituals: RitualsState(routines: [untimed, empty], progress: const {}),
+      );
+
+      expect(d.routines.map((r) => (r.detail, r.done)),
+          [('3 steps', false), ('8:00 AM · 0 steps', false)]);
+      expect(d.routines.map((r) => r.semanticLabel),
+          ['Untimed, 3 steps', 'Empty, at 8:00 AM, 0 steps']);
+      // the next open routine has no time, so its label is the name alone.
+      expect(
+        [for (final c in d.contributors) (c.label, c.value)],
+        [('Done', '0 of 2'), ('Untimed', '3 steps')],
+      );
+      _expectFinite(d);
     });
 
     test('a routine counts for a day only when every step was logged that day',
         () {
       final d = _build(
-        DetailTracker.rituals,
+        Area.routines,
         [
           // Monday: everything.
           for (final r in _routines) ..._allSteps(r, daysAgo: 3),
@@ -383,7 +458,7 @@ void main() {
 
     test('all done', () {
       final d = _build(
-        DetailTracker.rituals,
+        Area.routines,
         [for (final r in _routines) ..._allSteps(r)],
         routines: _routines,
         rituals: RitualsState(routines: _routines, progress: const {
@@ -397,11 +472,15 @@ void main() {
       expect(d.hero, '4');
       expect(d.state, AreaState.thriving);
       expect(d.palLine, 'All 4 done.');
+      // nothing is open, so only Done remains.
+      expect(d.contributors.map((c) => (c.label, c.value, c.fraction)),
+          [('Done', '4 of 4', 1)]);
+      expect(d.routines.every((r) => r.done && r.detail == 'Done'), isTrue);
     });
 
     test('none set up', () {
       final d = _build(
-        DetailTracker.rituals,
+        Area.routines,
         // stray ritual entries from routines that no longer exist
         [_step('gone-step-0'), _step('gone-step-0', daysAgo: 1)],
         rituals: const RitualsState(routines: [], progress: {}),
@@ -412,11 +491,150 @@ void main() {
       expect(d.state, AreaState.good);
       expect(d.palLine, 'No routines set up yet.');
       expect(d.contributors, isEmpty);
+      expect(d.routines, isEmpty);
       expect(d.goal, 0);
       expect(d.goalLabel, '');
       expect(d.weekNote, 'Every day on track');
       _expectFinite(d);
     });
+  });
+
+  group('nutrition', () {
+    // inserted out of order: the page lists them oldest first.
+    final lunch = _meal('lunch', 690, hour: 12, protein: 46, carbs: 78, fat: 24);
+    final breakfast = _meal('breakfast', 380, hour: 7, protein: 12, carbs: 64, fat: 9);
+    final tuesday = _meal('tue', 1200, daysAgo: 2);
+    final lastWeek = _meal('last-week', 900, daysAgo: 7);
+
+    test('two meals: hero, macro shares, line, meals and week', () {
+      final d = buildNutritionDetail([lunch, breakfast, tuesday, lastWeek], _now);
+
+      expect(d.area, Area.nutrition);
+      expect(d.hero, '1,070');
+      expect(d.unit, 'kcal eaten today');
+      expect(d.state, isNull);
+      expect(d.palLine, '2 meals logged today.');
+      expect(d.meals.map((m) => m.id), ['breakfast', 'lunch']);
+      expect(d.routines, isEmpty);
+      expect(d.days, isEmpty);
+
+      // 58 g protein, 142 g carbs, 33 g fat: 232 + 568 + 297 = 1097 kcal.
+      expect(
+        [for (final c in d.contributors) (c.label, c.value)],
+        [('Protein', '58 g'), ('Carbs', '142 g'), ('Fat', '33 g')],
+      );
+      expect(d.contributors.map((c) => c.fraction), [
+        closeTo(232 / 1097, 1e-9),
+        closeTo(568 / 1097, 1e-9),
+        closeTo(297 / 1097, 1e-9),
+      ]);
+      expect(d.contributors.any((c) => c.off), isFalse);
+
+      expect(d.week.map((b) => b.value), [0, 1200, 0, 1070, null, null, null]);
+      expect(d.week.any((b) => b.off), isFalse);
+      expect(d.goal, 0);
+      expect(d.goalLabel, '');
+      expect(d.weekNote, 'Kcal eaten each day');
+      _expectFinite(d);
+    });
+
+    test('one meal reads in the singular', () {
+      expect(buildNutritionDetail([breakfast], _now).palLine, '1 meal logged today.');
+    });
+
+    test('no meals today', () {
+      final d = buildNutritionDetail([tuesday], _now);
+
+      expect(d.hero, '0');
+      expect(d.unit, 'kcal eaten today');
+      expect(d.palLine, 'No meals logged yet today.');
+      expect(d.meals, isEmpty);
+      expect(
+        [for (final c in d.contributors) (c.label, c.value, c.fraction)],
+        [('Protein', '0 g', 0), ('Carbs', '0 g', 0), ('Fat', '0 g', 0)],
+      );
+      expect(d.week.map((b) => b.value), [0, 1200, 0, 0, null, null, null]);
+      _expectFinite(d);
+    });
+  });
+
+  group('mood', () {
+    final morning = _checkin('morning', 0.9, hour: 8, minute: 15);
+    final afternoon = _checkin('afternoon', 0.5, hour: 13, minute: 5);
+    final yesterday = [
+      _checkin('y1', 0.2, daysAgo: 1),
+      _checkin('y2', 0.6, daysAgo: 1, hour: 20),
+    ];
+
+    test('with check-ins today', () {
+      final d = buildMoodDetail([afternoon, morning, ...yesterday], _now);
+
+      expect(d.area, Area.mood);
+      expect(d.hero, 'Neutral');
+      expect(d.unit, 'at 1:05 PM');
+      expect(d.state, isNull);
+      expect(d.palLine, 'Last check-in at 1:05 PM.');
+      expect(
+        [for (final c in d.contributors) (c.label, c.value, c.fraction)],
+        [('8:15 AM', 'Pleasant', 0.9), ('1:05 PM', 'Neutral', 0.5)],
+      );
+      expect(d.week.map((b) => b.value),
+          [null, null, closeTo(0.4, 1e-9), closeTo(0.7, 1e-9), null, null, null]);
+      expect(d.week.any((b) => b.off), isFalse);
+      expect(d.goal, 0);
+      expect(d.goalLabel, '');
+      expect(d.weekNote, 'Average of each day');
+      expect(d.days, isEmpty);
+      _expectFinite(d);
+    });
+
+    test('without a check-in today', () {
+      final d = buildMoodDetail(yesterday, _now);
+
+      expect(d.hero, '—');
+      expect(d.unit, 'No check-in yet today');
+      expect(d.palLine, 'No check-in yet today.');
+      expect(d.contributors, isEmpty);
+      expect(d.week.map((b) => b.value),
+          [null, null, closeTo(0.4, 1e-9), null, null, null, null]);
+    });
+  });
+
+  test('an area without an entry tracker has no entry-based builder', () {
+    for (final area in Area.values.where((a) => a.tracker == null)) {
+      expect(() => _build(area, const []), throwsArgumentError, reason: area.name);
+    }
+  });
+
+  test('the nutrition provider re-emits after a meal is logged', () async {
+    final db = LoopDatabase.forTesting(NativeDatabase.memory());
+    addTearDown(db.close);
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
+
+    final container = ProviderContainer(overrides: [
+      loopDatabaseProvider.overrideWithValue(db),
+      sharedPreferencesProvider.overrideWithValue(prefs),
+    ]);
+    addTearDown(container.dispose);
+
+    final provider = areaDetailProvider(Area.nutrition);
+    final logged = Completer<AreaDetail>();
+    container.listen(provider, (_, next) {
+      final d = next.value;
+      if (d != null && d.meals.isNotEmpty && !logged.isCompleted) logged.complete(d);
+    });
+
+    final first = await container.read(provider.future);
+    expect(first.palLine, 'No meals logged yet today.');
+
+    final now = DateTime.now();
+    await NutritionRepository(db).insert(_meal('m', 500, hour: 0).copyWith(
+        timestamp: DateTime(now.year, now.month, now.day)));
+
+    final after = await logged.future.timeout(const Duration(seconds: 5));
+    expect(after.hero, '500');
+    expect(after.palLine, '1 meal logged today.');
   });
 
   test('the provider re-emits after an entry is inserted', () async {
@@ -432,7 +650,7 @@ void main() {
     ]);
     addTearDown(container.dispose);
 
-    final provider = areaDetailProvider(DetailTracker.money);
+    final provider = areaDetailProvider(Area.money);
     final spent = Completer<AreaDetail>();
     container.listen(provider, (_, next) {
       final d = next.value;

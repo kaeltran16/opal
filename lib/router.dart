@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import 'analysis/area.dart';
-import 'controllers/spending_controller.dart';
 import 'theme/theme.dart';
 import 'screens/areas/areas_screen.dart';
 import 'screens/detail/detail_screen.dart';
@@ -16,7 +15,6 @@ import 'screens/move/weekly_plan_screen.dart';
 import 'screens/move/workout_history_screen.dart';
 import 'screens/nutrition/nutrition_meal_detail_screen.dart';
 import 'screens/nutrition/nutrition_patterns_screen.dart';
-import 'screens/nutrition/nutrition_screen.dart';
 import 'screens/onboarding/onboarding_screen.dart';
 import 'screens/pal/pal_composer_screen.dart';
 import 'screens/money/budgets_screen.dart';
@@ -43,8 +41,6 @@ import 'screens/workout/routine_editor_screen.dart';
 import 'screens/workout/start_workout_screen.dart';
 import 'screens/workout/workout_detail_screen.dart';
 import 'screens/today/today_screen.dart';
-import 'screens/sleep/sleep_screen.dart';
-import 'screens/mood/mood_screen.dart';
 
 /// Named routes for the whole app. Later units slot their real screens into the
 /// already-defined paths so deep links / Live Activity tap-through (U25) stay
@@ -251,19 +247,19 @@ GoRouter createRouter({
                     path: AppRoute.areaMoney.path,
                     name: AppRoute.areaMoney.name,
                     builder: (context, state) =>
-                        const DetailScreen(tracker: DetailTracker.money),
+                        const DetailScreen(area: Area.money),
                   ),
                   GoRoute(
                     path: AppRoute.areaMove.path,
                     name: AppRoute.areaMove.name,
                     builder: (context, state) =>
-                        const DetailScreen(tracker: DetailTracker.move),
+                        const DetailScreen(area: Area.move),
                   ),
                   GoRoute(
                     path: AppRoute.areaRoutines.path,
                     name: AppRoute.areaRoutines.name,
                     builder: (context, state) =>
-                        const DetailScreen(tracker: DetailTracker.rituals),
+                        const DetailScreen(area: Area.routines),
                     routes: [
                       GoRoute(
                         path: AppRoute.areaManageRoutines.path,
@@ -276,7 +272,8 @@ GoRouter createRouter({
                   GoRoute(
                     path: AppRoute.areaNutrition.path,
                     name: AppRoute.areaNutrition.name,
-                    builder: (context, state) => const NutritionScreen(),
+                    builder: (context, state) =>
+                        const DetailScreen(area: Area.nutrition),
                     routes: [
                       GoRoute(
                         path: AppRoute.nutritionMeal.path,
@@ -295,12 +292,14 @@ GoRouter createRouter({
                   GoRoute(
                     path: AppRoute.areaSleep.path,
                     name: AppRoute.areaSleep.name,
-                    builder: (context, state) => const SleepScreen(),
+                    builder: (context, state) =>
+                        const DetailScreen(area: Area.sleep),
                   ),
                   GoRoute(
                     path: AppRoute.areaMood.path,
                     name: AppRoute.areaMood.name,
-                    builder: (context, state) => const MoodScreen(),
+                    builder: (context, state) =>
+                        const DetailScreen(area: Area.mood),
                   ),
                 ],
               ),

@@ -5,17 +5,17 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:opal/analysis/area.dart';
 import 'package:opal/app.dart';
+import 'package:opal/controllers/area_detail_controller.dart';
 import 'package:opal/controllers/providers.dart';
 import 'package:opal/data/db/database.dart';
 import 'package:opal/data/seed/seeder.dart';
+import 'package:opal/screens/detail/detail_screen.dart';
 import 'package:opal/screens/nutrition/nutrition_meal_detail_screen.dart';
-import 'package:opal/screens/nutrition/nutrition_screen.dart';
-import 'package:opal/screens/nutrition/widgets/nutrition_widgets.dart';
 import 'package:opal/screens/profile/profile_screen.dart';
 import 'package:opal/services/pal/mock_pal_service.dart';
 import 'package:opal/widgets/glass_tab_bar.dart';
-import 'package:opal/widgets/inset_section.dart';
 
 import '../support/flush_provider_timers.dart';
 
@@ -60,29 +60,35 @@ void main() {
     await bootApp(tester);
 
     await tester.tap(find.descendant(
-        of: find.byType(GlassTabBar), matching: find.text('Areas')));
+        of: find.byType(GlassTabBar),
+        matching: find.bySemanticsLabel(RegExp('^Areas'))));
     await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(ListRow, 'Nutrition'));
+    await tester.tap(find.bySemanticsLabel(RegExp('^Nutrition')));
     await tester.pumpAndSettle();
     expect(_path(tester), '/areas/nutrition');
 
-    final meal = find.byType(MealRow).first;
-    await tester.scrollUntilVisible(meal, 300,
+    final meal = ProviderScope.containerOf(tester.element(find.byType(LoopApp)))
+        .read(areaDetailProvider(Area.nutrition))
+        .requireValue
+        .meals
+        .first;
+    final row = find.bySemanticsLabel(
+        RegExp('^${RegExp.escape('${meal.slot} at ${meal.time}, ${meal.name}, ')}'));
+    await tester.scrollUntilVisible(row, 300,
         scrollable: find
             .descendant(
-                of: find.byType(NutritionScreen),
+                of: find.byType(DetailScreen),
                 matching: find.byType(Scrollable))
             .first);
     await tester.pumpAndSettle();
-    final id = tester.widget<MealRow>(meal).meal.id;
-    await tester.tap(meal);
+    await tester.tap(row);
     await tester.pumpAndSettle();
 
     final detail = find.byType(NutritionMealDetailScreen);
     expect(detail, findsOneWidget);
     // a pushed page keeps the shell's location, so read the page's own state.
     expect(GoRouterState.of(tester.element(detail)).uri.path,
-        '/areas/nutrition/meal/$id');
+        '/areas/nutrition/meal/${meal.id}');
 
     await flushProviderTimers(tester);
   });
