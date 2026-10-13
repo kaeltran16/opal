@@ -52,15 +52,14 @@ class StartWorkoutState {
 /// routine id (not stored), so it can never drift from real history.
 ///
 /// Drives off the live workouts stream (so "last done" stays current) and
-/// re-reads routines each tick — matching `moveState`'s pattern over the same
-/// small tables.
+/// awaits routines via `.future` — matching `moveState`'s pattern over the same
+/// small tables — so a saved, generated or deleted routine re-emits too.
 @riverpod
 Stream<StartWorkoutState> startWorkout(Ref ref) async* {
-  final routineRepo = ref.watch(routineRepositoryProvider);
   final workoutRepo = ref.watch(workoutRepositoryProvider);
+  final routines = await ref.watch(workoutRoutinesStreamProvider.future);
 
   await for (final workouts in workoutRepo.watchWorkouts()) {
-    final routines = await routineRepo.getAll();
 
     final lastDone = <String, DateTime>{};
     for (final w in workouts) {

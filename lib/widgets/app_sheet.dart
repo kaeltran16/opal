@@ -18,6 +18,8 @@ Future<T?> showAppSheet<T>(
   final c = context.colors;
   return showModalBottomSheet<T>(
     context: context,
+    // above the shell's floating bars, which would cover the sheet's bottom.
+    useRootNavigator: true,
     isScrollControlled: scrollable,
     useSafeArea: scrollable,
     backgroundColor: c.surface,

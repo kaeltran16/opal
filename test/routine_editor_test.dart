@@ -180,6 +180,62 @@ void main() {
   });
 
   // ---------------------------------------------------------------------------
+  // New slots — each add is its own slot for remove and target edits.
+  // ---------------------------------------------------------------------------
+  group('added slots', () {
+    late ProviderContainer container;
+    late RoutineEditorController c;
+    final provider = routineEditorControllerProvider(null);
+
+    setUp(() async {
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+      final db = LoopDatabase.forTesting(NativeDatabase.memory());
+      await Seeder(db).seedIfNeeded();
+      addTearDown(db.close);
+      container = _container(prefs, db);
+      addTearDown(container.dispose);
+      container.listen(provider, (_, _) {}); // hold across awaits (autoDispose)
+      await container.read(provider.future);
+      c = container.read(provider.notifier)
+        ..addExercise('bench')
+        ..addExercise('bench');
+    });
+
+    List<RoutineExercise> slots() => container.read(provider).requireValue.draft.exercises;
+
+    test('two adds give two distinct, non-empty slot ids', () {
+      final ids = slots().map((e) => e.id).toList();
+      expect(ids, hasLength(2));
+      expect(ids.every((id) => id.isNotEmpty), isTrue);
+      expect(ids.toSet(), hasLength(2));
+    });
+
+    test('remove takes out only the one slot', () {
+      final [first, second] = slots();
+      c.removeExercise(first.id);
+      expect(slots().map((e) => e.id), [second.id]);
+    });
+
+    test('updateExerciseTargets changes only the one slot', () {
+      final [first, second] = slots();
+      c.updateExerciseTargets(second.id, sets: 6);
+      final [a, b] = slots();
+      expect(a.targetSets, first.targetSets);
+      expect(b.targetSets, 6);
+    });
+
+    test('saving persists both slots under their own ids', () async {
+      c.setName('Two benches');
+      final ids = slots().map((e) => e.id).toList();
+      await c.save();
+      final saved = (await container.read(routineRepositoryProvider).getAll())
+          .firstWhere((r) => r.name == 'Two benches');
+      expect(saved.orderedExercises.map((e) => e.id), ids);
+    });
+  });
+
+  // ---------------------------------------------------------------------------
   // Screen — the editor over a seeded database.
   // ---------------------------------------------------------------------------
   group('editor screen', () {
