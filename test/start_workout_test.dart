@@ -6,31 +6,75 @@ import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:opal/controllers/providers.dart';
+import 'package:opal/controllers/workout_session_controller.dart';
 import 'package:opal/data/db/database.dart';
 import 'package:opal/data/seed/seeder.dart';
+import 'package:opal/models/models.dart';
 import 'package:opal/screens/workout/start_workout_screen.dart';
 import 'package:opal/services/services.dart';
 import 'package:opal/theme/app_colors.dart';
 
-/// Records the routineId the Active Session was opened with, so the navigation
-/// contract (`pushNamed('activeSession', pathParameters: {'routineId': ...})`)
-/// can be asserted. The target body itself is inert.
+import 'support/flush_provider_timers.dart';
+
+const _phone = Size(390, 844);
+const _pushId = 'seed-routine-push-a';
+
+/// Records the routineId the session was opened with. The target body itself
+/// is inert.
 class _Recorder {
   String? openedRoutineId;
 }
 
-/// Mounts [StartWorkoutScreen] in a minimal GoRouter + ProviderScope harness
-/// with the standard overrides (db, prefs, the real MockPalService). A local
-/// router keeps render assertions independent of the central wiring (the
-/// orchestrator repoints `/move/start` → this screen). Inert named targets
-/// `activeSession` / `exerciseLibrary` satisfy the screen's `pushNamed` calls.
-Future<void> _pump(
+class _Running extends RunningSession {
+  _Running(this.id);
+  final String id;
+
+  @override
+  String? build() => id;
+}
+
+/// A running session without the engine, so the lead's In progress card
+/// renders without writing to the database.
+class _FakeSession extends WorkoutSessionController {
+  @override
+  Future<ActiveSessionState> build(String routineId) async => ActiveSessionState(
+        activeWorkout: Workout(
+          id: 'active',
+          routineId: routineId,
+          name: 'Push Day A',
+          startedAt: DateTime.now(),
+          sets: const [SetLog(id: 's0', exerciseId: 'bench', weightKg: 60, reps: 8)],
+        ),
+        currentExerciseIndex: 0,
+        currentSetIndex: 0,
+        currentSet: null,
+        restRemaining: 0,
+        isResting: false,
+        isComplete: false,
+        exerciseIds: const ['bench'],
+        catalog: const {},
+      );
+}
+
+/// Mounts [StartWorkoutScreen] over the seeded routines (4 strength, 1 cardio)
+/// in a minimal GoRouter + ProviderScope harness with a fast Pal.
+Future<_Recorder> _pump(
   WidgetTester tester, {
-  required SharedPreferences prefs,
-  required LoopDatabase db,
-  required _Recorder recorder,
-  PalService? pal,
+  Size size = _phone,
+  double textScale = 1,
+  String? running,
 }) async {
+  tester.view.physicalSize = size;
+  tester.view.devicePixelRatio = 1;
+  addTearDown(tester.view.reset);
+  SharedPreferences.setMockInitialValues({});
+  final prefs = await SharedPreferences.getInstance();
+  final db = LoopDatabase.forTesting(NativeDatabase.memory());
+  addTearDown(db.close);
+  // drift writes need uncontrolled async.
+  await tester.runAsync(() => Seeder(db).seedIfNeeded());
+
+  final recorder = _Recorder();
   final router = GoRouter(
     initialLocation: '/',
     routes: [
@@ -43,83 +87,119 @@ Future<void> _pump(
           return const SizedBox();
         },
       ),
-      GoRoute(
-        path: '/library',
-        name: 'exerciseLibrary',
-        builder: (_, _) => const SizedBox(),
-      ),
     ],
   );
-  final colors = AppColors.light();
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
         sharedPreferencesProvider.overrideWithValue(prefs),
         loopDatabaseProvider.overrideWithValue(db),
-        palServiceProvider.overrideWithValue(pal ?? MockPalService()),
+        palServiceProvider.overrideWithValue(
+            MockPalService(latency: const Duration(milliseconds: 1), seed: 1)),
+        if (running != null) ...[
+          runningSessionProvider.overrideWith(() => _Running(running)),
+          workoutSessionControllerProvider.overrideWith(_FakeSession.new),
+        ],
       ],
       child: MaterialApp.router(
         debugShowCheckedModeBanner: false,
-        theme: ThemeData(useMaterial3: true, extensions: [colors]),
+        theme: ThemeData(useMaterial3: true, extensions: [AppColors.light()]),
         routerConfig: router,
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(context)
+              .copyWith(textScaler: TextScaler.linear(textScale)),
+          child: child!,
+        ),
       ),
     ),
   );
   await tester.pumpAndSettle();
+  return recorder;
+}
+
+Future<void> _scrollTo(WidgetTester tester, Finder finder) async {
+  await tester.scrollUntilVisible(finder, 200,
+      scrollable: find.byType(Scrollable).first);
+  await tester.pumpAndSettle();
 }
 
 void main() {
-  testWidgets(
-      'Start workout renders Pal pick + seeded routines and navigates on tap',
-      (WidgetTester tester) async {
-    SharedPreferences.setMockInitialValues({});
-    final prefs = await SharedPreferences.getInstance();
-    final db = LoopDatabase.forTesting(NativeDatabase.memory());
-    addTearDown(db.close);
+  for (final scale in [1.0, 1.3]) {
+    testWidgets('at 390 wide and text scale $scale nothing overflows',
+        (tester) async {
+      // any RenderFlex overflow is reported as an exception and fails here.
+      await _pump(tester, textScale: scale);
+      expect(tester.takeException(), isNull);
 
-    // Seed the in-memory DB with the sample routines (Push/Pull/Leg/Upper +
-    // Treadmill Intervals). Drift writes need uncontrolled async.
-    await tester.runAsync(() => Seeder(db).seedIfNeeded());
+      // scroll to the end so every row is laid out.
+      await _scrollTo(tester, find.text('Exercise library'));
+      expect(tester.takeException(), isNull);
 
-    final recorder = _Recorder();
-    // Deterministic Pal pick: the first canned suggestion is "Push Day A".
-    await _pump(
-      tester,
-      prefs: prefs,
-      db: db,
-      recorder: recorder,
-      pal: MockPalService(latency: const Duration(milliseconds: 1), seed: 1),
-    );
+      await flushProviderTimers(tester);
+    });
+  }
 
-    // Pal's-pick card renders the suggestion title + eyebrow. "Push Day A" also
-    // appears as a strength card, so the title is matched among >= 1 widgets.
-    expect(find.text("PAL'S PICK FOR TODAY"), findsOneWidget);
-    expect(find.text('Push Day A'), findsWidgets);
+  testWidgets('lists the routines by kind and opens one on tap',
+      (tester) async {
+    final recorder = await _pump(tester);
 
-    // Section headers reflect the seeded split (4 strength, 1 cardio). The
-    // cardio section sits below the strength grid — scroll it into view (the
-    // ListView lazily builds off-screen children).
-    expect(find.text('STRENGTH · 4'), findsOneWidget);
-    await tester.scrollUntilVisible(find.text('CARDIO · 1'), 200,
-        scrollable: find.byType(Scrollable).first);
-    expect(find.text('CARDIO · 1'), findsOneWidget);
-
-    // Seeded routines appear (strength grid + cardio row).
+    expect(find.text('Start workout'), findsWidgets);
+    expect(find.text('Pick a routine'), findsOneWidget);
+    expect(find.text("Pal's pick for today"), findsOneWidget);
+    expect(find.text('Strength'), findsOneWidget);
     expect(find.text('Pull Day A'), findsOneWidget);
-    expect(find.text('Leg Day'), findsOneWidget);
-    expect(find.text('Treadmill Intervals'), findsOneWidget);
 
-    // Tapping a routine card opens the Active Session with its id.
-    await tester.ensureVisible(find.text('Leg Day'));
-    await tester.pumpAndSettle();
+    await _scrollTo(tester, find.text('Treadmill Intervals'));
+    expect(find.text('Cardio'), findsOneWidget);
+    // the detail line carries the stats and the first exercise names.
+    expect(find.textContaining(RegExp(r'^\d+ exercises · \d+ min · ')),
+        findsWidgets);
+
+    await _scrollTo(tester, find.text('Leg Day'));
     await tester.tap(find.text('Leg Day'));
     await tester.pumpAndSettle();
     expect(recorder.openedRoutineId, 'seed-routine-legs');
 
-    // Unmount and flush: disposing the autoDispose drift stream provider makes
-    // drift schedule a zero-duration cleanup timer (StreamQueryStore
-    // .markAsClosed); pump once so it fires before teardown's timer check.
-    await tester.pumpWidget(const SizedBox());
-    await tester.pump(Duration.zero);
+    await flushProviderTimers(tester);
+  });
+
+  testWidgets('the tool rows are there and Freestyle session is gone',
+      (tester) async {
+    await _pump(tester);
+    await _scrollTo(tester, find.text('Exercise library'));
+
+    expect(find.text('Generate with Pal'), findsOneWidget);
+    expect(find.text('New routine'), findsOneWidget);
+    expect(find.text('Freestyle session'), findsNothing);
+
+    await flushProviderTimers(tester);
+  });
+
+  testWidgets('with another routine running, a routine opens the running one',
+      (tester) async {
+    final recorder = await _pump(tester, running: _pushId);
+    expect(find.text('In progress'), findsOneWidget);
+
+    await _scrollTo(tester, find.text('Leg Day'));
+    await tester.tap(find.text('Leg Day'));
+    await tester.pumpAndSettle();
+    expect(recorder.openedRoutineId, _pushId);
+
+    await flushProviderTimers(tester);
+  });
+
+  testWidgets('a long-press on a routine asks to delete it', (tester) async {
+    await _pump(tester);
+
+    await tester.longPress(find.text('Pull Day A'));
+    await tester.pumpAndSettle();
+    expect(find.text('Delete routine?'), findsOneWidget);
+
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    expect(find.text('Delete routine?'), findsNothing);
+    expect(find.text('Pull Day A'), findsOneWidget);
+
+    await flushProviderTimers(tester);
   });
 }
