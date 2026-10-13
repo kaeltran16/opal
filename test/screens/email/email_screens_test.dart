@@ -187,7 +187,7 @@ void main() {
     await tester.tap(find.text('Test connection'));
     await tester.pumpAndSettle();
 
-    const failed = 'Connection failed — check the password';
+    const failed = 'Connection failed. Check the password.';
     expect(find.text(failed), findsOneWidget);
     expect(_textColor(tester, failed), _colors.careInk);
     expect(_pillFill(tester, 'Save'), _colors.surface2);
@@ -235,7 +235,7 @@ void main() {
       status: Stream.value(SyncStatus.error),
     );
 
-    const failed = 'Sync failed — try again';
+    const failed = 'Sync failed. Try again.';
     expect(find.text(failed), findsOneWidget);
     expect(_textColor(tester, failed), _colors.careInk);
   });

@@ -9,6 +9,7 @@ import '../../theme/theme.dart';
 import '../../util/format.dart';
 import '../../widgets/app_icon.dart';
 import '../../widgets/controls.dart';
+import '../../widgets/failure_note.dart';
 import '../../widgets/press_scale.dart';
 import '../you/sub_screen.dart';
 
@@ -64,7 +65,7 @@ class _BudgetsGoalsScreenState extends ConsumerState<BudgetsGoalsScreen> {
       _budget = g.dailyBudget;
       _move = g.dailyMoveKcal;
       _ritualTarget = g.dailyRitualTarget;
-      _routineCount = routines.length;
+      _routineCount = trackedRoutines(routines).length;
       _loaded = true;
     });
   }
@@ -83,7 +84,7 @@ class _BudgetsGoalsScreenState extends ConsumerState<BudgetsGoalsScreen> {
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Couldn't save — try again.")),
+        const SnackBar(content: Text(saveFailedCopy)),
       );
     } finally {
       if (mounted) setState(() => _saving = false);

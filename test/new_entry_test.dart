@@ -268,7 +268,7 @@ void main() {
 
     await _pumpSheet(tester, db, notice: 'pal-offline');
 
-    expect(find.text("Pal's unreachable — log it here."), findsOneWidget);
+    expect(find.text("Pal's unreachable. Log it here."), findsOneWidget);
   });
 
   testWidgets('Cancel closes the sheet without writing', (tester) async {

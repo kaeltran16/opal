@@ -32,7 +32,22 @@ class _FakeGoals extends GoalsRepository {
   }
 }
 
-Future<_FakeGoals> _pump(WidgetTester tester, {bool failSave = false}) async {
+/// Routines read straight from a list, so the target count is known.
+class _FakeRituals extends RitualRepository {
+  _FakeRituals(super.db, this.routines);
+
+  final List<RitualRoutine> routines;
+
+  @override
+  Future<List<RitualRoutine>> getAll() async => routines;
+}
+
+RitualRoutine _routine(String id, {List<RitualStep> steps = const []}) => RitualRoutine(
+    id: id, name: id, time: '7:00 AM', tone: RitualTone.morning, icon: 'sun.max', blurb: '',
+    steps: steps);
+
+Future<_FakeGoals> _pump(WidgetTester tester,
+    {bool failSave = false, List<RitualRoutine>? routines}) async {
   tester.view.physicalSize = const Size(400, 1600);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
@@ -61,6 +76,7 @@ Future<_FakeGoals> _pump(WidgetTester tester, {bool failSave = false}) async {
       loopDatabaseProvider.overrideWithValue(db),
       sharedPreferencesProvider.overrideWithValue(prefs),
       goalsRepositoryProvider.overrideWithValue(goals),
+      if (routines != null) ritualRepositoryProvider.overrideWithValue(_FakeRituals(db, routines)),
     ],
     child: MaterialApp.router(
       theme: ThemeData(extensions: [AppColors.light()]),
@@ -137,7 +153,19 @@ void main() {
     await tester.tap(find.text('Save'));
     await tester.pumpAndSettle();
 
-    expect(find.text("Couldn't save — try again."), findsOneWidget);
+    expect(find.text("Couldn't save. Try again."), findsOneWidget);
     expect(find.byType(BudgetsGoalsScreen), findsOneWidget);
+  });
+
+  testWidgets('the Routines target counts only routines with steps', (tester) async {
+    final goals = await _pump(tester, routines: [
+      _routine('morning', steps: const [
+        RitualStep(id: 'morning-step-0', title: 'Water', note: '', icon: 'drop'),
+      ]),
+      _routine('evening'),
+    ]);
+    await _load(tester, goals);
+
+    expect(find.text('1 routine'), findsOneWidget);
   });
 }

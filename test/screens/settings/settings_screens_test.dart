@@ -165,7 +165,7 @@ void main() {
       await tester.tap(find.text('Copy 0 entries as JSON'));
       await tester.pumpAndSettle();
 
-      expect(find.text("Couldn't copy — try again."), findsOneWidget);
+      expect(find.text("Couldn't copy. Try again."), findsOneWidget);
       expect(find.textContaining('Copied'), findsNothing);
     });
   });

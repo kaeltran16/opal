@@ -47,7 +47,7 @@ class EmailDashboardScreen extends ConsumerWidget {
         SyncStatus.filtering => ('Filtering by sender…', 0.55),
         SyncStatus.categorizing => ('Pal is categorizing…', 0.80),
         SyncStatus.upToDate => ('Up to date · just now', 1),
-        SyncStatus.error => ('Sync failed — try again', 0),
+        SyncStatus.error => ('Sync failed. Try again.', 0),
       };
 
   /// Next cadence in the cycle (wraps), for tap-to-cycle on the settings row.
@@ -69,7 +69,7 @@ class EmailDashboardScreen extends ConsumerWidget {
     } catch (_) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Couldn\'t disconnect — try again')),
+          const SnackBar(content: Text("Couldn't disconnect. Try again.")),
         );
       }
       return;

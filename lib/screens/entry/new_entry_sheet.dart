@@ -109,7 +109,7 @@ class _NewEntrySheetState extends ConsumerState<NewEntrySheet> {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Pal's unreachable — log it here.")),
+          const SnackBar(content: Text("Pal's unreachable. Log it here.")),
         );
       });
     }
@@ -293,7 +293,7 @@ class _NewEntrySheetState extends ConsumerState<NewEntrySheet> {
       if (!mounted) return;
       setState(() => _parsing = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Couldn't parse that — try again or enter it by hand.")),
+        const SnackBar(content: Text("Couldn't parse that. Try again or enter it by hand.")),
       );
     }
   }

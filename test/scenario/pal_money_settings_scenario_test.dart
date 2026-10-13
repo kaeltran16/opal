@@ -538,7 +538,7 @@ void main() {
     await _send(tester, _loggableOffline);
     expect(_sheet, findsNothing);
     expect(find.byType(NewEntrySheet), findsOneWidget);
-    expect(find.text("Pal's unreachable — log it here."), findsOneWidget);
+    expect(find.text("Pal's unreachable. Log it here."), findsOneWidget);
     await shot(tester, 'composer_offline_handoff_$theme');
   });
 
@@ -802,7 +802,7 @@ void main() {
 
     // new_entry_offline_notice
     await _push(tester, '/entry/new?kind=expense&notice=pal-offline');
-    expect(find.text("Pal's unreachable — log it here."), findsOneWidget);
+    expect(find.text("Pal's unreachable. Log it here."), findsOneWidget);
     await shot(tester, 'new_entry_offline_notice_$theme');
   });
 
@@ -930,7 +930,7 @@ void main() {
     await tester.enterText(fields.at(1), 'abcdefghijklmnop');
     await _reveal(tester, EmailSetupScreen, find.text('Test connection'));
     await _tap(tester, find.text('Test connection'));
-    expect(find.text('Connection failed — check the password'), findsOneWidget);
+    expect(find.text('Connection failed. Check the password.'), findsOneWidget);
     await shot(tester, 'email_setup_test_failed_${_theme(dark)}');
   });
 
@@ -973,7 +973,7 @@ void main() {
     ]);
     await _push(tester, '/email');
 
-    expect(find.text('Sync failed — try again'), findsOneWidget);
+    expect(find.text('Sync failed. Try again.'), findsOneWidget);
     await shot(tester, 'email_dashboard_failed_${_theme(dark)}');
   });
 
@@ -1059,7 +1059,7 @@ void main() {
           expect(find.textContaining(RegExp(r'^Copied \d+ entries to the clipboard\.$')),
               findsOneWidget);
         case 'export_error':
-          expect(find.text("Couldn't copy — try again."), findsOneWidget);
+          expect(find.text("Couldn't copy. Try again."), findsOneWidget);
           expect(find.textContaining('Copied'), findsNothing);
       }
       await shot(tester, '${step}_${_theme(dark)}');

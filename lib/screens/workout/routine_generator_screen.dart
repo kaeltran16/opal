@@ -9,6 +9,7 @@ import '../../services/pal/pal_service.dart';
 import '../../theme/theme.dart';
 import '../../widgets/controls.dart';
 import '../../widgets/exercise_row.dart';
+import '../../widgets/failure_note.dart';
 import '../../widgets/inset_section.dart';
 import '../../widgets/nav_bar.dart';
 import '../../widgets/pal_lead.dart';
@@ -77,7 +78,7 @@ class _RoutineGeneratorScreenState
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Couldn't save — try again.")),
+        const SnackBar(content: Text(saveFailedCopy)),
       );
     }
   }
