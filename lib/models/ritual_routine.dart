@@ -85,7 +85,7 @@ class RitualRoutine {
   /// Ordered steps.
   final List<RitualStep> steps;
 
-  /// Key for `AppColors.forType(...)` — the tracker hue this routine borrows.
+  /// The tracker token this routine borrows from its tone.
   String get colorKey => tone.colorKey;
 
   RitualRoutine copyWith({

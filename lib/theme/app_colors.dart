@@ -25,33 +25,10 @@ class AppColors extends ThemeExtension<AppColors> {
     required this.goodInk,
     required this.watchInk,
     required this.careInk,
-    required this.money,
-    required this.moneyTint,
-    required this.move,
-    required this.moveTint,
-    required this.rituals,
-    required this.ritualsTint,
-    required this.nutrition,
-    required this.nutritionTint,
-    required this.sleep,
-    required this.sleepTint,
-    required this.mood,
-    required this.moodTint,
-    required this.accent,
-    required this.accentTint,
-    required this.moneyInk,
-    required this.moveInk,
-    required this.ritualsInk,
-    required this.nutritionInk,
-    required this.sleepInk,
-    required this.moodInk,
-    required this.accentInk,
-    required this.glass,
-    required this.glassBorder,
-    required this.glassHighlight,
+    required this.ringMove,
+    required this.ringRoutines,
     required this.red,
     required this.dangerInk,
-    required this.onAccent,
     required this.scrim,
     required this.shadow,
   });
@@ -67,51 +44,16 @@ class AppColors extends ThemeExtension<AppColors> {
   final Color thriving, good, watch, care;
   // state text and icons: 4.5:1 on every ground.
   final Color thrivingInk, goodInk, watchInk, careInk;
-  final Color money, moneyTint;
-  final Color move, moveTint;
-  final Color rituals, ritualsTint;
-  final Color nutrition, nutritionTint;
-  final Color sleep, sleepTint;
-  final Color mood, moodTint;
-  // the accent is no longer a choice. these alias the neutrals so screens not
-  // yet redesigned keep compiling.
-  final Color accent, accentTint;
-  // text and icons on the matching tint; the area colors fail 4.5:1 there.
-  final Color moneyInk, moveInk, ritualsInk, nutritionInk, sleepInk, moodInk;
-  final Color accentInk;
-  // floating bars only (tab bar, composer).
-  final Color glass, glassBorder, glassHighlight;
+  // the activity rings only: the last area hues, kept so the rings stay apart
+  // by hue as well as lightness. DESIGN.md section 3.
+  final Color ringMove, ringRoutines;
   final Color red;
   // destructive text and icons on surface; red itself fails 4.5:1 there.
   final Color dangerInk;
-  final Color onAccent;
   final Color scrim;
   final Color shadow;
 
-  static const double _glassAlpha = 0.78;
   static const double _blurAlpha = 0.72;
-
-  /// Color for a tracker type token: 'money' | 'move' | 'rituals' | 'nutrition'.
-  Color forType(String type) => switch (type) {
-        'money' => money,
-        'move' => move,
-        'rituals' => rituals,
-        'nutrition' => nutrition,
-        'sleep' => sleep,
-        'mood' => mood,
-        _ => accent,
-      };
-
-  /// Ink for a tracker type token, mirroring [forType].
-  Color inkForType(String type) => switch (type) {
-        'money' => moneyInk,
-        'move' => moveInk,
-        'rituals' => ritualsInk,
-        'nutrition' => nutritionInk,
-        'sleep' => sleepInk,
-        'mood' => moodInk,
-        _ => accentInk,
-      };
 
   factory AppColors.light() {
     const bg = Color(0xFFF7F1E8);
@@ -142,33 +84,10 @@ class AppColors extends ThemeExtension<AppColors> {
       goodInk: const Color(0xFF4C5E4D),
       watchInk: const Color(0xFF86570F),
       careInk: careInk,
-      money: const Color(0xFFFF9500),
-      moneyTint: const Color.fromRGBO(255, 149, 0, 0.14),
-      move: const Color(0xFF34C759),
-      moveTint: const Color.fromRGBO(52, 199, 89, 0.14),
-      rituals: const Color(0xFFAF52DE),
-      ritualsTint: const Color.fromRGBO(175, 82, 222, 0.14),
-      nutrition: const Color(0xFF0FB5C9),
-      nutritionTint: const Color.fromRGBO(15, 181, 201, 0.14),
-      sleep: const Color(0xFF5B6CDB),
-      sleepTint: const Color.fromRGBO(91, 108, 219, 0.14),
-      mood: const Color(0xFF2FA6BC),
-      moodTint: const Color.fromRGBO(47, 166, 188, 0.14),
-      accent: ink,
-      accentTint: surface2,
-      moneyInk: const Color(0xFFAE5200),
-      moveInk: const Color(0xFF1E7B34),
-      ritualsInk: const Color(0xFF8A2FB8),
-      nutritionInk: const Color(0xFF0A7685),
-      sleepInk: const Color(0xFF3F4FBF),
-      moodInk: const Color(0xFF1B7488),
-      accentInk: ink,
-      glass: surface.withValues(alpha: _glassAlpha),
-      glassBorder: hair,
-      glassHighlight: const Color(0x00000000),
+      ringMove: const Color(0xFF34C759),
+      ringRoutines: const Color(0xFFAF52DE),
       red: care,
       dangerInk: careInk,
-      onAccent: bg,
       scrim: const Color.fromRGBO(0, 0, 0, 0.40),
       shadow: const Color.fromRGBO(0, 0, 0, 0.12),
     );
@@ -206,33 +125,10 @@ class AppColors extends ThemeExtension<AppColors> {
       goodInk: good,
       watchInk: watch,
       careInk: care,
-      money: const Color(0xFFFF9F0A),
-      moneyTint: const Color.fromRGBO(255, 159, 10, 0.18),
-      move: const Color(0xFF30D158),
-      moveTint: const Color.fromRGBO(48, 209, 88, 0.18),
-      rituals: const Color(0xFFBF5AF2),
-      ritualsTint: const Color.fromRGBO(191, 90, 242, 0.18),
-      nutrition: const Color(0xFF3FD0E0),
-      nutritionTint: const Color.fromRGBO(63, 208, 224, 0.18),
-      sleep: const Color(0xFF8491F0),
-      sleepTint: const Color.fromRGBO(132, 145, 240, 0.20),
-      mood: const Color(0xFF56C2DA),
-      moodTint: const Color.fromRGBO(86, 194, 218, 0.20),
-      accent: ink,
-      accentTint: surface2,
-      moneyInk: const Color(0xFFFFB340),
-      moveInk: const Color(0xFF4CDB73),
-      ritualsInk: const Color(0xFFD08CF7),
-      nutritionInk: const Color(0xFF6FE0EC),
-      sleepInk: const Color(0xFFA3ADF5),
-      moodInk: const Color(0xFF7FD3E6),
-      accentInk: ink,
-      glass: surface.withValues(alpha: _glassAlpha),
-      glassBorder: hair,
-      glassHighlight: const Color(0x00000000),
+      ringMove: const Color(0xFF30D158),
+      ringRoutines: const Color(0xFFBF5AF2),
       red: care,
       dangerInk: care,
-      onAccent: bg,
       scrim: const Color.fromRGBO(0, 0, 0, 0.40),
       shadow: const Color.fromRGBO(0, 0, 0, 0.40),
     );
@@ -269,33 +165,10 @@ class AppColors extends ThemeExtension<AppColors> {
       goodInk: c(goodInk, other.goodInk),
       watchInk: c(watchInk, other.watchInk),
       careInk: c(careInk, other.careInk),
-      money: c(money, other.money),
-      moneyTint: c(moneyTint, other.moneyTint),
-      move: c(move, other.move),
-      moveTint: c(moveTint, other.moveTint),
-      rituals: c(rituals, other.rituals),
-      ritualsTint: c(ritualsTint, other.ritualsTint),
-      nutrition: c(nutrition, other.nutrition),
-      nutritionTint: c(nutritionTint, other.nutritionTint),
-      sleep: c(sleep, other.sleep),
-      sleepTint: c(sleepTint, other.sleepTint),
-      mood: c(mood, other.mood),
-      moodTint: c(moodTint, other.moodTint),
-      accent: c(accent, other.accent),
-      accentTint: c(accentTint, other.accentTint),
-      moneyInk: c(moneyInk, other.moneyInk),
-      moveInk: c(moveInk, other.moveInk),
-      ritualsInk: c(ritualsInk, other.ritualsInk),
-      nutritionInk: c(nutritionInk, other.nutritionInk),
-      sleepInk: c(sleepInk, other.sleepInk),
-      moodInk: c(moodInk, other.moodInk),
-      accentInk: c(accentInk, other.accentInk),
-      glass: c(glass, other.glass),
-      glassBorder: c(glassBorder, other.glassBorder),
-      glassHighlight: c(glassHighlight, other.glassHighlight),
+      ringMove: c(ringMove, other.ringMove),
+      ringRoutines: c(ringRoutines, other.ringRoutines),
       red: c(red, other.red),
       dangerInk: c(dangerInk, other.dangerInk),
-      onAccent: c(onAccent, other.onAccent),
       scrim: c(scrim, other.scrim),
       shadow: c(shadow, other.shadow),
     );

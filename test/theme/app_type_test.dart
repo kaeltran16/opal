@@ -6,19 +6,11 @@ import 'package:opal/theme/app_type.dart';
 const _minTextSize = 12;
 
 final _roles = <String, TextStyle>{
-  'caption2': AppType.caption2,
   'caption': AppType.caption,
-  'footnote': AppType.footnote,
   'subhead': AppType.subhead,
   'callout': AppType.callout,
   'body': AppType.body,
   'headline': AppType.headline,
-  'title3': AppType.title3,
-  'title2': AppType.title2,
-  'title1': AppType.title1,
-  'large': AppType.large,
-  'amount': AppType.amount,
-  'amountLg': AppType.amountLg,
   'display': AppType.display,
   'score': AppType.score,
   'lead': AppType.lead,
@@ -40,21 +32,13 @@ void _expectRole(
 }
 
 void main() {
-  test('legacy roles keep their sizes', () {
-    expect(AppType.caption2.fontSize, 11);
+  test('the kept roles keep their sizes', () {
     expect(AppType.caption.fontSize, 12);
-    expect(AppType.footnote.fontSize, 13);
     expect(AppType.subhead.fontSize, 15);
     expect(AppType.callout.fontSize, 16);
     expect(AppType.body.fontSize, 17);
     expect(AppType.headline.fontSize, 17);
     expect(AppType.headline.fontWeight, FontWeight.w600);
-    expect(AppType.title3.fontSize, 20);
-    expect(AppType.title2.fontSize, 22);
-    expect(AppType.title1.fontSize, 28);
-    expect(AppType.large.fontSize, 34);
-    expect(AppType.amount.fontSize, 34);
-    expect(AppType.amountLg.fontSize, 48);
   });
 
   test('the DESIGN.md section 4 roles have the exact metrics', () {
@@ -82,9 +66,8 @@ void main() {
     _roles.forEach((name, style) => expect(style.color, isNull, reason: name));
   });
 
-  test('no role is below 12 except the legacy caption2', () {
+  test('no role is below 12', () {
     _roles.forEach((name, style) {
-      if (name == 'caption2') return;
       expect(style.fontSize, greaterThanOrEqualTo(_minTextSize), reason: name);
     });
   });

@@ -151,17 +151,18 @@ on every light ground). `Ink` is for text and icons (4.5:1 or better on every gr
 
 ### Area colours are retired from UI chrome
 
-`money`, `move`, `rituals`, `nutrition`, `sleep`, `mood` and their tints and inks no longer
-colour rings, icons, chips or cards. They survive only as series colours where several areas
-are plotted together: explore-level charts, and the activity rings on Areas and the home-screen
-widget. The user-selectable accent is removed: the accent is `ink`.
+The area hues `money`, `move`, `rituals`, `nutrition`, `sleep`, `mood` and their tints and
+inks are deleted from `lib/theme/`. No area colour tints icons, chips or cards. The only
+surviving area hues are `ringMove` and `ringRoutines` in `lib/theme/app_colors.dart`, for the
+activity rings on Areas and the home-screen widget. The user-selectable accent is removed: the
+accent is `ink`.
 
 On the activity rings:
-- Use `move` and `rituals`, the existing values in `lib/theme/app_colors.dart`. Tracks are the
-  same hue at 20% alpha.
+- Use `ringMove` (light `#34C759`, dark `#30D158`) and `ringRoutines` (light `#AF52DE`, dark
+  `#BF5AF2`). Tracks are the same hue at 20% alpha.
 - Neighbouring rings must also differ in lightness, at 1.5:1 or more, so they stay apart
-  without hue. Dark `move` against `rituals` is 1.74:1. Check this before adding a ring:
-  `sleep` (`#8491F0`) against `rituals` is only 1.22:1.
+  without hue. Dark `ringMove` against `ringRoutines` is 1.74:1. Check this before adding a
+  ring: the old sleep hue (`#8491F0`) against `ringRoutines` is only 1.22:1.
 - A ring's colour never signals state. State shows as the state word in state ink beside the
   ring's value, only when off track or ahead.
 
@@ -311,14 +312,14 @@ Applied in `lib/theme/`. Each row names what was done.
 | Light neutrals | iOS system greys, `bg #F2F2F7`, `ink #000000` | `AppColors.light()` takes the section 3 light table; `track` added; `fill` is `surface2` |
 | Dark neutrals | pure black `#000000`, iOS greys | `AppColors.dark()` takes the section 3 dark table; `track` added; `fill` is `surface2` |
 | State colours | none; only `red`, `dangerInk` | `thriving`, `good`, `watch`, `care` added with fill and ink; `red` is the `care` fill and `dangerInk` the `care` ink |
-| Area colours | six hues with tint and ink, used across chrome | kept unchanged for the screens not yet redesigned; Today and the area pages use none |
-| Accent | eight user-selectable accents | the choice is removed; `accent`, `accentInk`, `accentTint`, `onAccent` are kept as aliases of `ink`, `ink`, `surface2`, `bg` so untouched screens compile |
-| Glass | `glass`, `glassBorder`, `glassHighlight` on cards | re-valued for floating bars: `glass` is `surface` at 0.78 alpha, `glassBorder` is `hair`, `glassHighlight` is transparent |
-| Shadow | `Elevation.sm/card/fab` | presets unchanged; `fab` is on the floating bars, Today and the area pages use none; `sm` and `card` are kept for untouched screens |
-| Type | `AppType` 11 to 34, titles w700, `amount` rounded w700 | `display`, `score`, `lead`, `title`, `label` added per section 4; the legacy roles are kept with their old metrics for untouched screens |
-| Mono eyebrow | `AppType.eyebrow` | removed; the nav bar eyebrow uses `label` |
-| Radius | `Radii.card` 14 as workhorse | `Radii.card` is 20 |
-| Contrast test | covers area inks on tints | covers state inks (4.5:1) and state fills (3:1) on all three grounds in both themes, and `ink` on every scene palette; the area-ink check is kept |
+| Area colours | six hues with tint and ink, used across chrome | first kept for the screens not yet redesigned; deleted in the legacy token retirement, with `forType` and `inkForType`. `ringMove` and `ringRoutines` remain, carrying the old `move` and `rituals` values for the activity rings |
+| Accent | eight user-selectable accents | the choice is removed; `accent`, `accentInk`, `accentTint`, `onAccent` were kept as aliases of `ink`, `ink`, `surface2`, `bg`, then deleted in the legacy token retirement |
+| Glass | `glass`, `glassBorder`, `glassHighlight` on cards | first re-valued for floating bars; deleted in the legacy token retirement |
+| Shadow | `Elevation.sm/card/fab` | `fab` is on the floating bars, Today and the area pages use none; `sm` and `card` were deleted in the legacy token retirement |
+| Type | `AppType` 11 to 34, titles w700, `amount` rounded w700 | `display`, `score`, `lead`, `title`, `label` added per section 4; the legacy roles `caption2`, `footnote`, `title1` to `title3`, `large`, `amount`, `amountLg` and `AppFonts.sfr` were deleted in the legacy token retirement |
+| Mono eyebrow | `AppType.eyebrow` | removed; the nav bar eyebrow uses `label`; `AppFonts.mono` was deleted in the legacy token retirement |
+| Radius | `Radii.card` 14 as workhorse | `Radii.card` is 20; `Radii.md` and `Radii.lg` were deleted in the legacy token retirement |
+| Contrast test | covers area inks on tints | covers state inks (4.5:1) and state fills (3:1) on all three grounds in both themes, and `ink` on every scene palette; the area-ink check went with the inks, replaced by `ringMove` against `ringRoutines` at 1.5:1 lightness in both themes |
 
 ## 11. Open decisions
 

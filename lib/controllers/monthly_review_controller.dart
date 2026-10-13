@@ -37,7 +37,7 @@ class ReviewStat {
   /// Optional secondary caption under the label, e.g. "↓ 12% vs March".
   final String? sub;
 
-  /// `context.colors.forType(colorToken)` accent ('money'|'move'|'rituals'|'').
+  /// Area token the row belongs to ('money'|'move'|'rituals'|'').
   final String colorToken;
 
   /// SF Symbol name for the row's tinted icon tile.

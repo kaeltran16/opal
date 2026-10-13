@@ -11,15 +11,6 @@ import 'providers.dart';
 
 part 'nutrition_controller.g.dart';
 
-/// An expense today that looks like a meal but isn't logged yet — the "an
-/// expense looks like a meal" prompt. [guess] is Pal's estimate from the
-/// expense title.
-class NutritionPending {
-  const NutritionPending({required this.expense, required this.guess});
-  final Entry expense;
-  final MealEstimate guess;
-}
-
 /// Today's rollup: summed calorie + macro ranges plus counts and a qualitative
 /// read of the day. No goals, no "remaining" — just how the day looks.
 class NutritionDay {
@@ -74,22 +65,19 @@ class NutritionPattern {
   final List<int> emph;
 }
 
-/// The Nutrition view model: today's meals + rollup, the week strip, the
-/// pending-expense prompt, and the connection patterns. The screen is dumb —
-/// all math lives here.
+/// The Nutrition view model: today's meals + rollup, the week strip, and the
+/// connection patterns. The screen is dumb — all math lives here.
 class NutritionState {
   const NutritionState({
     required this.meals,
     required this.day,
     required this.week,
-    required this.pending,
     required this.patterns,
     this.linkedExpenses = const {},
   });
   final List<NutritionMeal> meals;
   final NutritionDay day;
   final List<NutritionWeekDay> week;
-  final NutritionPending? pending;
   final List<NutritionPattern> patterns;
 
   /// Linked expenses for this week's meals, keyed by `Entry.id`. Lets the meal
@@ -103,21 +91,12 @@ class NutritionState {
 /// findings loading.
 @Riverpod(retry: noRetry)
 class NutritionController extends _$NutritionController {
-  /// Portion-size scale factors shared with the confirm sheet preview.
-  static const Map<String, double> portionFactors = {
-    'Lighter': 0.78,
-    'As shown': 1.0,
-    'Larger': 1.25,
-  };
   @override
   Stream<NutritionState> build() async* {
     final repo = ref.watch(nutritionRepositoryProvider);
     final entryRepo = ref.watch(entryRepositoryProvider);
-    final pal = ref.watch(palServiceProvider);
 
     final now = clock.now();
-    final todayStart = startOfDay(now);
-    final todayEnd = todayStart.add(const Duration(days: 1));
     final weekStart = startOfWeek(now);
     final weekEnd = weekStart.add(const Duration(days: 7));
 
@@ -127,14 +106,6 @@ class NutritionController extends _$NutritionController {
 
       final weekMeals = await repo.getMealsInRange(weekStart, weekEnd);
       final week = _buildWeek(weekStart, now, weekMeals);
-
-      final pending = await _derivePending(
-        entryRepo: entryRepo,
-        repo: repo,
-        pal: pal,
-        todayStart: todayStart,
-        todayEnd: todayEnd,
-      );
 
       final weekEntries = await entryRepo.getEntriesInRange(weekStart, weekEnd);
       final patterns = _buildPatterns(weekMeals, weekEntries);
@@ -154,7 +125,6 @@ class NutritionController extends _$NutritionController {
         meals: meals,
         day: day,
         week: week,
-        pending: pending,
         patterns: patterns,
         linkedExpenses: linkedExpenses,
       );
@@ -246,33 +216,6 @@ class NutritionController extends _$NutritionController {
         today: startOfDay(date) == today,
       );
     });
-  }
-
-  Future<NutritionPending?> _derivePending({
-    required EntryRepository entryRepo,
-    required NutritionRepository repo,
-    required PalService pal,
-    required DateTime todayStart,
-    required DateTime todayEnd,
-  }) async {
-    // most recent today (the stream is newest-first) food expense not yet
-    // turned into a meal.
-    final entries = await entryRepo.getEntriesInRange(todayStart, todayEnd);
-    final linked = await repo.linkedEntryIds(todayStart, todayEnd);
-    Entry? candidate;
-    for (final e in entries) {
-      if (e.type == EntryType.money &&
-          (e.amount ?? 0) < 0 &&
-          e.category == 'Food & Drink' &&
-          !linked.contains(e.id)) {
-        candidate = e;
-        break;
-      }
-    }
-    if (candidate == null) return null;
-    final guess =
-        await _estimate(repo, pal, '${candidate.title} takeout');
-    return NutritionPending(expense: candidate, guess: guess);
   }
 
   /// Pal's estimate for [description], served from the saved-food cache when the
@@ -381,48 +324,13 @@ class NutritionController extends _$NutritionController {
     await ref.read(hapticsServiceProvider).light();
   }
 
-  /// Meal slot inferred from the time of day an expense landed. Also used by
-  /// the add-by-hand sheet to default the slot to the current hour.
+  /// Meal slot for an hour of the day. Used by the add-by-hand sheet and Pal's
+  /// meal action to default the slot to the current hour.
   static String slotForHour(int hour) {
     if (hour < 11) return 'Breakfast';
     if (hour < 15) return 'Lunch';
     if (hour < 21) return 'Dinner';
     return 'Snack';
-  }
-
-  /// Confirms a takeout expense as a meal, scaling the estimate by [portion]
-  /// (`Lighter` 0.78 / `As shown` 1 / `Larger` 1.25). Source = takeout, linked
-  /// back to the originating expense. Slot is inferred from the expense time.
-  Future<void> confirmFromExpense(
-    Entry e,
-    MealEstimate guess, {
-    required String name,
-    required String portion,
-  }) async {
-    final factor = portionFactors[portion] ?? 1.0;
-    IntRange scale(IntRange r) =>
-        IntRange((r.lo * factor).round(), (r.hi * factor).round());
-    final cal = scale(guess.cal);
-    final macros = Macros(
-      protein: scale(guess.macros.protein),
-      carbs: scale(guess.macros.carbs),
-      fat: scale(guess.macros.fat),
-    );
-    await ref.read(nutritionRepositoryProvider).insert(
-          NutritionMeal(
-            id: '',
-            timestamp: e.timestamp,
-            slot: slotForHour(e.timestamp.hour),
-            name: name,
-            source: NutritionSource.takeout,
-            icon: NutritionSource.takeout.icon,
-            confidence: guess.confidence,
-            cal: cal,
-            macros: macros,
-            linkedEntryId: e.id,
-          ),
-        );
-    await ref.read(hapticsServiceProvider).light();
   }
 
   /// Removes a meal.

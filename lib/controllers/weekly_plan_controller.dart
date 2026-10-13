@@ -12,9 +12,8 @@ part 'weekly_plan_controller.g.dart';
 ///
 /// A derived 7-day view joining the persisted schedule (`weekday -> routineId`)
 /// to the referenced [Routine] and this week's [Workout]s. [colorKey] is a
-/// tracker token ('move'|'rituals'|'money'|'accent') or the 'rest' pseudo-color;
-/// the screen maps 'rest' → `c.ink3` and everything else through `c.forType`
-/// (with 'accent' falling through to `c.accent`).
+/// tracker key ('move'|'rituals'|'money'|'accent') or 'rest'; the weekly plan
+/// screen does not read it, since area colours appear only on the activity rings.
 @immutable
 class WeekPlanDay {
   const WeekPlanDay({

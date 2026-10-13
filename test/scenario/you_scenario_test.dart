@@ -28,6 +28,7 @@ import 'package:opal/screens/you/autopilot_screen.dart';
 import 'package:opal/screens/you/pal_memory_screen.dart';
 import 'package:opal/services/pal/mock_pal_service.dart';
 import 'package:opal/services/pal/pal_service.dart';
+import 'package:opal/theme/theme.dart';
 import 'package:opal/widgets/glass_tab_bar.dart';
 
 import '../support/golden_harness.dart';
@@ -377,6 +378,8 @@ void main() {
     for (final title in ['Rent auto-pay watch', 'Weekly review draft', _coffee]) {
       expect(find.text(title), findsOneWidget, reason: title);
     }
+    expect(tester.widget<Text>(find.text('Alerts if balance dips before Mon')).style?.fontSize,
+        AppType.subhead.fontSize);
     expect(tester.widget<CupertinoSwitch>(_switch(_coffee)).value, isFalse);
     await _tap(tester, _switch(_coffee));
     expect(tester.widget<CupertinoSwitch>(_switch(_coffee)).value, isTrue);

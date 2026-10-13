@@ -60,20 +60,10 @@ void main() {
       }
     });
 
-    test('$mode: the accent tokens alias the neutrals', () {
-      expect(c.accent, c.ink);
-      expect(c.accentInk, c.ink);
-      expect(c.accentTint, c.surface2);
-      expect(c.onAccent, c.bg);
+    test('$mode: fill, red and dangerInk alias the neutrals and care', () {
       expect(c.fill, c.surface2);
       expect(c.red, c.care);
       expect(c.dangerInk, c.careInk);
-    });
-
-    test('$mode: glass is re-valued for floating bars', () {
-      expect(c.glass, c.surface.withValues(alpha: 0.78));
-      expect(c.glassBorder, c.hair);
-      expect(c.glassHighlight.a, 0);
     });
   }
 
@@ -85,28 +75,13 @@ void main() {
     expect(light.shadow.a, lessThan(dark.shadow.a));
   });
 
-  test('area colours are unchanged', () {
+  test('ring colours keep the values the area hues had', () {
     final light = AppColors.light();
     final dark = AppColors.dark();
-    expect(light.nutrition, const Color(0xFF0FB5C9));
-    expect(dark.nutrition, const Color(0xFF3FD0E0));
-    expect(light.forType('nutrition'), light.nutrition);
-    expect(light.forType('sleep'), const Color(0xFF5B6CDB));
-    expect(light.forType('mood'), const Color(0xFF2FA6BC));
-    expect(dark.forType('sleep'), const Color(0xFF8491F0));
-    expect(dark.forType('mood'), const Color(0xFF56C2DA));
-  });
-
-  test('inkForType mirrors forType and falls back to accentInk', () {
-    final c = AppColors.dark();
-    expect(c.inkForType('sleep'), c.sleepInk);
-    expect(c.inkForType('money'), c.moneyInk);
-    expect(c.inkForType('move'), c.moveInk);
-    expect(c.inkForType('rituals'), c.ritualsInk);
-    expect(c.inkForType('nutrition'), c.nutritionInk);
-    expect(c.inkForType('mood'), c.moodInk);
-    expect(c.inkForType('unknown'), c.accentInk);
-    expect(c.forType('unknown'), c.accent);
+    expect(light.ringMove, const Color(0xFF34C759));
+    expect(light.ringRoutines, const Color(0xFFAF52DE));
+    expect(dark.ringMove, const Color(0xFF30D158));
+    expect(dark.ringRoutines, const Color(0xFFBF5AF2));
   });
 
   test('copyWith(brightness:) returns the other palette', () {
@@ -116,8 +91,8 @@ void main() {
     expect(dark.bg, ref.bg);
     expect(dark.ink, ref.ink);
     expect(dark.care, ref.care);
-    expect(dark.glass, ref.glass);
-    expect(dark.moneyInk, ref.moneyInk);
+    expect(dark.ringMove, ref.ringMove);
+    expect(dark.ringRoutines, ref.ringRoutines);
 
     final light = ref.copyWith(brightness: Brightness.light);
     expect(light.brightness, Brightness.light);
@@ -125,15 +100,14 @@ void main() {
     expect(ref.copyWith().bg, ref.bg);
   });
 
-  test('lerp at 0 and 1 keeps the state, track, ink and glass tokens', () {
+  test('lerp at 0 and 1 keeps the state, track and ring tokens', () {
     final a = AppColors.light();
     final b = AppColors.dark();
     List<Color> tokens(AppColors c) => [
           c.track,
           c.thriving, c.good, c.watch, c.care,
           c.thrivingInk, c.goodInk, c.watchInk, c.careInk,
-          c.moneyInk, c.nutritionInk, c.sleepInk, c.accentInk,
-          c.glass, c.glassBorder, c.glassHighlight,
+          c.ringMove, c.ringRoutines,
         ];
     expect(tokens(a.lerp(b, 0)), tokens(a));
     expect(tokens(a.lerp(b, 1)), tokens(b));
@@ -146,7 +120,7 @@ void main() {
     expect(mid.shadow, Color.lerp(a.shadow, b.shadow, 0.5));
     expect(mid.care, Color.lerp(a.care, b.care, 0.5));
     expect(mid.track, Color.lerp(a.track, b.track, 0.5));
-    expect(mid.sleep, isNot(a.sleep));
-    expect(mid.mood, isNot(a.mood));
+    expect(mid.ringMove, Color.lerp(a.ringMove, b.ringMove, 0.5));
+    expect(mid.ringRoutines, Color.lerp(a.ringRoutines, b.ringRoutines, 0.5));
   });
 }

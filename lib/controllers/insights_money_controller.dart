@@ -59,7 +59,7 @@ class CategoryInsight {
   /// SF symbol for the row's icon tile.
   final String icon;
 
-  /// `context.colors.forType(colorToken)` accent.
+  /// Area token the row belongs to ('money'|'move'|'rituals').
   final String colorToken;
 }
 

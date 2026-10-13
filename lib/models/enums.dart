@@ -53,8 +53,8 @@ enum RoutineTag {
 }
 
 /// Time-of-day tone of a [RitualRoutine]. Each tone borrows one of the three
-/// tracker hues for its accent (morning→money/orange, midday→move/green,
-/// evening→rituals/purple). [colorKey] feeds `AppColors.forType`.
+/// tracker tokens (morning→money, midday→move, evening→rituals) as its
+/// [colorKey].
 enum RitualTone {
   morning('morning', 'money'),
   midday('midday', 'move'),
@@ -64,7 +64,7 @@ enum RitualTone {
 
   final String wire;
 
-  /// Key for `AppColors.forType(...)` — the tracker hue this tone borrows.
+  /// The tracker token this tone borrows.
   final String colorKey;
 
   static RitualTone fromWire(String wire) =>
@@ -72,7 +72,7 @@ enum RitualTone {
 }
 
 /// Classification of a [PalNote] in the Pal inbox. Drives the meta-row label
-/// and the category dot ([dotColorKey] feeds `AppColors.forType`).
+/// and the category dot token ([dotColorKey]).
 enum NoteKind {
   nudge('nudge', 'Nudge', 'accent'),
   spotted('spotted', 'Spotted', 'rituals'),
@@ -88,7 +88,7 @@ enum NoteKind {
   /// Title-case label shown in the note meta row ("Nudge", "Spotted"…).
   final String label;
 
-  /// Key for `AppColors.forType(...)` for the kind dot.
+  /// Tracker token for the kind dot.
   final String dotColorKey;
 
   static NoteKind fromWire(String wire) =>
