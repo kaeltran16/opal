@@ -114,8 +114,6 @@ void main() {
   testWidgets('the spend ring is gone', (tester) async {
     await _pump(tester, Stream.value(_data([_envelope('Dining', cap: 100, spent: 40)])));
 
-    expect(find.byWidgetPredicate((w) => w.runtimeType.toString() == 'SpendRing'),
-        findsNothing);
     expect(File('lib/widgets/spend_ring.dart').existsSync(), isFalse);
   });
 

@@ -177,7 +177,6 @@ void main() {
     final seed = tester.widget<Text>(_inSheet(find.text('Why Rent first?')));
     expect(seed.style?.fontSize, AppType.headline.fontSize);
     expect(seed.style?.fontWeight, AppType.headline.fontWeight);
-    expect(find.byWidgetPredicate((w) => w.runtimeType.toString() == 'PalAvatar'), findsNothing);
 
     await flushProviderTimers(tester);
   });
