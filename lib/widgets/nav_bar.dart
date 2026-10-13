@@ -254,21 +254,24 @@ class _CollapsingNavDelegate extends SliverPersistentHeaderDelegate {
                       ),
                     large(
                       _Slot.title,
-                      largeTitle == null
-                          ? Text(
-                              title,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: _titleStyle(c),
-                            )
-                          // a long greeting scales down to one line rather
-                          // than being cut.
-                          : FittedBox(
-                              fit: BoxFit.scaleDown,
-                              alignment: Alignment.centerLeft,
-                              child: Text(largeTitle!,
-                                  maxLines: 1, style: _titleStyle(c)),
-                            ),
+                      Semantics(
+                        header: true,
+                        child: largeTitle == null
+                            ? Text(
+                                title,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: _titleStyle(c),
+                              )
+                            // a long greeting scales down to one line rather
+                            // than being cut.
+                            : FittedBox(
+                                fit: BoxFit.scaleDown,
+                                alignment: Alignment.centerLeft,
+                                child: Text(largeTitle!,
+                                    maxLines: 1, style: _titleStyle(c)),
+                              ),
+                      ),
                     ),
                     if (subtitle != null)
                       large(
@@ -286,11 +289,14 @@ class _CollapsingNavDelegate extends SliverPersistentHeaderDelegate {
                       id: _Slot.compact,
                       child: Opacity(
                         opacity: compactOpacity,
-                        child: Text(
-                          title,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: AppType.headline.copyWith(color: c.ink),
+                        child: Semantics(
+                          header: true,
+                          child: Text(
+                            title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppType.headline.copyWith(color: c.ink),
+                          ),
                         ),
                       ),
                     ),

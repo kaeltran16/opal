@@ -72,6 +72,20 @@ void main() {
     expect(style.fontWeight, FontWeight.w500);
   });
 
+  testWidgets('the title is announced as a header at rest and collapsed',
+      (tester) async {
+    final handle = tester.ensureSemantics();
+    await pump(tester);
+    expect(tester.getSemantics(find.text('Profile')),
+        isSemantics(label: 'Profile', isHeader: true));
+
+    await tester.drag(find.byType(CustomScrollView), const Offset(0, -400));
+    await tester.pumpAndSettle();
+    expect(tester.getSemantics(find.text('Profile')),
+        isSemantics(label: 'Profile', isHeader: true));
+    handle.dispose();
+  });
+
   testWidgets('the trailing action shares a row with the expanded title',
       (tester) async {
     await pump(

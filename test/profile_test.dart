@@ -21,8 +21,9 @@ import 'package:opal/screens/you/autopilot_screen.dart';
 import 'package:opal/screens/you/pal_memory_screen.dart';
 import 'package:opal/services/pal/mock_pal_service.dart';
 import 'package:opal/services/pal/pal_service.dart';
-import 'package:opal/theme/app_colors.dart';
+import 'package:opal/theme/theme.dart';
 import 'package:opal/widgets/inset_section.dart';
+import 'package:opal/widgets/nav_bar.dart';
 
 import 'support/flush_provider_timers.dart';
 
@@ -307,9 +308,9 @@ void main() {
       await flushProviderTimers(tester);
     });
 
-    testWidgets('a long name and a 1000-day streak wrap at text scale 2',
-        (tester) async {
-      tester.platformDispatcher.textScaleFactorTestValue = 2;
+    testWidgets('ellipsises with no overflow at text scale 1.3 on a 390-wide '
+        'surface', (tester) async {
+      tester.platformDispatcher.textScaleFactorTestValue = 1.3;
       addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
       const name = 'Maximiliana Okafor-Featherstonehaughs Jr';
       expect(name.length, 40);
@@ -323,12 +324,50 @@ void main() {
 
       final line = find.text('$name · 1000-day workout streak');
       expect(line, findsOneWidget);
-      // wrapped under the title, not beside it.
-      expect(tester.getTopLeft(line).dy,
-          greaterThan(tester.getBottomLeft(find.text('You')).dy - 1));
+      final text = tester.widget<Text>(line);
+      expect(text.maxLines, 1);
+      expect(text.overflow, TextOverflow.ellipsis);
+      expect(tester.getRect(line).right, lessThanOrEqualTo(390 - Spacing.lg));
       expect(tester.takeException(), isNull);
       await tester.scrollUntilVisible(find.text('About and help'), 300);
       expect(tester.takeException(), isNull);
+      await flushProviderTimers(tester);
+    });
+  });
+
+  group('You title', () {
+    testWidgets('is the shared large title with the header line beneath it',
+        (tester) async {
+      await _pumpYou(tester, name: 'Mira', findings: const [], workoutDays: 3);
+      final view = tester.widget<LargeTitleScrollView>(find.descendant(
+          of: find.byType(ProfileScreen), matching: find.byType(LargeTitleScrollView)));
+      expect(view.title, 'You');
+      expect(view.subtitle, 'Mira · 3-day workout streak');
+      await flushProviderTimers(tester);
+    });
+
+    testWidgets('collapsed, sits centred and clear of the gutter on a 390-wide '
+        'surface', (tester) async {
+      await _pumpYou(tester,
+          findings: const [_sleepMoney, _moodMove],
+          size: const Size(390, 844),
+          inShell: false);
+
+      await tester.drag(find.byType(CustomScrollView), const Offset(0, -400));
+      await tester.pumpAndSettle();
+
+      final compact = tester.getRect(find.text('You'));
+      expect(compact.center.dx, closeTo(195, 1));
+      expect(compact.left, greaterThanOrEqualTo(Spacing.lg));
+      await flushProviderTimers(tester);
+    });
+
+    testWidgets('is announced as a header', (tester) async {
+      final handle = tester.ensureSemantics();
+      await _pumpYou(tester, findings: const [], inShell: false);
+      expect(tester.getSemantics(find.text('You')),
+          isSemantics(label: 'You', isHeader: true));
+      handle.dispose();
       await flushProviderTimers(tester);
     });
   });
