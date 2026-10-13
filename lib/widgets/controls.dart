@@ -12,7 +12,7 @@ const double _chipHeight = 32;
 const double _searchIcon = 16;
 const Duration _fillDuration = Duration(milliseconds: 240);
 const Duration _thumbDuration = Duration(milliseconds: 150);
-const Color _clear = Color(0x00000000);
+const Color _clear = Color(0x00000000); // kept literal: transparent, no colour token
 
 /// Thin progress bar: `ink` on `track`.
 class ProgressBar extends StatelessWidget {
