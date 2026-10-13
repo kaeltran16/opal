@@ -88,7 +88,8 @@ void main() {
         await tester.tap(more);
         await tester.pumpAndSettle();
       }
-      final row = find.bySemanticsLabel('$title, any time. Do this next');
+      final row = find.bySemanticsLabel(
+          RegExp('^${RegExp.escape(title)}, (any time|at .+)[.] Do this next\$'));
       if (row.evaluate().isEmpty) return;
       await tester.tap(row);
       await tester.pumpAndSettle();
@@ -128,17 +129,20 @@ void main() {
       await flushProviderTimers(tester);
     });
 
-    testWidgets('a close-out proposal navigates instead of settling',
+    testWidgets('the close-out proposal lends its sentence to the Close-out row',
         (tester) async {
       await _pumpApp(tester, location: '/today');
-      await select(tester, 'Close out tonight');
+      await select(tester, 'Close-out');
 
-      await tester.tap(find.text('Start close-out'));
+      // no separate proposal row; Pal's body is the row's sentence.
+      expect(find.text('Close out tonight', skipOffstage: false), findsNothing);
+      expect(find.text('Start close-out', skipOffstage: false), findsNothing);
+      expect(find.textContaining('A 5-min wind-down'), findsOneWidget);
+
+      await tester.tap(find.text('Start'));
       await tester.pumpAndSettle();
 
       expect(find.byType(EveningCloseOutScreen), findsOneWidget);
-      // still on the card behind the sheet, and nothing to undo.
-      expect(find.text('Start close-out', skipOffstage: false), findsOneWidget);
       expect(undo(), findsNothing);
 
       await flushProviderTimers(tester);
