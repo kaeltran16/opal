@@ -97,15 +97,16 @@ void main() {
 
     await tester.tap(_tab('You'));
     await tester.pumpAndSettle();
-    // the Areas group sat between Goals and Money; bring that seam into view.
+    // the Areas group once sat after Goals; bring the rows now there into view.
+    final reviews = _onYou(find.text('Reviews'));
     await tester.scrollUntilVisible(
-      _onYou(find.text('Daily routines')),
+      reviews,
       100,
       scrollable: _onYou(find.byType(Scrollable)).first,
     );
     await tester.pumpAndSettle();
-    expect(_onYou(find.text('Daily routines')).hitTestable(), findsOneWidget);
-    expect(_onYou(find.text('MONEY')).hitTestable(), findsOneWidget);
+    expect(_onYou(find.text('Budgets')).hitTestable(), findsOneWidget);
+    expect(reviews.hitTestable(), findsOneWidget);
     for (final gone in ['AREAS', 'Sleep', 'Mood']) {
       expect(_onYou(find.text(gone)), findsNothing, reason: gone);
     }
