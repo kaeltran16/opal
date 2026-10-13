@@ -13,20 +13,23 @@ GlanceNumbers _numbers({
   int moveGoal = 500,
   int routinesDone = 2,
   int routinesTotal = 4,
-}) =>
-    GlanceNumbers(
-      spent: spent,
-      budget: budget,
-      moveKcal: moveKcal,
-      moveGoal: moveGoal,
-      routinesDone: routinesDone,
-      routinesTotal: routinesTotal,
-    );
+}) => GlanceNumbers(
+  spent: spent,
+  budget: budget,
+  moveKcal: moveKcal,
+  moveGoal: moveGoal,
+  routinesDone: routinesDone,
+  routinesTotal: routinesTotal,
+);
 
 void main() {
   test('state words are the fixed four', () {
-    expect(AreaState.values.map((s) => s.word),
-        ['Ahead', 'On track', 'Worth watching', 'Needs care']);
+    expect(AreaState.values.map((s) => s.word), [
+      'Ahead',
+      'On track',
+      'Worth watching',
+      'Needs care',
+    ]);
   });
 
   group('dayShare', () {
@@ -47,7 +50,10 @@ void main() {
 
   group('moneyState', () {
     test('on pace is good', () {
-      expect(moneyState(spent: 30, budget: 60, now: _at(14, 30)), AreaState.good);
+      expect(
+        moneyState(spent: 30, budget: 60, now: _at(14, 30)),
+        AreaState.good,
+      );
     });
 
     test('63% spent at 09:00 is watch', () {
@@ -59,7 +65,10 @@ void main() {
     });
 
     test('one cent over budget is care', () {
-      expect(moneyState(spent: 60.01, budget: 60, now: _at(21)), AreaState.care);
+      expect(
+        moneyState(spent: 60.01, budget: 60, now: _at(21)),
+        AreaState.care,
+      );
     });
 
     test('exactly at budget late in the day is good', () {
@@ -77,11 +86,17 @@ void main() {
     });
 
     test('over budget is care', () {
-      expect(budgetState(spent: 101, budget: 100, elapsed: 0.9), AreaState.care);
+      expect(
+        budgetState(spent: 101, budget: 100, elapsed: 0.9),
+        AreaState.care,
+      );
     });
 
     test('a spent share at elapsed plus slack is watch', () {
-      expect(budgetState(spent: 60, budget: 100, elapsed: 0.3), AreaState.watch);
+      expect(
+        budgetState(spent: 60, budget: 100, elapsed: 0.3),
+        AreaState.watch,
+      );
     });
 
     test('a spent share under elapsed plus slack is good', () {
@@ -92,8 +107,10 @@ void main() {
   group('progressState', () {
     test('goal met is thriving at any hour', () {
       for (final hour in [6, 9, 14, 21, 23]) {
-        expect(progressState(done: 500, goal: 500, now: _at(hour)),
-            AreaState.thriving);
+        expect(
+          progressState(done: 500, goal: 500, now: _at(hour)),
+          AreaState.thriving,
+        );
       }
       expect(progressState(done: 5, goal: 4, now: _at(9)), AreaState.thriving);
     });
@@ -112,7 +129,9 @@ void main() {
 
     test('60% done at 21:30 is watch', () {
       expect(
-          progressState(done: 300, goal: 500, now: _at(21, 30)), AreaState.watch);
+        progressState(done: 300, goal: 500, now: _at(21, 30)),
+        AreaState.watch,
+      );
     });
 
     test('zero goal is good', () {
@@ -131,15 +150,18 @@ void main() {
     });
 
     test('is move then routines at 21:30 with under half of both goals', () {
-      expect(
-        careAreas(_numbers(moveKcal: 200, routinesDone: 1), _at(21, 30)),
-        [DetailTracker.move, DetailTracker.rituals],
-      );
+      expect(careAreas(_numbers(moveKcal: 200, routinesDone: 1), _at(21, 30)), [
+        DetailTracker.move,
+        DetailTracker.rituals,
+      ]);
     });
 
     test('lists every area in rule order', () {
       expect(
-        careAreas(_numbers(spent: 75, moveKcal: 200, routinesDone: 1), _at(21, 30)),
+        careAreas(
+          _numbers(spent: 75, moveKcal: 200, routinesDone: 1),
+          _at(21, 30),
+        ),
         [DetailTracker.money, DetailTracker.move, DetailTracker.rituals],
       );
     });
@@ -147,7 +169,13 @@ void main() {
     test('ignores an area with no goal', () {
       expect(
         careAreas(
-          _numbers(budget: 0, moveKcal: 0, moveGoal: 0, routinesDone: 0, routinesTotal: 0),
+          _numbers(
+            budget: 0,
+            moveKcal: 0,
+            moveGoal: 0,
+            routinesDone: 0,
+            routinesTotal: 0,
+          ),
           _at(21, 30),
         ),
         isEmpty,

@@ -27,7 +27,10 @@ const double _lateShortfall = 0.5;
 /// 22:00, linear between.
 double dayShare(DateTime now) {
   final minute = now.hour * 60 + now.minute;
-  return ((minute - _wakeMinute) / (_sleepMinute - _wakeMinute)).clamp(0.0, 1.0);
+  return ((minute - _wakeMinute) / (_sleepMinute - _wakeMinute)).clamp(
+    0.0,
+    1.0,
+  );
 }
 
 /// Spending against a daily budget. Never [AreaState.thriving]: under budget
@@ -36,8 +39,7 @@ AreaState moneyState({
   required double spent,
   required double budget,
   required DateTime now,
-}) =>
-    budgetState(spent: spent, budget: budget, elapsed: dayShare(now));
+}) => budgetState(spent: spent, budget: budget, elapsed: dayShare(now));
 
 /// Spending against a budget over any period, with [elapsed] the fraction of
 /// that period gone (0 to 1). Never [AreaState.thriving], as [moneyState].
@@ -68,11 +70,12 @@ AreaState progressState({
 
 /// The areas in [AreaState.care], in rule order: Money, Move, Routines.
 List<DetailTracker> careAreas(GlanceNumbers n, DateTime now) => [
-      if (moneyState(spent: n.spent, budget: n.budget, now: now) == AreaState.care)
-        DetailTracker.money,
-      if (progressState(done: n.moveKcal, goal: n.moveGoal, now: now) == AreaState.care)
-        DetailTracker.move,
-      if (progressState(done: n.routinesDone, goal: n.routinesTotal, now: now) ==
-          AreaState.care)
-        DetailTracker.rituals,
-    ];
+  if (moneyState(spent: n.spent, budget: n.budget, now: now) == AreaState.care)
+    DetailTracker.money,
+  if (progressState(done: n.moveKcal, goal: n.moveGoal, now: now) ==
+      AreaState.care)
+    DetailTracker.move,
+  if (progressState(done: n.routinesDone, goal: n.routinesTotal, now: now) ==
+      AreaState.care)
+    DetailTracker.rituals,
+];
