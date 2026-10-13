@@ -235,7 +235,7 @@ class _SleepBody extends StatelessWidget {
               const SizedBox(height: _heroTop),
               const _AreaTitle(Area.sleep),
               const SizedBox(height: Spacing.sm),
-              Text('No sleep data yet', style: AppType.title3.copyWith(color: c.ink)),
+              Text('No sleep data yet', style: AppType.title.copyWith(color: c.ink)),
               const SizedBox(height: _labelGap),
               Align(
                 alignment: AlignmentDirectional.centerStart,
@@ -621,7 +621,7 @@ class _EntryRow extends StatelessWidget {
         color: c.red,
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: Spacing.lg),
-        child: AppIcon('trash.fill', size: 20, color: c.onAccent),
+        child: AppIcon('trash.fill', size: 20, color: c.bg),
       ),
       child: Container(
         constraints: const BoxConstraints(minHeight: _minTap),
