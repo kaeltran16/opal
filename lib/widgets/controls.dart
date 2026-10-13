@@ -24,7 +24,7 @@ class ProgressBar extends StatelessWidget {
       borderRadius: BorderRadius.circular(height / 2),
       child: Stack(
         children: [
-          Container(height: height, color: c.fill),
+          Container(height: height, color: c.track),
           FractionallySizedBox(
             widthFactor: value.clamp(0.0, 1.0),
             child: AnimatedContainer(
@@ -32,7 +32,7 @@ class ProgressBar extends StatelessWidget {
               curve: Curves.easeOut,
               height: height,
               decoration: BoxDecoration(
-                color: gradient == null ? (color ?? c.accent) : null,
+                color: gradient == null ? (color ?? c.ink) : null,
                 gradient: gradient,
               ),
             ),

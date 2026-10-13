@@ -18,6 +18,7 @@ import 'package:opal/screens/detail/detail_screen.dart';
 import 'package:opal/screens/nutrition/nutrition_meal_detail_screen.dart';
 import 'package:opal/screens/rituals/rituals_builder_screen.dart';
 import 'package:opal/screens/rituals/routine_player_screen.dart';
+import 'package:opal/widgets/app_icon.dart';
 import 'package:opal/widgets/contributor_bar.dart';
 import 'package:opal/widgets/glass_tab_bar.dart';
 import 'package:opal/widgets/week_bars.dart';
@@ -191,6 +192,9 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(RitualsBuilderScreen), findsOneWidget);
+    expect(find.text(_manage), findsOneWidget);
+    expect(find.bySemanticsLabel('Morning, 7:00 AM, 5 steps. Edit'), findsOneWidget);
+    expect(find.byWidgetPredicate((w) => w is AppIcon && w.name == 'xmark'), findsNothing);
     await shot(tester, 'area_routines_manage_${_theme(dark)}');
   });
 
@@ -203,6 +207,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(RoutinePlayerScreen), findsOneWidget);
+    expect(find.text('Mark done'), findsOneWidget);
+    expect(find.text('Step 1 of 5'), findsOneWidget);
     await shot(tester, 'area_routines_player_${_theme(dark)}');
   });
 
