@@ -15,6 +15,16 @@ import '../../widgets/app_icon.dart';
 import '../../widgets/controls.dart';
 import '../../widgets/keypad.dart';
 import '../../widgets/nav_bar.dart';
+import '../../widgets/press_scale.dart';
+
+const double _minTap = 44;
+const double _pillHeight = 48;
+const double _inputHeight = 52;
+const double _hairline = 1;
+const double _fieldIcon = 16;
+const double _spinner = 15;
+const double _spinnerStroke = 2;
+const double _disabledOpacity = 0.4;
 
 /// Screen 04 — New Entry sheet (manual logging).
 ///
@@ -43,16 +53,6 @@ class NewEntrySheet extends ConsumerStatefulWidget {
 
 /// Which tracker the sheet is logging. Maps to an [EntryType] on save.
 enum _Kind { expense, workout, ritual }
-
-extension on _Kind {
-  EntryType get entryType => switch (this) {
-        _Kind.expense => EntryType.money,
-        _Kind.workout => EntryType.move,
-        _Kind.ritual => EntryType.rituals,
-      };
-
-  String typeColorKey() => entryType.wire;
-}
 
 /// A recent / common preset shown as a quick-pick tile.
 class _QuickPick {
@@ -164,20 +164,10 @@ class _NewEntrySheetState extends ConsumerState<NewEntrySheet> {
     return double.tryParse(_buffer);
   }
 
-  /// The big display string for the current kind.
-  String get _displayText {
-    switch (_kind) {
-      case _Kind.expense:
-        final v = _numericValue ?? 0;
-        return '\$${_formatMoney(v)}';
-      case _Kind.workout:
-        final v = _numericValue ?? 0;
-        // Move is whole minutes.
-        return '${v.toStringAsFixed(0)} min';
-      case _Kind.ritual:
-        final t = _titleCtrl.text.trim();
-        return t.isEmpty ? 'New routine' : t;
-    }
+  /// The big display string for a ritual: its typed title.
+  String get _ritualText {
+    final t = _titleCtrl.text.trim();
+    return t.isEmpty ? 'New routine' : t;
   }
 
   String _formatMoney(double v) {
@@ -408,7 +398,6 @@ class _NewEntrySheetState extends ConsumerState<NewEntrySheet> {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    final typeColor = c.forType(_kind.typeColorKey());
     final picks = _currentPicks();
 
     return Scaffold(
@@ -416,33 +405,27 @@ class _NewEntrySheetState extends ConsumerState<NewEntrySheet> {
       body: SafeArea(
         child: Column(
           children: [
-            // Sticky nav: Cancel / New Entry / Add, with a hairline divider
-            // below. SafeArea (top inset) keeps the row clear of the status bar
-            // since the sheet fills the screen.
+            // Sticky header: Cancel and the title, with a hairline below.
+            // SafeArea (top inset) keeps the row clear of the status bar since
+            // the sheet fills the screen. Add is the primary pill at the bottom.
             Container(
               decoration: BoxDecoration(
-                border: Border(bottom: BorderSide(color: c.hair, width: 0.5)),
+                border: Border(bottom: BorderSide(color: c.hair, width: _hairline)),
               ),
               padding: const EdgeInsets.fromLTRB(
                   Spacing.xs, Spacing.xxs, Spacing.xs, Spacing.xxs),
-              child: Row(
+              child: Stack(
+                alignment: Alignment.center,
                 children: [
-                  NavAction(
-                    label: 'Cancel',
-                    onTap: () => context.pop(),
-                  ),
-                  Expanded(
-                    child: Text(
-                      'New Entry',
-                      textAlign: TextAlign.center,
-                      style: AppType.headline.copyWith(color: c.ink),
+                  Text('New entry', style: AppType.headline.copyWith(color: c.ink)),
+                  Align(
+                    alignment: AlignmentDirectional.centerStart,
+                    child: NavAction(
+                      label: 'Cancel',
+                      bold: true,
+                      color: c.ink,
+                      onTap: () => context.pop(),
                     ),
-                  ),
-                  NavAction(
-                    label: 'Add',
-                    bold: true,
-                    enabled: _canAdd,
-                    onTap: _add,
                   ),
                 ],
               ),
@@ -457,9 +440,8 @@ class _NewEntrySheetState extends ConsumerState<NewEntrySheet> {
                 children: [
                   // "Log with Pal" — inline natural-language entry (U16). Parses
                   // free text via PalService and pre-fills the form.
-                  _LogWithPalBox(
+                  _LogWithPalRow(
                     controller: _nlCtrl,
-                    accent: c.accent,
                     currency: ref.read(appSettingsControllerProvider).currency,
                     parsing: _parsing,
                     onParse: _parseNl,
@@ -476,33 +458,28 @@ class _NewEntrySheetState extends ConsumerState<NewEntrySheet> {
                   ),
                   const SizedBox(height: Spacing.xxl),
 
-                  // Amount hero: a tinted type pill above the big display. The
+                  // Amount hero: what is being logged above the big display. The
                   // display is scaled down so long amounts (e.g. large VND
                   // values) shrink to fit instead of overflowing the row.
                   Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      _buildTypePill(c, typeColor),
-                      const SizedBox(height: Spacing.md),
+                      Text(_heroLabel,
+                          textAlign: TextAlign.center,
+                          style: AppType.label.copyWith(color: c.ink2)),
+                      const SizedBox(height: Spacing.sm),
                       FittedBox(
                         fit: BoxFit.scaleDown,
-                        child: _buildDisplay(c, typeColor),
+                        child: _buildDisplay(c),
                       ),
                     ],
                   ),
                   const SizedBox(height: Spacing.xl),
 
                   if (picks.isNotEmpty) ...[
-                    Text(
-                      'CATEGORY',
-                      style: AppType.caption.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: c.ink3,
-                        letterSpacing: 0.3,
-                      ),
-                    ),
+                    Text('Category', style: AppType.label.copyWith(color: c.ink3)),
                     const SizedBox(height: Spacing.sm),
-                    _buildQuickPicks(c, picks),
+                    _buildQuickPicks(picks),
                     const SizedBox(height: Spacing.xl),
                   ],
 
@@ -529,26 +506,35 @@ class _NewEntrySheetState extends ConsumerState<NewEntrySheet> {
               ),
             ),
 
-            // Fixed bottom: keypad (money/move) or ritual title field.
+            // Fixed bottom: keypad (money/move) or ritual title field, then
+            // Add, the sheet's one primary pill.
             Padding(
               padding: const EdgeInsets.fromLTRB(
                   Spacing.lg, Spacing.xs, Spacing.lg, Spacing.sm),
-              child: _kind == _Kind.ritual
-                  ? _RitualTitleField(
-                      controller: _titleCtrl,
-                      onChanged: (_) => setState(() {}),
-                    )
-                  : Keypad(
-                      onDigit: _onDigit,
-                      onDecimal: _onDecimal,
-                      onDelete: _onDelete,
-                      showDecimal: _kind == _Kind.expense &&
-                          ref
-                                  .read(appSettingsControllerProvider)
-                                  .currency
-                                  .decimals >
-                              0,
-                    ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _kind == _Kind.ritual
+                      ? _RitualTitleField(
+                          controller: _titleCtrl,
+                          onChanged: (_) => setState(() {}),
+                        )
+                      : Keypad(
+                          onDigit: _onDigit,
+                          onDecimal: _onDecimal,
+                          onDelete: _onDelete,
+                          showDecimal: _kind == _Kind.expense &&
+                              ref
+                                      .read(appSettingsControllerProvider)
+                                      .currency
+                                      .decimals >
+                                  0,
+                        ),
+                  const SizedBox(height: Spacing.sm),
+                  _AddPill(enabled: _canAdd, onTap: _add),
+                ],
+              ),
             ),
           ],
         ),
@@ -556,15 +542,8 @@ class _NewEntrySheetState extends ConsumerState<NewEntrySheet> {
     );
   }
 
-  /// SF Symbol shown in the amount-hero type pill, per active kind.
-  String get _pillIcon => switch (_kind) {
-        _Kind.expense => 'dollarsign.circle.fill',
-        _Kind.workout => 'figure.run',
-        _Kind.ritual => 'sparkles',
-      };
-
-  /// Pill label: the chosen category / title, or a "New …" type placeholder.
-  String get _pillLabel {
+  /// Hero label: the chosen category / title, or a "New …" type placeholder.
+  String get _heroLabel {
     final picked = switch (_kind) {
       _Kind.expense => _categoryCtrl.text.trim(),
       _Kind.workout || _Kind.ritual => _titleCtrl.text.trim(),
@@ -577,48 +556,20 @@ class _NewEntrySheetState extends ConsumerState<NewEntrySheet> {
     };
   }
 
-  /// The tinted type pill above the big display (design AddSheet amount hero).
-  Widget _buildTypePill(AppColors c, Color typeColor) {
-    return Container(
-      padding: const EdgeInsets.symmetric(
-          horizontal: Spacing.md, vertical: 6), // 6: no spacing token for pill
-      decoration: BoxDecoration(
-        color: typeColor.withValues(alpha: 0.13),
-        borderRadius: BorderRadius.circular(Radii.pill),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          AppIcon(_pillIcon, size: 14, color: typeColor),
-          const SizedBox(width: Spacing.sm),
-          Text(
-            _pillLabel,
-            style: AppType.footnote.copyWith(
-              fontWeight: FontWeight.w600,
-              color: typeColor,
-              letterSpacing: -0.08,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDisplay(AppColors c, Color typeColor) {
+  Widget _buildDisplay(AppColors c) {
     if (_kind == _Kind.ritual) {
       return Text(
-        _displayText,
+        _ritualText,
         textAlign: TextAlign.center,
-        style: AppType.large.copyWith(
-          color: _titleCtrl.text.trim().isEmpty ? c.ink4 : c.ink,
-          letterSpacing: -0.4,
+        style: AppType.title.copyWith(
+          color: _titleCtrl.text.trim().isEmpty ? c.ink3 : c.ink,
         ),
       );
     }
     final currency = ref.read(appSettingsControllerProvider).currency;
     final empty = _numericValue == null;
-    final numberColor = empty ? c.ink4 : c.ink;
-    // Money: 46px ink4 currency glyph; Move: 20px ink3 "min" suffix. VND drops
+    final numberColor = empty ? c.ink3 : c.ink;
+    // Money: an ink3 currency glyph; Move: an ink3 "min" suffix. VND drops
     // cents and trails the glyph; USD keeps cents and leads with it.
     final number = _kind == _Kind.expense
         ? (empty
@@ -628,15 +579,7 @@ class _NewEntrySheetState extends ConsumerState<NewEntrySheet> {
                 : groupThousands((_numericValue ?? 0).toStringAsFixed(0),
                     currency.groupSeparator)))
         : (_numericValue ?? 0).toStringAsFixed(0);
-    final symbol = Text(
-      currency.symbol,
-      style: AppFonts.sfr(
-        size: 46, // kept literal: no sfr token for 46
-        weight: FontWeight.w300,
-        color: c.ink4,
-        letterSpacing: -1,
-      ),
-    );
+    final symbol = Text(currency.symbol, style: AppType.display.copyWith(color: c.ink3));
     return Row(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.baseline,
@@ -647,16 +590,7 @@ class _NewEntrySheetState extends ConsumerState<NewEntrySheet> {
             padding: const EdgeInsets.only(right: Spacing.xs),
             child: symbol,
           ),
-        Text(
-          number,
-          style: AppFonts.sfr(
-            size: 72, // kept literal: hero display above 54
-            weight: FontWeight.w700,
-            color: numberColor,
-            letterSpacing: -2,
-            height: 1,
-          ),
-        ),
+        Text(number, style: AppType.display.copyWith(color: numberColor)),
         if (_kind == _Kind.expense && !currency.symbolBefore)
           Padding(
             padding: const EdgeInsets.only(left: Spacing.sm),
@@ -665,10 +599,7 @@ class _NewEntrySheetState extends ConsumerState<NewEntrySheet> {
         if (_kind == _Kind.workout)
           Padding(
             padding: const EdgeInsets.only(left: Spacing.sm),
-            child: Text(
-              'min',
-              style: AppType.title3.copyWith(color: c.ink3),
-            ),
+            child: Text('min', style: AppType.title.copyWith(color: c.ink3)),
           ),
       ],
     );
@@ -701,7 +632,7 @@ class _NewEntrySheetState extends ConsumerState<NewEntrySheet> {
         : _picks.where((p) => p.kind == _kind).toList();
   }
 
-  Widget _buildQuickPicks(AppColors c, List<_QuickPick> picks) {
+  Widget _buildQuickPicks(List<_QuickPick> picks) {
     return Wrap(
       spacing: Spacing.sm,
       runSpacing: Spacing.sm,
@@ -710,7 +641,6 @@ class _NewEntrySheetState extends ConsumerState<NewEntrySheet> {
           _QuickPickTile(
             pick: p,
             currency: ref.read(appSettingsControllerProvider).currency,
-            color: c.forType(p.kind.entryType.wire),
             onTap: () => _applyPick(p),
           ),
       ],
@@ -727,25 +657,29 @@ class _NewEntrySheetState extends ConsumerState<NewEntrySheet> {
       runSpacing: Spacing.sm,
       children: [
         for (final cat in kSpendCategories)
-          GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: () => setState(
-                () => _categoryCtrl.text = selected == cat ? '' : cat),
-            child: Container(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: Spacing.md, vertical: Spacing.sm),
-              decoration: BoxDecoration(
-                color: selected == cat ? c.money : c.surface,
-                borderRadius: BorderRadius.circular(Radii.pill),
-                border: Border.all(
-                    color: selected == cat ? c.money : c.hair, width: 0.5),
-              ),
-              child: Text(
-                cat,
-                style: AppType.footnote.copyWith(
-                  fontWeight: FontWeight.w500,
-                  color: selected == cat ? c.onAccent : c.ink2,
-                  letterSpacing: -0.08,
+          Semantics(
+            selected: selected == cat,
+            child: PressScale(
+              onTap: () => setState(
+                  () => _categoryCtrl.text = selected == cat ? '' : cat),
+              semanticLabel: cat,
+              child: Container(
+                constraints: const BoxConstraints(minHeight: _minTap),
+                padding: const EdgeInsets.symmetric(horizontal: Spacing.lg),
+                decoration: BoxDecoration(
+                  color: selected == cat ? c.surface2 : null,
+                  borderRadius: BorderRadius.circular(Radii.pill),
+                  border: selected == cat
+                      ? null
+                      : Border.all(color: c.hair, width: _hairline),
+                ),
+                child: Align(
+                  widthFactor: 1,
+                  child: Text(
+                    cat,
+                    style: AppType.subhead.copyWith(
+                        color: selected == cat ? c.ink : c.ink2),
+                  ),
                 ),
               ),
             ),
@@ -759,66 +693,39 @@ class _QuickPickTile extends StatelessWidget {
   const _QuickPickTile({
     required this.pick,
     required this.currency,
-    required this.color,
     required this.onTap,
   });
 
   final _QuickPick pick;
   final Currency currency;
-  final Color color;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    return GestureDetector(
+    final detail = pick.kind == _Kind.expense && pick.amount != null
+        ? formatCurrency(pick.amount!, currency)
+        : pick.label;
+    return PressScale(
       onTap: onTap,
-      behavior: HitTestBehavior.opaque,
+      semanticLabel: '${pick.title}, $detail',
       child: Container(
-        padding: const EdgeInsets.symmetric(
-            horizontal: Spacing.md, vertical: Spacing.md),
+        constraints: const BoxConstraints(minHeight: _minTap),
+        padding: const EdgeInsets.symmetric(horizontal: Spacing.lg, vertical: Spacing.sm),
         decoration: BoxDecoration(
-          color: c.surface,
-          borderRadius: BorderRadius.circular(Radii.md),
-          border: Border.all(color: c.hair, width: 0.5),
+          color: c.surface2,
+          borderRadius: BorderRadius.circular(Radii.pill),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
-              width: 26,
-              height: 26,
-              decoration: BoxDecoration(
-                color: color,
-                borderRadius: BorderRadius.circular(Radii.sm),
-              ),
-              alignment: Alignment.center,
-              child: AppIcon(pick.icon, size: 14, color: c.onAccent),
+            AppIcon(pick.icon, size: _fieldIcon, color: c.ink2),
+            const SizedBox(width: Spacing.sm),
+            Flexible(
+              child: Text(pick.title, style: AppType.subhead.copyWith(color: c.ink)),
             ),
             const SizedBox(width: Spacing.sm),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  pick.title,
-                  style: AppType.subhead.copyWith(
-                    fontWeight: FontWeight.w500,
-                    color: c.ink,
-                    letterSpacing: -0.24,
-                  ),
-                ),
-                Text(
-                  pick.kind == _Kind.expense && pick.amount != null
-                      ? formatCurrency(pick.amount!, currency)
-                      : pick.label,
-                  style: AppType.caption.copyWith(
-                    color: c.ink3,
-                    letterSpacing: -0.08,
-                  ),
-                ),
-              ],
-            ),
+            Text(detail, style: AppType.subhead.copyWith(color: c.ink2)),
           ],
         ),
       ),
@@ -842,36 +749,49 @@ class _OptionalField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    return Container(
-      padding: const EdgeInsets.symmetric(
-          horizontal: Spacing.md, vertical: Spacing.xs),
-      decoration: BoxDecoration(
-        color: c.surface,
-        borderRadius: BorderRadius.circular(Radii.md),
-        border: Border.all(color: c.hair, width: 0.5),
-      ),
+    return _InputPill(
       child: Row(
         children: [
-          AppIcon(icon, size: 16, color: c.ink3),
+          AppIcon(icon, size: _fieldIcon, color: c.ink2),
           const SizedBox(width: Spacing.md),
           Expanded(
             child: TextField(
               controller: controller,
               keyboardType: keyboardType,
-              style: AppType.subhead
-                  .copyWith(color: c.ink, letterSpacing: -0.24),
-              cursorColor: c.accent,
+              style: AppType.subhead.copyWith(color: c.ink),
+              cursorColor: c.ink,
               decoration: InputDecoration(
                 isDense: true,
                 border: InputBorder.none,
                 hintText: hint,
-                hintStyle: AppType.subhead
-                    .copyWith(color: c.ink4, letterSpacing: -0.24),
+                hintStyle: AppType.subhead.copyWith(color: c.ink3),
               ),
             ),
           ),
         ],
       ),
+    );
+  }
+}
+
+/// A `surface2` pill that holds an input row.
+class _InputPill extends StatelessWidget {
+  const _InputPill({required this.child, this.minHeight = _minTap});
+
+  final Widget child;
+  final double minHeight;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      constraints: BoxConstraints(minHeight: minHeight),
+      padding: const EdgeInsets.symmetric(horizontal: Spacing.lg),
+      decoration: BoxDecoration(
+        color: context.colors.surface2,
+        borderRadius: BorderRadius.circular(Radii.pill),
+      ),
+      alignment: AlignmentDirectional.centerStart,
+      child: child,
     );
   }
 }
@@ -885,45 +805,37 @@ class _RitualTitleField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    return Container(
-      padding: const EdgeInsets.symmetric(
-          horizontal: Spacing.lg, vertical: Spacing.sm),
-      decoration: BoxDecoration(
-        color: c.surface,
-        borderRadius: BorderRadius.circular(Radii.md),
-        border: Border.all(color: c.hair, width: 0.5),
-      ),
+    return _InputPill(
+      minHeight: _inputHeight,
       child: TextField(
         controller: controller,
         autofocus: true,
         onChanged: onChanged,
         style: AppType.body.copyWith(color: c.ink),
-        cursorColor: c.rituals,
+        cursorColor: c.ink,
         decoration: InputDecoration(
           isDense: true,
           border: InputBorder.none,
           hintText: 'Routine title',
-          hintStyle: AppType.body.copyWith(color: c.ink4),
+          hintStyle: AppType.body.copyWith(color: c.ink3),
         ),
       ),
     );
   }
 }
 
-/// "Log with Pal" — inline natural-language entry (U16). An accent-tinted box
-/// with a "LOG WITH PAL" eyebrow, a free-text field, and a Parse button; the
-/// text is parsed by [PalService.parse] and pre-fills the sheet.
-class _LogWithPalBox extends StatelessWidget {
-  const _LogWithPalBox({
+/// "Log with Pal" — inline natural-language entry (U16). A `label` over a
+/// `surface2` input row with a Parse text button; the text is parsed by
+/// [PalService.parse] and pre-fills the sheet.
+class _LogWithPalRow extends StatelessWidget {
+  const _LogWithPalRow({
     required this.controller,
-    required this.accent,
     required this.currency,
     required this.parsing,
     required this.onParse,
   });
 
   final TextEditingController controller;
-  final Color accent;
   final Currency currency;
   final bool parsing;
   final VoidCallback onParse;
@@ -931,98 +843,101 @@ class _LogWithPalBox extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    return Container(
-      padding: const EdgeInsets.all(Spacing.md),
-      decoration: BoxDecoration(
-        color: accent.withValues(alpha: 0.10),
-        borderRadius: BorderRadius.circular(Radii.card),
-        border: Border.all(color: accent.withValues(alpha: 0.33), width: 0.5),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text('Log with Pal', style: AppType.label.copyWith(color: c.ink3)),
+        const SizedBox(height: Spacing.sm),
+        _InputPill(
+          minHeight: _inputHeight,
+          child: Row(
             children: [
-              AppIcon('sparkles', size: 14, color: accent),
-              const SizedBox(width: Spacing.sm),
-              Text(
-                'LOG WITH PAL',
-                style: AppType.caption.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: accent,
-                  letterSpacing: 0.3,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: Spacing.sm),
-          Row(
-            children: [
+              AppIcon('sparkles', size: _fieldIcon, color: c.ink2),
+              const SizedBox(width: Spacing.md),
               Expanded(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: Spacing.md, vertical: Spacing.sm),
-                  decoration: BoxDecoration(
-                    color: c.surface,
-                    borderRadius: BorderRadius.circular(Radii.md),
-                    border: Border.all(color: c.hair, width: 0.5),
-                  ),
-                  child: TextField(
-                    controller: controller,
-                    textInputAction: TextInputAction.done,
-                    onSubmitted: (_) => onParse(),
-                    cursorColor: accent,
-                    style: AppType.subhead
-                        .copyWith(color: c.ink, letterSpacing: -0.24),
-                    decoration: InputDecoration(
-                      isDense: true,
-                      border: InputBorder.none,
-                      hintText: currency == Currency.usd
-                          ? 'spent \$14 on ramen'
-                          : 'spent 50k on ramen',
-                      hintStyle: AppType.subhead
-                          .copyWith(color: c.ink4, letterSpacing: -0.24),
-                    ),
+                child: TextField(
+                  controller: controller,
+                  textInputAction: TextInputAction.done,
+                  onSubmitted: (_) => onParse(),
+                  cursorColor: c.ink,
+                  style: AppType.subhead.copyWith(color: c.ink),
+                  decoration: InputDecoration(
+                    isDense: true,
+                    border: InputBorder.none,
+                    hintText: currency == Currency.usd
+                        ? 'spent \$14 on ramen'
+                        : 'spent 50k on ramen',
+                    hintStyle: AppType.subhead.copyWith(color: c.ink3),
                   ),
                 ),
               ),
-              const SizedBox(width: Spacing.sm),
               ValueListenableBuilder<TextEditingValue>(
                 valueListenable: controller,
                 builder: (context, value, _) {
                   final enabled = value.text.trim().isNotEmpty && !parsing;
-                  return GestureDetector(
+                  return PressScale(
                     onTap: enabled ? onParse : null,
-                    behavior: HitTestBehavior.opaque,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: Spacing.lg, vertical: Spacing.md),
-                      decoration: BoxDecoration(
-                        color: enabled ? accent : c.fill,
-                        borderRadius: BorderRadius.circular(Radii.md),
+                    semanticLabel: 'Parse',
+                    child: ConstrainedBox(
+                      constraints:
+                          const BoxConstraints(minHeight: _minTap, minWidth: _minTap),
+                      child: Padding(
+                        padding: const EdgeInsets.only(left: Spacing.sm),
+                        child: Align(
+                          widthFactor: 1,
+                          child: parsing
+                              ? SizedBox(
+                                  width: _spinner,
+                                  height: _spinner,
+                                  child: CircularProgressIndicator(
+                                      strokeWidth: _spinnerStroke, color: c.ink),
+                                )
+                              : Text('Parse',
+                                  style: AppType.headline
+                                      .copyWith(color: enabled ? c.ink : c.ink3)),
+                        ),
                       ),
-                      child: parsing
-                          ? SizedBox(
-                              width: 15,
-                              height: 15,
-                              child: CircularProgressIndicator(
-                                  strokeWidth: 2, color: c.onAccent),
-                            )
-                          : Text(
-                              'Parse',
-                              style: AppType.subhead.copyWith(
-                                fontWeight: FontWeight.w600,
-                                color: enabled ? c.onAccent : c.ink3,
-                                letterSpacing: -0.2,
-                              ),
-                            ),
                     ),
                   );
                 },
               ),
             ],
           ),
-        ],
+        ),
+      ],
+    );
+  }
+}
+
+/// Add: the sheet's one primary pill, dimmed until the entry is valid.
+class _AddPill extends StatelessWidget {
+  const _AddPill({required this.enabled, required this.onTap});
+
+  final bool enabled;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return Semantics(
+      button: true,
+      enabled: enabled,
+      label: 'Add',
+      excludeSemantics: true,
+      child: Opacity(
+        opacity: enabled ? 1 : _disabledOpacity,
+        child: PressScale(
+          onTap: enabled ? onTap : null,
+          child: Container(
+            constraints: const BoxConstraints(minHeight: _pillHeight),
+            decoration: BoxDecoration(
+              color: c.ink,
+              borderRadius: BorderRadius.circular(Radii.pill),
+            ),
+            alignment: Alignment.center,
+            child: Text('Add', style: AppType.headline.copyWith(color: c.bg)),
+          ),
+        ),
       ),
     );
   }

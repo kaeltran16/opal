@@ -5,16 +5,55 @@ import 'package:go_router/go_router.dart';
 import '../../controllers/profile_controller.dart';
 import '../../controllers/rituals_controller.dart';
 import '../../models/models.dart';
+import '../../router.dart';
 import '../../theme/theme.dart';
 import '../../widgets/app_icon.dart';
+import '../../widgets/controls.dart';
 import '../../widgets/press_scale.dart';
+
+// top clears the status bar.
+const _padTop = 52.0;
+const _padSide = 16.0;
+const _padBottom = 48.0;
+const _target = 44.0;
+// pulls the close glyph onto the gutter while its 44 box overhangs it.
+const _closeBleed = 10.0;
+const _closeIcon = 22.0;
+const _progressGap = 16.0;
+const _barGap = 8.0;
+const _cardGap = 28.0;
+const _cardPad = 16.0;
+const _cardInnerGap = 16.0;
+const _stepIcon = 28.0;
+const _titleNoteGap = 6.0;
+const _pillHeight = 48.0;
+const _pillIcon = 18.0;
+const _pillIconGap = 8.0;
+const _controlsGap = 8.0;
+const _controlInset = 12.0;
+const _backIcon = 16.0;
+const _backIconGap = 4.0;
+const _upNextGap = 24.0;
+const _upNextInnerGap = 4.0;
+const _rowGap = 8.0;
+const _leadTop = 20.0;
+const _leadMaxWidth = 330.0;
+const _numberGap = 28.0;
+const _streakGap = 16.0;
+const _streakIcon = 16.0;
+const _streakIconGap = 6.0;
+const _footMinGap = 32.0;
+const _switchDuration = Duration(milliseconds: 320);
+const _switchCurve = Cubic(0.22, 1, 0.36, 1);
+const _slideFrom = Offset(0, 0.06);
+
+String _steps(int n) => n == 1 ? 'step' : 'steps';
 
 /// Screen 13b — full-screen guided Routine Player.
 ///
-/// Walks one [RitualStep] at a time: a tone-tinted glyph, "STEP n OF total"
-/// eyebrow, title, note, and a "Mark done" button that records the step (via
-/// `completeStep`) and advances. Opens at the routine's first incomplete step.
-/// When every step is done it shows a completion state with a streak pill.
+/// Walks one [RitualStep] at a time in a single card with a "Mark done" pill
+/// that records the step (via `completeStep`) and advances. Opens at the
+/// routine's first incomplete step and ends on a summary of what got done.
 class RoutinePlayerScreen extends ConsumerStatefulWidget {
   const RoutinePlayerScreen({super.key, required this.routineId});
 
@@ -27,12 +66,14 @@ class RoutinePlayerScreen extends ConsumerStatefulWidget {
 
 class _RoutinePlayerScreenState extends ConsumerState<RoutinePlayerScreen> {
   /// Current step index; null until seeded from the first-incomplete step once
-  /// the routine loads. `>= steps.length` means the completion state.
+  /// the routine loads. `>= steps.length` means the finished view.
   int? _idx;
 
   void _seed(RitualsState state, RitualRoutine routine) {
     _idx ??= state.firstIncompleteStep(routine);
   }
+
+  void _toRoutines() => context.go('/rituals');
 
   @override
   Widget build(BuildContext context) {
@@ -44,34 +85,125 @@ class _RoutinePlayerScreenState extends ConsumerState<RoutinePlayerScreen> {
       body: async.when(
         loading: () => const SizedBox.shrink(),
         error: (e, _) {
-          debugPrint('RoutinePlayerScreen failed to load routine: $e');
-          return const _NotFound(message: "Couldn't load routine.");
+          debugPrint('RoutinePlayerScreen failed to load routine '
+              '${widget.routineId}: $e');
+          return _Missing(
+            title: "Couldn't load routine",
+            body: 'Try again in a moment.',
+            pill: 'Back to routines',
+            onPill: _toRoutines,
+            onClose: _toRoutines,
+          );
         },
         data: (state) {
           final matches =
               state.routines.where((r) => r.id == widget.routineId);
           final routine = matches.isEmpty ? null : matches.first;
-          if (routine == null || routine.steps.isEmpty) {
-            return const _NotFound(message: 'Routine not found.');
+          if (routine == null) {
+            return _Missing(
+              title: 'Routine not found',
+              body: 'It may have been deleted.',
+              pill: 'Back to routines',
+              onPill: _toRoutines,
+              onClose: _toRoutines,
+            );
+          }
+          if (routine.steps.isEmpty) {
+            return _Missing(
+              heading: routine.name,
+              title: 'No steps yet',
+              body: 'Add a step to ${routine.name} to start it.',
+              pill: 'Manage routines',
+              onPill: () => context.goNamed(AppRoute.areaManageRoutines.name),
+              onClose: _toRoutines,
+            );
           }
           _seed(state, routine);
+          final total = routine.steps.length;
+          void go(int i) => setState(() => _idx = i.clamp(0, total));
           return _Player(
             routine: routine,
             idx: _idx!,
             done: state.doneFor(routine.id),
-            onBack: () => setState(() => _idx = (_idx! - 1).clamp(0, _idx!)),
-            onSkip: () => setState(
-                () => _idx = (_idx! + 1).clamp(0, routine.steps.length)),
+            onClose: _toRoutines,
+            onBack: () => go(_idx! - 1),
+            onSkip: () => go(_idx! + 1),
             onMarkDone: () {
               ref
                   .read(ritualsControllerProvider.notifier)
                   .completeStep(routine, _idx!);
-              setState(
-                  () => _idx = (_idx! + 1).clamp(0, routine.steps.length));
+              go(_idx! + 1);
             },
           );
         },
       ),
+    );
+  }
+}
+
+/// The board's page frame: header row, then [children] in a column that fills
+/// the screen and scrolls when it can't.
+class _Frame extends StatelessWidget {
+  const _Frame({
+    required this.heading,
+    required this.onClose,
+    required this.children,
+  });
+
+  final String heading;
+  final VoidCallback onClose;
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return CustomScrollView(
+      slivers: [
+        SliverFillRemaining(
+          hasScrollBody: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(
+                _padSide, _padTop, _padSide, _padBottom),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                SizedBox(
+                  height: _target,
+                  child: Row(
+                    children: [
+                      Transform.translate(
+                        offset: const Offset(-_closeBleed, 0),
+                        child: PressScale(
+                          onTap: onClose,
+                          semanticLabel: 'Close',
+                          child: SizedBox.square(
+                            dimension: _target,
+                            child: Center(
+                              child: AppIcon('xmark',
+                                  size: _closeIcon, color: c.ink),
+                            ),
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        child: Text(
+                          heading,
+                          textAlign: TextAlign.center,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppType.label.copyWith(color: c.ink3),
+                        ),
+                      ),
+                      const SizedBox(width: _target),
+                    ],
+                  ),
+                ),
+                ...children,
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -81,6 +213,7 @@ class _Player extends StatelessWidget {
     required this.routine,
     required this.idx,
     required this.done,
+    required this.onClose,
     required this.onBack,
     required this.onSkip,
     required this.onMarkDone,
@@ -89,246 +222,166 @@ class _Player extends StatelessWidget {
   final RitualRoutine routine;
   final int idx;
   final Set<int> done;
+  final VoidCallback onClose;
   final VoidCallback onBack;
   final VoidCallback onSkip;
   final VoidCallback onMarkDone;
 
   @override
   Widget build(BuildContext context) {
-    final c = context.colors;
-    final tone = c.forType(routine.colorKey);
     final total = routine.steps.length;
-    final onDeck = idx < total;
-    // already-completed steps stay filled, even when ahead of the cursor.
-    final stepDone = onDeck && done.contains(idx);
-
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        gradient: RadialGradient(
-          center: const Alignment(0, -1.2),
-          radius: 1.0,
-          colors: [tone.withValues(alpha: 0.15), c.bg],
-          stops: const [0.0, 0.52],
-        ),
-      ),
-      child: Column(
+    final doneCount = done.length;
+    if (idx >= total) {
+      return _Frame(
+        heading: 'Done · ${routine.name}',
+        onClose: onClose,
         children: [
-          // top bar.
-          Padding(
-            padding: const EdgeInsets.fromLTRB(Spacing.lg, 54, Spacing.lg, Spacing.sm), // kept literal: top 54 clears the status bar
-            child: Row(
-              children: [
-                PressScale(
-                  onTap: () => context.go('/rituals'),
-                  semanticLabel: 'Close',
-                  pressedScale: 0.9,
-                  child: SizedBox(
-                    width: 44,
-                    height: 44,
-                    child: Center(
-                      child: Container(
-                        width: 34,
-                        height: 34,
-                        decoration:
-                            BoxDecoration(color: c.fill, shape: BoxShape.circle),
-                        alignment: Alignment.center,
-                        child: AppIcon('xmark', size: 16, color: c.ink2),
-                      ),
-                    ),
-                  ),
-                ),
-                Expanded(
-                  child: Text(
-                    routine.name.toUpperCase(),
-                    textAlign: TextAlign.center,
-                    style: AppType.caption2.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: c.ink3,
-                      letterSpacing: 1.2,
-                    ),
-                  ),
-                ),
-                SizedBox(
-                  width: 34,
-                  child: Text(
-                    '${(idx + 1).clamp(1, total)}/$total',
-                    textAlign: TextAlign.right,
-                    style: AppFonts.sfr(
-                        size: 13, weight: FontWeight.w700, color: c.ink3),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          // segmented progress bar.
-          Padding(
-            padding: const EdgeInsets.fromLTRB(Spacing.lg, Spacing.md, Spacing.lg, 0),
-            child: Row(
-              children: [
-                for (var i = 0; i < total; i++) ...[
-                  if (i > 0) const SizedBox(width: Spacing.xs),
-                  Expanded(
-                    child: Container(
-                      height: 5,
-                      decoration: BoxDecoration(
-                        color: (i < idx || done.contains(i)) ? tone : c.fill,
-                        borderRadius: BorderRadius.circular(Radii.xs),
-                      ),
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
-          Expanded(
-            child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 320),
-              switchInCurve: const Cubic(0.22, 1, 0.36, 1),
-              // each step slides up + fades, matching the design's ritualStep
-              // keyframe; only the incoming child animates.
-              transitionBuilder: (child, animation) => FadeTransition(
-                opacity: animation,
-                child: SlideTransition(
-                  position: Tween<Offset>(
-                    begin: const Offset(0, 0.06),
-                    end: Offset.zero,
-                  ).animate(animation),
-                  child: child,
-                ),
-              ),
-              child: onDeck
-                  ? _StepView(
-                      key: ValueKey(idx),
-                      step: routine.steps[idx],
-                      idx: idx,
-                      total: total,
-                      tone: tone,
-                    )
-                  : _CompletionView(
-                      key: const ValueKey('done'),
-                      routine: routine,
-                      tone: tone,
-                    ),
-            ),
-          ),
-          // controls.
-          Padding(
-            padding: const EdgeInsets.fromLTRB(Spacing.xl, 0, Spacing.xl, 40), // kept literal: off-grid bottom inset
-            child: onDeck
-                ? Column(
-                    children: [
-                      _PrimaryButton(
-                        label: stepDone ? 'Next step' : 'Mark done',
-                        icon: 'checkmark',
-                        tone: tone,
-                        onTap: onMarkDone,
-                      ),
-                      const SizedBox(height: Spacing.lg),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          _SecondaryAction(
-                            label: 'Back',
-                            icon: 'chevron.left',
-                            enabled: idx > 0,
-                            onTap: idx > 0 ? onBack : null,
-                          ),
-                          const SizedBox(width: Spacing.xxl),
-                          _SecondaryAction(
-                            label: 'Skip',
-                            onTap: onSkip,
-                          ),
-                        ],
-                      ),
-                    ],
-                  )
-                : _PrimaryButton(
-                    label: 'Back to routines',
-                    tone: tone,
-                    onTap: () => context.go('/rituals'),
-                  ),
+          _Finished(
+              name: routine.name, doneCount: doneCount, total: total),
+          const Spacer(),
+          const SizedBox(height: _footMinGap),
+          _PrimaryPill(
+            label: 'Back to routines',
+            onTap: onClose,
           ),
         ],
-      ),
+      );
+    }
+
+    final c = context.colors;
+    final step = routine.steps[idx];
+    final doneText = '$doneCount of $total done';
+    final caption = AppType.caption.copyWith(
+      color: c.ink3,
+      fontFeatures: const [FontFeature.tabularFigures()],
+    );
+    final hasNext = idx + 1 < total;
+
+    return _Frame(
+      heading: routine.name,
+      onClose: onClose,
+      children: [
+        const SizedBox(height: _progressGap),
+        Row(
+          children: [
+            Expanded(child: Text('Step ${idx + 1} of $total', style: caption)),
+            Text(doneText, style: caption),
+          ],
+        ),
+        const SizedBox(height: _barGap),
+        Semantics(
+          label: doneText,
+          child: ProgressBar(value: doneCount / total, color: c.ink),
+        ),
+        const SizedBox(height: _cardGap),
+        AnimatedSwitcher(
+          duration: _switchDuration,
+          switchInCurve: _switchCurve,
+          // each step slides up and fades; only the incoming card animates.
+          transitionBuilder: (child, animation) => FadeTransition(
+            opacity: animation,
+            child: SlideTransition(
+              position: Tween<Offset>(begin: _slideFrom, end: Offset.zero)
+                  .animate(animation),
+              child: child,
+            ),
+          ),
+          child: _StepCard(
+            key: ValueKey(idx),
+            step: step,
+            idx: idx,
+            stepDone: done.contains(idx),
+            onMarkDone: onMarkDone,
+          ),
+        ),
+        const SizedBox(height: _controlsGap),
+        Row(
+          children: [
+            _TextControl(
+              label: 'Back',
+              icon: 'chevron.left',
+              padding: const EdgeInsets.only(right: _controlInset),
+              onTap: idx > 0 ? onBack : null,
+            ),
+            const Spacer(),
+            _TextControl(
+              label: 'Skip',
+              padding: const EdgeInsets.only(left: _controlInset),
+              onTap: onSkip,
+            ),
+          ],
+        ),
+        if (hasNext) ...[
+          const SizedBox(height: _upNextGap),
+          Text('Up next', style: AppType.label.copyWith(color: c.ink3)),
+          const SizedBox(height: _upNextInnerGap),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
+            children: [
+              Expanded(
+                child: Text(routine.steps[idx + 1].title,
+                    style: AppType.callout.copyWith(color: c.ink)),
+              ),
+              const SizedBox(width: _rowGap),
+              Text(
+                'Step ${idx + 2}',
+                style: AppType.subhead.copyWith(
+                  color: c.ink3,
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ],
     );
   }
 }
 
-class _StepView extends StatelessWidget {
-  const _StepView({
+class _StepCard extends StatelessWidget {
+  const _StepCard({
     super.key,
     required this.step,
     required this.idx,
-    required this.total,
-    required this.tone,
+    required this.stepDone,
+    required this.onMarkDone,
   });
 
   final RitualStep step;
   final int idx;
-  final int total;
-  final Color tone;
+  final bool stepDone;
+  final VoidCallback onMarkDone;
 
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    return Padding(
-      // 30 has no spacing token; kept literal as a deliberate content inset.
-      padding: const EdgeInsets.symmetric(horizontal: 30),
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(_cardPad),
+      decoration: BoxDecoration(
+        color: c.surface,
+        borderRadius: BorderRadius.circular(Radii.card),
+      ),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Container(
-            width: 96,
-            height: 96,
-            decoration: BoxDecoration(
-              color: tone.withValues(alpha: 0.12),
-              shape: BoxShape.circle,
-              border: Border.all(color: tone.withValues(alpha: 0.2)),
-              boxShadow: [
-                // accent glow, not neutral elevation — kept inline.
-                BoxShadow(
-                  color: tone.withValues(alpha: 0.2),
-                  blurRadius: 30,
-                  offset: const Offset(0, 10),
-                ),
-              ],
-            ),
-            alignment: Alignment.center,
+          Align(
+            alignment: Alignment.centerLeft,
             child: AppIcon(step.icon.isEmpty ? 'sparkles' : step.icon,
-                size: 42, color: tone),
+                size: _stepIcon, color: c.ink2),
           ),
-          const SizedBox(height: Spacing.xxl),
-          Text(
-            'STEP ${idx + 1} OF $total',
-            style: AppType.caption.copyWith(
-              fontWeight: FontWeight.w700,
-              color: tone,
-              letterSpacing: 1.4,
-            ),
-          ),
-          const SizedBox(height: Spacing.md),
-          Text(
-            step.title,
-            textAlign: TextAlign.center,
-            style: AppFonts.sfr(
-              size: 32,
-              color: c.ink,
-              letterSpacing: -0.6,
-              height: 1.1,
-            ),
-          ),
-          const SizedBox(height: Spacing.lg),
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 280),
-            child: Text(
-              step.note,
-              textAlign: TextAlign.center,
-              style: AppType.body.copyWith(
-                color: c.ink2,
-                letterSpacing: -0.2,
-                height: 1.5,
-              ),
-            ),
+          const SizedBox(height: _cardInnerGap),
+          Text(step.title, style: AppType.title.copyWith(color: c.ink)),
+          if (step.note.isNotEmpty) ...[
+            const SizedBox(height: _titleNoteGap),
+            Text(step.note, style: AppType.body.copyWith(color: c.ink2)),
+          ],
+          const SizedBox(height: _cardInnerGap),
+          _PrimaryPill(
+            label: stepDone ? 'Next step' : 'Mark done',
+            icon: 'checkmark',
+            onTap: onMarkDone,
           ),
         ],
       ),
@@ -336,99 +389,113 @@ class _StepView extends StatelessWidget {
   }
 }
 
-class _CompletionView extends ConsumerWidget {
-  const _CompletionView({super.key, required this.routine, required this.tone});
+class _Finished extends ConsumerWidget {
+  const _Finished({
+    required this.name,
+    required this.doneCount,
+    required this.total,
+  });
 
-  final RitualRoutine routine;
-  final Color tone;
+  final String name;
+  final int doneCount;
+  final int total;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final c = context.colors;
-    final total = routine.steps.length;
     // real consecutive-day ritual streak from persisted completions (includes
     // today's just-finished routine); not the never-incremented seed value.
     final streak = ref.watch(profileStatsProvider).asData?.value.longestStreak;
-    return Padding(
-      // 30 has no spacing token; kept literal as a deliberate content inset.
-      padding: const EdgeInsets.symmetric(horizontal: 30),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            width: 110,
-            height: 110,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [tone, tone.withValues(alpha: 0.8)],
-              ),
-              shape: BoxShape.circle,
-              boxShadow: [
-                // accent glow, not neutral elevation — kept inline.
-                BoxShadow(
-                  color: tone.withValues(alpha: 0.33),
-                  blurRadius: 36,
-                  offset: const Offset(0, 14),
-                ),
-              ],
-            ),
-            alignment: Alignment.center,
-            child: AppIcon('checkmark', size: 54, color: c.onAccent),
+    final lead = doneCount >= total
+        ? '$name is done.'
+        : '$name, $doneCount of $total done.';
+    final subhead = AppType.subhead.copyWith(color: c.ink2);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: _leadTop),
+        Semantics(
+          liveRegion: true,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: _leadMaxWidth),
+            child: Text(lead, style: AppType.lead.copyWith(color: c.ink)),
           ),
-          const SizedBox(height: Spacing.xxl),
-          Text(
-            '${routine.name} complete',
-            textAlign: TextAlign.center,
-            style: AppFonts.sfr(size: 30, color: c.ink, letterSpacing: -0.6),
-          ),
-          const SizedBox(height: Spacing.md),
-          Text(
-            'All $total steps done.',
-            textAlign: TextAlign.center,
-            style: AppType.callout
-                .copyWith(color: c.ink2, letterSpacing: -0.2, height: 1.5),
-          ),
-          if (streak != null && streak > 0) ...[
-            const SizedBox(height: Spacing.lg),
-            Container(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: Spacing.lg, vertical: Spacing.sm),
-              decoration: BoxDecoration(
-                color: tone.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(Radii.pill),
+        ),
+        const SizedBox(height: _numberGap),
+        Text.rich(
+          TextSpan(
+            text: '$doneCount',
+            children: [
+              TextSpan(
+                text: ' of $total ${_steps(total)}',
+                style: AppType.subhead.copyWith(color: c.ink3),
               ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  AppIcon('flame.fill', size: 14, color: tone),
-                  const SizedBox(width: Spacing.sm),
-                  Text(
-                    '$streak-day streak',
-                    style: AppType.subhead
-                        .copyWith(fontWeight: FontWeight.w700, color: tone),
-                  ),
-                ],
+            ],
+          ),
+          style: AppType.display.copyWith(color: c.ink),
+        ),
+        Text('done today', style: subhead),
+        if (streak != null && streak > 0) ...[
+          const SizedBox(height: _streakGap),
+          Row(
+            children: [
+              AppIcon('flame.fill', size: _streakIcon, color: c.ink2),
+              const SizedBox(width: _streakIconGap),
+              Text(
+                '$streak-day streak',
+                style: subhead.copyWith(
+                    fontFeatures: const [FontFeature.tabularFigures()]),
               ),
-            ),
-          ],
+            ],
+          ),
         ],
-      ),
+      ],
     );
   }
 }
 
-class _PrimaryButton extends StatelessWidget {
-  const _PrimaryButton({
-    required this.label,
-    required this.tone,
-    required this.onTap,
-    this.icon,
+/// A screen with no step to show: no steps, not found, or a load error.
+class _Missing extends StatelessWidget {
+  const _Missing({
+    this.heading = '',
+    required this.title,
+    required this.body,
+    required this.pill,
+    required this.onPill,
+    required this.onClose,
   });
 
+  final String heading;
+  final String title;
+  final String body;
+  final String pill;
+  final VoidCallback onPill;
+  final VoidCallback onClose;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return _Frame(
+      heading: heading,
+      onClose: onClose,
+      children: [
+        const SizedBox(height: _leadTop),
+        Text(title, style: AppType.title.copyWith(color: c.ink)),
+        const SizedBox(height: _titleNoteGap),
+        Text(body, style: AppType.body.copyWith(color: c.ink2)),
+        const Spacer(),
+        const SizedBox(height: _footMinGap),
+        _PrimaryPill(label: pill, onTap: onPill),
+      ],
+    );
+  }
+}
+
+/// The screen's one primary pill: ink fill, bg text.
+class _PrimaryPill extends StatelessWidget {
+  const _PrimaryPill({required this.label, required this.onTap, this.icon});
+
   final String label;
-  final Color tone;
   final VoidCallback onTap;
   final String? icon;
 
@@ -437,34 +504,22 @@ class _PrimaryButton extends StatelessWidget {
     final c = context.colors;
     return PressScale(
       onTap: onTap,
+      semanticLabel: label,
       child: Container(
-        width: double.infinity,
-        height: 54,
+        height: _pillHeight,
         decoration: BoxDecoration(
-          color: tone,
-          borderRadius: BorderRadius.circular(Radii.lg),
-          boxShadow: [
-            // accent glow, not neutral elevation — kept inline.
-            BoxShadow(
-              color: tone.withValues(alpha: 0.3),
-              blurRadius: 22,
-              offset: const Offset(0, 8),
-            ),
-          ],
+          color: c.ink,
+          borderRadius: BorderRadius.circular(Radii.pill),
         ),
         alignment: Alignment.center,
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             if (icon != null) ...[
-              AppIcon(icon!, size: 18, color: c.onAccent),
-              const SizedBox(width: Spacing.sm),
+              AppIcon(icon!, size: _pillIcon, color: c.bg),
+              const SizedBox(width: _pillIconGap),
             ],
-            Text(label,
-                style: AppType.body.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: c.onAccent,
-                    letterSpacing: -0.2)),
+            Text(label, style: AppType.headline.copyWith(color: c.bg)),
           ],
         ),
       ),
@@ -472,72 +527,54 @@ class _PrimaryButton extends StatelessWidget {
   }
 }
 
-class _SecondaryAction extends StatelessWidget {
-  const _SecondaryAction({
+/// Back and Skip: a 44-tall text control. Null [onTap] draws it disabled.
+class _TextControl extends StatelessWidget {
+  const _TextControl({
     required this.label,
+    required this.padding,
     this.icon,
     this.onTap,
-    this.enabled = true,
   });
 
   final String label;
+  final EdgeInsets padding;
   final String? icon;
   final VoidCallback? onTap;
-  final bool enabled;
 
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    final color = enabled ? c.ink3 : c.ink4;
-    return GestureDetector(
+    final enabled = onTap != null;
+    final color = enabled ? c.ink2 : c.ink3;
+    final control = PressScale(
       onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Opacity(
-        opacity: enabled ? 1 : 0.5,
+      semanticLabel: label,
+      child: Container(
+        height: _target,
+        padding: padding,
+        alignment: Alignment.center,
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             if (icon != null) ...[
-              AppIcon(icon!, size: 13, color: color),
-              const SizedBox(width: Spacing.xs),
+              AppIcon(icon!, size: _backIcon, color: color),
+              const SizedBox(width: _backIconGap),
             ],
             Text(label,
-                style: AppType.subhead.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: color,
-                    letterSpacing: -0.2)),
+                style: AppType.subhead
+                    .copyWith(fontWeight: FontWeight.w600, color: color)),
           ],
         ),
       ),
     );
-  }
-}
-
-class _NotFound extends StatelessWidget {
-  const _NotFound({required this.message});
-  final String message;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.colors;
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(Spacing.xxl),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(message,
-                textAlign: TextAlign.center,
-                style: AppType.body.copyWith(color: c.ink2)),
-            const SizedBox(height: Spacing.lg),
-            PressScale(
-              onTap: () => context.go('/rituals'),
-              child: Text('Back to routines',
-                  style: AppType.headline.copyWith(color: c.accent)),
-            ),
-          ],
-        ),
-      ),
+    if (enabled) return control;
+    // press scale drops its semantics without a tap, so announce it as off.
+    return Semantics(
+      button: true,
+      enabled: false,
+      label: label,
+      excludeSemantics: true,
+      child: control,
     );
   }
 }

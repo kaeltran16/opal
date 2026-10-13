@@ -426,7 +426,7 @@ class NavIconButton extends StatelessWidget {
 /// A single nav-bar action — a text label and/or leading SF-symbol icon shown in
 /// a header corner, with a guaranteed 44pt tap target (iOS HIG). The shared
 /// replacement for the per-screen Cancel / Add / Save / Done / back buttons; use
-/// it in the leading/trailing slots of [LargeTitleNavBar] / [EmailNavBar] and in
+/// it in the leading/trailing slots of [LargeTitleNavBar] and in
 /// modal-sheet headers so every screen gets the same comfortable hit area.
 class NavAction extends StatelessWidget {
   const NavAction({

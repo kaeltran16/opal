@@ -60,6 +60,9 @@ void main() {
   testWidgets('renders Export data and Notifications rows', (tester) async {
     await _pumpPrivacy(tester);
 
+    // the rows sit below the fold of the lazily built list.
+    await tester.scrollUntilVisible(find.text('Notifications'), 100);
+
     expect(find.text('Export data'), findsOneWidget);
     expect(find.text('Notifications'), findsOneWidget);
   });

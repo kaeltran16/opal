@@ -5,8 +5,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../controllers/nutrition_controller.dart';
 import '../../models/models.dart';
 import '../../theme/theme.dart';
-import '../../widgets/app_icon.dart';
+import '../../widgets/press_scale.dart';
 import 'widgets/nutrition_widgets.dart';
+
+const double _minTap = 44;
+const double _pillHeight = 48;
+const double _rowHeight = 48;
+const double _hairline = 1;
+const double _spinner = 16;
+const double _spinnerStroke = 2;
+const List<FontFeature> _tabular = [FontFeature.tabularFigures()];
 
 // Quick-pick options with calorie ranges.
 const _quickPicks = [
@@ -155,185 +163,156 @@ class _NutritionAddSheetState extends ConsumerState<_NutritionAddSheet> {
           padding: const EdgeInsets.fromLTRB(
               Spacing.lg, Spacing.lg, Spacing.lg, Spacing.xxl),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // When
-              Text(
-                'WHEN',
-                style: AppFonts.sf(
-                    size: 11.5, // kept literal: 11.5pt, no matching type token
-                    weight: FontWeight.w700,
-                    color: c.ink3,
-                    letterSpacing: 0.4),
-              ),
+              const _SectionLabel('When'),
               const SizedBox(height: Spacing.sm),
               ChipRow(_slots, _slot, (v) => setState(() => _slot = v)),
-              const SizedBox(height: Spacing.lg),
-              // Describe → estimate, in a tinted card.
-              Container(
-                padding: const EdgeInsets.all(Spacing.md),
-                decoration: BoxDecoration(
-                  color: c.nutritionTint,
-                  borderRadius: BorderRadius.circular(Radii.md),
-                  border: Border.all(
-                      color: c.nutrition.withValues(alpha: 0.20), width: 0.5),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        AppIcon('sparkles', size: 14, color: c.nutrition),
-                        const SizedBox(width: Spacing.xs),
-                        Text(
-                          'WHAT DID YOU EAT?',
-                          style: AppFonts.sf(
-                              size: 11.5, // kept literal: 11.5pt, no matching type token
-                              weight: FontWeight.w700,
-                              color: c.nutrition,
-                              letterSpacing: 0.3),
+              const SizedBox(height: Spacing.xxl),
+              const _SectionLabel('What did you eat?'),
+              const SizedBox(height: Spacing.sm),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _nameController,
+                      style: AppType.body.copyWith(color: c.ink),
+                      decoration: InputDecoration(
+                        hintText: 'greek yogurt with berries',
+                        hintStyle: AppType.body.copyWith(color: c.ink3),
+                        filled: true,
+                        fillColor: c.surface2,
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: Spacing.xl, vertical: Spacing.md),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(Radii.pill),
+                          borderSide: BorderSide.none,
                         ),
-                      ],
+                      ),
+                      onSubmitted: (_) => _runEstimate(),
                     ),
-                    const SizedBox(height: Spacing.sm),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextField(
-                            controller: _nameController,
-                            style: AppFonts.sf(size: 15, color: c.ink), // kept literal: 15pt untracked, subhead is tracked
-                            decoration: InputDecoration(
-                              hintText: 'greek yogurt with berries',
-                              hintStyle: AppFonts.sf(size: 15, color: c.ink3), // kept literal: 15pt untracked, subhead is tracked
-                              filled: true,
-                              fillColor: c.surface,
-                              contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: Spacing.md, vertical: Spacing.sm),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(Radii.sm),
-                                borderSide: BorderSide.none,
-                              ),
-                            ),
-                            onSubmitted: (_) => _runEstimate(),
-                          ),
-                        ),
-                        const SizedBox(width: Spacing.sm),
-                        GestureDetector(
-                          onTap: _loading ? null : _runEstimate,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: Spacing.md,
-                                vertical: Spacing.sm + 2),
-                            decoration: BoxDecoration(
-                              color: c.nutrition,
-                              borderRadius: BorderRadius.circular(Radii.sm),
-                            ),
-                            child: _loading
-                                ? const SizedBox(
-                                    width: 16,
-                                    height: 16,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: Colors.white,
-                                    ),
-                                  )
-                                : Text(
-                                    'Estimate',
-                                    style: AppFonts.sf(
-                                      size: 14, // kept literal: 14pt, no matching type token
-                                      weight: FontWeight.w600,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(width: Spacing.sm),
+                  _EstimateButton(
+                    loading: _loading,
+                    onTap: _loading ? null : _runEstimate,
+                  ),
+                ],
               ),
-              const SizedBox(height: Spacing.lg),
+              const SizedBox(height: Spacing.xxl),
               if (est != null) ...[
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    CalRange(est.cal),
-                    const SizedBox(width: Spacing.md),
-                    ConfidenceChip(est.confidence),
-                  ],
+                CalRange(est.cal),
+                const SizedBox(height: Spacing.sm),
+                Align(
+                  alignment: AlignmentDirectional.centerStart,
+                  child: ConfidenceChip(est.confidence),
                 ),
-                const SizedBox(height: Spacing.md),
+                const SizedBox(height: Spacing.sm),
                 MacroSplit(est.macros),
-                const SizedBox(height: Spacing.lg),
-                // back out of the estimate to the quick-pick grid
-                GestureDetector(
-                  onTap: _clearEstimate,
-                  behavior: HitTestBehavior.opaque,
-                  child: Text(
-                    'Start over',
-                    style: AppFonts.sf(
-                        size: 14, weight: FontWeight.w600, color: c.nutrition), // kept literal: 14pt w600, no matching type token
+                // back out of the estimate to the quick picks
+                Align(
+                  alignment: AlignmentDirectional.centerStart,
+                  child: PressScale(
+                    onTap: _clearEstimate,
+                    semanticLabel: 'Start over',
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(minHeight: _minTap),
+                      child: Align(
+                        widthFactor: 1,
+                        child: Text('Start over',
+                            style: AppType.headline.copyWith(color: c.ink)),
+                      ),
+                    ),
                   ),
                 ),
               ] else ...[
-                // Quick picks
-                Text(
-                  'OR PICK A COMMON ONE',
-                  style: AppFonts.sf(
-                      size: 11.5, // kept literal: 11.5pt, no matching type token
-                      weight: FontWeight.w700,
-                      color: c.ink3,
-                      letterSpacing: 0.4),
-                ),
-                const SizedBox(height: Spacing.sm),
-                GridView.count(
-                  crossAxisCount: 2,
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  crossAxisSpacing: Spacing.sm,
-                  mainAxisSpacing: Spacing.sm,
-                  childAspectRatio: 2.8,
-                  children: [
-                    for (final pick in _quickPicks)
-                      GestureDetector(
-                        onTap: () => _applyQuickPick(pick),
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: c.fill,
-                            borderRadius: BorderRadius.circular(Radii.md),
-                          ),
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: Spacing.md, vertical: Spacing.xs),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                pick.name,
-                                style: AppFonts.sf(
-                                    size: 13, // kept literal: 13pt, no matching type token
-                                    weight: FontWeight.w500,
-                                    color: c.ink),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              const SizedBox(height: 3), // kept literal: 3 gap is off the spacing grid
-                              Text(
-                                '≈${((pick.cal.lo + pick.cal.hi) / 2).round()} cal',
-                                style: AppFonts.sfr(
-                                    size: 12, // kept literal: 12pt rounded figure, no matching type token
-                                    weight: FontWeight.w600,
-                                    color: c.nutrition),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
+                const _SectionLabel('Or pick a common one'),
+                const SizedBox(height: Spacing.xs),
+                for (final pick in _quickPicks)
+                  _QuickPickRow(pick: pick, onTap: () => _applyQuickPick(pick)),
               ],
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SectionLabel extends StatelessWidget {
+  const _SectionLabel(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) =>
+      Text(text, style: AppType.label.copyWith(color: context.colors.ink3));
+}
+
+/// The secondary pill that asks Pal for an estimate; a spinner while it runs.
+class _EstimateButton extends StatelessWidget {
+  const _EstimateButton({required this.loading, required this.onTap});
+
+  final bool loading;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return PressScale(
+      onTap: onTap,
+      semanticLabel: 'Estimate',
+      child: Container(
+        constraints: const BoxConstraints(minHeight: _pillHeight, minWidth: _pillHeight),
+        padding: const EdgeInsets.symmetric(horizontal: Spacing.xl),
+        decoration: BoxDecoration(
+          color: c.surface2,
+          borderRadius: BorderRadius.circular(Radii.pill),
+        ),
+        alignment: Alignment.center,
+        child: loading
+            ? Semantics(
+                label: 'Estimating',
+                child: SizedBox.square(
+                  dimension: _spinner,
+                  child: CircularProgressIndicator(strokeWidth: _spinnerStroke, color: c.ink),
+                ),
+              )
+            : Text('Estimate', style: AppType.headline.copyWith(color: c.ink)),
+      ),
+    );
+  }
+}
+
+/// A common meal as a hairline row: name left, its rough kcal right.
+class _QuickPickRow extends StatelessWidget {
+  const _QuickPickRow({required this.pick, required this.onTap});
+
+  final _QuickPick pick;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    final kcal = '${pick.cal.mid} kcal';
+    return PressScale(
+      onTap: onTap,
+      semanticLabel: '${pick.name}, $kcal',
+      child: Container(
+        constraints: const BoxConstraints(minHeight: _rowHeight),
+        padding: const EdgeInsets.symmetric(vertical: Spacing.sm),
+        decoration: BoxDecoration(
+          border: Border(top: BorderSide(color: c.hair, width: _hairline)),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(pick.name, style: AppType.callout.copyWith(color: c.ink)),
+            ),
+            const SizedBox(width: Spacing.md),
+            Text(kcal,
+                style: AppType.subhead.copyWith(color: c.ink3, fontFeatures: _tabular)),
+          ],
         ),
       ),
     );

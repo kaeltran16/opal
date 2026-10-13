@@ -95,7 +95,8 @@ class _LoopShellState extends ConsumerState<LoopShell> {
     return false;
   }
 
-  void _openComposer() => context.pushNamed(AppRoute.palComposer.name);
+  void _openComposer() => context.pushNamed(AppRoute.palComposer.name,
+      queryParameters: {'from': GoRouterState.of(context).uri.path});
 
   @override
   Widget build(BuildContext context) {

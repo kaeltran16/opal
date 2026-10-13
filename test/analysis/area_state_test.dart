@@ -71,6 +71,24 @@ void main() {
     });
   });
 
+  group('budgetState', () {
+    test('no budget is good', () {
+      expect(budgetState(spent: 38, budget: 0, elapsed: 0.5), AreaState.good);
+    });
+
+    test('over budget is care', () {
+      expect(budgetState(spent: 101, budget: 100, elapsed: 0.9), AreaState.care);
+    });
+
+    test('a spent share at elapsed plus slack is watch', () {
+      expect(budgetState(spent: 60, budget: 100, elapsed: 0.3), AreaState.watch);
+    });
+
+    test('a spent share under elapsed plus slack is good', () {
+      expect(budgetState(spent: 54, budget: 100, elapsed: 0.3), AreaState.good);
+    });
+  });
+
   group('progressState', () {
     test('goal met is thriving at any hour', () {
       for (final hour in [6, 9, 14, 21, 23]) {

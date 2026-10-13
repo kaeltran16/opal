@@ -3,17 +3,29 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../controllers/nutrition_controller.dart';
+import '../../controllers/providers.dart';
 import '../../models/models.dart';
 import '../../theme/theme.dart';
+import '../../util/format.dart';
 import '../../widgets/app_icon.dart';
-import '../../widgets/inset_section.dart';
-import '../../widgets/nav_bar.dart';
 import '../../widgets/press_scale.dart';
+import '../you/sub_screen.dart';
 import 'nutrition_add_sheet.dart';
 import 'widgets/nutrition_widgets.dart';
 
+const String _backLabel = 'Nutrition';
+const double _minTap = 44;
+const double _pillHeight = 48;
+const double _rowHeight = 48;
+const double _hairline = 1;
+const double _sourceIcon = 16;
+const double _rowIcon = 20;
+// kept literal: the canvas gaps the source line's sparkles 6 from its text.
+const double _sourceGap = 6;
+const List<FontFeature> _tabular = [FontFeature.tabularFigures()];
+
 /// Screen: Meal detail. Looked up from [NutritionState.meals] by [mealId].
-/// Shows the estimate hero, tags, provenance, a connection card, and actions.
+/// Shows the estimate, its macros, where it came from, and actions.
 class NutritionMealDetailScreen extends ConsumerWidget {
   const NutritionMealDetailScreen({super.key, required this.mealId});
 
@@ -21,52 +33,47 @@ class NutritionMealDetailScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final c = context.colors;
     final async = ref.watch(nutritionControllerProvider);
 
-    return ColoredBox(
-      color: c.bg,
-      child: async.when(
-        loading: () => const Center(child: Text('…')),
-        error: (e, st) => _notFound(context, c),
-        data: (state) {
-          NutritionMeal? meal;
-          for (final m in state.meals) {
-            if (m.id == mealId) {
-              meal = m;
-              break;
-            }
+    return async.when(
+      loading: () => const _Notice(title: 'Loading', text: 'Loading…'),
+      error: (e, st) => const _Notice(title: 'Not found', text: 'Meal not found.'),
+      data: (state) {
+        NutritionMeal? meal;
+        for (final m in state.meals) {
+          if (m.id == mealId) {
+            meal = m;
+            break;
           }
-          if (meal == null) return _notFound(context, c);
-          final expense = meal.linkedEntryId != null
-              ? state.linkedExpenses[meal.linkedEntryId]
-              : null;
-          return _Body(meal: meal, expense: expense);
-        },
-      ),
+        }
+        if (meal == null) {
+          return const _Notice(title: 'Not found', text: 'Meal not found.');
+        }
+        final expense = meal.linkedEntryId != null
+            ? state.linkedExpenses[meal.linkedEntryId]
+            : null;
+        return _Body(meal: meal, expense: expense);
+      },
     );
   }
+}
 
-  Widget _notFound(BuildContext context, AppColors c) {
-    return LargeTitleScrollView(
-      title: 'Meal',
-      leading: NavAction(
-        icon: 'chevron.left',
-        label: 'Nutrition',
-        onTap: () => context.pop(),
-        semanticLabel: 'Back to Nutrition',
-      ),
+/// The chrome with one plain line, while the meal loads or when it is gone.
+class _Notice extends StatelessWidget {
+  const _Notice({required this.title, required this.text});
+
+  final String title;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return SubScreen(
+      backLabel: _backLabel,
+      eyebrow: 'Meal',
+      title: title,
       children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(
-              Spacing.lg, Spacing.xxxl, Spacing.lg, 0),
-          child: Center(
-            child: Text(
-              'Meal not found.',
-              style: AppType.subhead.copyWith(color: c.ink3),
-            ),
-          ),
-        ),
+        const SizedBox(height: Spacing.xxl),
+        Text(text, style: AppType.subhead.copyWith(color: context.colors.ink3)),
       ],
     );
   }
@@ -81,204 +88,152 @@ class _Body extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final c = context.colors;
+    final note = meal.note;
+    final from = meal.source == NutritionSource.takeout ? 'the order' : 'what you logged';
 
-    return LargeTitleScrollView(
+    return SubScreen(
+      backLabel: _backLabel,
+      eyebrow: '${meal.slot} · ${meal.time}',
       title: meal.name,
-      subtitle: (meal.note?.isNotEmpty ?? false) ? meal.note : null,
-      leading: NavAction(
-        icon: 'chevron.left',
-        label: 'Nutrition',
-        onTap: () => context.pop(),
-        semanticLabel: 'Back to Nutrition',
-      ),
-      padding: const EdgeInsets.only(bottom: 48), // kept literal: 48 scroll tail below the last section
       children: [
-        // ── source tag + slot · time ──────────────────────────────────────
-        Padding(
-          padding: const EdgeInsets.fromLTRB(
-              Spacing.lg, Spacing.sm, Spacing.lg, Spacing.md),
-          child: Row(
-            children: [
-              SourceTag(meal.source),
-              const SizedBox(width: Spacing.sm),
-              Text(
-                '${meal.slot} · ${meal.time}',
-                style: AppType.footnote.copyWith(color: c.ink3),
-              ),
-            ],
-          ),
-        ),
-
-        // ── estimate hero card ────────────────────────────────────────────
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: Spacing.lg),
-          child: Container(
-            padding: const EdgeInsets.all(Spacing.lg),
-            decoration: BoxDecoration(
-              color: c.surface,
-              borderRadius: BorderRadius.circular(Radii.card),
-              boxShadow: [BoxShadow(color: c.hair, blurRadius: 0.5)],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Calorie range left, confidence chip right.
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    CalRange(meal.cal, size: 40),
-                    const Spacer(),
-                    ConfidenceChip(meal.confidence),
-                  ],
-                ),
-                const SizedBox(height: Spacing.lg),
-                MacroSplit(meal.macros),
-                const SizedBox(height: Spacing.lg),
-                Container(height: 0.5, color: c.hair),
-                const SizedBox(height: Spacing.md),
-                // Pal note line
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    AppIcon('sparkles', size: 12, color: c.nutrition),
-                    const SizedBox(width: Spacing.xs),
-                    Expanded(
-                      child: Text(
-                        "Pal's estimate from "
-                        "${meal.source == NutritionSource.takeout ? 'the order' : 'what you logged'}"
-                        ". These are guesses — adjust anytime.",
-                        style:
-                            AppType.caption.copyWith(color: c.ink3, height: 1.4),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: Spacing.lg),
-
-        // ── tags wrap ─────────────────────────────────────────────────────
-        if (meal.tags.isNotEmpty) ...[
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: Spacing.lg),
-            child: Wrap(
-              spacing: Spacing.xs,
-              runSpacing: Spacing.xs,
-              children: [
-                for (final tag in meal.tags) _TagChip(label: tag),
-              ],
-            ),
-          ),
-          const SizedBox(height: Spacing.lg),
-        ],
-
-        // ── where this came from ──────────────────────────────────────────
-        InsetSection(
-          header: 'Where this came from',
+        const SizedBox(height: Spacing.md),
+        CalRange(meal.cal, hero: true),
+        const SizedBox(height: Spacing.sm),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (expense != null)
-              ListRow(
-                icon: 'creditcard.fill',
-                iconBg: c.money,
-                title: expense!.title,
-                subtitle: 'Linked expense',
-                value: expense!.amount != null
-                    ? '\$${expense!.amount!.abs().toStringAsFixed(2)}'
-                    : null,
-                chevron: false,
-                last: true,
-              )
-            else if (meal.linkedEntryId != null)
-              ListRow(
-                icon: 'creditcard.fill',
-                iconBg: c.money,
-                title: 'Linked expense',
-                subtitle: 'From a linked expense',
-                chevron: false,
-                last: true,
-              )
-            else
-              ListRow(
-                icon: 'pencil',
-                iconBg: c.nutrition,
-                title: 'Added by hand',
-                subtitle: 'Not from an expense',
-                chevron: false,
-                last: true,
+            AppIcon('sparkles', size: _sourceIcon, color: c.ink2),
+            const SizedBox(width: _sourceGap),
+            Expanded(
+              child: Text(
+                'From $from, ${meal.confidence.label}',
+                style: AppType.label.copyWith(color: c.ink2),
               ),
+            ),
           ],
         ),
-
-        // ── action buttons ────────────────────────────────────────────────
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: Spacing.lg),
-          child: _AdjustButton(meal: meal),
-        ),
+        const SizedBox(height: Spacing.xl),
+        const _Heading('Macros'),
+        MacroSplit(meal.macros),
+        if (note != null && note.isNotEmpty)
+          Text(note, style: AppType.subhead.copyWith(color: c.ink2)),
+        if (meal.tags.isNotEmpty) ...[
+          const SizedBox(height: Spacing.sm),
+          Text(meal.tags.join(' · '), style: AppType.subhead.copyWith(color: c.ink3)),
+        ],
+        const SizedBox(height: Spacing.xl),
+        const _Heading('Where this came from'),
         const SizedBox(height: Spacing.sm),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: Spacing.lg),
-          child: _RemoveButton(mealId: meal.id),
+        _SourceRow(meal: meal, expense: expense),
+        const SizedBox(height: Spacing.xl),
+        Row(
+          children: [
+            Expanded(child: _AdjustButton(meal: meal)),
+            const SizedBox(width: Spacing.sm),
+            _RemoveButton(mealId: meal.id),
+          ],
         ),
       ],
     );
   }
 }
 
-class _TagChip extends StatelessWidget {
-  const _TagChip({required this.label});
-  final String label;
+class _Heading extends StatelessWidget {
+  const _Heading(this.text);
+
+  final String text;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => Semantics(
+        header: true,
+        child: Text(text, style: AppType.headline.copyWith(color: context.colors.ink)),
+      );
+}
+
+/// One hairline row: the linked expense, or that the meal was added by hand.
+class _SourceRow extends ConsumerWidget {
+  const _SourceRow({required this.meal, this.expense});
+
+  final NutritionMeal meal;
+  final Entry? expense;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
     final c = context.colors;
+    final currency = ref.watch(appSettingsControllerProvider).currency;
+    final linked = meal.linkedEntryId != null;
+    final amount = expense?.amount;
+    final (icon, title, subtitle) = switch (expense) {
+      final e? => ('creditcard.fill', e.title, 'Linked expense'),
+      null when linked => ('creditcard.fill', 'Linked expense', 'From a linked expense'),
+      null => ('pencil', 'Added by hand', 'Not from an expense'),
+    };
+
     return Container(
-      padding: const EdgeInsets.symmetric(
-          horizontal: Spacing.sm, vertical: Spacing.xxs),
+      constraints: const BoxConstraints(minHeight: _rowHeight),
+      padding: const EdgeInsets.symmetric(vertical: Spacing.sm),
       decoration: BoxDecoration(
-        color: c.fill,
-        borderRadius: BorderRadius.circular(Radii.pill),
+        border: Border(top: BorderSide(color: c.hair, width: _hairline)),
       ),
-      child: Text(
-        label,
-        style: AppFonts.sf(size: 12, weight: FontWeight.w500, color: c.ink2), // kept literal: 12pt w500, no matching type token
+      child: Row(
+        children: [
+          AppIcon(icon, size: _rowIcon, color: c.ink2),
+          const SizedBox(width: Spacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: AppType.callout.copyWith(color: c.ink)),
+                Text(subtitle, style: AppType.subhead.copyWith(color: c.ink3)),
+              ],
+            ),
+          ),
+          if (amount != null) ...[
+            const SizedBox(width: Spacing.md),
+            Text(
+              formatCurrency(amount.abs(), currency),
+              style: AppType.subhead.copyWith(color: c.ink, fontFeatures: _tabular),
+            ),
+          ],
+        ],
       ),
     );
   }
 }
 
-class _AdjustButton extends ConsumerWidget {
+/// The secondary pill: opens the add sheet seeded with this meal.
+class _AdjustButton extends StatelessWidget {
   const _AdjustButton({required this.meal});
   final NutritionMeal meal;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final c = context.colors;
     return PressScale(
       // seed the sheet with this meal so Save edits it in place instead of
       // inserting a duplicate.
       onTap: () => showNutritionAddSheet(context, meal: meal),
+      semanticLabel: 'Adjust estimate',
       child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: Spacing.md),
+        constraints: const BoxConstraints(minHeight: _pillHeight),
+        padding: const EdgeInsets.symmetric(horizontal: Spacing.xl),
         decoration: BoxDecoration(
-          color: c.nutritionTint,
-          borderRadius: BorderRadius.circular(Radii.card),
-          border: Border.all(
-              color: c.nutrition.withValues(alpha: 0.20), width: 0.5),
+          color: c.surface2,
+          borderRadius: BorderRadius.circular(Radii.pill),
         ),
         alignment: Alignment.center,
         child: Text(
           'Adjust estimate',
-          style: AppFonts.sf(
-              size: 15, weight: FontWeight.w600, color: c.nutrition), // kept literal: 15pt w600, no matching type token
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: AppType.headline.copyWith(color: c.ink),
         ),
       ),
     );
   }
 }
 
+/// Deletes the meal, then returns to where it was opened from.
 class _RemoveButton extends ConsumerWidget {
   const _RemoveButton({required this.mealId});
   final String mealId;
@@ -293,15 +248,12 @@ class _RemoveButton extends ConsumerWidget {
             .deleteMeal(mealId);
         if (context.mounted) context.pop();
       },
+      semanticLabel: 'Delete',
       child: Container(
-        width: double.infinity,
+        constraints: const BoxConstraints(minHeight: _minTap, minWidth: _minTap),
+        padding: const EdgeInsets.symmetric(horizontal: Spacing.lg),
         alignment: Alignment.center,
-        // kept literal: off-grid tap-target padding.
-        padding: const EdgeInsets.symmetric(vertical: 13),
-        child: Text(
-          'Remove',
-          style: AppFonts.sf(size: 15, weight: FontWeight.w500, color: c.red), // kept literal: 15pt w500, no matching type token
-        ),
+        child: Text('Delete', style: AppType.headline.copyWith(color: c.careInk)),
       ),
     );
   }

@@ -8,24 +8,26 @@ import '../../theme/theme.dart';
 import '../../widgets/app_icon.dart';
 import '../../widgets/controls.dart';
 import '../../widgets/nav_bar.dart';
+import '../../widgets/press_scale.dart';
 
-/// SF-symbol names offered in the icon pickers (routine glyph + step glyphs).
-const List<String> _iconChoices = [
-  'sparkles',
-  'sunrise.fill',
-  'sun.max.fill',
-  'moon.stars.fill',
-  'drop.fill',
-  'bolt.fill',
-  'leaf.fill',
-  'figure.walk',
-  'book.closed.fill',
-  'books.vertical.fill',
-  'character.book.closed.fill',
-  'tray.fill',
-  'cup.and.saucer.fill',
-  'heart.fill',
-];
+/// SF-symbol names offered in the icon pickers (routine glyph + step glyphs),
+/// in grid order, with the word each cell announces.
+const Map<String, String> _iconChoices = {
+  'sparkles': 'Sparkles',
+  'sunrise.fill': 'Sunrise',
+  'sun.max.fill': 'Sun',
+  'moon.stars.fill': 'Moon',
+  'drop.fill': 'Drop',
+  'bolt.fill': 'Bolt',
+  'leaf.fill': 'Leaf',
+  'figure.walk': 'Walk',
+  'book.closed.fill': 'Book',
+  'books.vertical.fill': 'Books',
+  'character.book.closed.fill': 'Journal',
+  'tray.fill': 'Tray',
+  'cup.and.saucer.fill': 'Cup',
+  'heart.fill': 'Heart',
+};
 
 /// Tone options for the editor's [Segmented], in display order.
 const List<(RitualTone, String)> _toneOptions = [
@@ -34,12 +36,35 @@ const List<(RitualTone, String)> _toneOptions = [
   (RitualTone.evening, 'Evening'),
 ];
 
-/// Screen 13b (builder) — manage time-of-day routines and their ordered steps.
+const double _tapTarget = 44;
+const double _routineRowHeight = 64;
+const double _stepRowHeight = 52;
+const double _routineGlyph = 22;
+const double _stepGlyph = 20;
+const double _handleGlyph = 20;
+const double _removeGlyph = 18;
+const double _addGlyph = 16;
+const double _routineGlyphGap = 14;
+const double _addGlyphGap = 6;
+const double _hairWidth = 1;
+const double _fieldHeight = 52;
+const double _footButtonHeight = 48;
+const double _sheetBottomPadding = 34;
+const double _grabberWidth = 36;
+const double _grabberHeight = 5;
+const double _iconRingWidth = 1.5;
+const int _iconColumns = 7;
+// bottom inset clearing the floating tab bar
+const double _listBottomPadding = 110;
+
+String _stepCount(int n) => n == 1 ? '1 step' : '$n steps';
+
+/// Screen 13b (builder): manage time-of-day routines and their ordered steps.
 ///
-/// Reachable from the Rituals tab's "+" / "New routine" (path `/rituals/manage`).
-/// Lists every routine in a [ReorderableListView]; tap to edit, drag to reorder,
-/// trailing button to delete. "+" opens the editor for a new routine. All writes
-/// go through `ritualsBuilderControllerProvider`.
+/// Reachable from the Routines page's "Manage routines" (path
+/// `/areas/routines/manage`). Lists every routine in a [ReorderableListView];
+/// tap to edit, drag the handle to reorder. "+" opens the editor for a new
+/// routine. All writes go through `ritualsBuilderControllerProvider`.
 class RitualsBuilderScreen extends ConsumerWidget {
   const RitualsBuilderScreen({super.key});
 
@@ -54,7 +79,7 @@ class RitualsBuilderScreen extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           LargeTitleNavBar(
-            title: 'Manage',
+            title: 'Manage routines',
             subtitle: 'Drag to reorder · tap to edit',
             leading: NavAction(
               icon: 'chevron.left',
@@ -69,24 +94,31 @@ class RitualsBuilderScreen extends ConsumerWidget {
           ),
           Expanded(
             child: async.when(
-              loading: () => Center(
-                child: Text('…',
-                    style: AppType.body.copyWith(color: c.ink3)),
-              ),
-              error: (e, _) => Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(Spacing.xxl),
-                  child: Text("Couldn't load routines.\n$e",
-                      textAlign: TextAlign.center,
-                      style: AppType.subhead
-                          .copyWith(color: c.ink3, letterSpacing: -0.24)),
-                ),
-              ),
+              loading: () => const _Note('…'),
+              error: (e, st) {
+                debugPrint("rituals builder: couldn't load routines: $e\n$st");
+                return const _Note("Couldn't load routines. Try again in a moment.");
+              },
               data: (routines) => _List(routines: routines),
             ),
           ),
         ],
       ),
+    );
+  }
+}
+
+/// A calm one-line message under the title, for loading, empty and error.
+class _Note extends StatelessWidget {
+  const _Note(this.text);
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(Spacing.lg, Spacing.lg, Spacing.lg, 0),
+      child: Text(text,
+          style: AppType.subhead.copyWith(color: context.colors.ink3)),
     );
   }
 }
@@ -97,21 +129,14 @@ class _List extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final c = context.colors;
     if (routines.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(Spacing.xxl),
-          child: Text('No routines yet. Tap + to add one.',
-              textAlign: TextAlign.center,
-              style: AppType.subhead
-                  .copyWith(color: c.ink3, letterSpacing: -0.24)),
-        ),
-      );
+      return const _Note('No routines yet. Tap + to add one.');
     }
 
     return ReorderableListView.builder(
-      padding: const EdgeInsets.fromLTRB(Spacing.lg, Spacing.sm, Spacing.lg, 110), // kept literal: bottom inset clearing the floating tab bar
+      padding: const EdgeInsets.fromLTRB(
+          Spacing.lg, Spacing.md, Spacing.lg, _listBottomPadding),
+      buildDefaultDragHandles: false,
       itemCount: routines.length,
       onReorderItem: (oldIndex, newIndex) => ref
           .read(ritualsBuilderControllerProvider.notifier)
@@ -120,63 +145,94 @@ class _List extends ConsumerWidget {
         final r = routines[i];
         return _RoutineRow(
           key: ValueKey(r.id),
+          index: i,
           routine: r,
           onTap: () => _openEditor(context, ref, r),
-          onDelete: () => ref
-              .read(ritualsBuilderControllerProvider.notifier)
-              .delete(r.id),
         );
       },
     );
   }
 }
 
-/// A reorderable routine row: tinted glyph + name/time·steps + delete + handle.
+/// A 1px hairline above [child], the list separator.
+class _HairTop extends StatelessWidget {
+  const _HairTop({required this.minHeight, required this.child});
+  final double minHeight;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      constraints: BoxConstraints(minHeight: minHeight),
+      decoration: BoxDecoration(
+        border: Border(
+            top: BorderSide(color: context.colors.hair, width: _hairWidth)),
+      ),
+      child: child,
+    );
+  }
+}
+
+/// The labelled 44 drag handle that starts a reorder of item [index].
+class _DragHandle extends StatelessWidget {
+  const _DragHandle({required this.index, required this.label});
+  final int index;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label: label,
+      excludeSemantics: true,
+      child: ReorderableDragStartListener(
+        index: index,
+        child: SizedBox(
+          width: _tapTarget,
+          height: _tapTarget,
+          child: Center(
+            child: AppIcon('line.3.horizontal',
+                size: _handleGlyph, color: context.colors.ink3),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A routine row: glyph, name and time · steps, then the drag handle.
 class _RoutineRow extends StatelessWidget {
   const _RoutineRow({
     super.key,
+    required this.index,
     required this.routine,
     required this.onTap,
-    required this.onDelete,
   });
 
+  final int index;
   final RitualRoutine routine;
   final VoidCallback onTap;
-  final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    final tone = c.forType(routine.colorKey);
-    final n = routine.steps.length;
-    return Padding(
-      padding: const EdgeInsets.only(bottom: Spacing.sm),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(Radii.md),
-        child: ColoredBox(
-          color: c.surface,
-          child: GestureDetector(
-            onTap: onTap,
-            behavior: HitTestBehavior.opaque,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: Spacing.md, vertical: Spacing.sm),
+    final count = _stepCount(routine.steps.length);
+    final time = routine.time.isEmpty ? null : routine.time;
+    return _HairTop(
+      minHeight: _routineRowHeight,
+      child: Row(
+        children: [
+          Expanded(
+            child: PressScale(
+              onTap: onTap,
+              semanticLabel:
+                  '${routine.name}, ${time ?? 'any time'}, $count. Edit',
               child: ConstrainedBox(
-                constraints: const BoxConstraints(minHeight: 44),
+                constraints: const BoxConstraints(minHeight: _routineRowHeight),
                 child: Row(
                   children: [
-                    Container(
-                      width: 29,
-                      height: 29,
-                      decoration: BoxDecoration(
-                        color: tone,
-                        borderRadius: BorderRadius.circular(Radii.sm),
-                      ),
-                      alignment: Alignment.center,
-                      child: AppIcon(routine.icon,
-                          size: 17, color: c.onAccent),
-                    ),
-                    const SizedBox(width: Spacing.md),
+                    AppIcon(routine.icon, size: _routineGlyph, color: c.ink2),
+                    const SizedBox(width: _routineGlyphGap),
                     Expanded(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -186,78 +242,196 @@ class _RoutineRow extends StatelessWidget {
                             routine.name,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: AppType.body.copyWith(
-                                color: c.ink, height: 22 / 17),
+                            style: AppType.body.copyWith(color: c.ink),
                           ),
-                          Padding(
-                            padding: const EdgeInsets.only(top: 1), // kept literal: 1px nudge, below the smallest token
-                            child: Text(
-                              '${routine.time} · $n ${n == 1 ? 'step' : 'steps'}',
-                              style: AppType.footnote.copyWith(
-                                  color: c.ink3, letterSpacing: -0.08),
+                          const SizedBox(height: Spacing.xxs),
+                          Text(
+                            '${time ?? 'Any time'} · $count',
+                            style: AppType.subhead.copyWith(
+                              color: c.ink3,
+                              fontFeatures: const [FontFeature.tabularFigures()],
                             ),
                           ),
                         ],
                       ),
-                    ),
-                    GestureDetector(
-                      onTap: onDelete,
-                      behavior: HitTestBehavior.opaque,
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: Spacing.sm),
-                        child: AppIcon('xmark', size: 16, color: c.red),
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.only(left: Spacing.xs),
-                      child: AppIcon('slider.horizontal.3',
-                          size: 16, color: c.ink4),
                     ),
                   ],
                 ),
               ),
             ),
           ),
-        ),
+          const SizedBox(width: Spacing.xs),
+          _DragHandle(index: index, label: 'Reorder ${routine.name}'),
+        ],
       ),
     );
   }
 }
 
-/// Opens the add/edit editor as a modal bottom sheet. [existing] null = add.
+/// Presents [builder] in the shared sheet chrome: surface fill, card radius,
+/// over the tab bar.
+Future<T?> _showSheet<T>(BuildContext context, WidgetBuilder builder) {
+  return showModalBottomSheet<T>(
+    context: context,
+    // present over the shell so the sheet covers the tab bar, as the mood
+    // logger does.
+    useRootNavigator: true,
+    isScrollControlled: true,
+    useSafeArea: true,
+    backgroundColor: context.colors.surface,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(Radii.card)),
+    ),
+    builder: builder,
+  );
+}
+
+/// Opens the add/edit editor. [existing] null = add.
 Future<void> _openEditor(
   BuildContext context,
   WidgetRef ref,
   RitualRoutine? existing,
 ) {
-  final c = context.colors;
-  return showModalBottomSheet<void>(
-    context: context,
-    isScrollControlled: true,
-    backgroundColor: c.bg,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(Radii.lg)),
-    ),
-    builder: (sheetContext) => _RoutineEditor(
+  final notifier = ref.read(ritualsBuilderControllerProvider.notifier);
+  return _showSheet<void>(
+    context,
+    (sheetContext) => _RoutineEditor(
       existing: existing,
       onSave: (routine) {
-        ref
-            .read(ritualsBuilderControllerProvider.notifier)
-            .addOrUpdate(routine);
+        notifier.addOrUpdate(routine);
+        Navigator.of(sheetContext).pop();
+      },
+      onDelete: (id) {
+        notifier.delete(id);
         Navigator.of(sheetContext).pop();
       },
     ),
   );
 }
 
+/// The sheet body: grabber, then [children], padded and scrollable above the
+/// keyboard.
+class _SheetBody extends StatelessWidget {
+  const _SheetBody({required this.children});
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    final bottom = MediaQuery.of(context).viewInsets.bottom;
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+          Spacing.lg, Spacing.sm, Spacing.lg, _sheetBottomPadding + bottom),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Center(
+              child: Container(
+                width: _grabberWidth,
+                height: _grabberHeight,
+                decoration: BoxDecoration(
+                  color: context.colors.track,
+                  borderRadius: BorderRadius.circular(Radii.pill),
+                ),
+              ),
+            ),
+            ...children,
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// A plain text button, 44 tall. Null [onTap] shows it disabled.
+class _TextAction extends StatelessWidget {
+  const _TextAction({required this.label, required this.style, this.onTap});
+  final String label;
+  final TextStyle style;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final button = PressScale(
+      onTap: onTap,
+      semanticLabel: label,
+      child: SizedBox(
+        height: _tapTarget,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: Spacing.sm),
+          child: Center(child: Text(label, style: style)),
+        ),
+      ),
+    );
+    if (onTap != null) return button;
+    // press scale only announces enabled buttons; say this one is off.
+    return Semantics(
+      button: true,
+      enabled: false,
+      label: label,
+      excludeSemantics: true,
+      child: button,
+    );
+  }
+}
+
+/// Cancel, the centred [title], and Save (off unless [canSave]).
+class _SheetHeader extends StatelessWidget {
+  const _SheetHeader({
+    required this.title,
+    required this.canSave,
+    required this.onSave,
+  });
+
+  final String title;
+  final bool canSave;
+  final VoidCallback onSave;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return Padding(
+      padding: const EdgeInsets.only(top: Spacing.sm),
+      child: SizedBox(
+        height: _tapTarget,
+        child: Row(
+          children: [
+            _TextAction(
+              label: 'Cancel',
+              style: AppType.body.copyWith(color: c.ink2),
+              onTap: () => Navigator.pop(context),
+            ),
+            Expanded(
+              child: Text(title,
+                  textAlign: TextAlign.center,
+                  style: AppType.headline.copyWith(color: c.ink)),
+            ),
+            _TextAction(
+              label: 'Save',
+              style: AppType.headline.copyWith(color: canSave ? c.ink : c.ink3),
+              onTap: canSave ? onSave : null,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 /// The add/edit form: name field, time, tone segmented, icon grid, blurb, and a
 /// reorderable list of steps (each with title/note/icon). Pre-filled from
 /// [existing] (id/order/streak preserved) or defaulted for a new routine.
 class _RoutineEditor extends StatefulWidget {
-  const _RoutineEditor({required this.existing, required this.onSave});
+  const _RoutineEditor({
+    required this.existing,
+    required this.onSave,
+    required this.onDelete,
+  });
 
   final RitualRoutine? existing;
   final ValueChanged<RitualRoutine> onSave;
+  final ValueChanged<String> onDelete;
 
   @override
   State<_RoutineEditor> createState() => _RoutineEditorState();
@@ -278,7 +452,7 @@ class _RoutineEditorState extends State<_RoutineEditor> {
     _name = TextEditingController(text: r?.name ?? '');
     _time = TextEditingController(text: r?.time ?? '');
     _blurb = TextEditingController(text: r?.blurb ?? '');
-    _icon = r?.icon ?? _iconChoices.first;
+    _icon = r?.icon ?? _iconChoices.keys.first;
     _tone = r?.tone ?? RitualTone.morning;
     _steps = List.of(r?.steps ?? const []);
   }
@@ -343,14 +517,9 @@ class _RoutineEditorState extends State<_RoutineEditor> {
   }
 
   Future<void> _editStep(int? index) async {
-    final result = await showModalBottomSheet<RitualStep>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: context.colors.bg,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(Radii.lg)),
-      ),
-      builder: (_) => _StepEditor(existing: index == null ? null : _steps[index]),
+    final result = await _showSheet<RitualStep>(
+      context,
+      (_) => _StepEditor(existing: index == null ? null : _steps[index]),
     );
     if (result == null) return;
     setState(() {
@@ -362,184 +531,247 @@ class _RoutineEditorState extends State<_RoutineEditor> {
     });
   }
 
+  Future<void> _confirmDelete() async {
+    final name = _name.text.trim();
+    final delete = await _showSheet<bool>(
+      context,
+      (_) => _ConfirmDelete(
+        name: name.isEmpty ? 'this routine' : name,
+        stepCount: _steps.length,
+      ),
+    );
+    if (delete == true) widget.onDelete(widget.existing!.id);
+  }
+
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    final bottom = MediaQuery.of(context).viewInsets.bottom;
     final isEdit = widget.existing != null;
-    final tone = c.forType(_tone.colorKey);
 
-    return Padding(
-      padding: EdgeInsets.fromLTRB(
-          Spacing.lg, Spacing.md, Spacing.lg, Spacing.lg + bottom + 100), // kept literal: room for the sheet's bottom actions
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+    return _SheetBody(
+      children: [
+        _SheetHeader(
+          title: isEdit ? 'Edit routine' : 'New routine',
+          canSave: _canSave,
+          onSave: _save,
+        ),
+        const SizedBox(height: Spacing.lg),
+        _Field(
+          controller: _name,
+          hint: 'Routine name',
+          autofocus: !isEdit,
+          onChanged: () => setState(() {}),
+        ),
+        const SizedBox(height: Spacing.md),
+        _Field(
+          controller: _time,
+          hint: 'Time (e.g. 7:00 AM)',
+          readOnly: true,
+          onTap: _pickTime,
+        ),
+        const SizedBox(height: Spacing.lg),
+        const _Label('Tone'),
+        const SizedBox(height: Spacing.sm),
+        Segmented<RitualTone>(
+          options: _toneOptions,
+          value: _tone,
+          onChanged: (v) => setState(() => _tone = v),
+        ),
+        const SizedBox(height: Spacing.lg),
+        const _Label('Icon'),
+        const SizedBox(height: Spacing.sm),
+        _IconGrid(
+          selected: _icon,
+          onSelect: (name) => setState(() => _icon = name),
+        ),
+        const SizedBox(height: Spacing.lg),
+        _Field(controller: _blurb, hint: 'Subtitle (e.g. Ease into the day)'),
+        const SizedBox(height: Spacing.lg),
+        Row(
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                NavAction(label: 'Cancel', onTap: () => Navigator.pop(context)),
-                Text(isEdit ? 'Edit routine' : 'New routine',
-                    style: AppType.headline.copyWith(color: c.ink)),
-                NavAction(
-                  label: 'Save',
-                  bold: true,
-                  enabled: _canSave,
-                  onTap: _canSave ? _save : null,
+            const Expanded(child: _Label('Steps')),
+            PressScale(
+              onTap: () => _editStep(null),
+              semanticLabel: 'Add step',
+              child: SizedBox(
+                height: _tapTarget,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    AppIcon('plus', size: _addGlyph, color: c.ink),
+                    const SizedBox(width: _addGlyphGap),
+                    Text('Add step',
+                        style: AppType.subhead
+                            .copyWith(color: c.ink, fontWeight: FontWeight.w600)),
+                  ],
                 ),
-              ],
-            ),
-            const SizedBox(height: Spacing.lg),
-
-            _Field(
-              controller: _name,
-              hint: 'Routine name',
-              autofocus: !isEdit,
-              onChanged: () => setState(() {}),
-            ),
-            const SizedBox(height: Spacing.md),
-            _Field(
-              controller: _time,
-              hint: 'Time (e.g. 7:00 AM)',
-              readOnly: true,
-              onTap: _pickTime,
-            ),
-            const SizedBox(height: Spacing.xl),
-
-            _Label('TONE'),
-            const SizedBox(height: Spacing.sm),
-            Segmented<RitualTone>(
-              options: _toneOptions,
-              value: _tone,
-              onChanged: (v) => setState(() => _tone = v),
-            ),
-            const SizedBox(height: Spacing.xl),
-
-            _Label('ICON'),
-            const SizedBox(height: Spacing.sm),
-            _IconGrid(
-              selected: _icon,
-              tone: tone,
-              onSelect: (name) => setState(() => _icon = name),
-            ),
-            const SizedBox(height: Spacing.xl),
-
-            _Field(controller: _blurb, hint: 'Subtitle (e.g. Ease into the day)'),
-            const SizedBox(height: Spacing.xl),
-
-            Row(
-              children: [
-                Expanded(child: _Label('STEPS')),
-                NavAction(
-                  label: '+ Add step',
-                  bold: true,
-                  onTap: () => _editStep(null),
-                ),
-              ],
-            ),
-            const SizedBox(height: Spacing.sm),
-            if (_steps.isEmpty)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: Spacing.sm),
-                child: Text('Add at least one step.',
-                    style: AppType.footnote
-                        .copyWith(color: c.ink3, letterSpacing: -0.08)),
-              )
-            else
-              ReorderableListView.builder(
-                shrinkWrap: true,
-                buildDefaultDragHandles: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: _steps.length,
-                onReorderItem: (oldIndex, newIndex) => setState(() {
-                  final moved = _steps.removeAt(oldIndex);
-                  _steps.insert(newIndex, moved);
-                }),
-                itemBuilder: (context, i) {
-                  final step = _steps[i];
-                  return _StepRow(
-                    key: ValueKey('${step.id}-$i'),
-                    step: step,
-                    tone: tone,
-                    onTap: () => _editStep(i),
-                    onDelete: () => setState(() => _steps.removeAt(i)),
-                  );
-                },
               ),
+            ),
           ],
         ),
+        if (_steps.isEmpty)
+          _HairTop(
+            minHeight: 0,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: Spacing.md),
+              child: Text('Add at least one step.',
+                  style: AppType.subhead.copyWith(color: c.ink3)),
+            ),
+          )
+        else
+          ReorderableListView.builder(
+            shrinkWrap: true,
+            buildDefaultDragHandles: false,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: _steps.length,
+            onReorderItem: (oldIndex, newIndex) => setState(() {
+              final moved = _steps.removeAt(oldIndex);
+              _steps.insert(newIndex, moved);
+            }),
+            itemBuilder: (context, i) {
+              final step = _steps[i];
+              return _StepRow(
+                key: ValueKey('${step.id}-$i'),
+                index: i,
+                step: step,
+                onTap: () => _editStep(i),
+                onRemove: () => setState(() => _steps.removeAt(i)),
+              );
+            },
+          ),
+        if (isEdit) ...[
+          const SizedBox(height: Spacing.lg),
+          _HairTop(
+            minHeight: 0,
+            child: PressScale(
+              onTap: _confirmDelete,
+              semanticLabel: 'Delete routine',
+              child: SizedBox(
+                height: _footButtonHeight,
+                child: Center(
+                  child: Text('Delete routine',
+                      style: AppType.headline.copyWith(color: c.careInk)),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+/// A step row: glyph and title (tap to edit), remove, then the drag handle.
+class _StepRow extends StatelessWidget {
+  const _StepRow({
+    super.key,
+    required this.index,
+    required this.step,
+    required this.onTap,
+    required this.onRemove,
+  });
+
+  final int index;
+  final RitualStep step;
+  final VoidCallback onTap;
+  final VoidCallback onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return _HairTop(
+      minHeight: _stepRowHeight,
+      child: Row(
+        children: [
+          Expanded(
+            child: PressScale(
+              onTap: onTap,
+              semanticLabel: '${step.title}. Edit step',
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(minHeight: _stepRowHeight),
+                child: Row(
+                  children: [
+                    AppIcon(step.icon, size: _stepGlyph, color: c.ink2),
+                    const SizedBox(width: Spacing.md),
+                    Expanded(
+                      child: Text(
+                        step.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppType.callout.copyWith(color: c.ink),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: Spacing.xs),
+          PressScale(
+            onTap: onRemove,
+            semanticLabel: 'Remove ${step.title}',
+            child: SizedBox(
+              width: _tapTarget,
+              height: _tapTarget,
+              child: Center(
+                child: AppIcon('xmark', size: _removeGlyph, color: c.ink3),
+              ),
+            ),
+          ),
+          _DragHandle(index: index, label: 'Reorder ${step.title}'),
+        ],
       ),
     );
   }
 }
 
-class _StepRow extends StatelessWidget {
-  const _StepRow({
-    super.key,
-    required this.step,
-    required this.tone,
-    required this.onTap,
-    required this.onDelete,
-  });
-
-  final RitualStep step;
-  final Color tone;
-  final VoidCallback onTap;
-  final VoidCallback onDelete;
+/// Asks before deleting a routine. Pops true to delete, false to keep it.
+class _ConfirmDelete extends StatelessWidget {
+  const _ConfirmDelete({required this.name, required this.stepCount});
+  final String name;
+  final int stepCount;
 
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    return Padding(
-      padding: const EdgeInsets.only(bottom: Spacing.sm),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(Radii.md),
-        child: ColoredBox(
-          color: c.surface,
-          child: GestureDetector(
-            onTap: onTap,
-            behavior: HitTestBehavior.opaque,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: Spacing.md, vertical: Spacing.sm),
-              child: Row(
-                children: [
-                  Container(
-                    width: 26,
-                    height: 26,
-                    decoration: BoxDecoration(
-                      color: tone.withValues(alpha: 0.14),
-                      borderRadius: BorderRadius.circular(Radii.sm),
-                    ),
-                    alignment: Alignment.center,
-                    child: AppIcon(step.icon, size: 15, color: tone),
-                  ),
-                  const SizedBox(width: Spacing.md),
-                  Expanded(
-                    child: Text(
-                      step.title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppType.subhead
-                          .copyWith(color: c.ink, letterSpacing: -0.24),
-                    ),
-                  ),
-                  GestureDetector(
-                    onTap: onDelete,
-                    behavior: HitTestBehavior.opaque,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: Spacing.sm),
-                      child: AppIcon('xmark', size: 15, color: c.red),
-                    ),
-                  ),
-                ],
-              ),
+    return _SheetBody(
+      children: [
+        const SizedBox(height: Spacing.lg),
+        Text('Delete $name?', style: AppType.title.copyWith(color: c.ink)),
+        const SizedBox(height: Spacing.xs),
+        Text(
+          'This removes the routine and its ${_stepCount(stepCount)}. '
+          'What you checked off before stays in your history.',
+          style: AppType.subhead.copyWith(color: c.ink2),
+        ),
+        const SizedBox(height: Spacing.lg),
+        PressScale(
+          onTap: () => Navigator.pop(context, true),
+          semanticLabel: 'Delete',
+          child: Container(
+            height: _footButtonHeight,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: c.surface2,
+              borderRadius: BorderRadius.circular(Radii.pill),
+            ),
+            child: Text('Delete',
+                style: AppType.headline.copyWith(color: c.careInk)),
+          ),
+        ),
+        const SizedBox(height: Spacing.lg),
+        PressScale(
+          onTap: () => Navigator.pop(context, false),
+          semanticLabel: 'Keep it',
+          child: SizedBox(
+            height: _footButtonHeight,
+            child: Center(
+              child: Text('Keep it',
+                  style: AppType.headline.copyWith(color: c.ink)),
             ),
           ),
         ),
-      ),
+      ],
     );
   }
 }
@@ -564,7 +796,7 @@ class _StepEditorState extends State<_StepEditor> {
     final s = widget.existing;
     _title = TextEditingController(text: s?.title ?? '');
     _note = TextEditingController(text: s?.note ?? '');
-    _icon = s?.icon ?? _iconChoices.first;
+    _icon = s?.icon ?? _iconChoices.keys.first;
   }
 
   @override
@@ -591,52 +823,32 @@ class _StepEditorState extends State<_StepEditor> {
 
   @override
   Widget build(BuildContext context) {
-    final c = context.colors;
-    final bottom = MediaQuery.of(context).viewInsets.bottom;
     final isEdit = widget.existing != null;
 
-    return Padding(
-      padding: EdgeInsets.fromLTRB(
-          Spacing.lg, Spacing.md, Spacing.lg, Spacing.lg + bottom),
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                NavAction(label: 'Cancel', onTap: () => Navigator.pop(context)),
-                Text(isEdit ? 'Edit step' : 'New step',
-                    style: AppType.headline.copyWith(color: c.ink)),
-                NavAction(
-                  label: 'Save',
-                  bold: true,
-                  enabled: _canSave,
-                  onTap: _canSave ? _save : null,
-                ),
-              ],
-            ),
-            const SizedBox(height: Spacing.lg),
-            _Field(
-              controller: _title,
-              hint: 'Step title',
-              autofocus: !isEdit,
-              onChanged: () => setState(() {}),
-            ),
-            const SizedBox(height: Spacing.md),
-            _Field(controller: _note, hint: 'Note (optional)'),
-            const SizedBox(height: Spacing.xl),
-            _Label('ICON'),
-            const SizedBox(height: Spacing.sm),
-            _IconGrid(
-              selected: _icon,
-              tone: c.accent,
-              onSelect: (name) => setState(() => _icon = name),
-            ),
-          ],
+    return _SheetBody(
+      children: [
+        _SheetHeader(
+          title: isEdit ? 'Edit step' : 'New step',
+          canSave: _canSave,
+          onSave: _save,
         ),
-      ),
+        const SizedBox(height: Spacing.lg),
+        _Field(
+          controller: _title,
+          hint: 'Step title',
+          autofocus: !isEdit,
+          onChanged: () => setState(() {}),
+        ),
+        const SizedBox(height: Spacing.md),
+        _Field(controller: _note, hint: 'Note (optional)'),
+        const SizedBox(height: Spacing.lg),
+        const _Label('Icon'),
+        const SizedBox(height: Spacing.sm),
+        _IconGrid(
+          selected: _icon,
+          onSelect: (name) => setState(() => _icon = name),
+        ),
+      ],
     );
   }
 }
@@ -662,9 +874,11 @@ class _Field extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: Spacing.md),
+      height: _fieldHeight,
+      padding: const EdgeInsets.symmetric(horizontal: Spacing.lg),
+      alignment: Alignment.centerLeft,
       decoration: BoxDecoration(
-          color: c.surface, borderRadius: BorderRadius.circular(Radii.md)),
+          color: c.surface2, borderRadius: BorderRadius.circular(Radii.inset)),
       child: TextField(
         controller: controller,
         autofocus: autofocus,
@@ -672,54 +886,68 @@ class _Field extends StatelessWidget {
         onTap: onTap,
         onChanged: onChanged == null ? null : (_) => onChanged!(),
         style: AppType.body.copyWith(color: c.ink),
-        cursorColor: c.accent,
+        cursorColor: c.ink,
         decoration: InputDecoration(
           border: InputBorder.none,
+          isCollapsed: true,
           hintText: hint,
-          hintStyle: AppType.body.copyWith(color: c.ink4),
-          contentPadding: const EdgeInsets.symmetric(vertical: Spacing.lg),
+          hintStyle: AppType.body.copyWith(color: c.ink3),
         ),
       ),
     );
   }
 }
 
+/// Seven columns of 44 circles; the selected one has an ink ring.
 class _IconGrid extends StatelessWidget {
-  const _IconGrid({
-    required this.selected,
-    required this.onSelect,
-    required this.tone,
-  });
+  const _IconGrid({required this.selected, required this.onSelect});
 
   final String selected;
   final ValueChanged<String> onSelect;
-  final Color tone;
 
   @override
   Widget build(BuildContext context) {
-    final c = context.colors;
-    return Wrap(
-      spacing: Spacing.md,
-      runSpacing: Spacing.md,
+    final names = _iconChoices.keys.toList();
+    return Column(
       children: [
-        for (final name in _iconChoices)
-          GestureDetector(
-            onTap: () => onSelect(name),
-            behavior: HitTestBehavior.opaque,
-            child: Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: name == selected ? tone : c.fill,
-                borderRadius: BorderRadius.circular(Radii.md),
-              ),
-              alignment: Alignment.center,
-              child: AppIcon(name,
-                  size: 20,
-                  color: name == selected ? c.onAccent : c.ink2),
-            ),
+        for (var row = 0; row < names.length; row += _iconColumns) ...[
+          if (row > 0) const SizedBox(height: Spacing.xs),
+          Row(
+            children: [
+              for (var i = row; i < row + _iconColumns; i++)
+                Expanded(
+                  child: Center(
+                    child: i < names.length ? _iconCell(context, names[i]) : null,
+                  ),
+                ),
+            ],
           ),
+        ],
       ],
+    );
+  }
+
+  Widget _iconCell(BuildContext context, String name) {
+    final c = context.colors;
+    final on = name == selected;
+    // a container node, so the selected flag and the label sit on one node.
+    return Semantics(
+      container: true,
+      selected: on,
+      child: PressScale(
+        onTap: () => onSelect(name),
+        semanticLabel: _iconChoices[name],
+        child: Container(
+          width: _tapTarget,
+          height: _tapTarget,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: on ? Border.all(color: c.ink, width: _iconRingWidth) : null,
+          ),
+          child: AppIcon(name, size: _routineGlyph, color: on ? c.ink : c.ink2),
+        ),
+      ),
     );
   }
 }
@@ -730,12 +958,6 @@ class _Label extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = context.colors;
-    return Padding(
-      padding: const EdgeInsets.only(left: Spacing.xs),
-      child: Text(text,
-          style: AppType.footnote.copyWith(color: c.ink3, letterSpacing: -0.08)),
-    );
+    return Text(text, style: AppType.label.copyWith(color: context.colors.ink3));
   }
 }
-

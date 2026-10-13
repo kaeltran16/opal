@@ -1,14 +1,14 @@
 import 'package:flutter/widgets.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../theme/theme.dart';
-import '../../widgets/app_icon.dart';
-import '../../widgets/inset_section.dart';
-import '../email/email_nav.dart';
+import '../you/sub_screen.dart';
+
+const double _rowMinHeight = 48;
+const double _hairline = 1;
 
 /// Settings → About.
 ///
-/// App identity (glyph + name + version) and a few static facts. The version
+/// App identity (name + version) and a few static facts. The version
 /// constant lives only here (shown in the header and the Version row); bump it
 /// on release.
 class AboutScreen extends StatelessWidget {
@@ -19,66 +19,52 @@ class AboutScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    return ColoredBox(
-      color: c.bg,
-      child: ListView(
-        padding: const EdgeInsets.only(bottom: 40), // kept literal: off-grid list bottom inset
+    return SubScreen(
+      eyebrow: 'Settings',
+      title: 'About',
+      children: [
+        const SizedBox(height: Spacing.xxl),
+        Text('Opal', style: AppType.title.copyWith(color: c.ink)),
+        const SizedBox(height: Spacing.xxs),
+        Text('Version $_version', style: AppType.subhead.copyWith(color: c.ink3)),
+        const SizedBox(height: Spacing.xxl),
+        const _ValueRow(title: 'Version', value: _version),
+        const _ValueRow(title: 'Built with', value: 'Flutter'),
+        const _ValueRow(title: 'Storage', value: 'On device'),
+        Container(
+          padding: const EdgeInsets.only(top: Spacing.sm),
+          decoration: BoxDecoration(
+            border: Border(top: BorderSide(color: c.hair, width: _hairline)),
+          ),
+          child: Text('A calm tracker for money, workouts, and routines.',
+              style: AppType.subhead.copyWith(color: c.ink3)),
+        ),
+      ],
+    );
+  }
+}
+
+/// A read-only hairline row: [title] at the left, [value] at the right.
+class _ValueRow extends StatelessWidget {
+  const _ValueRow({required this.title, required this.value});
+
+  final String title;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return Container(
+      constraints: const BoxConstraints(minHeight: _rowMinHeight),
+      padding: const EdgeInsets.symmetric(vertical: Spacing.xs),
+      decoration: BoxDecoration(
+        border: Border(top: BorderSide(color: c.hair, width: _hairline)),
+      ),
+      child: Row(
         children: [
-          EmailNavBar(
-            title: 'About',
-            leadingLabel: 'You',
-            onLeading: () => context.pop(),
-          ),
-          Padding(
-            // bottom 28 off-grid; kept literal to preserve identity-block rhythm
-            padding: const EdgeInsets.fromLTRB(Spacing.xxl, Spacing.xl, Spacing.xxl, 28),
-            child: Column(
-              children: [
-                Container(
-                  width: 76,
-                  height: 76,
-                  decoration: BoxDecoration(
-                    color: c.accent,
-                    borderRadius: BorderRadius.circular(Radii.lg),
-                  ),
-                  alignment: Alignment.center,
-                  child: AppIcon('sparkles', size: 40, color: c.onAccent),
-                ),
-                const SizedBox(height: Spacing.lg),
-                Text(
-                  'Opal',
-                  style: AppType.title1.copyWith(color: c.ink, letterSpacing: -0.4),
-                ),
-                const SizedBox(height: Spacing.xxs),
-                Text(
-                  'Version $_version',
-                  style: AppType.subhead
-                      .copyWith(color: c.ink3, letterSpacing: -0.24),
-                ),
-              ],
-            ),
-          ),
-          InsetSection(
-            footer: 'A calm tracker for money, workouts, and routines.',
-            children: [
-              ListRow(
-                title: 'Version',
-                value: _version,
-                chevron: false,
-              ),
-              ListRow(
-                title: 'Built with',
-                value: 'Flutter',
-                chevron: false,
-              ),
-              ListRow(
-                title: 'Storage',
-                value: 'On device',
-                chevron: false,
-                last: true,
-              ),
-            ],
-          ),
+          Expanded(child: Text(title, style: AppType.callout.copyWith(color: c.ink))),
+          const SizedBox(width: Spacing.md),
+          Text(value, style: AppType.subhead.copyWith(color: c.ink3)),
         ],
       ),
     );

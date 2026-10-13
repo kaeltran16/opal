@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../controllers/providers.dart';
 import '../../theme/theme.dart';
 import '../../widgets/controls.dart';
-import '../../widgets/inset_section.dart';
-import '../email/email_nav.dart';
+import '../you/sub_screen.dart';
 
 /// Settings → Appearance.
 ///
@@ -22,35 +20,22 @@ class AppearanceScreen extends ConsumerWidget {
     final settings = ref.watch(appSettingsControllerProvider);
     final controller = ref.read(appSettingsControllerProvider.notifier);
 
-    return ColoredBox(
-      color: c.bg,
-      child: ListView(
-        padding: const EdgeInsets.only(bottom: 40), // kept literal: off-grid list bottom inset
-        children: [
-          EmailNavBar(
-            title: 'Appearance',
-            leadingLabel: 'You',
-            onLeading: () => context.pop(),
-          ),
-          const SizedBox(height: Spacing.sm),
-          InsetSection(
-            header: 'Theme',
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(Spacing.lg),
-                child: Segmented<Brightness>(
-                  options: const [
-                    (Brightness.light, 'Light'),
-                    (Brightness.dark, 'Dark')
-                  ],
-                  value: settings.brightness,
-                  onChanged: controller.setBrightness,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
+    return SubScreen(
+      eyebrow: 'Settings',
+      title: 'Appearance',
+      children: [
+        const SizedBox(height: Spacing.xxl),
+        Semantics(
+          header: true,
+          child: Text('Theme', style: AppType.headline.copyWith(color: c.ink)),
+        ),
+        const SizedBox(height: Spacing.md),
+        Segmented<Brightness>(
+          options: const [(Brightness.light, 'Light'), (Brightness.dark, 'Dark')],
+          value: settings.brightness,
+          onChanged: controller.setBrightness,
+        ),
+      ],
     );
   }
 }

@@ -70,7 +70,7 @@ void main() {
     ]);
 
     expect(find.text('Oat latte'), findsOneWidget);
-    expect(find.text('CATEGORY'), findsOneWidget);
+    expect(find.text('Category'), findsOneWidget);
   });
 
   testWidgets('New Entry hides the pick section on a thin history',
@@ -78,7 +78,7 @@ void main() {
     await _pumpSheet(tester, habits: const []);
 
     // No invented merchant, and no bare heading over an empty row.
-    expect(find.text('CATEGORY'), findsNothing);
+    expect(find.text('Category'), findsNothing);
   });
 
   testWidgets('a tapped habit pick logs the mined amount, title and category',

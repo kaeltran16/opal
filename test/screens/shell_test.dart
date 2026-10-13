@@ -171,6 +171,22 @@ void main() {
     });
   }
 
+  testWidgets('the ask bar on Workout opens the composer from /move', (tester) async {
+    await bootApp(tester);
+    await tester.tap(_tab('Workout'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.bySemanticsLabel('Tell Pal anything'));
+    await tester.pumpAndSettle();
+
+    final sheet = tester.widget<PalComposerSheet>(find.byType(PalComposerSheet));
+    expect(sheet.from, '/move');
+    expect(find.descendant(of: find.byType(PalComposerSheet), matching: find.text('Workout')),
+        findsOneWidget);
+
+    await flushProviderTimers(tester);
+  });
+
   testWidgets('the Areas tab shows a watch dot when Money is worth watching',
       (tester) async {
     await _bootWith(tester, Stream.value(_areas(spent: 50)));

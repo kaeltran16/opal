@@ -527,13 +527,15 @@ GoRouter createRouter({
 
       // --- Handoff #2 (Wave 6) routes, all above the shell ---
       // Pal composer: the unified input surface. Presented over a dim,
-      // tap-to-dismiss backdrop; optional `?seed=` pre-fills + expands it.
+      // tap-to-dismiss backdrop; optional `?seed=` pre-fills + expands it, and
+      // `?from=` names the screen it was opened over.
       GoRoute(
         path: AppRoute.palComposer.path,
         name: AppRoute.palComposer.name,
         parentNavigatorKey: _rootNavigatorKey,
         pageBuilder: (context, state) {
           final seed = state.uri.queryParameters['seed'];
+          final from = state.uri.queryParameters['from'];
           final c = context.colors;
           // a light scrim keeps the page readable through the glass sheet.
           final scrimAlpha =
@@ -564,7 +566,7 @@ GoRouter createRouter({
               type: MaterialType.transparency,
               child: Align(
                 alignment: Alignment.bottomCenter,
-                child: PalComposerSheet(seed: seed),
+                child: PalComposerSheet(seed: seed, from: from),
               ),
             ),
           );

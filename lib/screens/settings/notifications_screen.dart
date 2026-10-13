@@ -1,14 +1,15 @@
-import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart' show TimeOfDay, showTimePicker;
+import 'package:flutter/cupertino.dart' show CupertinoSwitch;
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../controllers/providers.dart';
 import '../../services/notifications/notification_service.dart';
 import '../../theme/theme.dart';
-import '../../widgets/app_icon.dart';
-import '../../widgets/inset_section.dart';
-import '../email/email_nav.dart';
+import '../../widgets/press_scale.dart';
+import '../you/sub_screen.dart';
+
+const double _rowMinHeight = 56;
+const double _hairline = 1;
 
 /// Settings → Notifications.
 ///
@@ -135,137 +136,192 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
     // gap to surface (defaults are on, so this is the fresh-install state).
     final permissionGap =
         (_ritualReminders || _budgetAlerts) && !_permissionGranted;
-    return ColoredBox(
-      color: c.bg,
-      child: ListView(
-        padding: const EdgeInsets.only(bottom: 40), // kept literal: off-grid list bottom inset
-        children: [
-          EmailNavBar(
-            title: 'Notifications',
-            leadingLabel: 'You',
-            onLeading: () => context.pop(),
+    return SubScreen(
+      eyebrow: 'Settings',
+      title: 'Notifications',
+      children: [
+        const SizedBox(height: Spacing.xxl),
+        const _Heading('Permission'),
+        const SizedBox(height: Spacing.sm),
+        _Row(
+          title: 'Allow notifications',
+          value: _requesting ? '…' : (_permStatus ?? 'Not set'),
+          // the value is the state word, so care ink sits beside its word.
+          valueColor: permissionGap ? c.careInk : null,
+          onTap: _requestPerms,
+        ),
+        const _Footer('Opal asks iOS for permission before it can deliver any '
+            'reminders.'),
+        const SizedBox(height: Spacing.xxl),
+        const _Heading('Reminders'),
+        const SizedBox(height: Spacing.sm),
+        if (permissionGap)
+          _Row(
+            title: 'Not allowed yet',
+            subtitle: 'Tap to let iOS deliver these reminders.',
+            onTap: _requestPerms,
           ),
-          const SizedBox(height: Spacing.sm),
-          InsetSection(
-            header: 'Permission',
-            footer: 'Opal asks iOS for permission before it can deliver any '
-                'reminders.',
+        _SwitchRow(
+          title: 'Routine reminders',
+          value: _ritualReminders,
+          onChanged: _setRitualReminders,
+        ),
+        if (_ritualReminders)
+          _Row(
+            title: 'Reminder time',
+            value: _formatTime(_reminderTime),
+            onTap: _pickReminderTime,
+          ),
+        _SwitchRow(
+          title: 'Budget alerts',
+          value: _budgetAlerts,
+          onChanged: _setBudgetAlerts,
+        ),
+        const _Footer('Reminders are scheduled and delivered on your device only.'),
+      ],
+    );
+  }
+}
+
+class _Heading extends StatelessWidget {
+  const _Heading(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+        header: true,
+        child: Text(text, style: AppType.headline.copyWith(color: context.colors.ink)),
+      );
+}
+
+/// A section's closing note, under a hairline.
+class _Footer extends StatelessWidget {
+  const _Footer(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return Container(
+      padding: const EdgeInsets.only(top: Spacing.sm),
+      decoration: BoxDecoration(
+        border: Border(top: BorderSide(color: c.hair, width: _hairline)),
+      ),
+      child: Text(text, style: AppType.subhead.copyWith(color: c.ink3)),
+    );
+  }
+}
+
+/// A tappable hairline row: [title] with an optional [subtitle], and an
+/// optional trailing [value].
+class _Row extends StatelessWidget {
+  const _Row({
+    required this.title,
+    this.subtitle,
+    this.value,
+    this.valueColor,
+    required this.onTap,
+  });
+
+  final String title;
+  final String? subtitle;
+  final String? value;
+  final Color? valueColor;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    final value = this.value;
+    final subtitle = this.subtitle;
+    return Semantics(
+      container: true,
+      child: PressScale(
+        onTap: onTap,
+        semanticLabel: value == null ? title : '$title, $value',
+        child: Container(
+          constraints: const BoxConstraints(minHeight: _rowMinHeight),
+          padding: const EdgeInsets.symmetric(vertical: Spacing.sm),
+          decoration: BoxDecoration(
+            border: Border(top: BorderSide(color: c.hair, width: _hairline)),
+          ),
+          child: Row(
             children: [
-              ListRow(
-                icon: 'bell.fill',
-                iconBg: c.red,
-                title: 'Allow notifications',
-                value: _requesting ? '…' : (_permStatus ?? 'Not set'),
-                valueColor: permissionGap ? c.red : null,
-                chevron: false,
-                last: true,
-                onTap: _requestPerms,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title, style: AppType.callout.copyWith(color: c.ink)),
+                    if (subtitle != null) ...[
+                      const SizedBox(height: Spacing.xxs),
+                      Text(subtitle, style: AppType.subhead.copyWith(color: c.ink3)),
+                    ],
+                  ],
+                ),
               ),
+              if (value != null) ...[
+                const SizedBox(width: Spacing.md),
+                Text(value,
+                    style: AppType.subhead.copyWith(
+                        color: valueColor ?? c.ink3,
+                        fontFeatures: const [FontFeature.tabularFigures()])),
+              ],
             ],
           ),
-          InsetSection(
-            header: 'Reminders',
-            footer: 'Reminders are scheduled and delivered on your device only.',
-            children: [
-              if (permissionGap)
-                ListRow(
-                  icon: 'lock.fill',
-                  iconBg: c.red,
-                  title: 'Not allowed yet',
-                  subtitle: 'Tap to let iOS deliver these reminders.',
-                  onTap: _requestPerms,
-                ),
-              _SwitchRow(
-                icon: 'sparkles',
-                color: c.rituals,
-                title: 'Routine reminders',
-                value: _ritualReminders,
-                onChanged: _setRitualReminders,
-              ),
-              if (_ritualReminders)
-                ListRow(
-                  icon: 'clock.fill',
-                  iconBg: c.rituals,
-                  title: 'Reminder time',
-                  value: _formatTime(_reminderTime),
-                  chevron: false,
-                  onTap: _pickReminderTime,
-                ),
-              _SwitchRow(
-                icon: 'flame.fill',
-                color: c.money,
-                title: 'Budget alerts',
-                value: _budgetAlerts,
-                last: true,
-                onChanged: _setBudgetAlerts,
-              ),
-            ],
-          ),
-        ],
+        ),
       ),
     );
   }
 }
 
-/// Inset-grouped row with a trailing iOS switch.
+/// A hairline row with a trailing switch. The whole row takes the tap so the
+/// target is more than the track.
 class _SwitchRow extends StatelessWidget {
   const _SwitchRow({
-    required this.icon,
-    required this.color,
     required this.title,
     required this.value,
     required this.onChanged,
-    this.last = false,
   });
 
-  final String icon;
-  final Color color;
   final String title;
   final bool value;
   final ValueChanged<bool> onChanged;
-  final bool last;
 
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    return Stack(
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: Spacing.lg, vertical: Spacing.sm),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(minHeight: 44),
-            child: Row(
-              children: [
-                Container(
-                  width: 29,
-                  height: 29,
-                  decoration: BoxDecoration(
-                      color: color, borderRadius: BorderRadius.circular(Radii.sm)),
-                  alignment: Alignment.center,
-                  child: AppIcon(icon, size: 17, color: c.onAccent),
-                ),
-                const SizedBox(width: Spacing.md),
-                Expanded(
-                  child: Text(title,
-                      style: AppType.body.copyWith(color: c.ink)),
-                ),
-                CupertinoSwitch(
-                  value: value,
-                  activeTrackColor: c.accent,
-                  onChanged: onChanged,
-                ),
-              ],
-            ),
-          ),
+    return GestureDetector(
+      onTap: () => onChanged(!value),
+      behavior: HitTestBehavior.opaque,
+      // the switch below carries the row's semantics.
+      excludeFromSemantics: true,
+      child: Container(
+        constraints: const BoxConstraints(minHeight: _rowMinHeight),
+        decoration: BoxDecoration(
+          border: Border(top: BorderSide(color: c.hair, width: _hairline)),
         ),
-        if (!last)
-          Positioned(
-            left: 57,
-            right: 0,
-            bottom: 0,
-            child: Container(height: 0.5, color: c.hair),
-          ),
-      ],
+        child: Row(
+          children: [
+            Expanded(child: Text(title, style: AppType.callout.copyWith(color: c.ink))),
+            const SizedBox(width: Spacing.md),
+            MergeSemantics(
+              child: Semantics(
+                label: title,
+                child: CupertinoSwitch(
+                  value: value,
+                  onChanged: onChanged,
+                  activeTrackColor: c.ink,
+                  inactiveTrackColor: c.track,
+                  thumbColor: c.bg,
+                  inactiveThumbColor: c.ink3,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

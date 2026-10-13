@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart' show CupertinoSwitch;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -8,17 +9,69 @@ import '../../models/models.dart';
 import '../../router.dart';
 import '../../theme/theme.dart';
 import '../../widgets/app_icon.dart';
+import '../../widgets/controls.dart';
+import '../../widgets/pal_label.dart';
+import '../../widgets/press_scale.dart';
 
-/// Screen 01 — Onboarding (first-run setup), U17.
-///
-/// Four full-screen steps (no nav/tab bar): Welcome → Daily budget → Move goal
-/// → Routines (three time-of-day routines — Morning / Midday / Evening — on by
-/// default). On finish, writes a single [Goals] record, seeds the enabled
-/// [RitualRoutine]s, and flips `onboardingComplete` in `SettingsRepository`,
-/// at which point the `router.dart` redirect gate releases the app to Today.
-///
-/// All persistence goes through the repository providers so tests can override
-/// the DB/prefs; the UI state (current step + selections) is purely ephemeral.
+// safe area minimums: the top sits 60 from the screen top, as on the board.
+const _padTop = 60.0;
+const _padSide = 16.0;
+const _padBottom = 34.0;
+const _barGap = 8.0;
+const _leadTop = 32.0;
+const _leadGap = 8.0;
+const _leadMaxWidth = 330.0;
+const _fieldTop = 28.0;
+const _fieldHeight = 52.0;
+const _fieldPadSide = 16.0;
+const _amountTop = 32.0;
+const _optionsTop = 24.0;
+const _rowsTop = 24.0;
+const _rowMinHeight = 64.0;
+const _rowIcon = 22.0;
+const _rowGap = 14.0;
+const _rowTextGap = 2.0;
+const _noneTop = 12.0;
+const _hairline = 1.0;
+const _alertGap = 12.0;
+const _alertPad = EdgeInsets.symmetric(horizontal: 16, vertical: 12);
+const _pillHeight = 48.0;
+const _skipTop = 4.0;
+const _skipHeight = 48.0;
+const _ritualTarget = 5;
+const _captionTracking = 0.3;
+const _bodyLeading = 24 / 17;
+const _nameLeading = 22 / 16;
+const _detailLeading = 20 / 15;
+const List<FontFeature> _tabular = [FontFeature.tabularFigures()];
+
+const _stepCount = 4;
+const _budgetOptions = <double>[50, 85, 120, 200];
+const _moveOptions = <int>[300, 500, 700, 900];
+
+const _titles = [
+  'Welcome to Opal',
+  'Set a daily budget',
+  'Pick a workout goal',
+  'Choose your routines',
+];
+const _bodies = [
+  'One app for money, workouts, and the little routines that hold your day '
+      'together. What should we call you?',
+  "We'll help you stay under it, gently.",
+  'Any session counts. We track the calories you burn.',
+  'Three time-of-day routines to anchor your day. Edit the steps anytime.',
+];
+const _ctas = ['Get started', 'Continue', 'Continue', 'Start tracking'];
+const _noneOn = 'Pick at least one routine to start.';
+const _saveFailed = "Couldn't save. Try again.";
+
+String _stepCountLabel(int n) => n == 1 ? '1 step' : '$n steps';
+String _dollars(double v) => '\$${v.toStringAsFixed(0)}';
+
+/// First-run setup: four full-screen steps (name, daily budget, move goal,
+/// routines). Finishing writes [Goals], seeds the enabled [RitualRoutine]s and
+/// flips `onboardingComplete`, which releases the router gate to Today.
 class OnboardingScreen extends ConsumerStatefulWidget {
   const OnboardingScreen({super.key});
 
@@ -26,19 +79,15 @@ class OnboardingScreen extends ConsumerStatefulWidget {
   ConsumerState<OnboardingScreen> createState() => _OnboardingScreenState();
 }
 
-/// Budget chip options (handoff: $50/$85/$120/$200, default $85).
-const _budgetOptions = <double>[50, 85, 120, 200];
-
-/// Move-goal chip options in active-energy kcal (300/500/700/900, default 500).
-const _moveOptions = <int>[300, 500, 700, 900];
-
 class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
-  static const _stepCount = 4;
+  static final _routines = SeedData.ritualRoutines();
 
   int _step = 0;
   double _budget = 85;
   int _moveKcal = 500;
   bool _saving = false;
+  bool _saveError = false;
+  final Set<String> _selectedRoutineIds = {for (final r in _routines) r.id};
 
   final _nameController = TextEditingController();
 
@@ -48,17 +97,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     super.dispose();
   }
 
-  /// The three time-of-day routines offered on step 4.
-  static final _routines = SeedData.ritualRoutines();
-
-  /// Routine ids enabled on step 4 — all three on by default. Controls which
-  /// routines get seeded on finish.
-  late final Set<String> _selectedRoutineIds = {
-    for (final r in _routines) r.id,
-  };
+  bool get _noneSelected => _step == _stepCount - 1 && _selectedRoutineIds.isEmpty;
 
   Future<void> _next() async {
-    if (_saving) return;
+    if (_saving || _noneSelected) return;
     if (_step < _stepCount - 1) {
       setState(() => _step++);
       return;
@@ -66,10 +108,16 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     await _finish();
   }
 
-  /// Persists Goals, ensures the default ritual routines exist, then flips the
-  /// onboarding flag.
+  void _toggle(String id) => setState(() {
+        _saveError = false;
+        if (!_selectedRoutineIds.remove(id)) _selectedRoutineIds.add(id);
+      });
+
   Future<void> _finish() async {
-    setState(() => _saving = true);
+    setState(() {
+      _saving = true;
+      _saveError = false;
+    });
 
     final goals = ref.read(goalsRepositoryProvider);
     final rituals = ref.read(ritualRepositoryProvider);
@@ -77,33 +125,25 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
     try {
       await settings.setDisplayName(_nameController.text.trim());
-
       await goals.upsert(Goals(
         dailyBudget: _budget,
         dailyMoveKcal: _moveKcal,
-        dailyRitualTarget: 5,
+        dailyRitualTarget: _ritualTarget,
       ));
-
-      // Rituals are now the three time-of-day routines (Morning / Midday /
-      // Evening). Seed the enabled ones idempotently so onboarding is
-      // self-sufficient even when the DB seeder hasn't run.
+      // seeded here so onboarding works even when the db seeder has not run.
       for (final routine in _routines) {
         if (_selectedRoutineIds.contains(routine.id)) {
           await rituals.upsertRoutine(routine);
         }
       }
-
       await settings.setOnboardingComplete(true);
 
       if (!mounted) return;
-      // Land on Today; the redirect gate would also do this, but going
-      // explicitly avoids waiting on a router refresh tick.
+      // the redirect gate would also land here, but only on a later refresh.
       context.goNamed(AppRoute.today.name);
-    } catch (_) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Couldn't save — try again.")),
-      );
+    } catch (e, st) {
+      debugPrint('onboarding: saving the setup failed: $e\n$st');
+      if (mounted) setState(() => _saveError = true);
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -114,478 +154,250 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     final c = context.colors;
     final step = _step;
 
-    final Color heroColor = switch (step) {
-      1 => c.money,
-      2 => c.move,
-      3 => c.rituals,
-      _ => c.accent,
-    };
-
     return Scaffold(
       backgroundColor: c.bg,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(
-            Spacing.xxl,
-            Spacing.xxl,
-            Spacing.xxl,
-            Spacing.xxl,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _ProgressDots(step: step, count: _stepCount),
-              const SizedBox(height: 36), // kept literal: off-grid hero gap, no token
-
-              Expanded(
-                child: SingleChildScrollView(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      _Hero(glyph: _heroGlyph(step), color: heroColor),
-                      const SizedBox(height: Spacing.xxl),
-                      Text(
-                        _title(step),
-                        textAlign: TextAlign.center,
-                        style: AppType.amount.copyWith(
-                          color: c.ink,
-                          letterSpacing: -0.8,
-                          height: 1.1,
-                        ),
-                      ),
-                      const SizedBox(height: Spacing.lg),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: Spacing.lg,
-                        ),
-                        child: Text(
-                          _body(step),
-                          textAlign: TextAlign.center,
-                          style: AppType.body.copyWith(
-                            color: c.ink3,
-                            height: 1.4,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: Spacing.xl),
-                      ..._stepContent(step, c, heroColor),
-                    ],
-                  ),
+        minimum: const EdgeInsets.fromLTRB(_padSide, _padTop, _padSide, _padBottom),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text('${step + 1} of $_stepCount',
+                style: AppType.caption.copyWith(
+                    color: c.ink3, letterSpacing: _captionTracking, fontFeatures: _tabular)),
+            const SizedBox(height: _barGap),
+            ProgressBar(value: (step + 1) / _stepCount, color: c.ink),
+            Expanded(
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _Lead(title: _titles[step], body: _bodies[step]),
+                    ..._stepContent(step),
+                  ],
                 ),
               ),
-              const SizedBox(height: Spacing.lg),
-              _Cta(
-                label: _cta(step),
-                enabled: !_saving && _canContinue(step),
-                onTap: _next,
-              ),
-              if (step > 0) ...[
-                const SizedBox(height: Spacing.md),
-                Center(
-                  child: GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: _saving ? null : _finish,
-                    child: Text(
-                      'Skip',
-                      style: AppType.subhead.copyWith(
-                        color: c.ink3,
-                        letterSpacing: -0.24,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
+            ),
+            if (_saveError) ...[
+              const _SaveFailed(),
+              const SizedBox(height: _alertGap),
             ],
-          ),
+            _Pill(
+              label: _ctas[step],
+              onTap: _saving || _noneSelected ? null : _next,
+            ),
+            if (step > 0) ...[
+              const SizedBox(height: _skipTop),
+              PressScale(
+                onTap: _saving ? null : _finish,
+                semanticLabel: 'Skip',
+                child: SizedBox(
+                  height: _skipHeight,
+                  child: Center(
+                    child: Text('Skip', style: AppType.headline.copyWith(color: c.ink2)),
+                  ),
+                ),
+              ),
+            ],
+          ],
         ),
       ),
     );
   }
 
-  // --- Per-step content -----------------------------------------------------
-
-  bool _canContinue(int step) {
-    // Require at least one routine on the final step; other steps always have a
-    // default selection, so they're always continuable.
-    if (step == 3) return _selectedRoutineIds.isNotEmpty;
-    return true;
-  }
-
-  List<Widget> _stepContent(int step, AppColors c, Color heroColor) {
-    switch (step) {
-      case 0:
-        return [
-          _NameField(
-            controller: _nameController,
-            accent: heroColor,
-            onSubmitted: (_) => _next(),
-          ),
-        ];
-      case 1:
-        return [
-          _BigValue(text: '\$${_budget.toStringAsFixed(0)}', color: c.ink),
-          const SizedBox(height: Spacing.xxl),
-          _ChipRow(
-            labels: [for (final v in _budgetOptions) '\$${v.toStringAsFixed(0)}'],
-            selectedIndex: _budgetOptions.indexOf(_budget),
-            selectedColor: heroColor,
-            onSelected: (i) => setState(() => _budget = _budgetOptions[i]),
-          ),
-        ];
-      case 2:
-        return [
-          _BigValue(text: '$_moveKcal kcal', color: c.ink),
-          const SizedBox(height: Spacing.xxl),
-          _ChipRow(
-            labels: [for (final m in _moveOptions) '$m kcal'],
-            selectedIndex: _moveOptions.indexOf(_moveKcal),
-            selectedColor: heroColor,
-            onSelected: (i) => setState(() => _moveKcal = _moveOptions[i]),
-          ),
-        ];
-      case 3:
-        return [
-          _RoutinePicker(
-            routines: _routines,
-            selected: _selectedRoutineIds,
-            onToggle: (id) => setState(() {
-              if (_selectedRoutineIds.contains(id)) {
-                _selectedRoutineIds.remove(id);
-              } else {
-                _selectedRoutineIds.add(id);
-              }
-            }),
-          ),
-        ];
-      default:
-        return const [];
-    }
-  }
-
-  String _heroGlyph(int step) => switch (step) {
-        1 => '\$',
-        2 => '◐',
-        3 => '✧',
-        _ => '✦',
-      };
-
-  String _title(int step) => switch (step) {
-        1 => 'Set a daily\nbudget',
-        2 => 'Pick a\nworkout goal',
-        3 => 'Choose your\nroutines',
-        _ => 'Welcome to\nOpal',
-      };
-
-  String _body(int step) => switch (step) {
-        1 => "We'll help you stay under it — gently.",
-        2 => 'Any session counts — we track the calories you burn.',
-        3 =>
-          'Three time-of-day routines to anchor your day — Morning, Midday, Evening. Edit the steps anytime.',
-        _ =>
-          "One app for money, workouts, and the little routines that hold your day together. What should we call you?",
-      };
-
-  String _cta(int step) => switch (step) {
-        0 => 'Get started',
-        3 => 'Start tracking',
-        _ => 'Continue',
+  List<Widget> _stepContent(int step) => switch (step) {
+        0 => [
+            const SizedBox(height: _fieldTop),
+            _NameField(controller: _nameController, onSubmitted: (_) => _next()),
+          ],
+        1 => [
+            const SizedBox(height: _amountTop),
+            _Amount(
+              value: _dollars(_budget),
+              of: 'to spend each day',
+            ),
+            const SizedBox(height: _optionsTop),
+            Segmented<double>(
+              options: [for (final v in _budgetOptions) (v, _dollars(v))],
+              value: _budget,
+              onChanged: (v) => setState(() => _budget = v),
+            ),
+          ],
+        2 => [
+            const SizedBox(height: _amountTop),
+            _Amount(
+              value: '$_moveKcal',
+              unit: ' kcal',
+              of: 'of active energy each day',
+            ),
+            const SizedBox(height: _optionsTop),
+            Segmented<int>(
+              options: [for (final m in _moveOptions) (m, '$m kcal')],
+              value: _moveKcal,
+              onChanged: (m) => setState(() => _moveKcal = m),
+            ),
+          ],
+        _ => [
+            const SizedBox(height: _rowsTop),
+            for (final r in _routines)
+              _RoutineRow(
+                routine: r,
+                on: _selectedRoutineIds.contains(r.id),
+                onToggle: () => _toggle(r.id),
+              ),
+            if (_selectedRoutineIds.isEmpty) const _NoneOn(),
+          ],
       };
 }
 
-/// Optional name input shown on the Welcome step. Styled to match the budget /
-/// move chips (surface fill, hairline border). Empty is allowed — the profile
-/// falls back to "You".
-class _NameField extends StatelessWidget {
-  const _NameField({
-    required this.controller,
-    required this.accent,
-    required this.onSubmitted,
-  });
+/// Pal's label, the step's serif headline and its body.
+class _Lead extends StatelessWidget {
+  const _Lead({required this.title, required this.body});
 
-  final TextEditingController controller;
-  final Color accent;
-  final ValueChanged<String> onSubmitted;
+  final String title, body;
 
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: Spacing.lg),
-      child: TextField(
-        controller: controller,
-        textAlign: TextAlign.center,
-        textCapitalization: TextCapitalization.words,
-        textInputAction: TextInputAction.done,
-        cursorColor: accent,
-        onSubmitted: onSubmitted,
-        style: AppType.body.copyWith(color: c.ink),
-        decoration: InputDecoration(
-          hintText: 'Your name',
-          hintStyle: AppType.body.copyWith(color: c.ink3),
-          filled: true,
-          fillColor: c.surface,
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: Spacing.lg,
-            vertical: Spacing.lg,
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(Radii.lg),
-            borderSide: BorderSide(color: c.hair, width: 0.5),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(Radii.lg),
-            borderSide: BorderSide(color: accent, width: 1.5),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Centered progress dots: active = 20px accent, inactive = 6px fill.
-class _ProgressDots extends StatelessWidget {
-  const _ProgressDots({required this.step, required this.count});
-  final int step;
-  final int count;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.colors;
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        for (var i = 0; i < count; i++) ...[
-          if (i > 0) const SizedBox(width: Spacing.sm),
-          AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            curve: Curves.easeOut,
-            width: i == step ? 20 : 6, // fixed dot sizes
-            height: 6,
-            decoration: BoxDecoration(
-              color: i == step ? c.accent : c.fill,
-              borderRadius: BorderRadius.circular(Radii.pill),
+      padding: const EdgeInsets.only(top: _leadTop),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        spacing: _leadGap,
+        children: [
+          const PalLabel(),
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: _leadMaxWidth),
+            child: Semantics(
+              header: true,
+              child: Text(title, style: AppType.lead.copyWith(color: c.ink)),
             ),
           ),
+          Text(body, style: AppType.body.copyWith(color: c.ink2, height: _bodyLeading)),
         ],
-      ],
-    );
-  }
-}
-
-/// 96×96 tinted rounded-square hero with a centered glyph.
-class _Hero extends StatelessWidget {
-  const _Hero({required this.glyph, required this.color});
-  final String glyph;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Container(
-        width: 96,
-        height: 96,
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.12),
-          borderRadius: BorderRadius.circular(Radii.xxl),
-          boxShadow: [
-            // accent-tinted glow, not neutral elevation — kept inline
-            BoxShadow(
-              color: color.withValues(alpha: 0.20),
-              blurRadius: 40,
-              offset: const Offset(0, 12),
-            ),
-          ],
-        ),
-        alignment: Alignment.center,
-        child: Text(
-          glyph,
-          style: AppType.amountLg.copyWith(color: color),
-        ),
       ),
     );
   }
 }
 
-/// Large tabular value display (budget / move goal).
-class _BigValue extends StatelessWidget {
-  const _BigValue({required this.text, required this.color});
-  final String text;
-  final Color color;
+/// Optional name; empty falls back to "You" on the profile.
+class _NameField extends StatelessWidget {
+  const _NameField({required this.controller, required this.onSubmitted});
 
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      text,
-      textAlign: TextAlign.center,
-      style: AppFonts.sfr(
-        size: 72,
-        weight: FontWeight.w700,
-        color: color,
-        letterSpacing: -2,
-        height: 1,
-      ),
-    );
-  }
-}
-
-/// Single-select pill chip row (budget / move goal).
-class _ChipRow extends StatelessWidget {
-  const _ChipRow({
-    required this.labels,
-    required this.selectedIndex,
-    required this.selectedColor,
-    required this.onSelected,
-  });
-
-  final List<String> labels;
-  final int selectedIndex;
-  final Color selectedColor;
-  final ValueChanged<int> onSelected;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.colors;
-    return Wrap(
-      alignment: WrapAlignment.center,
-      spacing: Spacing.sm,
-      runSpacing: Spacing.sm,
-      children: [
-        for (var i = 0; i < labels.length; i++)
-          GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: () => onSelected(i),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 150),
-              padding: const EdgeInsets.symmetric(
-                horizontal: Spacing.lg,
-                vertical: Spacing.md,
-              ),
-              decoration: BoxDecoration(
-                color: i == selectedIndex ? selectedColor : c.surface,
-                borderRadius: BorderRadius.circular(Radii.pill),
-                border: i == selectedIndex
-                    ? null
-                    : Border.all(color: c.hair, width: 0.5),
-              ),
-              child: Text(
-                labels[i],
-                style: AppType.subhead.copyWith(
-                  fontWeight: FontWeight.w500,
-                  color: i == selectedIndex ? c.onAccent : c.ink,
-                  letterSpacing: -0.24,
-                ),
-              ),
-            ),
-          ),
-      ],
-    );
-  }
-}
-
-/// The three time-of-day routines with per-row toggle switches.
-class _RoutinePicker extends StatelessWidget {
-  const _RoutinePicker({
-    required this.routines,
-    required this.selected,
-    required this.onToggle,
-  });
-
-  final List<RitualRoutine> routines;
-  final Set<String> selected;
-  final ValueChanged<String> onToggle;
+  final TextEditingController controller;
+  final ValueChanged<String> onSubmitted;
 
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
     return Container(
+      height: _fieldHeight,
+      padding: const EdgeInsets.symmetric(horizontal: _fieldPadSide),
+      alignment: Alignment.centerLeft,
       decoration: BoxDecoration(
-        color: c.surface,
-        borderRadius: BorderRadius.circular(Radii.lg),
+          color: c.surface, borderRadius: BorderRadius.circular(Radii.inset)),
+      child: TextField(
+        controller: controller,
+        textCapitalization: TextCapitalization.words,
+        textInputAction: TextInputAction.done,
+        cursorColor: c.ink,
+        onSubmitted: onSubmitted,
+        style: AppType.body.copyWith(color: c.ink),
+        decoration: InputDecoration(
+          border: InputBorder.none,
+          isCollapsed: true,
+          hintText: 'Your name',
+          hintStyle: AppType.body.copyWith(color: c.ink3),
+        ),
       ),
-      clipBehavior: Clip.antiAlias,
+    );
+  }
+}
+
+/// The chosen amount, light and tabular, with what it is a fraction of.
+class _Amount extends StatelessWidget {
+  const _Amount({required this.value, required this.of, this.unit = ''});
+
+  final String value, unit, of;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return Semantics(
+      label: '$value$unit $of',
+      excludeSemantics: true,
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          for (var i = 0; i < routines.length; i++)
-            _RoutineRow(
-              routine: routines[i],
-              on: selected.contains(routines[i].id),
-              showDivider: i < routines.length - 1,
-              onToggle: () => onToggle(routines[i].id),
+          Text.rich(
+            TextSpan(
+              text: value,
+              children: [
+                if (unit.isNotEmpty)
+                  TextSpan(text: unit, style: AppType.subhead.copyWith(color: c.ink3)),
+              ],
             ),
+            style: AppType.display.copyWith(color: c.ink),
+          ),
+          Text(of, style: AppType.subhead.copyWith(color: c.ink2)),
         ],
       ),
     );
   }
 }
 
+/// One seed routine with its switch; the whole row toggles.
 class _RoutineRow extends StatelessWidget {
-  const _RoutineRow({
-    required this.routine,
-    required this.on,
-    required this.showDivider,
-    required this.onToggle,
-  });
+  const _RoutineRow({required this.routine, required this.on, required this.onToggle});
 
   final RitualRoutine routine;
   final bool on;
-  final bool showDivider;
   final VoidCallback onToggle;
 
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    final tone = c.forType(routine.colorKey);
-    final steps = routine.steps.length;
     return GestureDetector(
-      behavior: HitTestBehavior.opaque,
       onTap: onToggle,
+      behavior: HitTestBehavior.opaque,
+      // the switch below carries the row's semantics.
+      excludeFromSemantics: true,
       child: Container(
+        constraints: const BoxConstraints(minHeight: _rowMinHeight),
         decoration: BoxDecoration(
-          border: showDivider
-              ? Border(bottom: BorderSide(color: c.hair, width: 0.5))
-              : null,
-        ),
-        padding: const EdgeInsets.symmetric(
-          horizontal: Spacing.lg,
-          vertical: Spacing.md,
+          border: Border(top: BorderSide(color: c.hair, width: _hairline)),
         ),
         child: Row(
+          spacing: _rowGap,
           children: [
-            Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                color: tone,
-                borderRadius: BorderRadius.circular(Radii.sm),
-              ),
-              alignment: Alignment.center,
-              child: AppIcon(routine.icon, size: 16, color: c.onAccent),
-            ),
-            const SizedBox(width: Spacing.md),
+            AppIcon(routine.icon, size: _rowIcon, color: c.ink2),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                spacing: _rowTextGap,
                 children: [
+                  Text(routine.name,
+                      style: AppType.callout.copyWith(color: c.ink, height: _nameLeading)),
                   Text(
-                    routine.name,
+                    '${routine.time} · ${_stepCountLabel(routine.steps.length)}',
                     style: AppType.subhead.copyWith(
-                      fontWeight: FontWeight.w600,
-                      color: c.ink,
-                      letterSpacing: -0.24,
-                    ),
-                  ),
-                  const SizedBox(height: 1), // kept literal: 1px nudge, below the smallest token
-                  Text(
-                    '${routine.time} · $steps ${steps == 1 ? 'step' : 'steps'}',
-                    style: AppType.caption.copyWith(
-                      color: c.ink3,
-                      letterSpacing: -0.08,
-                    ),
+                        color: c.ink3, height: _detailLeading, fontFeatures: _tabular),
                   ),
                 ],
               ),
             ),
-            _Toggle(on: on, color: tone, track: c.fill),
+            MergeSemantics(
+              child: Semantics(
+                label: routine.name,
+                child: CupertinoSwitch(
+                  value: on,
+                  onChanged: (_) => onToggle(),
+                  activeTrackColor: c.ink,
+                  inactiveTrackColor: c.track,
+                  thumbColor: c.bg,
+                  inactiveThumbColor: c.ink3,
+                ),
+              ),
+            ),
           ],
         ),
       ),
@@ -593,78 +405,74 @@ class _RoutineRow extends StatelessWidget {
   }
 }
 
-/// 40×24 iOS-style toggle pill (purely visual; parent owns state).
-class _Toggle extends StatelessWidget {
-  const _Toggle({required this.on, required this.color, required this.track});
-  final bool on;
-  final Color color;
-  final Color track;
+class _NoneOn extends StatelessWidget {
+  const _NoneOn();
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 200),
-      width: 40,
-      height: 24,
+    final c = context.colors;
+    return Container(
+      padding: const EdgeInsets.only(top: _noneTop),
       decoration: BoxDecoration(
-        color: on ? color : track,
-        borderRadius: BorderRadius.circular(Radii.pill),
+        border: Border(top: BorderSide(color: c.hair, width: _hairline)),
       ),
-      child: AnimatedAlign(
-        duration: const Duration(milliseconds: 200),
-        curve: Curves.easeOut,
-        alignment: on ? Alignment.centerRight : Alignment.centerLeft,
-        child: Container(
-          margin: const EdgeInsets.all(Spacing.xxs),
-          width: 20,
-          height: 20,
-          // fixed iOS toggle knob: always-white with a tight knob shadow (kept
-          // literal — snapping blur 4→8 would change the control's intent)
-          decoration: const BoxDecoration(
-            color: Color(0xFFFFFFFF), // kept literal: iOS toggle knob is always white
-            shape: BoxShape.circle,
-            boxShadow: [
-              BoxShadow(
-                color: Color(0x33000000), // kept literal: iOS toggle knob shadow
-                blurRadius: 4,
-                offset: Offset(0, 2),
-              ),
-            ],
-          ),
+      child: Text(_noneOn, style: AppType.subhead.copyWith(color: c.ink3)),
+    );
+  }
+}
+
+class _SaveFailed extends StatelessWidget {
+  const _SaveFailed();
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return Semantics(
+      liveRegion: true,
+      child: Container(
+        padding: _alertPad,
+        decoration: BoxDecoration(
+          color: c.surface2,
+          borderRadius: BorderRadius.circular(Radii.inset),
         ),
+        child: Text(_saveFailed, style: AppType.subhead.copyWith(color: c.ink)),
       ),
     );
   }
 }
 
-/// Full-width 56px accent CTA button.
-class _Cta extends StatelessWidget {
-  const _Cta({required this.label, required this.enabled, required this.onTap});
+/// The screen's one primary pill. A null [onTap] draws it disabled.
+class _Pill extends StatelessWidget {
+  const _Pill({required this.label, required this.onTap});
+
   final String label;
-  final bool enabled;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    return Opacity(
-      opacity: enabled ? 1 : 0.5,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: enabled ? onTap : null,
-        child: Container(
-          height: 56,
-          decoration: BoxDecoration(
-            color: c.accent,
-            borderRadius: BorderRadius.circular(Radii.lg),
-          ),
-          alignment: Alignment.center,
-          child: Text(
-            label,
-            style: AppType.headline.copyWith(color: c.onAccent),
-          ),
+    final enabled = onTap != null;
+    final pill = PressScale(
+      onTap: onTap,
+      semanticLabel: label,
+      child: Container(
+        height: _pillHeight,
+        decoration: BoxDecoration(
+          color: enabled ? c.ink : c.surface2,
+          borderRadius: BorderRadius.circular(Radii.pill),
         ),
+        alignment: Alignment.center,
+        child: Text(label,
+            style: AppType.headline.copyWith(color: enabled ? c.bg : c.ink3)),
       ),
+    );
+    if (enabled) return pill;
+    return Semantics(
+      button: true,
+      enabled: false,
+      label: label,
+      excludeSemantics: true,
+      child: pill,
     );
   }
 }

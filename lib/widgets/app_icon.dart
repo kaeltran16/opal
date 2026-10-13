@@ -94,6 +94,7 @@ const Map<String, IconData> _sfMap = {
   'dumbbell': Icons.fitness_center_outlined,
   'star': CupertinoIcons.star,
   'trash': CupertinoIcons.delete,
+  'line.3.horizontal': CupertinoIcons.line_horizontal_3,
 };
 
 IconData iconForSf(String name) => _sfMap[name] ?? CupertinoIcons.circle;

@@ -1,266 +1,247 @@
+import 'dart:math' as math;
+
 import 'package:clock/clock.dart';
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../controllers/rituals_controller.dart';
 import '../../models/models.dart';
 import '../../theme/theme.dart';
-import '../../util/dates.dart';
 import '../../widgets/app_icon.dart';
-import '../../widgets/dashed_border.dart';
+import '../../widgets/controls.dart';
 import '../../widgets/press_scale.dart';
+import '../today/today_logic.dart' show dateLine;
 
-/// Screen 14 — Evening Close-Out.
-///
-/// A nighttime wind-down. This is the one screen that ignores the app theme:
-/// always a dark purple gradient with white text and a `#BF5AF2` accent. The
-/// checklist is the Evening wind-down routine's steps from
-/// [ritualsControllerProvider] (closing the day is an evening-routine moment);
-/// tapping a row toggles its completion. The first incomplete step gets a
-/// purple highlight + "Now" pill — landing on Reflect last to close the ring.
-/// The CTA stays disabled ("{n} to go") until every step is done, then turns
-/// into an enabled purple "Good night".
+const String _eveningRoutineId = 'evening';
+const String _palSeed = 'Give me a reflection prompt for tonight';
+const String _loadError = "Couldn't load your routines. Try again in a moment.";
+
+const double _topPad = 52;
+const double _bottomPad = 48;
+const double _minTap = 44;
+const double _backGlyph = 24;
+// the chevron's box hangs past the gutter so the glyph lines up with the text.
+const double _backHang = 10;
+const double _leadTop = 12;
+const double _dateTracking = 1.2;
+const double _barTop = 16;
+const double _cardTop = 20;
+const double _cardGap = 14;
+const double _pillHeight = 48;
+const double _listTop = 32;
+const double _rowMin = 56;
+const double _disc = 28;
+const double _discBorder = 1.5;
+const double _check = 14;
+const double _palRowMin = 52;
+const double _palGlyph = 22;
+const double _palGlyphInset = 3;
+const double _chevron = 16;
+// full-width rows barely shrink, or the press reads as a jump.
+const double _rowPress = 0.99;
+const List<FontFeature> _tabular = [FontFeature.tabularFigures()];
+
+/// The evening close-out: the Evening wind-down routine's steps as one card for
+/// the step that is up now and a checklist of the whole night.
 class EveningCloseOutScreen extends ConsumerWidget {
   const EveningCloseOutScreen({super.key});
 
-  static const _eveningRoutineId = 'evening';
-
-  // This screen is theme-agnostic — always dark purple. Local constants instead
-  // of context.colors so it renders identically in light and dark mode.
-  static const _accent = Color(0xFFBF5AF2); // kept literal: fixed night palette, theme-agnostic
-  static const _white = Color(0xFFFFFFFF); // kept literal: fixed night palette, theme-agnostic
-  static const _white85 = Color(0xD9FFFFFF); // kept literal: fixed night palette, theme-agnostic
-  static const _white65 = Color(0xA6FFFFFF); // kept literal: fixed night palette, theme-agnostic
-  static const _white55 = Color(0x8CFFFFFF); // kept literal: fixed night palette, theme-agnostic
-  static const _white50 = Color(0x80FFFFFF); // kept literal: fixed night palette, theme-agnostic
-  static const _white40 = Color(0x66FFFFFF); // kept literal: fixed night palette, theme-agnostic
-  static const _white14 = Color(0x24FFFFFF); // kept literal: fixed night palette, theme-agnostic
-  static const _white12 = Color(0x1FFFFFFF); // kept literal: fixed night palette, theme-agnostic
-  static const _white10 = Color(0x1AFFFFFF); // kept literal: fixed night palette, theme-agnostic
-  static const _white08 = Color(0x14FFFFFF); // kept literal: fixed night palette, theme-agnostic
-  static const _white06 = Color(0x0FFFFFFF); // kept literal: fixed night palette, theme-agnostic
-  static const _accent22 = Color(0x38BF5AF2); // kept literal: fixed night palette, theme-agnostic
-  static const _accent50 = Color(0x80BF5AF2); // kept literal: fixed night palette, theme-agnostic
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final async = ref.watch(ritualsControllerProvider);
-    final state = async.value;
+    final c = context.colors;
+    final safe = MediaQuery.paddingOf(context);
+    final children = ref.watch(ritualsControllerProvider).when(
+          skipLoadingOnReload: true,
+          loading: () => [_Lead(summary: '…', summaryColor: c.ink3)],
+          error: (e, _) {
+            debugPrint('close-out: routines failed to load: $e');
+            return [_Lead(summary: _loadError, summaryColor: c.ink3)];
+          },
+          data: (state) => _content(context, ref, state),
+        );
 
-    final now = clock.now();
-    final time =
-        '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
-    final dayLabel = '$time · ${kWeekdays[now.weekday - 1]}';
+    return Scaffold(
+      backgroundColor: c.bg,
+      body: ListView(
+        padding: EdgeInsets.fromLTRB(Spacing.lg, math.max(_topPad, safe.top), Spacing.lg,
+            _bottomPad + safe.bottom),
+        children: [const _Header(), ...children],
+      ),
+    );
+  }
 
-    // Drive the checklist from the Evening wind-down routine only.
+  List<Widget> _content(BuildContext context, WidgetRef ref, RitualsState state) {
+    final c = context.colors;
     RitualRoutine? evening;
-    for (final r in state?.routines ?? const <RitualRoutine>[]) {
-      if (r.id == _eveningRoutineId) {
-        evening = r;
-        break;
-      }
+    for (final r in state.routines) {
+      if (r.id == _eveningRoutineId) evening = r;
+    }
+    final steps = evening?.steps ?? const <RitualStep>[];
+    if (evening == null || steps.isEmpty) {
+      return [
+        _Lead(summary: 'No wind-down steps yet.', summaryColor: c.ink2),
+        const _Card(label: 'Nothing to close', title: 'Rest easy'),
+      ];
     }
 
-    final total = evening?.steps.length ?? 0;
-    final done = evening == null ? 0 : state!.doneCount(evening.id);
-    final allDone = total > 0 && done == total;
+    final routine = evening;
+    final total = steps.length;
+    final done = state.doneCount(routine.id);
     final remaining = total - done;
-    final closeTail = switch (remaining) {
-      0 => 'Ring closed — rest easy.',
+    final tail = switch (remaining) {
+      <= 0 => 'The ring is closed.',
       1 => 'One more to close the ring.',
       _ => '$remaining more to close the ring.',
     };
-    final closeOutSummary = total == 0
-        ? 'No wind-down steps yet.'
-        : '$done of $total steps done. $closeTail';
+    final next = state.firstIncompleteStep(routine);
+    final controller = ref.read(ritualsControllerProvider.notifier);
 
-    // The evening steps as ordered rows, tracking the first incomplete one for
-    // the "Now" highlight (lands on Reflect last — the step that closes the ring).
-    final rows = <_StepRow>[];
-    if (evening != null && state != null) {
-      final firstIncomplete = state.firstIncompleteStep(evening);
-      for (var i = 0; i < evening.steps.length; i++) {
-        rows.add(_StepRow(
-          routine: evening,
-          index: i,
-          done: state.isStepDone(evening.id, i),
-          active: i == firstIncomplete,
-        ));
-      }
-    }
+    return [
+      _Lead(summary: '$done of $total steps done. $tail', summaryColor: c.ink2),
+      const SizedBox(height: _barTop),
+      ProgressBar(value: done / total),
+      if (next < total)
+        _Card(
+          label: 'Now',
+          title: steps[next].title,
+          note: steps[next].note,
+          pill: 'Mark done',
+          onPill: () => controller.completeStep(routine, next),
+        )
+      else
+        const _Card(label: 'All done', title: 'Rest easy'),
+      const SizedBox(height: _listTop),
+      Padding(
+        padding: const EdgeInsets.only(bottom: Spacing.xs),
+        child: Text('Tonight', style: AppType.headline.copyWith(color: c.ink)),
+      ),
+      for (var i = 0; i < total; i++)
+        _StepRow(
+          step: steps[i],
+          done: state.isStepDone(routine.id, i),
+          onTap: () => controller.toggleStep(routine, i),
+        ),
+      const _PalRow(),
+    ];
+  }
+}
 
-    return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [Color(0xFF1A1340), Color(0xFF2D1F5C), Color(0xFF3D2A73)], // kept literal: fixed night gradient, theme-agnostic
-          stops: [0.0, 0.45, 1.0],
+void _leave(BuildContext context) =>
+    Navigator.of(context).canPop() ? Navigator.of(context).pop() : context.go('/today');
+
+class _Header extends StatelessWidget {
+  const _Header();
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Transform.translate(
+        offset: const Offset(-_backHang, 0),
+        child: PressScale(
+          onTap: () => _leave(context),
+          semanticLabel: 'Back to Today',
+          child: SizedBox.square(
+            dimension: _minTap,
+            child: Center(
+              child: AppIcon('chevron.left', size: _backGlyph, color: context.colors.ink),
+            ),
+          ),
         ),
       ),
-      child: ListView(
-        padding: const EdgeInsets.only(bottom: 40), // kept literal: off-grid list bottom inset
+    );
+  }
+}
+
+/// The date line, the serif heading and the summary, the same in every state.
+class _Lead extends StatelessWidget {
+  const _Lead({required this.summary, required this.summaryColor});
+
+  final String summary;
+  final Color summaryColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return Padding(
+      padding: const EdgeInsets.only(top: _leadTop),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        spacing: Spacing.sm,
         children: [
-          // --- Nav: glass back + centered time -----------------------------
-          Padding(
-            padding: const EdgeInsets.fromLTRB(
-                Spacing.lg, 56, Spacing.lg, Spacing.sm), // kept literal: top 56 clears the status bar
-            child: Row(
-              children: [
-                PressScale(
-                  onTap: () => Navigator.of(context).canPop()
-                      ? Navigator.of(context).pop()
-                      : context.go('/today'),
-                  semanticLabel: 'Back',
-                  child: SizedBox(
-                    width: 44,
-                    height: 44,
-                    child: Center(
-                      child: Container(
-                        width: 32,
-                        height: 32,
-                        decoration: const BoxDecoration(
-                          color: _white12,
-                          shape: BoxShape.circle,
-                        ),
-                        alignment: Alignment.center,
-                        child:
-                            const AppIcon('chevron.left', size: 16, color: _white),
-                      ),
-                    ),
-                  ),
+          Text(dateLine(clock.now()),
+              style: AppType.label.copyWith(
+                  color: c.ink3, letterSpacing: _dateTracking, fontFeatures: _tabular)),
+          Text('Close out your day.', style: AppType.lead.copyWith(color: c.ink)),
+          Semantics(
+            container: true,
+            liveRegion: true,
+            child: Text(summary,
+                style: AppType.subhead.copyWith(color: summaryColor, fontFeatures: _tabular)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The one card: the step that is up now, or the night's end with Good night.
+class _Card extends StatelessWidget {
+  const _Card({
+    required this.label,
+    required this.title,
+    this.note = '',
+    this.pill = 'Good night',
+    this.onPill,
+  });
+
+  final String label, title, note, pill;
+
+  /// Null means Good night, which leaves the close-out.
+  final VoidCallback? onPill;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return Container(
+      margin: const EdgeInsets.only(top: _cardTop),
+      padding: const EdgeInsets.all(Spacing.lg),
+      decoration: BoxDecoration(
+        color: c.surface,
+        borderRadius: BorderRadius.circular(Radii.card),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        spacing: _cardGap,
+        children: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            spacing: Spacing.xxs,
+            children: [
+              Text(label, style: AppType.label.copyWith(color: c.ink3)),
+              Text(title, style: AppType.title.copyWith(color: c.ink)),
+              if (note.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: Spacing.xs),
+                  child: Text(note, style: AppType.subhead.copyWith(color: c.ink2)),
                 ),
-                Expanded(
-                  child: Text(
-                    dayLabel,
-                    textAlign: TextAlign.center,
-                    style: AppType.footnote
-                        .copyWith(color: _white65, letterSpacing: -0.15),
-                  ),
-                ),
-                const SizedBox(width: Spacing.xxxl),
-              ],
-            ),
+            ],
           ),
-
-          // --- Hero --------------------------------------------------------
-          Padding(
-            // top 28 has no spacing token (mid-grid) — kept literal for hero rhythm
-            padding: const EdgeInsets.fromLTRB(Spacing.xxl, 28, Spacing.xxl, Spacing.xl),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const AppIcon('sparkles', size: 40, color: _white),
-                const SizedBox(height: Spacing.sm),
-                Text('Close out\nyour day.',
-                    style: AppFonts.sfr(
-                        size: 32,
-                        weight: FontWeight.w700,
-                        color: _white,
-                        letterSpacing: -0.5,
-                        height: 1.15)),
-                const SizedBox(height: Spacing.md),
-                Text(
-                  closeOutSummary,
-                  style: AppType.subhead
-                      .copyWith(color: _white65, height: 1.5),
-                ),
-              ],
-            ),
-          ),
-
-          // --- Progress bar ------------------------------------------------
-          Padding(
-            padding: const EdgeInsets.fromLTRB(
-                Spacing.xxl, 0, Spacing.xxl, Spacing.xxl),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(Radii.xs),
-              child: Stack(
-                children: [
-                  Container(height: 6, color: _white14),
-                  FractionallySizedBox(
-                    widthFactor: total == 0 ? 0.0 : (done / total).clamp(0.0, 1.0),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 300),
-                      curve: Curves.easeOut,
-                      height: 6,
-                      color: _accent,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-          // --- Checklist ---------------------------------------------------
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: Spacing.lg),
-            child: Column(
-              children: [
-                for (final row in rows)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: Spacing.sm),
-                    child: _ChecklistRow(
-                      row: row,
-                      onTap: () => ref
-                          .read(ritualsControllerProvider.notifier)
-                          .toggleStep(row.routine, row.index),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-
-          // --- Pal nudge ---------------------------------------------------
-          Padding(
-            padding: const EdgeInsets.fromLTRB(
-                Spacing.lg, Spacing.sm, Spacing.lg, Spacing.sm),
+          // its own node, or the pill merges with the card's text above it.
+          Semantics(
+            container: true,
             child: PressScale(
-              onTap: () => context.go(
-                  '/pal-composer?seed=${Uri.encodeComponent("Give me a reflection prompt for tonight")}'),
-              child: _DashedButton(
-                child: Row(
-                  children: [
-                    const AppIcon('sparkles', size: 14, color: _accent),
-                    const SizedBox(width: Spacing.md),
-                    Text('Ask Pal for a reflection prompt',
-                        style: AppType.footnote
-                            .copyWith(color: _white85, letterSpacing: -0.15)),
-                    const Spacer(),
-                    const AppIcon('chevron.right', size: 12, color: _white40),
-                  ],
-                ),
-              ),
-            ),
-          ),
-
-          // --- CTA ---------------------------------------------------------
-          Padding(
-            padding: const EdgeInsets.fromLTRB(
-                Spacing.xl, Spacing.lg, Spacing.xl, 0),
-            child: PressScale(
-              onTap: allDone
-                  ? () => Navigator.of(context).canPop()
-                      ? Navigator.of(context).pop()
-                      : context.go('/today')
-                  : null,
+              onTap: onPill ?? () => _leave(context),
+              semanticLabel: pill,
               child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(
-                    vertical: Spacing.lg, horizontal: Spacing.lg),
-                decoration: BoxDecoration(
-                  color: allDone ? _accent : _white12,
-                  borderRadius: BorderRadius.circular(Radii.card),
-                ),
+                height: _pillHeight,
                 alignment: Alignment.center,
-                child: Text(
-                  allDone ? 'Good night' : '${total - done} to go',
-                  style: AppType.callout.copyWith(
-                      fontWeight: FontWeight.w600,
-                      color: allDone ? _white : _white40,
-                      letterSpacing: -0.24),
+                decoration: BoxDecoration(
+                  color: c.ink,
+                  borderRadius: BorderRadius.circular(Radii.pill),
                 ),
+                child: Text(pill, style: AppType.headline.copyWith(color: c.bg)),
               ),
             ),
           ),
@@ -270,157 +251,90 @@ class EveningCloseOutScreen extends ConsumerWidget {
   }
 }
 
-/// A flattened checklist entry: one step of one routine, with its completion and
-/// "active" (first-incomplete) state pre-computed by the screen.
-class _StepRow {
-  const _StepRow({
-    required this.routine,
-    required this.index,
-    required this.done,
-    required this.active,
-  });
+class _StepRow extends StatelessWidget {
+  const _StepRow({required this.step, required this.done, required this.onTap});
 
-  final RitualRoutine routine;
-  final int index;
+  final RitualStep step;
   final bool done;
-  final bool active;
-
-  RitualStep get step => routine.steps[index];
-
-  /// The step's note (falling back to the routine time if it has none).
-  String get subtitle => step.note.isNotEmpty ? step.note : routine.time;
-}
-
-class _ChecklistRow extends StatelessWidget {
-  const _ChecklistRow({required this.row, required this.onTap});
-
-  final _StepRow row;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final checked = row.done;
-    final active = row.active;
-    return PressScale(
-      onTap: onTap,
-      pressedScale: 0.99,
-      child: Container(
-        padding: const EdgeInsets.symmetric(
-            horizontal: Spacing.lg, vertical: Spacing.lg),
-        decoration: BoxDecoration(
-          color: active
-              ? EveningCloseOutScreen._accent22
-              : EveningCloseOutScreen._white08,
-          borderRadius: BorderRadius.circular(Radii.card),
-          border: Border.all(
-            color: active
-                ? EveningCloseOutScreen._accent50
-                : EveningCloseOutScreen._white08,
-            width: 0.5,
-          ),
-        ),
-        child: Row(
-          children: [
-            // Circular checkbox.
-            Container(
-              width: 24,
-              height: 24,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: checked
-                    ? EveningCloseOutScreen._accent
-                    : const Color(0x00000000), // kept literal: transparent; screen imports widgets only
-                border: checked
-                    ? null
-                    : Border.all(
-                        color: EveningCloseOutScreen._white40, width: 1.5),
-              ),
-              alignment: Alignment.center,
-              child: checked
-                  ? const AppIcon('checkmark',
-                      size: 12, color: EveningCloseOutScreen._white)
-                  : null,
-            ),
-            const SizedBox(width: Spacing.lg),
-            // Icon tile.
-            Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                color: EveningCloseOutScreen._white10,
-                borderRadius: BorderRadius.circular(Radii.sm),
-              ),
-              alignment: Alignment.center,
-              child: AppIcon(row.step.icon,
-                  size: 15, color: EveningCloseOutScreen._white85),
-            ),
-            const SizedBox(width: Spacing.lg),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    row.step.title,
-                    style: AppType.subhead.copyWith(
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: -0.24,
-                      color: checked
-                          ? EveningCloseOutScreen._white55
-                          : EveningCloseOutScreen._white,
-                      decoration:
-                          checked ? TextDecoration.lineThrough : null,
-                      decorationColor: EveningCloseOutScreen._white55,
-                    ),
+    final c = context.colors;
+    // merged, so the checked flag, the label and the tap sit on one node.
+    return MergeSemantics(
+      child: Semantics(
+        checked: done,
+        button: true,
+        child: PressScale(
+          onTap: onTap,
+          semanticLabel: step.title,
+          pressedScale: _rowPress,
+          child: Container(
+            constraints: const BoxConstraints(minHeight: _rowMin),
+            padding: const EdgeInsets.symmetric(vertical: Spacing.sm),
+            decoration: BoxDecoration(border: Border(top: BorderSide(color: c.hair))),
+            child: Row(
+              spacing: Spacing.md,
+              children: [
+                Container(
+                  width: _disc,
+                  height: _disc,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: done ? c.ink : null,
+                    border: done ? null : Border.all(color: c.ink3, width: _discBorder),
                   ),
-                  const SizedBox(height: 1), // kept literal: 1px nudge, below the smallest token
-                  Text(
-                    row.subtitle,
-                    style: AppType.caption.copyWith(
-                        color: EveningCloseOutScreen._white50,
-                        letterSpacing: -0.08),
-                  ),
-                ],
-              ),
-            ),
-            if (active) ...[
-              const SizedBox(width: Spacing.md),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: Spacing.sm, vertical: Spacing.xs),
-                decoration: BoxDecoration(
-                  color: EveningCloseOutScreen._accent,
-                  borderRadius: BorderRadius.circular(Radii.pill),
+                  child: done ? AppIcon('checkmark', size: _check, color: c.bg) : null,
                 ),
-                child: Text('Now',
-                    style: AppType.caption2.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: EveningCloseOutScreen._white,
-                        letterSpacing: 0.1)),
-              ),
-            ],
-          ],
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    spacing: Spacing.xxs,
+                    children: [
+                      Text(step.title,
+                          style: AppType.callout.copyWith(color: done ? c.ink3 : c.ink)),
+                      if (step.note.isNotEmpty)
+                        Text(step.note, style: AppType.subhead.copyWith(color: c.ink3)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
   }
 }
 
-/// Translucent dashed-border container for the Pal nudge button.
-class _DashedButton extends StatelessWidget {
-  const _DashedButton({required this.child});
-  final Widget child;
+class _PalRow extends StatelessWidget {
+  const _PalRow();
+
+  static const _label = 'Ask Pal for a reflection prompt';
 
   @override
   Widget build(BuildContext context) {
-    return DottedBorderBox(
-      color: const Color(0x40FFFFFF), // kept literal: fixed night palette, theme-agnostic
-      fillColor: EveningCloseOutScreen._white06,
-      strokeWidth: 0.5,
-      radius: Radii.card,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(
-            horizontal: Spacing.lg, vertical: Spacing.md),
-        child: child,
+    final c = context.colors;
+    return PressScale(
+      onTap: () => context.go('/pal-composer?seed=${Uri.encodeComponent(_palSeed)}'),
+      semanticLabel: _label,
+      pressedScale: _rowPress,
+      child: Container(
+        constraints: const BoxConstraints(minHeight: _palRowMin),
+        decoration: BoxDecoration(border: Border(top: BorderSide(color: c.hair))),
+        child: Row(
+          spacing: Spacing.md,
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(left: _palGlyphInset),
+              child: AppIcon('sparkles', size: _palGlyph, color: c.ink2),
+            ),
+            Expanded(child: Text(_label, style: AppType.callout.copyWith(color: c.ink))),
+            AppIcon('chevron.right', size: _chevron, color: c.ink3),
+          ],
+        ),
       ),
     );
   }
