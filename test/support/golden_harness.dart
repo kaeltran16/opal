@@ -2,6 +2,7 @@ import 'package:clock/clock.dart';
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -47,7 +48,8 @@ void pinSurface(WidgetTester tester) {
 
 /// Boots the full seeded app (onboardingComplete=true) and settles the first
 /// frame, mirroring `widget_test.dart`. [dark] persists the dark theme before
-/// boot so the app starts in it.
+/// boot so the app starts in it. [overrides] are appended after the
+/// harness's own.
 ///
 /// The default Pal service is a zero-latency, fixed-seed mock: the stock mock
 /// waits 600 ms and picks replies at random, which would leave loading states
@@ -56,6 +58,7 @@ Future<void> bootApp(
   WidgetTester tester, {
   bool dark = false,
   MockPalService? palService,
+  List<Override> overrides = const [],
 }) async {
   ignoreOverflowErrors();
   SharedPreferences.setMockInitialValues({
@@ -75,6 +78,7 @@ Future<void> bootApp(
         palServiceProvider.overrideWithValue(
           palService ?? MockPalService(latency: Duration.zero, seed: 0),
         ),
+        ...overrides,
       ],
       child: const LoopApp(),
     ),
