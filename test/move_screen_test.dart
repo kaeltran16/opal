@@ -2,8 +2,10 @@ import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 
 import 'package:opal/controllers/providers.dart';
+import 'package:opal/controllers/weekly_plan_controller.dart';
 import 'package:opal/data/db/database.dart';
 import 'package:opal/data/seed/seeder.dart';
 import 'package:opal/router.dart';
@@ -13,83 +15,153 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'support/flush_provider_timers.dart';
 
-void main() {
-  testWidgets(
-      'Move tab: renders this-week hero + recent session, Start CTA navigates',
-      (WidgetTester tester) async {
-    SharedPreferences.setMockInitialValues({});
-    final prefs = await SharedPreferences.getInstance();
-    final db = LoopDatabase.forTesting(NativeDatabase.memory());
-    // Full seed: gives the "Push Day A" workout (1 PR) + the "Run · Mission
-    // loop" non-workout move entry, with FK-valid exercises/routines behind it.
-    await Seeder(db).seedIfNeeded();
-    addTearDown(db.close);
+/// Boots the app on the Workout tab over the full seed: the "Push Day A"
+/// workout (1 PR), the "Run · Mission loop" move entry, and the 5-day plan.
+Future<GoRouter> _pumpTab(
+  WidgetTester tester, {
+  bool noPlan = false,
+  // tall so the tab's rows sit above the shell's floating bars without
+  // scrolling, and wide enough for the routine picker's grid.
+  Size size = const Size(800, 1600),
+  double textScale = 1,
+}) async {
+  tester.view.physicalSize = size;
+  tester.view.devicePixelRatio = 1;
+  addTearDown(tester.view.reset);
+  SharedPreferences.setMockInitialValues({});
+  final prefs = await SharedPreferences.getInstance();
+  final db = LoopDatabase.forTesting(NativeDatabase.memory());
+  await Seeder(db).seedIfNeeded();
+  addTearDown(db.close);
 
-    final router = createRouter(initialLocation: '/move');
-    final colors = AppColors.light();
-
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          sharedPreferencesProvider.overrideWithValue(prefs),
-          loopDatabaseProvider.overrideWithValue(db),
-          // Fast Pal so the Start CTA's suggestWorkout() resolves under
-          // pumpAndSettle (the CTA now shows the shared Pal pick).
-          palServiceProvider.overrideWithValue(
-              MockPalService(latency: const Duration(milliseconds: 1))),
-        ],
-        child: MaterialApp.router(
-          debugShowCheckedModeBanner: false,
-          theme: ThemeData(useMaterial3: true, extensions: [colors]),
-          routerConfig: router,
+  final router = createRouter(initialLocation: '/move');
+  await tester.pumpWidget(
+    ProviderScope(
+      overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
+        loopDatabaseProvider.overrideWithValue(db),
+        // fast Pal so the lead's pick resolves under pumpAndSettle.
+        palServiceProvider.overrideWithValue(
+          MockPalService(latency: const Duration(milliseconds: 1)),
+        ),
+        if (noPlan)
+          weeklyPlanControllerProvider.overrideWith(
+            (ref) => Stream.value(const WeeklyPlan(days: [])),
+          ),
+      ],
+      child: MaterialApp.router(
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData(useMaterial3: true, extensions: [AppColors.light()]),
+        routerConfig: router,
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(context).copyWith(textScaler: TextScaler.linear(textScale)),
+          child: child!,
         ),
       ),
-    );
-    await tester.pumpAndSettle();
+    ),
+  );
+  await tester.pumpAndSettle();
+  return router;
+}
 
-    // Move hero: redesigned "This week" hero with workouts-vs-goal headline and
-    // a Volume / Time / Records stat row (no HealthKit calorie/HR content).
-    expect(find.text('THIS WEEK'), findsOneWidget);
-    // weekly goal = the seed plan's 5 planned (non-rest) days, shared with the
-    // Weekly Plan screen (not the old hardcoded 4).
-    expect(find.text('/ 5 workouts'), findsOneWidget);
-    expect(find.text('VOLUME'), findsOneWidget);
-    expect(find.text('TIME'), findsOneWidget);
-    expect(find.text('RECORDS'), findsOneWidget);
-    expect(find.text('ENERGY'), findsNothing);
-    expect(find.text('AVG HR'), findsNothing);
+// the pushed route's state: a push leaves the base location as is.
+String _path(GoRouter router) => router.state.uri.path;
 
-    // The Start CTA is present (its navigation target is covered by
-    // start_workout_test; here we only assert the Move tab surfaces it).
-    expect(find.text('Start'), findsWidgets);
+Future<void> _scrollTo(WidgetTester tester, Finder finder) =>
+    tester.scrollUntilVisible(finder, 200, scrollable: find.byType(Scrollable).first);
 
-    // The seeded today workout shows up in recent sessions, with its PR badge
-    // (scroll it into view — the list lazily builds off-screen children).
-    // "Push Day A" also appears in the Start CTA (it's the shared Pal pick), so
-    // expect it more than once.
-    await tester.scrollUntilVisible(find.text('Push Day A'), 200,
-        scrollable: find.byType(Scrollable).first);
-    expect(find.text('Push Day A'), findsWidgets);
-    // "1 PR" appears on the session card's PR badge and the hero Records stat.
-    expect(find.text('1 PR'), findsWidgets);
+void main() {
+  testWidgets('Workout tab: this week, the lead, recent, tools and other activity', (tester) async {
+    final semantics = tester.ensureSemantics();
+    await _pumpTab(tester);
 
-    // The non-workout move entry shows up in Other activity.
-    await tester.scrollUntilVisible(find.text('Run · Mission loop'), 200,
-        scrollable: find.byType(Scrollable).first);
-    expect(find.text('Run · Mission loop'), findsOneWidget);
+    // the weekly goal is the seed plan's 5 planned days, shared with Weekly plan.
+    expect(find.text('This week'), findsOneWidget);
+    expect(find.textContaining(' of 5 workouts'), findsOneWidget);
+    expect(find.text('Volume'), findsOneWidget);
+    expect(find.text('Time'), findsOneWidget);
+    expect(find.text('Records'), findsOneWidget);
+    expect(find.bySemanticsLabel(RegExp(r'^This week: trained ')), findsOneWidget);
 
-    // Header consolidation: a single direct "+" (New routine) and no overflow
-    // menu. The ask bar replaced the Pal orb and You is a tab, so the header
-    // has no back button or orb at the tab root.
+    // the seed logged Push Day A today, so the lead has settled.
+    expect(find.textContaining('Push Day A is done.'), findsOneWidget);
+
+    await _scrollTo(tester, find.text('Recent'));
+    expect(find.bySemanticsLabel(RegExp(r'^Push Day A, Today, .*new best$')), findsOneWidget);
+
+    await _scrollTo(tester, find.text('Generate with Pal'));
+    expect(find.text('Generate with Pal'), findsOneWidget);
+    expect(find.text('Generate with AI'), findsNothing);
+
+    await _scrollTo(tester, find.text('Run · Mission loop'));
+    expect(find.text('Other activity'), findsOneWidget);
+
+    // the header's only action is the +; no Pal orb, back or overflow menu.
     expect(find.bySemanticsLabel('Open Pal'), findsNothing);
     expect(find.bySemanticsLabel('Back'), findsNothing);
-    expect(find.bySemanticsLabel('New routine'), findsOneWidget);
     expect(find.bySemanticsLabel('More options'), findsNothing);
 
-    // "Generate with AI" now lives in the body quick-links, not a header menu.
-    await tester.scrollUntilVisible(find.text('Generate with AI'), 200,
-        scrollable: find.byType(Scrollable).first);
-    expect(find.text('Generate with AI'), findsOneWidget);
+    semantics.dispose();
+    await flushProviderTimers(tester);
+  });
+
+  testWidgets('at text scale 1.3 on a 390-wide phone nothing overflows', (tester) async {
+    await _pumpTab(tester, size: const Size(390, 844), textScale: 1.3);
+
+    // an overflow anywhere on the way down fails the test.
+    await _scrollTo(tester, find.text('Run · Mission loop'));
+    expect(tester.takeException(), isNull);
+
+    await flushProviderTimers(tester);
+  });
+
+  testWidgets('with no weekly plan, the week reads No weekly plan yet', (tester) async {
+    await _pumpTab(tester, noPlan: true);
+
+    expect(find.text('No weekly plan yet'), findsOneWidget);
+
+    await flushProviderTimers(tester);
+  });
+
+  testWidgets('the + is Start a workout and opens the routine picker', (tester) async {
+    final router = await _pumpTab(tester);
+
+    await tester.tap(find.bySemanticsLabel('Start a workout'));
+    await tester.pumpAndSettle();
+
+    expect(_path(router), '/move/start');
+    await flushProviderTimers(tester);
+  });
+
+  testWidgets('New routine is a tool row that opens the editor', (tester) async {
+    final router = await _pumpTab(tester);
+
+    await _scrollTo(tester, find.text('New routine'));
+    await tester.tap(find.text('New routine'));
+    await tester.pumpAndSettle();
+
+    expect(_path(router), '/move/routine-editor');
+    await flushProviderTimers(tester);
+  });
+
+  testWidgets('See all opens the history', (tester) async {
+    final router = await _pumpTab(tester);
+
+    await _scrollTo(tester, find.text('See all'));
+    await tester.tap(find.bySemanticsLabel('See all'));
+    await tester.pumpAndSettle();
+
+    expect(_path(router), '/move/history');
+    await flushProviderTimers(tester);
+  });
+
+  testWidgets('the exercise library row shows the catalog count', (tester) async {
+    await _pumpTab(tester);
+    final container = ProviderScope.containerOf(tester.element(find.byType(Scaffold).first));
+    final count = (await container.read(exercisesProvider.future)).length;
+
+    await _scrollTo(tester, find.text('Exercise library'));
+    expect(find.bySemanticsLabel('Exercise library, $count'), findsOneWidget);
 
     await flushProviderTimers(tester);
   });
