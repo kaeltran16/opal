@@ -177,13 +177,13 @@ class PalComposerController extends _$PalComposerController {
     if (payload != null) {
       try {
         await ref.read(entryRepositoryProvider).insert(_entryFor(payload));
-        _appendAssistant(_offlineConfirmation(payload));
+        _appendAssistant(_offlineConfirmation(payload), offline: true);
       } catch (_) {
-        _appendAssistant(_palOfflineReply);
+        _appendAssistant(_palOfflineReply, offline: true);
       }
       return PalSendResult.completed;
     }
-    _appendAssistant(_palOfflineReply);
+    _appendAssistant(_palOfflineReply, offline: true);
     return _looksLoggable(message)
         ? PalSendResult.offlineFallback
         : PalSendResult.completed;
@@ -214,7 +214,11 @@ class PalComposerController extends _$PalComposerController {
     return 'Logged ${payload.title}$detail offline.';
   }
 
-  void _appendAssistant(String text, {List<PalAction> actions = const []}) {
+  void _appendAssistant(
+    String text, {
+    List<PalAction> actions = const [],
+    bool offline = false,
+  }) {
     state = state.copyWith(
       messages: [
         ...state.messages,
@@ -223,6 +227,7 @@ class PalComposerController extends _$PalComposerController {
           text: text,
           timestamp: clock.now(),
           actions: actions,
+          offline: offline,
         ),
       ],
       isLoading: false,

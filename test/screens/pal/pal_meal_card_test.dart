@@ -22,11 +22,15 @@ class _MealPal implements PalService {
   @override
   Future<PalAgenda> agenda() async => const PalAgenda();
   @override
+  Future<WorkoutSuggestion> suggestWorkout({bool another = false, String? excludeRoutineId}) =>
+      Future.error(const PalException('unreachable'));
+  @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
 void main() {
-  testWidgets('a chat-logged meal renders a card with its calorie range', (tester) async {
+  testWidgets('a chat-logged meal shows its kcal range, Undo and Edit; Undo reads Undone',
+      (tester) async {
     SharedPreferences.setMockInitialValues({});
     final prefs = await SharedPreferences.getInstance();
     final db = LoopDatabase.forTesting(NativeDatabase.memory());
@@ -45,7 +49,15 @@ void main() {
     ));
     await tester.pumpAndSettle();
 
-    expect(find.text('Chicken Burrito'), findsOneWidget);
-    expect(find.textContaining('cal'), findsWidgets);
+    expect(find.text('Chicken Burrito · 520–820 kcal, fair estimate'), findsOneWidget);
+    expect(find.bySemanticsLabel('Undo'), findsOneWidget);
+    expect(find.bySemanticsLabel('Edit'), findsOneWidget);
+
+    await tester.tap(find.bySemanticsLabel('Undo'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Undone'), findsOneWidget);
+    expect(find.text('Chicken Burrito · 520–820 kcal, fair estimate'), findsNothing);
+    expect(find.bySemanticsLabel('Undo'), findsNothing);
   });
 }

@@ -141,7 +141,7 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
   }
 
   void _askWhy(PlanItem item) => context.pushNamed(AppRoute.palComposer.name,
-      queryParameters: {'seed': 'Why ${item.title} first?'});
+      queryParameters: {'seed': 'Why ${item.title} first?', 'from': '/today'});
 
   @override
   Widget build(BuildContext context) {
