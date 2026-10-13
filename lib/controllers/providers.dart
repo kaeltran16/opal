@@ -291,7 +291,7 @@ PalService palService(Ref ref) {
         movedDeltaPct: hasPrev ? pctChange(movedKcal, prevMovedKcal) : null,
         activeDays: periodEntries.map((e) => e.timestamp.day).toSet().length,
         ritualsKept: kept,
-        ritualsTarget: effectiveDailyRitualTarget(routines.length, g) * periodDays,
+        ritualsTarget: effectiveDailyRitualTarget(routines, g) * periodDays,
         streakDays: await moveStreak(now),
         topCategory: topCat,
         topCategoryPct: topPct,

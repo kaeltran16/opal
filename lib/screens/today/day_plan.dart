@@ -242,7 +242,7 @@ DayPlan buildDayPlan({
         ref: p.id,
         area: DetailTracker.values.asNameMap()[p.colorToken],
       ),
-    for (final r in routines)
+    for (final r in trackedRoutines(routines))
       PlanItem(
         id: 'routine:${r.id}',
         kind: PlanKind.routine,

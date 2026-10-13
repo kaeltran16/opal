@@ -384,18 +384,20 @@ AreaDetail _routines(
   RitualsState? rituals,
   DateTime now,
 ) {
-  // the routine count is the target. with no routines there is nothing to
+  // the routines with steps are the target. with none there is nothing to
   // complete, so the stored fallback target does not apply here.
-  final total = routines.length;
+  final total = trackedRoutines(routines).length;
   final done = total == 0 ? 0 : data.total.round();
+  final next = rituals?.upNext;
 
   final String palLine;
-  if (total == 0) {
+  if (routines.isEmpty) {
     palLine = 'No routines set up yet.';
+  } else if (total == 0) {
+    palLine = 'No steps in your routines yet.';
   } else if (done >= total) {
     palLine = 'All $total done.';
   } else {
-    final next = rituals?.upNext;
     final lead = '${total - done} left.';
     palLine = next == null ? lead : '$lead ${next.name} is at ${next.time}.';
   }
@@ -406,11 +408,6 @@ AreaDetail _routines(
     isOff: (v) => v < total,
   );
 
-  final rows = [
-    for (final r in routines) _routineRow(r, rituals?.isComplete(r) ?? false),
-  ];
-  final nextIndex = rows.indexWhere((r) => !r.done);
-
   return AreaDetail(
     area: Area.routines,
     hero: '$done',
@@ -420,14 +417,17 @@ AreaDetail _routines(
     contributors: [
       if (total > 0)
         Contributor(label: 'Done', value: '$done of $total', fraction: done / total),
-      if (nextIndex >= 0) _nextContributor(routines[nextIndex]),
+      if (next != null) _nextContributor(next),
     ],
     week: week,
     goal: total.toDouble(),
     goalLabel: total == 0 ? '' : 'all $total routines',
     weekNote: _weekNote(week, 'missed'),
     days: data.days,
-    routines: rows,
+    // an empty routine still lists, so it can be found and given a step.
+    routines: [
+      for (final r in routines) _routineRow(r, rituals?.isComplete(r) ?? false),
+    ],
   );
 }
 

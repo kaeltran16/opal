@@ -38,8 +38,13 @@ class RitualsState {
       doneFor(routineId).contains(index);
 
   /// A routine is complete when every step is checked (empty routines never).
-  bool isComplete(RitualRoutine r) =>
-      r.steps.isNotEmpty && doneCount(r.id) >= r.steps.length;
+  bool isComplete(RitualRoutine r) {
+    final done = doneFor(r.id);
+    return isRoutineComplete(r, {
+      for (final (i, s) in r.steps.indexed)
+        if (done.contains(i)) s.id,
+    });
+  }
 
   /// Steps remaining in [r].
   int stepsLeft(RitualRoutine r) =>

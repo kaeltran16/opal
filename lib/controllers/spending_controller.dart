@@ -236,10 +236,11 @@ DetailData buildDetailData(
       .toList()
     ..sort((a, b) => b.day.compareTo(a.day));
 
-  // Rituals denominator is the routine count when known (matches Today); money
-  // and move use the goal off [Goals], as does the rituals legacy fallback.
-  final target = tracker == DetailTracker.rituals && routines.isNotEmpty
-      ? routines.length.toDouble()
+  // Rituals denominator matches Today: the routines with steps, else the
+  // legacy goal off [Goals] when there are no routines. Money and move always
+  // use the goal off [Goals].
+  final target = tracker == DetailTracker.rituals
+      ? effectiveDailyRitualTarget(routines, goals).toDouble()
       : tracker.targetOf(goals);
 
   return DetailData(

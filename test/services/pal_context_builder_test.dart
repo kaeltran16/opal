@@ -90,6 +90,30 @@ void main() {
     expect(insights['ritualsTarget'], 21);
   });
 
+  test('an empty routine is not in the ritual targets', () {
+    final routines = [routine('a', ['a0']), routine('empty', const [])];
+    final chat = buildChatContext(
+      userName: 'Kael',
+      goals: goals,
+      todayEntries: const [],
+      weekEntries: const [],
+      moveStreakDays: 0,
+      routines: routines,
+    );
+    expect(chat['ritualGoal'], 1);
+    expect(chat['weekRitualGoal'], 7);
+
+    final insights = buildInsightsContext(
+      range: InsightRange.week,
+      entries: const [],
+      goals: goals,
+      periodDays: 7,
+      streakDays: 0,
+      routines: routines,
+    );
+    expect(insights['ritualsTarget'], 7);
+  });
+
   test('buildInsightsContext folds totals, top category, and spend-by-weekday', () {
     // Jun 12 2026 is a Friday (weekday 5); Jun 8 is a Monday (weekday 1).
     final ctx = buildInsightsContext(

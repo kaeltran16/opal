@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:opal/controllers/providers.dart';
 import 'package:opal/controllers/rituals_controller.dart';
+import 'package:opal/controllers/today_controller.dart';
 import 'package:opal/data/db/database.dart';
 import 'package:opal/data/repositories/repositories.dart';
 import 'package:opal/models/models.dart';
@@ -253,5 +254,35 @@ void main() {
 
     state = await _waitFor(container, (s) => s.routines.length == 2);
     expect(state.routines.map((r) => r.id), containsAll(['morning', 'evening']));
+  });
+
+  group('an empty routine', () {
+    final empty = _morning.copyWith(id: 'empty', name: 'Empty', steps: const []);
+
+    test('is never complete', () {
+      final state = RitualsState(routines: [empty], progress: const {});
+      expect(state.isComplete(empty), isFalse);
+    });
+
+    test('leaves the Today routines target', () {
+      final today = TodayState(
+        entries: [
+          for (final s in _morning.steps)
+            Entry(
+              id: 'e-${s.id}',
+              timestamp: DateTime(2026, 10, 14, 7),
+              type: EntryType.rituals,
+              title: s.title,
+              ritualId: s.id,
+              source: EntrySource.manual,
+            ),
+        ],
+        goals: const Goals(),
+        routines: [_morning, empty],
+      );
+      expect(today.ritualsDone, 1);
+      expect(today.ritualsTarget, 1);
+      expect(today.glance.routinesTotal, 1);
+    });
   });
 }

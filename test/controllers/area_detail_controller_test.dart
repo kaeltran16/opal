@@ -423,7 +423,7 @@ void main() {
       // the next open routine has no time, so its label is the name alone.
       expect(
         [for (final c in d.contributors) (c.label, c.value)],
-        [('Done', '0 of 2'), ('Untimed', '3 steps')],
+        [('Done', '0 of 1'), ('Untimed', '3 steps')],
       );
       _expectFinite(d);
     });
@@ -476,6 +476,46 @@ void main() {
       expect(d.contributors.map((c) => (c.label, c.value, c.fraction)),
           [('Done', '4 of 4', 1)]);
       expect(d.routines.every((r) => r.done && r.detail == 'Done'), isTrue);
+    });
+
+    test('an empty routine leaves the target and is never next', () {
+      final empty = _routine('empty', 'Empty', '6:00 AM', 0);
+      final routines = [empty, midday];
+      final d = _build(
+        Area.routines,
+        _allSteps(midday),
+        routines: routines,
+        rituals: RitualsState(routines: routines, progress: const {
+          'midday': {0},
+        }),
+      );
+
+      expect(d.hero, '1');
+      expect(d.unit, 'of 1 routines done');
+      expect(d.palLine, 'All 1 done.');
+      expect(d.contributors.map((c) => (c.label, c.value, c.fraction)),
+          [('Done', '1 of 1', 1)]);
+      // the row still lists the empty routine so it can be found and filled.
+      expect(d.routines.map((r) => (r.id, r.done)),
+          [('empty', false), ('midday', true)]);
+      _expectFinite(d);
+    });
+
+    test('only empty routines read as no steps yet', () {
+      final empty = _routine('empty', 'Empty', '6:00 AM', 0);
+      final d = _build(
+        Area.routines,
+        const [],
+        routines: [empty],
+        rituals: RitualsState(routines: [empty], progress: const {}),
+      );
+
+      expect(d.hero, '0');
+      expect(d.palLine, 'No steps in your routines yet.');
+      expect(d.contributors, isEmpty);
+      expect(d.routines.map((r) => r.id), ['empty']);
+      expect(d.goal, 0);
+      _expectFinite(d);
     });
 
     test('none set up', () {

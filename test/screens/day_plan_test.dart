@@ -412,6 +412,13 @@ void main() {
       expect(plan.items.where((i) => i.kind == PlanKind.workout), isEmpty);
     });
 
+    test('a routine with no steps has no item', () {
+      final plan = _plan(
+        rituals: _rituals([_routine('morning', '7:00 AM'), _routine('empty', '8:00 AM', steps: 0)]),
+      );
+      expect(_ids(plan.items.where((i) => i.kind == PlanKind.routine)), ['routine:morning']);
+    });
+
     test('no routines means no close-out item', () {
       expect(_plan().items.where((i) => i.kind == PlanKind.closeOut), isEmpty);
       expect(_plan(rituals: _rituals(const [])).items.where((i) => i.kind == PlanKind.closeOut),

@@ -196,7 +196,7 @@ RecapData buildRecapData(
     moveTarget: goals.dailyMoveKcal * days,
     ritualsKept: completedRoutinesInPeriod(periodEntries, routines,
         start: periodStart, days: days),
-    ritualsTarget: effectiveDailyRitualTarget(routines.length, goals) * days,
+    ritualsTarget: effectiveDailyRitualTarget(routines, goals) * days,
   );
 }
 

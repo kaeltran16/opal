@@ -151,7 +151,7 @@ WeeklyStats buildWeeklyStats(
     moveTarget: goals.dailyMoveKcal * 7,
     ritualsKept: completedRoutinesInPeriod(entries, routines,
         start: weekStart, days: 7),
-    ritualsTarget: effectiveDailyRitualTarget(routines.length, goals) * 7,
+    ritualsTarget: effectiveDailyRitualTarget(routines, goals) * 7,
   );
 }
 

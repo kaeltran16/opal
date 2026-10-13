@@ -89,4 +89,40 @@ void main() {
     expect(recap.ritualsKept, 0); // not 3 (the old step-entry count)
     expect(recap.ritualsTarget, 1); // one routine for the day
   });
+
+  group('empty routines', () {
+    final empty = _routine('empty', []);
+    const goals = Goals(dailyRitualTarget: 5);
+
+    test('isRoutineComplete is false for an empty routine', () {
+      expect(isRoutineComplete(empty, const {}), isFalse);
+    });
+
+    test('isRoutineComplete is true only when every step id is done', () {
+      expect(isRoutineComplete(morning, {'m0', 'm1', 'm2', 'm3'}), isFalse);
+      expect(isRoutineComplete(morning, {'m0', 'm1', 'm2', 'm3', 'm4'}), isTrue);
+    });
+
+    test('trackedRoutines drops empty routines and keeps the order', () {
+      final a = _routine('a', ['a0']);
+      final b = _routine('b', ['b0']);
+      expect(trackedRoutines([a, empty, b]), [a, b]);
+    });
+
+    test('effectiveDailyRitualTarget with no routines is the stored target', () {
+      expect(effectiveDailyRitualTarget(const [], goals), 5);
+    });
+
+    test('effectiveDailyRitualTarget counts only routines with steps', () {
+      expect(effectiveDailyRitualTarget([morning, empty], goals), 1);
+      expect(effectiveDailyRitualTarget([empty], goals), 0);
+    });
+
+    test('buildRecapData leaves an empty routine out of the target', () {
+      final day = DateTime(2026, 6, 20);
+      final recap = buildRecapData(InsightRange.day, const [], goals,
+          routines: [morning, empty], now: day);
+      expect(recap.ritualsTarget, 1);
+    });
+  });
 }
