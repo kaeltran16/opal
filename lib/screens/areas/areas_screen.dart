@@ -291,9 +291,7 @@ class _LegendRow extends StatelessWidget {
                   decoration: BoxDecoration(color: swatch, shape: BoxShape.circle),
                 ),
                 const SizedBox(width: _labelGap),
-                Flexible(
-                  child: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis, style: label),
-                ),
+                Text(title, maxLines: 1, style: label),
                 if (word != null) ...[
                   const SizedBox(width: _labelGap),
                   Flexible(

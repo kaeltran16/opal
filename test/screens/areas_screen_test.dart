@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
@@ -17,6 +18,7 @@ import 'package:opal/widgets/activity_rings.dart';
 import 'package:opal/widgets/day_scene.dart';
 import 'package:opal/widgets/glass_tab_bar.dart';
 
+import '../scenario/scenario_harness.dart' show loadScenarioFonts;
 import '../support/flush_provider_timers.dart';
 import '../support/today_fixture.dart';
 
@@ -104,8 +106,13 @@ String _path(WidgetTester tester) =>
 
 /// Boots the app on a surface tall enough that the whole tab is built, and
 /// opens Areas over [summary].
-Future<void> _boot(WidgetTester tester, {AreasSummary? summary, Override? override}) async {
-  tester.view.physicalSize = const Size(390, 2400);
+Future<void> _boot(
+  WidgetTester tester, {
+  AreasSummary? summary,
+  Override? override,
+  Size size = const Size(390, 2400),
+}) async {
+  tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1.0;
   addTearDown(tester.view.reset);
   await bootToday(tester, overrides: [override ?? _with(summary ?? _summary())]);
@@ -275,5 +282,29 @@ void main() {
     expect(_onAreas(find.text("Couldn't load your areas.")), findsOneWidget);
 
     await flushProviderTimers(tester);
+  });
+
+  // last in the file: real fonts stay registered for the rest of the process,
+  // and widths only mean something in them, not in ahem's square glyphs.
+  group('on a phone in real fonts', () {
+    setUpAll(loadScenarioFonts);
+
+    for (final (name, summary) in [
+      ('Routines', _summary(routinesDone: 0)),
+      ('Move', _summary(moveKcal: 100)),
+    ]) {
+      testWidgets('$name at Worth watching shows its legend word in full', (tester) async {
+        tester.platformDispatcher.textScaleFactorTestValue = 1.0;
+        addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+        await _boot(tester, summary: summary, size: const Size(390, 844));
+
+        expect(find.bySemanticsLabel(RegExp('^$name, .*, Worth watching\\. ')), findsOneWidget);
+        final word = tester.renderObject<RenderParagraph>(_onAreas(find.text('Worth watching')));
+        expect(word.didExceedMaxLines, isFalse);
+        expect(word.size.width, moreOrLessEquals(word.getMaxIntrinsicWidth(double.infinity)));
+
+        await flushProviderTimers(tester);
+      });
+    }
   });
 }
