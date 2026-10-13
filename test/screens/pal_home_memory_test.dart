@@ -14,11 +14,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../support/flush_provider_timers.dart';
 
 void main() {
-  testWidgets('the You tab renders a remembered fact and a learned pattern',
+  testWidgets('a learned server pattern shows as a finding on You',
       (tester) async {
     SharedPreferences.setMockInitialValues({});
     final prefs = await SharedPreferences.getInstance();
-    // an empty db keeps the test focused on the memory card.
+    // an empty db leaves Pal's memory as the only finding source.
     final db = LoopDatabase.forTesting(NativeDatabase.memory());
     addTearDown(db.close);
     final colors = AppColors.light();
@@ -43,13 +43,13 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // the memory card sits below the profile card; scroll it into view.
-    final scrollable = find.byType(Scrollable).first;
-    await tester.scrollUntilVisible(find.text('marathon in October'), 300, scrollable: scrollable);
-    await tester.pumpAndSettle();
-
-    expect(find.text('marathon in October'), findsOneWidget);
+    // no comparison, so it is listed under Also seen rather than leading.
+    expect(find.text('Also seen'), findsOneWidget);
     expect(find.text('Mornings'), findsOneWidget);
+    expect(find.text('Move · before noon'), findsOneWidget);
+    // the fact itself lives in What Pal remembers; You counts it.
+    expect(find.text('marathon in October'), findsNothing);
+    expect(find.text('1 fact'), findsOneWidget);
 
     await flushProviderTimers(tester);
   });
