@@ -36,10 +36,19 @@ AreaState moneyState({
   required double spent,
   required double budget,
   required DateTime now,
+}) =>
+    budgetState(spent: spent, budget: budget, elapsed: dayShare(now));
+
+/// Spending against a budget over any period, with [elapsed] the fraction of
+/// that period gone (0 to 1). Never [AreaState.thriving], as [moneyState].
+AreaState budgetState({
+  required double spent,
+  required double budget,
+  required double elapsed,
 }) {
   if (budget <= 0) return AreaState.good;
   if (spent > budget) return AreaState.care;
-  if (spent / budget - dayShare(now) >= _paceSlack) return AreaState.watch;
+  if (spent / budget - elapsed >= _paceSlack) return AreaState.watch;
   return AreaState.good;
 }
 

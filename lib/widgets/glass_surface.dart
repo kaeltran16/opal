@@ -7,8 +7,9 @@ import '../controllers/providers.dart';
 import '../theme/theme.dart';
 
 /// Liquid Glass chrome: a blurred, saturated, translucent capsule. Only for
-/// the tab bar, the ask bar, sheets and the collapsed top edge bar, never for
-/// cards or list content, so at most four [BackdropFilter]s are on screen.
+/// the floating bars (the tab bar, the ask bar and the collapsed top edge
+/// bar), never for sheets, cards or list content, so at most three
+/// [BackdropFilter]s are on screen.
 ///
 /// Reduce Transparency swaps it for a solid `surface` with a hairline border;
 /// high contrast adds an opaque fill and a stronger border. Both drop the blur.
@@ -27,7 +28,7 @@ class GlassSurface extends ConsumerWidget {
   static const double _border = 1.0;
   static const double _hairline = 0.5;
   static const double _highContrastBorder = 1.0;
-  static const double _highlightHeight = 1;
+  static const double _fillAlpha = 0.78;
 
   final Widget child;
   final BorderRadius borderRadius;
@@ -67,24 +68,11 @@ class GlassSurface extends ConsumerWidget {
           ),
           child: DecoratedBox(
             decoration: BoxDecoration(
-              color: c.glass,
+              color: c.surface.withValues(alpha: _fillAlpha),
               borderRadius: borderRadius,
-              border: Border.all(color: c.glassBorder, width: _border),
+              border: Border.all(color: c.hair, width: _border),
             ),
-            child: Stack(
-              children: [
-                content,
-                Positioned(
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  child: SizedBox(
-                    height: _highlightHeight,
-                    child: ColoredBox(color: c.glassHighlight),
-                  ),
-                ),
-              ],
-            ),
+            child: content,
           ),
         ),
       ),
@@ -97,7 +85,6 @@ class GlassSurface extends ConsumerWidget {
         color: c.surface,
         borderRadius: borderRadius,
         border: Border.fromBorderSide(side),
-        boxShadow: Elevation.card(c.shadow),
       ),
       child: content,
     );
