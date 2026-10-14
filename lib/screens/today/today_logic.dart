@@ -10,10 +10,14 @@ class GlanceNumbers {
     required this.moveGoal,
     required this.routinesDone,
     required this.routinesTotal,
+    required this.hasRoutines,
   });
 
   final double spent, budget;
   final int moveKcal, moveGoal, routinesDone, routinesTotal;
+
+  /// Whether any routine exists, with steps or not.
+  final bool hasRoutines;
 }
 
 /// Today's date line, "MON 28 SEP · 9:30 AM".

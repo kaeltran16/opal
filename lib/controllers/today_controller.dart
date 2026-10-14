@@ -104,16 +104,21 @@ class TodayState {
 
   List<double> get rings => [moneyRing, moveRing, ritualsRing];
 
-  /// The widget's [GlanceNumbers], counting routines the way Today does: the
-  /// total is today's routines with steps, and none done when there are none.
-  GlanceNumbers get glance => GlanceNumbers(
-        spent: moneySpent,
-        budget: goals.dailyBudget,
-        moveKcal: moveKcal,
-        moveGoal: goals.dailyMoveKcal,
-        routinesTotal: trackedRoutines(routines).length,
-        routinesDone: routines.isEmpty ? 0 : ritualsDone,
-      );
+  /// Today's [GlanceNumbers], for the widget, the Areas tab and Today's care
+  /// rule: the total is today's routines with steps, and none done when there
+  /// are none, so neither the stored target nor the legacy step count applies.
+  GlanceNumbers get glance {
+    final total = trackedRoutines(routines).length;
+    return GlanceNumbers(
+      spent: moneySpent,
+      budget: goals.dailyBudget,
+      moveKcal: moveKcal,
+      moveGoal: goals.dailyMoveKcal,
+      routinesTotal: total,
+      routinesDone: total == 0 ? 0 : ritualsDone,
+      hasRoutines: routines.isNotEmpty,
+    );
+  }
 
   /// Rituals remaining to hit target (never negative).
   int get ritualsRemaining =>

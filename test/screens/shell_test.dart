@@ -45,6 +45,7 @@ AreasSummary _areas({double spent = 20, int moveKcal = 300}) => buildAreasSummar
         moveGoal: 500,
         routinesDone: 2,
         routinesTotal: 4,
+        hasRoutines: true,
       ),
       entries: const [],
       meals: const [],

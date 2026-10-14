@@ -511,6 +511,7 @@ void main() {
       );
 
       expect(d.hero, '0');
+      expect(d.unit, 'steps in your routines');
       expect(d.palLine, 'No steps in your routines yet.');
       expect(d.contributors, isEmpty);
       expect(d.routines.map((r) => r.id), ['empty']);

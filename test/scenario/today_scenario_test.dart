@@ -8,11 +8,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:opal/analysis/area_state.dart';
 import 'package:opal/controllers/pal_composer_controller.dart';
+import 'package:opal/controllers/spending_controller.dart' show DetailTracker;
 import 'package:opal/controllers/today_controller.dart';
 import 'package:opal/screens/pal/pal_composer_screen.dart';
 import 'package:opal/screens/reflect/evening_close_out_screen.dart';
 import 'package:opal/screens/rituals/routine_player_screen.dart';
+import 'package:opal/models/models.dart' show RitualRoutine, RitualTone;
 import 'package:opal/screens/today/today_screen.dart';
 import 'package:opal/screens/workout/start_workout_screen.dart';
 import 'package:opal/services/pal/pal_service.dart' show PalProposal, PalRole;
@@ -65,6 +68,19 @@ const _cap = PalProposal(
   approveIcon: 'checkmark',
   doneLabel: 'Capped',
 );
+
+/// A routine with no steps yet.
+const _stepless = RitualRoutine(
+  id: 'stretch',
+  name: 'Stretch break',
+  time: '3:00 PM',
+  tone: RitualTone.midday,
+  icon: 'leaf.fill',
+  blurb: 'Loosen up',
+);
+
+/// Past 21:00, when a routine goal under half done needs care.
+final _lateNight = Clock.fixed(DateTime(2026, 9, 28, 21, 30));
 
 /// Only the mood check-in and Log a meal, so proposals set the count.
 const _bare = TodayDay(routines: [], workout: false);
@@ -386,6 +402,29 @@ void main() {
     expect(_onToday(find.text('Add a 2-min wind-down ritual', skipOffstage: false)), findsNothing);
     expect(_onToday(find.text('Add ritual', skipOffstage: false)), findsNothing);
     await shot(tester, 'today_wind_down_folded_${_theme(dark)}');
+  });
+
+  // routines exist but none has a step, with a step logged before they lost
+  // theirs. late in the day a routine still undone would need care, but here
+  // there is nothing to complete, so routines force no lead and read no count.
+  scenarioTest('today care stepless', at: _lateNight, (tester, dark) async {
+    await bootToday(
+      tester,
+      dark: dark,
+      day: const TodayDay(routines: [_stepless], legacyRitual: true),
+    );
+
+    final container = ProviderScope.containerOf(tester.element(find.byType(TodayScreen)));
+    final glance = container.read(todayStateProvider).requireValue.glance;
+    expect(glance.routinesDone, 0);
+    expect(glance.routinesTotal, 0);
+    expect(glance.hasRoutines, isTrue);
+    expect(careAreas(glance, _lateNight.now()), isNot(contains(DetailTracker.rituals)));
+    expect(_card(_stepless.name), findsNothing);
+    expect(_card('Close-out'), findsNothing);
+    expect(_onToday(find.textContaining(RegExp(r'\d+ of 0\b'), skipOffstage: false)),
+        findsNothing);
+    await shot(tester, 'today_care_stepless_${_theme(dark)}');
   });
 
   scenarioTest('today pull to refresh', (tester, dark) async {

@@ -299,7 +299,7 @@ void main() {
 
     expect(_onPage(find.text(_noSteps)), findsOneWidget);
     expect(_onPage(find.text('0')), findsOneWidget);
-    expect(_onPage(find.text('routines set up')), findsOneWidget);
+    expect(_onPage(find.text('steps in your routines')), findsOneWidget);
     expect(_onPage(find.byType(ContributorBar)), findsNothing);
     await shot(tester, 'routines_area_no_steps_${_theme(dark)}');
   });

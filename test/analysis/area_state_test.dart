@@ -20,6 +20,7 @@ GlanceNumbers _numbers({
   moveGoal: moveGoal,
   routinesDone: routinesDone,
   routinesTotal: routinesTotal,
+  hasRoutines: routinesTotal > 0,
 );
 
 void main() {

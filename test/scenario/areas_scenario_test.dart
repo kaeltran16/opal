@@ -31,6 +31,16 @@ const _spendOver = 74.25;
 /// 18:00, late enough that no routine done yet is worth watching.
 final _evening = Clock.fixed(DateTime(2026, 9, 28, 18));
 
+/// A routine with no steps yet.
+const _stepless = RitualRoutine(
+  id: 'stretch',
+  name: 'Stretch break',
+  time: '3:00 PM',
+  tone: RitualTone.midday,
+  icon: 'leaf.fill',
+  blurb: 'Loosen up',
+);
+
 String _theme(bool dark) => dark ? 'dark' : 'light';
 
 Finder _onAreas(Finder matching) =>
@@ -117,6 +127,23 @@ void main() {
     _expectTabDot(tester, AreaState.care);
     _expectBars(3, 3);
     await shot(tester, 'areas_needs_care_${_theme(dark)}');
+  });
+
+  // routines exist but none has a step, with a step logged before they lost
+  // theirs: the card counts steps, not routines, and none done.
+  scenarioTest('areas routines no steps', (tester, dark) async {
+    await _boot(
+      tester,
+      dark,
+      const TodayDay(routines: [_stepless], legacyRitual: true, meal: true, mood: true),
+    );
+
+    expect(find.bySemanticsLabel('Routines, 0 steps in your routines. Open Routines'),
+        findsOneWidget);
+    expect(_onAreas(find.text('0 steps in your routines')), findsOneWidget);
+    expect(_onAreas(find.textContaining('routines set up')), findsNothing);
+    expect(_onAreas(find.textContaining('of 0')), findsNothing);
+    await shot(tester, 'areas_routines_no_steps_${_theme(dark)}');
   });
 
   scenarioTest('areas short history', (tester, dark) async {

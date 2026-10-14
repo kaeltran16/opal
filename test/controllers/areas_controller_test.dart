@@ -63,6 +63,7 @@ GlanceNumbers _numbers({
   int moveGoal = 500,
   int routinesDone = 2,
   int routinesTotal = 4,
+  bool hasRoutines = true,
 }) => GlanceNumbers(
   spent: spent,
   budget: budget,
@@ -70,6 +71,7 @@ GlanceNumbers _numbers({
   moveGoal: moveGoal,
   routinesDone: routinesDone,
   routinesTotal: routinesTotal,
+  hasRoutines: hasRoutines,
 );
 
 AreasSummary _build({
@@ -165,6 +167,7 @@ void main() {
           moveGoal: 0,
           routinesDone: 0,
           routinesTotal: 0,
+          hasRoutines: false,
         ),
       );
 
@@ -179,6 +182,16 @@ void main() {
       expect(move.progress, 0);
       final routines = s.of(Area.routines);
       expect('${routines.number} ${routines.unit}', '0 routines set up');
+      expect(routines.progress, 0);
+    });
+
+    test('routines with no steps read as steps, not routines', () {
+      final routines = _build(
+        today: _numbers(routinesDone: 0, routinesTotal: 0),
+      ).of(Area.routines);
+
+      expect('${routines.number} ${routines.unit}', '0 steps in your routines');
+      expect(routines.state, AreaState.good);
       expect(routines.progress, 0);
     });
   });

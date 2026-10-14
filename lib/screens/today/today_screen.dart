@@ -14,7 +14,6 @@ import '../../controllers/rituals_controller.dart';
 import '../../controllers/today_brief_controller.dart';
 import '../../controllers/today_controller.dart';
 import '../../controllers/weekly_plan_controller.dart';
-import '../../models/models.dart' show trackedRoutines;
 import '../../router.dart';
 import '../../services/pal/pal_service.dart' show PalAgenda;
 import '../../theme/theme.dart';
@@ -171,26 +170,12 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
       meals: ref.watch(nutritionControllerProvider).value?.meals ?? const [],
       now: now,
     );
-    // the routines with steps are the target, as on the routines page. with
-    // none there is nothing to complete, so the stored fallback target and the
-    // legacy step count do not apply.
-    final routinesTotal = trackedRoutines(today.routines).length;
     // loading counts as online, so the label does not flicker on a cold start;
     // a failed refresh still holds the old proposals but reads offline.
     final online = !agenda.hasError;
     final rules = LeadRules(
       palOnline: online,
-      care: careAreas(
-        GlanceNumbers(
-          spent: today.moneySpent,
-          budget: today.goals.dailyBudget,
-          moveKcal: today.moveKcal,
-          moveGoal: today.goals.dailyMoveKcal,
-          routinesDone: routinesTotal == 0 ? 0 : today.ritualsDone,
-          routinesTotal: routinesTotal,
-        ),
-        now,
-      ),
+      care: careAreas(today.glance, now),
     );
     final current = plan.current(_session, now, rules);
     final palsLead = online && plan.isPalPick(_session, now, rules);
