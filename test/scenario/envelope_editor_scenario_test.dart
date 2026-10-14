@@ -71,16 +71,22 @@ class _FailingEnvelopes extends BudgetEnvelopeRepository {
   Future<void> reorder(List<BudgetEnvelope> envelopes) async => throw StateError('disk full');
 }
 
-/// A controller whose stream never emits, or only errors.
+/// A controller whose stream stays silent until [release], or only errors.
 class _StuckEnvelopes extends BudgetEnvelopesController {
   _StuckEnvelopes({this.error = false});
 
   final bool error;
+  final _stream = StreamController<List<BudgetEnvelope>>();
+
+  // riverpod disposes a provider still loading with a StateError, so a step
+  // that stays loading must release it before teardown.
+  void release() => _stream.add(const []);
 
   @override
-  Stream<List<BudgetEnvelope>> build() => error
-      ? Stream.error(StateError('no table'))
-      : StreamController<List<BudgetEnvelope>>().stream;
+  Stream<List<BudgetEnvelope>> build() {
+    ref.onDispose(_stream.close);
+    return error ? Stream.error(StateError('no table')) : _stream.stream;
+  }
 }
 
 Override get _failingWrites => budgetEnvelopeRepositoryProvider
@@ -314,14 +320,19 @@ void main() {
   });
 
   scenarioTest('envelopes_loading', (tester, dark) async {
+    final stuck = _StuckEnvelopes();
     await _boot(tester, dark, overrides: [
-      budgetEnvelopesControllerProvider.overrideWith(_StuckEnvelopes.new),
+      budgetEnvelopesControllerProvider.overrideWith(() => stuck),
     ]);
     await _openEditor(tester);
 
     expect(_onEditor(find.text('…')), findsOneWidget);
     expect(_onEditor(find.text('New envelope')), findsNothing);
     await shot(tester, 'envelopes_loading_${_theme(dark)}');
+
+    stuck.release();
+    await tester.pump();
+    await tester.pump(_writeTurn);
   });
 
   scenarioTest('envelopes_cap_keypad', (tester, dark) async {
