@@ -13,6 +13,7 @@ import '../../util/format.dart';
 import '../../widgets/app_icon.dart';
 import '../../widgets/contributor_bar.dart';
 import '../../widgets/controls.dart';
+import '../../widgets/failure_note.dart';
 import '../../widgets/nav_bar.dart' show NavIconButton;
 import '../../widgets/pal_lead.dart';
 import '../../widgets/press_scale.dart';
@@ -97,7 +98,7 @@ class PostWorkoutScreen extends ConsumerWidget {
     } catch (_) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Couldn't save — try again.")),
+        const SnackBar(content: Text(saveFailedCopy)),
       );
     }
   }

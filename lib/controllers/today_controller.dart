@@ -78,26 +78,19 @@ class TodayState {
       .map((e) => e.ritualId!)
       .toSet();
 
-  /// Whether every step of [r] is done today (empty routines never complete).
-  bool _routineComplete(RitualRoutine r) {
-    if (r.steps.isEmpty) return false;
-    final done = _completedStepIds;
-    return r.steps.every((s) => done.contains(s.id));
-  }
-
   /// True once routine data is available — drives the routine-based metric.
   /// Without it (tests / pre-load) the metric falls back to the legacy
   /// per-step count.
   bool get _hasRoutines => routines.isNotEmpty;
 
-  /// The "Routines" denominator: the number of routines when known, else the
+  /// The "Routines" denominator: the routines with steps when known, else the
   /// legacy [Goals.dailyRitualTarget].
-  int get ritualsTarget => effectiveDailyRitualTarget(routines.length, goals);
+  int get ritualsTarget => effectiveDailyRitualTarget(routines, goals);
 
   /// The "Routines" numerator: completed *routines* when routine data is
   /// known, else the legacy count of completed ritual *steps*.
   int get ritualsDone => _hasRoutines
-      ? routines.where(_routineComplete).length
+      ? routines.where((r) => isRoutineComplete(r, _completedStepIds)).length
       : entries.where((e) => e.type == EntryType.rituals).length;
 
   // --- Ring fractions (0..1+) ------------------------------------------------
@@ -112,13 +105,13 @@ class TodayState {
   List<double> get rings => [moneyRing, moveRing, ritualsRing];
 
   /// The widget's [GlanceNumbers], counting routines the way Today does: the
-  /// total is today's routines, and none done when there are none.
+  /// total is today's routines with steps, and none done when there are none.
   GlanceNumbers get glance => GlanceNumbers(
         spent: moneySpent,
         budget: goals.dailyBudget,
         moveKcal: moveKcal,
         moveGoal: goals.dailyMoveKcal,
-        routinesTotal: routines.length,
+        routinesTotal: trackedRoutines(routines).length,
         routinesDone: routines.isEmpty ? 0 : ritualsDone,
       );
 

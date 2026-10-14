@@ -95,19 +95,52 @@ const Map<String, IconData> _sfMap = {
   'star': CupertinoIcons.star,
   'trash': CupertinoIcons.delete,
   'line.3.horizontal': CupertinoIcons.line_horizontal_3,
+  // routine line glyphs (oura): outline stems of the routine icon picker's
+  // .fill names, so stored names draw as lines without a data migration.
+  'sunrise': CupertinoIcons.sunrise,
+  'sun.max': CupertinoIcons.sun_max,
+  'moon.stars': CupertinoIcons.moon_stars,
+  'drop': CupertinoIcons.drop,
+  'bolt': CupertinoIcons.bolt,
+  'leaf': Icons.eco_outlined,
+  'book.closed': CupertinoIcons.book,
+  'books.vertical': Icons.menu_book_outlined,
+  'character.book.closed': Icons.translate_outlined,
+  'tray': CupertinoIcons.tray,
+  'cup.and.saucer': Icons.local_cafe_outlined,
+  'heart': CupertinoIcons.heart,
 };
+
+const _fillSuffix = '.fill';
 
 IconData iconForSf(String name) => _sfMap[name] ?? CupertinoIcons.circle;
 
+/// The outline form of [name]: a `.fill` name draws its stem's glyph when the
+/// stem is mapped, and any other name draws as [iconForSf] does.
+IconData lineIconForSf(String name) {
+  if (!name.endsWith(_fillSuffix)) return iconForSf(name);
+  final stem = name.substring(0, name.length - _fillSuffix.length);
+  return _sfMap[stem] ?? iconForSf(name);
+}
+
 /// Renders an SF Symbol by name using the substitution map.
 class AppIcon extends StatelessWidget {
-  const AppIcon(this.name, {super.key, this.size = 17, this.color});
+  const AppIcon(this.name, {super.key, this.size = 17, this.color})
+      : _line = false;
+
+  /// Draws [name] in its outline form, via [lineIconForSf].
+  const AppIcon.line(this.name, {super.key, this.size = 17, this.color})
+      : _line = true;
 
   final String name;
   final double size;
   final Color? color;
+  final bool _line;
 
   @override
-  Widget build(BuildContext context) =>
-      Icon(iconForSf(name), size: size, color: color);
+  Widget build(BuildContext context) => Icon(
+        _line ? lineIconForSf(name) : iconForSf(name),
+        size: size,
+        color: color,
+      );
 }

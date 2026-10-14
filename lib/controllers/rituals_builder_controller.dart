@@ -17,7 +17,10 @@ List<RitualRoutine> reindex(List<RitualRoutine> list) => [
 /// Streams all routines (in display order) and owns add/edit/delete/reorder for
 /// the Rituals Builder. Mirrors [RitualsController]'s streaming idiom; writes go
 /// straight through [RitualRepository] and the live stream drives the UI.
-@riverpod
+///
+/// No retry: a failing local query would fail again, and retrying holds the
+/// screen on loading.
+@Riverpod(retry: noRetry)
 class RitualsBuilderController extends _$RitualsBuilderController {
   @override
   Stream<List<RitualRoutine>> build() {

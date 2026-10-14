@@ -13,7 +13,6 @@ import '../../widgets/controls.dart';
 import '../../widgets/press_scale.dart';
 import '../today/today_logic.dart' show dateLine;
 
-const String _eveningRoutineId = 'evening';
 const String _palSeed = 'Give me a reflection prompt for tonight';
 const String _loadError = "Couldn't load your routines. Try again in a moment.";
 
@@ -73,10 +72,7 @@ class EveningCloseOutScreen extends ConsumerWidget {
 
   List<Widget> _content(BuildContext context, WidgetRef ref, RitualsState state) {
     final c = context.colors;
-    RitualRoutine? evening;
-    for (final r in state.routines) {
-      if (r.id == _eveningRoutineId) evening = r;
-    }
+    final evening = state.evening;
     final steps = evening?.steps ?? const <RitualStep>[];
     if (evening == null || steps.isEmpty) {
       return [

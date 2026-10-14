@@ -10,6 +10,7 @@ import '../../router.dart';
 import '../../theme/theme.dart';
 import '../../widgets/app_icon.dart';
 import '../../widgets/controls.dart';
+import '../../widgets/failure_note.dart';
 import '../../widgets/pal_label.dart';
 import '../../widgets/press_scale.dart';
 
@@ -34,7 +35,6 @@ const _rowTextGap = 2.0;
 const _noneTop = 12.0;
 const _hairline = 1.0;
 const _alertGap = 12.0;
-const _alertPad = EdgeInsets.symmetric(horizontal: 16, vertical: 12);
 const _pillHeight = 48.0;
 const _skipTop = 4.0;
 const _skipHeight = 48.0;
@@ -64,7 +64,6 @@ const _bodies = [
 ];
 const _ctas = ['Get started', 'Continue', 'Continue', 'Start tracking'];
 const _noneOn = 'Pick at least one routine to start.';
-const _saveFailed = "Couldn't save. Try again.";
 
 String _stepCountLabel(int n) => n == 1 ? '1 step' : '$n steps';
 String _dollars(double v) => '\$${v.toStringAsFixed(0)}';
@@ -178,7 +177,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               ),
             ),
             if (_saveError) ...[
-              const _SaveFailed(),
+              const FailureNote(),
               const SizedBox(height: _alertGap),
             ],
             _Pill(
@@ -417,26 +416,6 @@ class _NoneOn extends StatelessWidget {
         border: Border(top: BorderSide(color: c.hair, width: _hairline)),
       ),
       child: Text(_noneOn, style: AppType.subhead.copyWith(color: c.ink3)),
-    );
-  }
-}
-
-class _SaveFailed extends StatelessWidget {
-  const _SaveFailed();
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.colors;
-    return Semantics(
-      liveRegion: true,
-      child: Container(
-        padding: _alertPad,
-        decoration: BoxDecoration(
-          color: c.surface2,
-          borderRadius: BorderRadius.circular(Radii.inset),
-        ),
-        child: Text(_saveFailed, style: AppType.subhead.copyWith(color: c.ink)),
-      ),
     );
   }
 }

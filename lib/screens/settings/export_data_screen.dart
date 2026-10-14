@@ -63,7 +63,7 @@ class _ExportDataScreenState extends ConsumerState<ExportDataScreen> {
       if (!mounted) return;
       setState(() {
         _ok = false;
-        _result = "Couldn't copy — try again.";
+        _result = "Couldn't copy. Try again.";
       });
     } finally {
       if (mounted) setState(() => _busy = false);

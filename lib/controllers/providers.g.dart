@@ -661,11 +661,17 @@ final class ExercisesProvider
 String _$exercisesHash() => r'ee2f8f9130f459ff475ccb109de3daa27b5b38b3';
 
 /// Live ritual routines (Today / Rituals).
+///
+/// No retry: a failing local query would fail again, and retrying holds the
+/// screen on loading.
 
 @ProviderFor(ritualRoutinesStream)
 const ritualRoutinesStreamProvider = RitualRoutinesStreamProvider._();
 
 /// Live ritual routines (Today / Rituals).
+///
+/// No retry: a failing local query would fail again, and retrying holds the
+/// screen on loading.
 
 final class RitualRoutinesStreamProvider
     extends
@@ -678,11 +684,14 @@ final class RitualRoutinesStreamProvider
         $FutureModifier<List<RitualRoutine>>,
         $StreamProvider<List<RitualRoutine>> {
   /// Live ritual routines (Today / Rituals).
+  ///
+  /// No retry: a failing local query would fail again, and retrying holds the
+  /// screen on loading.
   const RitualRoutinesStreamProvider._()
     : super(
         from: null,
         argument: null,
-        retry: null,
+        retry: noRetry,
         name: r'ritualRoutinesStreamProvider',
         isAutoDispose: true,
         dependencies: null,
@@ -705,7 +714,7 @@ final class RitualRoutinesStreamProvider
 }
 
 String _$ritualRoutinesStreamHash() =>
-    r'4813cddcb5f07afa4843e9053fce6be01eeea7eb';
+    r'a71e05c906de37d0ae9bd98918bdc0bcf2b64484';
 
 /// Live workout routines (Move / Weekly plan).
 
@@ -927,7 +936,7 @@ final class PalServiceProvider
   }
 }
 
-String _$palServiceHash() => r'81732cb6a1f09e5b9f266e3d71ba2776b6d03a80';
+String _$palServiceHash() => r'f092037a735e11fcdcd02e3e04ed32fed03934bc';
 
 /// Real [HttpHealthService] when `PAL_BASE_URL` is set; [MockHealthService]
 /// otherwise (tests, backend-less preview). Shares the proxy's http client +

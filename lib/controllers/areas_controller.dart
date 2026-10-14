@@ -392,9 +392,9 @@ Stream<AreasSummary> areasSummary(Ref ref) async* {
   final entries = await ref.watch(_recentEntriesProvider.future);
   final meals = await ref.watch(_recentMealsProvider.future);
   final checkins = await ref.watch(_recentCheckinsProvider.future);
-  // the routine count is the target, as on today. with no routines there is
+  // the routines with steps are the target, as on today. with none there is
   // nothing to complete, so the legacy step count does not apply.
-  final routinesTotal = today.routines.length;
+  final routinesTotal = trackedRoutines(today.routines).length;
   yield buildAreasSummary(
     today: GlanceNumbers(
       spent: today.moneySpent,

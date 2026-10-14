@@ -207,6 +207,39 @@ void main() {
     expect(rituals.categories.first.amount, 2); // two morning steps
   });
 
+  group('rituals target leaves out a routine with no steps', () {
+    final now = DateTime(2026, 6, 20, 20, 0);
+    const goals = Goals(dailyRitualTarget: 5);
+    RitualRoutine routine(String id, int steps) => RitualRoutine(
+          id: id, name: id, time: '7:00 AM', tone: RitualTone.morning,
+          icon: 'x', blurb: '',
+          steps: [
+            for (var i = 0; i < steps; i++)
+              RitualStep(id: '$id-$i', title: '$id $i', note: '', icon: 'x'),
+          ],
+        );
+
+    test('one full routine and one empty routine target 1', () {
+      final data = buildDetailData(DetailTracker.rituals, const [], goals,
+          routines: [routine('full', 2), routine('empty', 0)], now: now);
+      expect(data.target, 1);
+    });
+
+    test('only empty routines target 0 with no divide by zero', () {
+      final data = buildDetailData(DetailTracker.rituals, const [], goals,
+          routines: [routine('empty', 0)], now: now);
+      expect(data.target, 0);
+      expect(data.progress, 0);
+      expect(data.remaining, 0);
+    });
+
+    test('no routines falls back to the stored target', () {
+      final data =
+          buildDetailData(DetailTracker.rituals, const [], goals, now: now);
+      expect(data.target, 5);
+    });
+  });
+
   // ---------------------------------------------------------------------------
   // Widget — renders what is left + category rows from seeded money entries.
   // ---------------------------------------------------------------------------

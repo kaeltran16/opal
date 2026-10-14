@@ -21,7 +21,7 @@ const double _pillIcon = 16;
 const double _spinnerStroke = 2;
 const String _defaultHost = 'imap.gmail.com';
 const int _defaultPort = 993;
-const String _testFailed = 'Connection failed — check the password';
+const String _testFailed = 'Connection failed. Check the password.';
 
 /// Gmail setup: the account form (email and a 16-char app password that
 /// auto-formats into groups of 4), the sender allowlist, how to make an app

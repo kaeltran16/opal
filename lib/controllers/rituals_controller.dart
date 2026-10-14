@@ -8,6 +8,9 @@ import 'providers.dart';
 
 part 'rituals_controller.g.dart';
 
+/// The routine the evening close-out works through.
+const String eveningRoutineId = 'evening';
+
 /// The Rituals view model: the three time-of-day [RitualRoutine]s plus the set
 /// of completed step indices per routine for today. Completion is derived from
 /// today's ritual-type [Entry] rows (each step completion is one entry, keyed
@@ -38,8 +41,13 @@ class RitualsState {
       doneFor(routineId).contains(index);
 
   /// A routine is complete when every step is checked (empty routines never).
-  bool isComplete(RitualRoutine r) =>
-      r.steps.isNotEmpty && doneCount(r.id) >= r.steps.length;
+  bool isComplete(RitualRoutine r) {
+    final done = doneFor(r.id);
+    return isRoutineComplete(r, {
+      for (final (i, s) in r.steps.indexed)
+        if (done.contains(i)) s.id,
+    });
+  }
 
   /// Steps remaining in [r].
   int stepsLeft(RitualRoutine r) =>
@@ -48,6 +56,9 @@ class RitualsState {
   int get totalSteps => routines.fold(0, (s, r) => s + r.steps.length);
 
   int get doneSteps => routines.fold(0, (s, r) => s + doneCount(r.id));
+
+  /// The routine the evening close-out works through, or null without one.
+  RitualRoutine? get evening => routines.where((r) => r.id == eveningRoutineId).firstOrNull;
 
   /// The first routine with an incomplete step — the up-next hero target.
   /// Null when everything is done.
@@ -68,7 +79,10 @@ class RitualsState {
 }
 
 /// Streams the Rituals view model and owns the step toggle / complete actions.
-@riverpod
+///
+/// No retry: a failing local query would fail again, and retrying holds the
+/// screen on loading.
+@Riverpod(retry: noRetry)
 class RitualsController extends _$RitualsController {
   @override
   Stream<RitualsState> build() async* {

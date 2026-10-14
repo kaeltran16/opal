@@ -384,6 +384,56 @@ void main() {
     });
   });
 
+  test(
+    'a routine with no steps leaves the routines target',
+    () => withClock(Clock.fixed(DateTime(2026, 10, 1, 9, 30)), () async {
+      final db = LoopDatabase.forTesting(NativeDatabase.memory());
+      addTearDown(db.close);
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+      final rituals = RitualRepository(db);
+      const full = RitualRoutine(
+        id: 'full',
+        name: 'Full',
+        time: '7:00 AM',
+        tone: RitualTone.morning,
+        icon: 'sunrise.fill',
+        blurb: '',
+        steps: [
+          RitualStep(id: 'full-0', title: 'Water', note: '', icon: 'drop.fill'),
+        ],
+      );
+      await rituals.upsertRoutine(full);
+      await rituals.upsertRoutine(
+        full.copyWith(id: 'empty', name: 'Empty', order: 1, steps: const []),
+      );
+      await EntryRepository(db).insert(
+        Entry(
+          id: 'e-full-0',
+          timestamp: clock.now(),
+          type: EntryType.rituals,
+          title: 'Water',
+          ritualId: 'full-0',
+          source: EntrySource.manual,
+        ),
+      );
+
+      final container = ProviderContainer(
+        overrides: [
+          loopDatabaseProvider.overrideWithValue(db),
+          sharedPreferencesProvider.overrideWithValue(prefs),
+        ],
+      );
+      addTearDown(container.dispose);
+      container.listen(areasSummaryProvider, (_, _) {});
+
+      final s = await container.read(areasSummaryProvider.future);
+      final routines = s.of(Area.routines);
+      expect('${routines.number} ${routines.unit}', '1 of 1 done');
+      expect(routines.progress, 1);
+    }),
+  );
+
   // pinned to the morning: on the real clock Move at 0 kcal reads Worth
   // watching later in the day, and the count would follow the wall time.
   test(

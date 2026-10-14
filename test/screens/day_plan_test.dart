@@ -34,6 +34,19 @@ const _legs = PalProposal(
   doneLabel: 'Moved',
 );
 
+const _closeOutProposal = PalProposal(
+  id: 'close-out-tonight',
+  tag: 'Rituals',
+  colorToken: 'rituals',
+  icon: 'moon.stars.fill',
+  title: 'Close out tonight',
+  body: 'A 5-min wind-down closes your ring.',
+  approveLabel: 'Start close-out',
+  approveIcon: 'play.fill',
+  doneLabel: 'Close-out queued',
+  action: 'close_out',
+);
+
 RitualRoutine _routine(String id, String time, {int steps = 1}) => RitualRoutine(
       id: id,
       name: 'Routine $id',
@@ -112,14 +125,13 @@ void main() {
         'proposal:rent',
         'mood',
         'meal',
-        'routine:evening',
         'closeOut',
       ]);
     });
 
     test('a routine whose time does not parse is untimed', () {
       final plan = _plan(rituals: _rituals([_routine('odd', 'whenever')]));
-      expect(_ids(plan.open(session, _now)), ['routine:odd', 'mood', 'meal', 'closeOut']);
+      expect(_ids(plan.open(session, _now)), ['routine:odd', 'mood', 'meal']);
     });
 
     test('a completed routine is not open', () {
@@ -143,15 +155,15 @@ void main() {
       final plan = full();
       expect(plan.current(session, _now)!.id, 'routine:morning');
       expect(_ids(plan.later(session, _now)),
-          ['proposal:rent', 'mood', 'meal', 'routine:evening', 'closeOut']);
+          ['proposal:rent', 'mood', 'meal', 'closeOut']);
     });
 
     test('current follows select', () {
       final plan = full();
-      final selected = session.select('routine:evening');
-      expect(plan.current(selected, _now)!.id, 'routine:evening');
+      final selected = session.select('closeOut');
+      expect(plan.current(selected, _now)!.id, 'closeOut');
       expect(_ids(plan.later(selected, _now)),
-          ['proposal:rent', 'mood', 'meal', 'routine:morning', 'closeOut']);
+          ['proposal:rent', 'mood', 'meal', 'routine:morning']);
     });
 
     test('current falls back to the first open item when the selected one is settled', () {
@@ -212,7 +224,6 @@ void main() {
         'routine:morning',
         'mood',
         'meal',
-        'routine:evening',
         'closeOut',
       ]);
     });
@@ -228,7 +239,6 @@ void main() {
         'proposal:rent',
         'mood',
         'meal',
-        'routine:evening',
         'closeOut',
       ];
       expect(_ids(plan.open(session, _now, offline)), clock);
@@ -254,7 +264,7 @@ void main() {
       }
     });
 
-    test('Routines care forces the earliest open routine, untimed last', () {
+    test('Routines care forces the earliest open routine or close-out, untimed last', () {
       final rules = LeadRules(palOnline: true, care: [DetailTracker.rituals]);
       final plan = _plan(
         agenda: const PalAgenda(proposals: [_proposal]),
@@ -267,10 +277,22 @@ void main() {
       expect(plan.open(session, _now, rules).first.id, 'routine:morning');
 
       final morningDone = session.settle('routine:morning', done: true);
-      expect(plan.open(morningDone, _now, rules).first.id, 'routine:evening');
+      expect(plan.open(morningDone, _now, rules).first.id, 'closeOut');
 
-      final onlyOdd = morningDone.settle('routine:evening', done: false);
+      final onlyOdd = morningDone.settle('closeOut', done: false);
       expect(plan.open(onlyOdd, _now, rules).first.id, 'routine:odd');
+    });
+
+    test('Routines care with the morning routine done leads with the close-out', () {
+      final plan = _plan(
+        agenda: const PalAgenda(proposals: [_proposal]),
+        rituals: _rituals([_routine('morning', '7:00 AM'), _routine('evening', '9:00 PM')],
+            progress: {
+              'morning': {0},
+            }),
+      );
+      final rules = LeadRules(palOnline: true, care: [DetailTracker.rituals]);
+      expect(plan.open(session, _now, rules).first.id, 'closeOut');
     });
 
     test('Money and Move both in care lead with the money proposal, then the workout', () {
@@ -317,7 +339,6 @@ void main() {
         'mood',
         'meal',
         'routine:morning',
-        'routine:evening',
         'closeOut',
       ]);
     });
@@ -326,12 +347,12 @@ void main() {
       final plan = both();
       expect(plan.isPalPick(session, _now, online), isTrue);
 
-      final tapped = session.select('routine:evening');
-      expect(plan.current(tapped, _now, online)!.id, 'routine:evening');
+      final tapped = session.select('closeOut');
+      expect(plan.current(tapped, _now, online)!.id, 'closeOut');
       expect(plan.palPick(tapped, _now, online)!.id, 'proposal:legs');
       expect(plan.isPalPick(tapped, _now, online), isFalse);
 
-      final settled = tapped.settle('routine:evening', done: false);
+      final settled = tapped.settle('closeOut', done: false);
       expect(plan.current(settled, _now, online)!.id, 'proposal:legs');
       expect(plan.isPalPick(settled, _now, online), isTrue);
     });
@@ -386,12 +407,12 @@ void main() {
     });
 
     test('a routine is timed, says its blurb and skips with Not today', () {
-      final item = full().items.firstWhere((i) => i.id == 'routine:evening');
-      expect(item.minuteOfDay, 21 * 60);
-      expect(item.said, 'Blurb evening');
+      final item = full().items.firstWhere((i) => i.id == 'routine:morning');
+      expect(item.minuteOfDay, 7 * 60);
+      expect(item.said, 'Blurb morning');
       expect(item.actionLabel, 'Start');
       expect(item.skipLabel, 'Not today');
-      expect(item.ref, 'evening');
+      expect(item.ref, 'morning');
     });
 
     test('a planned workout is untimed with its estimate as detail', () {
@@ -412,16 +433,74 @@ void main() {
       expect(plan.items.where((i) => i.kind == PlanKind.workout), isEmpty);
     });
 
-    test('no routines means no close-out item', () {
-      expect(_plan().items.where((i) => i.kind == PlanKind.closeOut), isEmpty);
-      expect(_plan(rituals: _rituals(const [])).items.where((i) => i.kind == PlanKind.closeOut),
-          isEmpty);
+    test('a routine with no steps has no item', () {
+      final plan = _plan(
+        rituals: _rituals([_routine('morning', '7:00 AM'), _routine('empty', '8:00 AM', steps: 0)]),
+      );
+      expect(_ids(plan.items.where((i) => i.kind == PlanKind.routine)), ['routine:morning']);
     });
 
-    test('the close-out is at 9:30 PM when there is a routine', () {
-      final item = full().items.firstWhere((i) => i.kind == PlanKind.closeOut);
-      expect(item.minuteOfDay, closeOutMinute);
+    test('no evening routine, or one with no steps, means no close-out item', () {
+      for (final rituals in [
+        null,
+        _rituals(const []),
+        _rituals([_routine('morning', '7:00 AM')]),
+        _rituals([_routine('morning', '7:00 AM'), _routine('evening', '9:00 PM', steps: 0)]),
+      ]) {
+        final items = _plan(rituals: rituals).items;
+        expect(items.where((i) => i.kind == PlanKind.closeOut), isEmpty);
+        expect(_ids(items), isNot(contains('routine:evening')));
+      }
+    });
+
+    test('the evening routine is the close-out row, at its time', () {
+      final items = full().items;
+      expect(_ids(items), isNot(contains('routine:evening')));
+      final item = items.singleWhere((i) => i.kind == PlanKind.closeOut);
+      expect(item.id, 'closeOut');
+      expect(item.title, 'Close-out');
+      expect(item.icon, 'moon.stars.fill');
+      expect(item.minuteOfDay, 21 * 60);
+      expect(item.said, 'Blurb evening');
       expect(item.actionLabel, 'Start');
+      expect(item.done, isFalse);
+      expect(item.ref, 'evening');
+      expect(item.area, DetailTracker.rituals);
+    });
+
+    test('an evening routine with no time puts the close-out at 9:30 PM', () {
+      for (final time in ['', 'whenever']) {
+        final plan = _plan(rituals: _rituals([_routine('evening', time)]));
+        expect(plan.items.singleWhere((i) => i.kind == PlanKind.closeOut).minuteOfDay,
+            closeOutMinute);
+      }
+    });
+
+    test('with every evening step done the close-out is done and not open', () {
+      final plan = _plan(
+        rituals: _rituals([_routine('evening', '9:00 PM', steps: 2)], progress: {
+          'evening': {0, 1},
+        }),
+      );
+      expect(plan.items.singleWhere((i) => i.kind == PlanKind.closeOut).done, isTrue);
+      expect(_ids(plan.open(session, _now)), isNot(contains('closeOut')));
+    });
+
+    test("Pal's close-out proposal becomes the close-out row's sentence", () {
+      final plan = _plan(
+        agenda: const PalAgenda(proposals: [_closeOutProposal, _proposal]),
+        rituals: _rituals([_routine('evening', '9:00 PM')]),
+      );
+      expect(_ids(plan.items), ['proposal:rent', 'mood', 'meal', 'closeOut']);
+      expect(plan.items.singleWhere((i) => i.id == 'closeOut').said, _closeOutProposal.body);
+    });
+
+    test("Pal's close-out proposal is dropped when there is no close-out row", () {
+      final plan = _plan(
+        agenda: const PalAgenda(proposals: [_closeOutProposal]),
+        rituals: _rituals([_routine('morning', '7:00 AM')]),
+      );
+      expect(_ids(plan.items), ['routine:morning', 'mood', 'meal']);
     });
 
     test('empty inputs leave only mood and Log a meal open; settling both ends the day', () {
@@ -467,7 +546,7 @@ void main() {
         detail: '5 min',
       );
       expect(closeOut.whenLabel, 'At 9:30 PM · 5 min');
-      final evening = full().items.firstWhere((i) => i.id == 'routine:evening');
+      final evening = full().items.firstWhere((i) => i.id == 'closeOut');
       expect(evening.whenLabel, 'At 9:00 PM');
     });
 

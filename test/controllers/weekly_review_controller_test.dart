@@ -159,7 +159,7 @@ void main() {
         routines: [_routine('a', ['a0']), _routine('b', ['b0']), _routine('c', ['c0'])],
         now: now,
       );
-      // effectiveDailyRitualTarget(3, goals) == 3 → 3 * 7.
+      // three routines with steps target 3 a day → 3 * 7.
       expect(stats.ritualsTarget, 21);
     });
 

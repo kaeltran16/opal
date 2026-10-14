@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:clock/clock.dart';
 import 'package:flutter/cupertino.dart' show CupertinoPageRoute;
 import 'package:flutter/material.dart';
@@ -20,14 +18,13 @@ import '../../services/pal/pal_context_builder.dart' show moveStreakDays;
 import '../../theme/theme.dart';
 import '../../util/dates.dart';
 import '../../widgets/app_icon.dart';
+import '../../widgets/nav_bar.dart';
 import '../../widgets/pal_label.dart';
 import '../../widgets/press_scale.dart';
 import '../you/autopilot_screen.dart';
 import '../you/pal_memory_screen.dart';
 import '../you/sub_screen.dart' show kSubScreenShellOverlay;
 
-// kept literal: where the prototype's content starts, just under the status bar.
-const double _contentTop = 52;
 const double _minTap = 44;
 const double _rowMinHeight = 48;
 const double _hairline = 1;
@@ -46,7 +43,6 @@ class ProfileScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final c = context.colors;
     final safe = MediaQuery.paddingOf(context);
     final name = ref.watch(settingsRepositoryProvider).displayNameOrDefault;
     final stats = ref.watch(profileStatsProvider);
@@ -63,16 +59,14 @@ class ProfileScreen extends ConsumerWidget {
     void push(Widget screen) => Navigator.of(context)
         .push(CupertinoPageRoute<void>(builder: (_) => screen));
 
-    final list = ListView(
+    return LargeTitleScrollView(
+      title: 'You',
+      subtitle: youLine(name, streakDays, memberSince, clock.now()),
       padding: EdgeInsets.only(
-        top: math.max(_contentTop, safe.top + Spacing.xs),
         bottom: kSubScreenShellOverlay + Spacing.xxl + safe.bottom,
       ),
       children: [
         _Gutter(children: [
-          _Header(
-              line: youLine(name, streakDays, memberSince, clock.now())),
-          const SizedBox(height: Spacing.md),
           _Findings(stats: stats),
           const SizedBox(height: Spacing.xxl + Spacing.md),
           const _Heading('Pal'),
@@ -127,7 +121,6 @@ class ProfileScreen extends ConsumerWidget {
         ]),
       ],
     );
-    return ColoredBox(color: c.bg, child: list);
   }
 
   static String _factsValue(WidgetRef ref) {
@@ -187,39 +180,6 @@ class _Gutter extends StatelessWidget {
           children: children,
         ),
       );
-}
-
-/// The You title with [line] beside it, wrapping under it when it won't fit.
-class _Header extends StatelessWidget {
-  const _Header({required this.line});
-  final String line;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.colors;
-    return ConstrainedBox(
-      constraints: const BoxConstraints(minHeight: _minTap),
-      child: Align(
-        alignment: AlignmentDirectional.centerStart,
-        // full width, so spaceBetween puts the line at the right of the title.
-        child: SizedBox(
-          width: double.infinity,
-          child: Wrap(
-            alignment: WrapAlignment.spaceBetween,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            spacing: Spacing.sm,
-            children: [
-              Semantics(
-                header: true,
-                child: Text('You', style: AppType.title.copyWith(color: c.ink)),
-              ),
-              Text(line, style: AppType.label.copyWith(color: c.ink2)),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 }
 
 class _Heading extends StatelessWidget {

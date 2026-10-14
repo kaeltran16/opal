@@ -9,19 +9,28 @@ part of 'rituals_controller.dart';
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
 /// Streams the Rituals view model and owns the step toggle / complete actions.
+///
+/// No retry: a failing local query would fail again, and retrying holds the
+/// screen on loading.
 
 @ProviderFor(RitualsController)
 const ritualsControllerProvider = RitualsControllerProvider._();
 
 /// Streams the Rituals view model and owns the step toggle / complete actions.
+///
+/// No retry: a failing local query would fail again, and retrying holds the
+/// screen on loading.
 final class RitualsControllerProvider
     extends $StreamNotifierProvider<RitualsController, RitualsState> {
   /// Streams the Rituals view model and owns the step toggle / complete actions.
+  ///
+  /// No retry: a failing local query would fail again, and retrying holds the
+  /// screen on loading.
   const RitualsControllerProvider._()
     : super(
         from: null,
         argument: null,
-        retry: null,
+        retry: noRetry,
         name: r'ritualsControllerProvider',
         isAutoDispose: true,
         dependencies: null,
@@ -36,9 +45,12 @@ final class RitualsControllerProvider
   RitualsController create() => RitualsController();
 }
 
-String _$ritualsControllerHash() => r'42e743ae632176f097f914dfb42d3e3be8027f7c';
+String _$ritualsControllerHash() => r'59f4f3d5e1d689f2c8632d27eabcf571fabcc4ee';
 
 /// Streams the Rituals view model and owns the step toggle / complete actions.
+///
+/// No retry: a failing local query would fail again, and retrying holds the
+/// screen on loading.
 
 abstract class _$RitualsController extends $StreamNotifier<RitualsState> {
   Stream<RitualsState> build();
