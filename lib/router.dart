@@ -17,6 +17,7 @@ import 'screens/nutrition/nutrition_meal_detail_screen.dart';
 import 'screens/onboarding/onboarding_screen.dart';
 import 'screens/pal/pal_composer_screen.dart';
 import 'screens/money/budgets_screen.dart';
+import 'screens/money/envelope_editor_screen.dart';
 import 'screens/profile/profile_screen.dart';
 import 'screens/recap/recap_screen.dart';
 import 'screens/reflect/evening_close_out_screen.dart';
@@ -89,6 +90,7 @@ enum AppRoute {
 
   // You / Settings sub-routes (push within the You branch).
   youBudgets('youBudgets', 'budgets'), //           -> /you/budgets
+  envelopes('envelopes', 'envelopes'), //           -> /you/budgets/envelopes
   youInsights('youInsights', 'insights'), //        /you/insights -> /you
   budgetsGoals('budgetsGoals', 'budgets-goals'), // -> /you/budgets-goals
   notificationSettings('notificationSettings', 'notifications'), // /you/notifications
@@ -364,6 +366,13 @@ GoRouter createRouter({
                     path: AppRoute.youBudgets.path,
                     name: AppRoute.youBudgets.name,
                     builder: (context, state) => const BudgetsScreen(),
+                    routes: [
+                      GoRoute(
+                        path: AppRoute.envelopes.path,
+                        name: AppRoute.envelopes.name,
+                        builder: (context, state) => const EnvelopeEditorScreen(),
+                      ),
+                    ],
                   ),
                   // insights live in Pal's findings on this tab now.
                   GoRoute(
