@@ -26,10 +26,8 @@ class MoodMiniScale extends StatelessWidget {
   Widget build(BuildContext context) {
     const railH = 6.0;
     const markerSize = 12.0;
-    const labelSize = 10.5;
 
-    final labelStyle = AppType.caption2.copyWith(
-      fontSize: labelSize,
+    final labelStyle = AppType.caption.copyWith(
       color: light ? const Color(0xB3FFFFFF) : context.colors.ink3, // kept literal: 70% white label on the mood hero gradient
     );
 
@@ -198,7 +196,7 @@ class _DayBar extends StatelessWidget {
       barTop = off >= 0 ? _mid - barH : _mid;
     }
 
-    final letterStyle = AppType.caption2.copyWith(
+    final letterStyle = AppType.caption.copyWith(
       fontWeight: bar.isToday ? FontWeight.w700 : FontWeight.w400,
       color: bar.isToday ? moodColor(v ?? 0.5, dark) : c.ink3,
     );
@@ -390,9 +388,7 @@ class MoodScaleTrack extends StatelessWidget {
     final tc = t.clamp(0.0, 1.0);
     final thumbColor = moodColor(tc, dark);
 
-    final labelStyle = AppType.caption2.copyWith(
-      color: c.ink3,
-    );
+    final labelStyle = AppType.caption.copyWith(color: c.ink3);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,

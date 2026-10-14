@@ -33,7 +33,7 @@ class WeekStat {
   /// Sub line under the value, e.g. "of \$595".
   final String sub;
 
-  /// `context.colors.forType(colorToken)` accent ('money'|'move'|'rituals').
+  /// Area token the win belongs to ('money'|'move'|'rituals').
   final String colorToken;
 }
 

@@ -26,7 +26,7 @@ class BudgetEnvelope {
   /// SF symbol for the envelope's icon tile.
   final String icon;
 
-  /// `context.colors.forType(colorToken)` — the envelope's accent color.
+  /// Area token stored with the envelope; data only, not a colour.
   final String colorToken;
 
   /// Sort order in the budgets list (ascending).

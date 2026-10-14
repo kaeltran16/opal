@@ -18,6 +18,7 @@ import 'package:opal/screens/detail/detail_screen.dart';
 import 'package:opal/screens/nutrition/nutrition_meal_detail_screen.dart';
 import 'package:opal/screens/rituals/rituals_builder_screen.dart';
 import 'package:opal/screens/rituals/routine_player_screen.dart';
+import 'package:opal/theme/theme.dart';
 import 'package:opal/widgets/app_icon.dart';
 import 'package:opal/widgets/contributor_bar.dart';
 import 'package:opal/widgets/glass_tab_bar.dart';
@@ -218,6 +219,8 @@ void main() {
 
     expect(_onPage(find.text('Sleep')), findsOneWidget);
     expect(_onPage(find.text('No sleep data yet')), findsOneWidget);
+    expect(tester.widget<Text>(_onPage(find.text('No sleep data yet'))).style?.fontSize,
+        AppType.title.fontSize);
     expect(
       _onPage(find.text('Sleep needs a data source, and none is connected yet.')),
       findsOneWidget,

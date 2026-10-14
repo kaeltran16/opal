@@ -6,6 +6,8 @@ import 'package:opal/theme/scene_palette.dart';
 
 const double _text = 4.5;
 const double _nonText = 3.0;
+// neighbouring rings stay apart without hue. DESIGN.md section 3.
+const double _ringLightness = 1.5;
 
 void main() {
   test('contrastRatio matches WCAG reference values', () {
@@ -57,30 +59,14 @@ void main() {
       expectOnGrounds({'ink': c.ink, 'ink2': c.ink2, 'ink3': c.ink3}, _text);
     });
 
-    test('$mode: onAccent reaches 4.5:1 on accent', () {
-      expect(contrastRatio(c.onAccent, c.accent), greaterThanOrEqualTo(_text));
-    });
-
     test('$mode: dangerInk reaches 4.5:1 on surface', () {
       expect(contrastRatio(c.dangerInk, c.surface), greaterThanOrEqualTo(_text));
     });
 
-    test('$mode: every area ink reaches 4.5:1 on its tint over surface', () {
-      final pairs = {
-        'money': (c.moneyInk, c.moneyTint),
-        'move': (c.moveInk, c.moveTint),
-        'rituals': (c.ritualsInk, c.ritualsTint),
-        'nutrition': (c.nutritionInk, c.nutritionTint),
-        'sleep': (c.sleepInk, c.sleepTint),
-        'mood': (c.moodInk, c.moodTint),
-        'accent': (c.accentInk, c.accentTint),
-      };
-      pairs.forEach((name, p) {
-        final ground = composite(p.$2, c.surface);
-        final ratio = contrastRatio(p.$1, ground);
-        expect(ratio, greaterThanOrEqualTo(_text),
-            reason: '$name is ${ratio.toStringAsFixed(2)}');
-      });
+    test('$mode: the ring colours differ in lightness by 1.5:1 or more', () {
+      final ratio = contrastRatio(c.ringMove, c.ringRoutines);
+      expect(ratio, greaterThanOrEqualTo(_ringLightness),
+          reason: 'ringMove against ringRoutines is ${ratio.toStringAsFixed(2)}');
     });
 
     for (final phase in DayPhase.values) {

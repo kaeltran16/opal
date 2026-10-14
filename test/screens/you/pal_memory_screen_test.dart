@@ -82,7 +82,6 @@ class _NoNutritionPatterns extends NutritionController {
         note: '',
       ),
       week: [],
-      pending: null,
       patterns: [],
     );
   }

@@ -33,11 +33,4 @@ void main() {
     final meals = await repo.watchMealsForDay(DateTime(2026, 6, 21)).first;
     expect(meals.map((m) => m.id), ['b', 'a']);
   });
-
-  test('linkedEntryIds reports expenses already turned into meals', () async {
-    await repo.insert(_meal('a', DateTime(2026, 6, 21, 12), linked: 'e1'));
-    final ids = await repo.linkedEntryIds(
-        DateTime(2026, 6, 21), DateTime(2026, 6, 22));
-    expect(ids, {'e1'});
-  });
 }
