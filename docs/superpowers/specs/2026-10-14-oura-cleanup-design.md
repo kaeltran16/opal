@@ -31,7 +31,7 @@ The code was read at `09259a8`, where units, goldens and scenarios all pass.
    `MockPalService`'s `add-wind-down-ritual` proposal carries the same action, and `PalProposal` gains an `addsRitual` getter next to `navigatesToCloseOut`.
    `buildDayPlan` leaves out `addsRitual` proposals whenever the close-out row exists, following the close-out fold from `1f9681e`.
    With no evening routine that has steps, the proposal keeps its own row.
-   Pal Home still lists it. (Human's choice over a fold or an always-drop.)
+   No other screen lists proposals (`/pal-home` redirects to You), so the proposal can't be reached while the close-out row shows. (Human's choice over a fold or an always-drop, confirmed after that was found.)
    The live Pal follows only once the server is deployed. This run does not deploy.
 6. **The routines error steps settle without a retry loop (chunk 47).** `_pumpUntil` and its 3-minute window leave `routines_onboarding_scenario_test.dart`.
    The manage, player and closeout error steps settle with the harness's normal pump.
@@ -48,7 +48,7 @@ The code was read at `09259a8`, where units, goldens and scenarios all pass.
    The target becomes `trackedRoutines(routines).length`, and the function drops its now-unused `goals` parameter.
    The stored `dailyRitualTarget` column and onboarding's write of it stay as they are. A schema change is out of scope.
    Every caller is checked for a `0 of 0` reading: `providers.dart`, `recap_controller.dart`, `spending_controller.dart` (including the raw `goals.dailyRitualTarget` read in `DetailTracker`), `today_controller.dart`, `weekly_review_controller.dart`, `pal_context_builder.dart` and `pal_composer_turns.dart`.
-   Where a surface would show `0 of 0`, it shows the area page's `No routines set up yet.` instead.
+   Where a surface would show `0 of 0`, it shows the area page's line instead: `No routines set up yet.` with no routines, and `No steps in your routines yet.` when routines exist but none has a step (`noTargetLine` in `lib/models/goals.dart`).
 9. **The composer's coffee starter follows the currency (chunk 30).** The amount is `5 × currency.budgetScale` and the label goes through `formatCurrency`, giving `Verve coffee, $5` in USD and `Verve coffee, 5.000 ₫` in VND.
    One function builds this starter from a `Currency`, and both `_IdleBody._starters` in `pal_composer_screen.dart` and `MockPalService`'s composer suggestion use it.
    The screen reads the currency from settings.
