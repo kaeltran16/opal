@@ -210,7 +210,7 @@ const PROPOSAL_PRESENTATION: Record<(typeof agendaProposalKinds)[number], { icon
   reschedule_workout: { icon: 'figure.run', approveIcon: 'arrow.triangle.2.circlepath', action: null },
   hold_funds: { icon: 'dollarsign.circle.fill', approveIcon: 'checkmark', action: null },
   close_out: { icon: 'moon.stars.fill', approveIcon: 'play.fill', action: 'close_out' },
-  add_ritual: { icon: 'sparkles', approveIcon: 'plus', action: null },
+  add_ritual: { icon: 'sparkles', approveIcon: 'plus', action: 'add_ritual' },
   generic: { icon: 'sparkles', approveIcon: 'checkmark', action: null },
 }
 const AUTOPILOT_ICON: Record<(typeof agendaAutopilotKinds)[number], string> = {

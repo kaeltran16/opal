@@ -484,7 +484,7 @@ class MockPalService implements PalService {
           approveLabel: 'Start close-out',
           approveIcon: 'play.fill',
           doneLabel: 'Close-out queued for 21:30',
-          action: 'close_out',
+          action: closeOutAction,
         ),
         PalProposal(
           id: 'add-wind-down-ritual',
@@ -497,6 +497,7 @@ class MockPalService implements PalService {
           approveLabel: 'Add ritual',
           approveIcon: 'plus',
           doneLabel: 'Added to your Evening rituals',
+          action: addRitualAction,
         ),
       ],
       autopilot: [

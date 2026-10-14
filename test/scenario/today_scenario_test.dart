@@ -376,6 +376,18 @@ void main() {
     });
   }
 
+  // the mock agenda holds both a close-out and an add-ritual proposal; the
+  // close-out row already covers the wind-down, so the add-ritual row goes.
+  scenarioTest('today wind-down folded', (tester, dark) async {
+    await bootToday(tester, dark: dark, pal: TodayPal(headline: _headline));
+    await _tap(tester, _more());
+
+    expect(_later('Close-out', 'at 9:30 PM'), findsOneWidget);
+    expect(_onToday(find.text('Add a 2-min wind-down ritual', skipOffstage: false)), findsNothing);
+    expect(_onToday(find.text('Add ritual', skipOffstage: false)), findsNothing);
+    await shot(tester, 'today_wind_down_folded_${_theme(dark)}');
+  });
+
   scenarioTest('today pull to refresh', (tester, dark) async {
     final pal = _pal();
     await bootToday(tester, dark: dark, pal: pal);

@@ -455,10 +455,16 @@ class PalInsights {
       patterns.isEmpty;
 }
 
+/// The [PalProposal.action] that opens the Evening Close-Out flow.
+const String closeOutAction = 'close_out';
+
+/// The [PalProposal.action] of a proposal to add a ritual.
+const String addRitualAction = 'add_ritual';
+
 /// A cross-pillar action Pal proposes on the Pal Home hub for the user to
 /// approve (the "Needs you" list). Presentation is data-driven: [colorToken]
 /// picks the pillar accent and [icon]/[approveIcon] are SF-symbol names rendered
-/// through the safe icon map. [action] drives approve behavior — `'close_out'`
+/// through the safe icon map. [action] drives approve behavior — [closeOutAction]
 /// navigates to the Evening Close-Out flow; any other value (or null) flips the
 /// card to its optimistic "done" confirmation.
 class PalProposal {
@@ -486,7 +492,8 @@ class PalProposal {
   final String doneLabel;
   final String? action;
 
-  bool get navigatesToCloseOut => action == 'close_out';
+  bool get navigatesToCloseOut => action == closeOutAction;
+  bool get addsRitual => action == addRitualAction;
 
   @override
   bool operator ==(Object other) =>
