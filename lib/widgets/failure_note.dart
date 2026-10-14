@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../theme/theme.dart';
 
 const String saveFailedCopy = "Couldn't save. Try again.";
+const String deleteFailedCopy = "Couldn't delete. Try again.";
 
 const double _padHorizontal = 16;
 const double _padVertical = 12;

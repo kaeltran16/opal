@@ -58,8 +58,6 @@ const int _iconColumns = 7;
 // bottom inset clearing the floating tab bar
 const double _listBottomPadding = 110;
 
-const String _deleteFailedCopy = "Couldn't delete. Try again.";
-
 String _stepCount(int n) => n == 1 ? '1 step' : '$n steps';
 
 /// Screen 13b (builder): manage time-of-day routines and their ordered steps.
@@ -625,7 +623,7 @@ class _RoutineEditorState extends State<_RoutineEditor> {
     await _attempt(
       () => widget.onDelete(existing.id),
       action: 'deleting ${existing.name}',
-      failure: _deleteFailedCopy,
+      failure: deleteFailedCopy,
     );
   }
 
