@@ -99,7 +99,7 @@ class BudgetsData {
 /// Catch-all row for expenses whose category matches no envelope. Cap 0 — it's
 /// a tally, not a budget. Its presence keeps the Budgets total equal to the
 /// real month spend (and to Insights), so nothing is ever silently dropped.
-const _uncategorizedEnvelope = BudgetEnvelope(
+const kUncategorizedEnvelope = BudgetEnvelope(
   id: 'env-uncategorized',
   category: 'Uncategorized',
   cap: 0,
@@ -145,7 +145,7 @@ BudgetsData buildBudgetsData(
     for (final env in ordered)
       EnvelopeSpend(envelope: env, spent: byCategory[normalizeCategory(env.category)] ?? 0),
     if (uncategorized > 0)
-      EnvelopeSpend(envelope: _uncategorizedEnvelope, spent: uncategorized),
+      EnvelopeSpend(envelope: kUncategorizedEnvelope, spent: uncategorized),
   ];
 
   final anchor = now ?? clock.now();

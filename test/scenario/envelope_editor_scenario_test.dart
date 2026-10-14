@@ -45,7 +45,17 @@ const _iconWords = [
   'Heart', 'House', 'Fork and knife', 'Card', 'Gift', 'Plane',
 ];
 
+const _budgetsRoute = '/you/budgets';
+const _budgetsFooter = 'Adjust caps anytime. Pal nudges you before an envelope runs dry.';
+const _capStep = 50.0;
+const _groceriesSuggested = 1050.0; // $900/mo plus the recommendation's buffer, rounded
+
 String _theme(bool dark) => dark ? 'dark' : 'light';
+
+// Groceries spend this month that the seed already carries; Budgets shows cap less this.
+const _groceriesSpent = 38.4;
+
+String _left(double cap) => '${formatCurrency(cap - _groceriesSpent, Currency.usd)} left';
 
 /// Envelope writes that always fail, as a full disk would.
 class _FailingEnvelopes extends BudgetEnvelopeRepository {
@@ -220,6 +230,14 @@ final _coffeePick = find.bySemanticsLabel(
     RegExp('^Coffee, ${RegExp.escape(formatCurrency(_coffeeThisMonth, Currency.usd))} this month\$'));
 
 Finder _use(String category) => find.bySemanticsLabel(RegExp('^Use .* for $category\$'));
+
+/// Taps `Use` on [category]'s suggestion and lets the write land.
+Future<void> _writeUse(WidgetTester tester, String category) async {
+  await tester.ensureVisible(_use(category));
+  await tester.pumpAndSettle();
+  await tester.tap(_use(category));
+  await _settleWrite(tester);
+}
 
 /// The fixture's rows: Groceries and Coffee under Suggested caps, and Coffee
 /// as a pick in the new-envelope sheet. Leaves the editor with no sheet open.
@@ -536,5 +554,97 @@ void main() {
 
     expect(_onEditor(find.text("Couldn't load your envelopes.")), findsOneWidget);
     await shot(tester, 'envelopes_load_error_${_theme(dark)}');
+  });
+
+  scenarioTest('budgets_options_opens_editor', (tester, dark) async {
+    await _boot(tester, dark);
+    await _go(tester, _budgetsRoute);
+    await _tapLabel(tester, 'Budget options');
+
+    expect(find.byType(EnvelopeEditorScreen), findsOneWidget);
+    expect(_onEditor(find.text('Envelopes')), findsWidgets);
+    await shot(tester, 'budgets_options_opens_editor_${_theme(dark)}');
+  });
+
+  scenarioTest('budgets_after_cap_edit', (tester, dark) async {
+    await _boot(tester, dark);
+    await _go(tester, _budgetsRoute);
+    final before = find.text(_left(_groceries.cap));
+    expect(before, findsOneWidget);
+
+    await _tapLabel(tester, 'Budget options');
+    await _openGroceries(tester);
+    await _tapLabel(tester, r'+ $50');
+    await _write(tester, 'Save');
+    expect(_sheet, findsNothing);
+    // the sheet's scroll-into-view left the list scrolled; the back control is at its top.
+    await tester.drag(_onEditor(find.byType(Scrollable)).first, const Offset(0, 2000));
+    await tester.pumpAndSettle();
+    // the control's semantics span the row; only its chevron and label take taps.
+    await _tap(tester, _onEditor(find.byIcon(iconForSf('chevron.left'))));
+
+    expect(find.byType(EnvelopeEditorScreen), findsNothing);
+    expect(find.text(_left(_groceries.cap + _capStep)), findsOneWidget);
+    expect(before, findsNothing);
+    await shot(tester, 'budgets_after_cap_edit_${_theme(dark)}');
+  });
+
+  scenarioTest('budgets_new_envelope', (tester, dark) async {
+    await _boot(tester, dark);
+    await _go(tester, _budgetsRoute);
+    await _openNew(tester);
+
+    expect(_sheet, findsOneWidget);
+    expect(_inSheet(find.text('New envelope')), findsOneWidget);
+    expect(_coffeePick, findsOneWidget);
+    await shot(tester, 'budgets_new_envelope_${_theme(dark)}');
+  });
+
+  scenarioTest('budgets_empty', (tester, dark) async {
+    await _boot(tester, dark, empty: true);
+    await _go(tester, _budgetsRoute);
+
+    expect(find.text('No envelopes yet.'), findsOneWidget);
+    await shot(tester, 'budgets_empty_${_theme(dark)}');
+  });
+
+  scenarioTest('envelopes_suggestion_applied', (tester, dark) async {
+    await _boot(tester, dark);
+    await _openEditor(tester);
+    await _expectFixture(tester);
+
+    await _writeUse(tester, 'Groceries');
+    expect(
+        find.bySemanticsLabel(
+            _rowLabel(_groceries.copyWith(cap: _groceriesSuggested), Currency.usd)),
+        findsOneWidget);
+    expect(_use('Groceries'), findsNothing);
+
+    await _writeUse(tester, 'Coffee');
+    final row = find.bySemanticsLabel(RegExp(r'^Coffee, .* a month\. Edit cap$'));
+    expect(row, findsOneWidget);
+    await tester.ensureVisible(row);
+    await tester.pumpAndSettle();
+    expect(_onEditor(find.byIcon(lineIconForSf(kDefaultEnvelopeIcon))), findsWidgets);
+    expect(_use('Coffee'), findsNothing);
+    await shot(tester, 'envelopes_suggestion_applied_${_theme(dark)}');
+  });
+
+  scenarioTest('budgets_line_glyphs', (tester, dark) async {
+    await _boot(tester, dark);
+    await _go(tester, _budgetsRoute);
+
+    // envelope rows come before the suggestions, so the first match is the row.
+    final groceries = find
+        .ancestor(of: find.text('Groceries').first, matching: find.byType(MergeSemantics))
+        .first;
+    expect(find.descendant(of: groceries, matching: find.byIcon(lineIconForSf('basket.fill'))),
+        findsOneWidget);
+    expect(find.descendant(of: groceries, matching: find.byIcon(iconForSf('basket.fill'))),
+        findsNothing);
+    await tester.ensureVisible(find.text(_budgetsFooter));
+    await tester.pumpAndSettle();
+    expect(find.text(_budgetsFooter), findsOneWidget);
+    await shot(tester, 'budgets_line_glyphs_${_theme(dark)}');
   });
 }
