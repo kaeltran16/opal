@@ -71,7 +71,7 @@ The prototype (one interactive artboard, tweaks for theme, currency, data state 
 - Scenario steps use `scenarioTest` from `test/scenario/scenario_harness.dart` (it registers light and dark) and `shot(tester, '<name>_${dark ? 'dark' : 'light'}')`. Fail writes with a repository subclass override, as `defects_scenario_test.dart` does (`_FailingGoals`). The Final line (`flutter test`, no tag exclusion) runs every step in `test/scenario/envelope_editor_scenario_test.dart`.
 - **Scenario fixture.** `bootToday` seeds only reference data, so the envelope scenario file boots with its own `_boot`, modelled on `pal_money_settings_scenario_test.dart`'s `_boot`: an in-memory `LoopDatabase` with `Seeder(db).seedIfNeeded()`, which writes `SeedData.budgetEnvelopes()`. It then adds scenario-local expense entries through the entry repository, relative to `goldenClock`:
   - Groceries spend in each of the three completed months, enough that its recommendation's `suggestedCap` differs from its seed cap of 500;
-  - this-month spend in a category with no envelope (`Coffee`), above the advisory floor, so it appears both as a suggestion with no envelope and as a pick.
+  - `Coffee` (no envelope) spend in each of the three completed months, so it gets a suggestion with no envelope (recommendations read only completed months), plus this month's spend at or above the 500 advisory floor, so it is also a pick.
 
   The fixture asserts that these rows render before any step relies on them. Task 4 creates `_boot` and the fixture; Task 5 reuses them.
 
@@ -153,7 +153,7 @@ Tests (new file, in-memory database, real providers): after `BudgetEnvelopesCont
 
 - Add line stems to `_sfMap` so that every picker glyph in decision 7, and the seed's `.fill` names, draw as outlines through `AppIcon.line`:
   - `bag` → `CupertinoIcons.bag`
-  - `car` → `CupertinoIcons.car`
+  - `car` → `Icons.directions_car_outlined` (`CupertinoIcons.car` shares its code point with `car_fill`, so it would not draw as an outline)
   - `tv` → `CupertinoIcons.tv`
   - `basket` → `Icons.shopping_basket_outlined`
   - `house` → `CupertinoIcons.house`
