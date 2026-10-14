@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:clock/clock.dart';
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -14,6 +17,10 @@ import 'package:opal/theme/app_colors.dart';
 import 'package:opal/theme/app_type.dart';
 import 'package:opal/util/format.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import 'support/flush_provider_timers.dart';
+import 'support/golden_harness.dart' show appRouter, goldenClock;
+import 'support/today_fixture.dart';
 
 /// Pumps the [NewEntrySheet] inside a ProviderScope + GoRouter so that
 /// `context.pop()` resolves and the theme extension is available. An optional
@@ -68,6 +75,34 @@ Future<EntryRepository> _pumpSheet(
   await tester.pumpAndSettle();
 
   return EntryRepository(db);
+}
+
+/// Records one-shot notifications so the full-app test can count alerts.
+class _RecordingNotifications implements NotificationService {
+  final List<NotificationRequest> oneShots = [];
+
+  @override
+  Future<bool> hasPermission() async => true;
+
+  @override
+  Future<bool> requestPermissions() async => true;
+
+  @override
+  Future<void> schedule(NotificationRequest request) async => oneShots.add(request);
+
+  @override
+  Future<void> scheduleDaily({
+    required int id,
+    required String title,
+    required String body,
+    required TimeOfDay time,
+  }) async {}
+
+  @override
+  Future<void> cancel(int id) async {}
+
+  @override
+  Future<void> cancelAll() async {}
 }
 
 void main() {
@@ -303,5 +338,35 @@ void main() {
     final e = (await repo.getAll()).single;
     expect(e.type, EntryType.rituals);
     expect(e.title, 'Stretch');
+  });
+
+  testWidgets('in the full app, an expense over budget pops the sheet and alerts once',
+      (tester) async {
+    await withClock(goldenClock, () async {
+      final notifications = _RecordingNotifications();
+      // the fixture's receipt is already spent, so a whole budget on top crosses it.
+      final spend = const TodayDay().goals.dailyBudget.toInt();
+      await bootToday(tester, overrides: [
+        notificationServiceProvider.overrideWithValue(notifications),
+      ]);
+      final container = ProviderScope.containerOf(tester.element(find.byType(MaterialApp)));
+      expect(container.read(settingsRepositoryProvider).budgetAlerts, isTrue);
+
+      unawaited(appRouter(tester).push('/entry/new'));
+      await tester.pumpAndSettle();
+      for (final key in '$spend'.split('')) {
+        await tester.tap(find.descendant(of: find.byType(NewEntrySheet), matching: find.text(key)).last);
+        await tester.pump();
+      }
+      await tester.tap(find.descendant(of: find.byType(NewEntrySheet), matching: find.text('Add')));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(NewEntrySheet), findsNothing);
+      final manual = (await container.read(entryRepositoryProvider).getAll())
+          .where((e) => e.type == EntryType.money && e.source == EntrySource.manual);
+      expect(manual.single.amount, -spend);
+      expect(notifications.oneShots.single.id, NotificationIds.budgetAlert);
+      await flushProviderTimers(tester);
+    });
   });
 }

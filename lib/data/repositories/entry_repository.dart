@@ -26,10 +26,24 @@ class EntryRepository {
   /// Entries whose timestamp falls on the same calendar day as [day]
   /// (defaults to now), newest first.
   Stream<List<Entry>> watchToday([DateTime? day]) {
+    final (start, end) = _dayRange(day);
+    return watchEntriesInRange(start, end);
+  }
+
+  /// One-shot fetch of [watchToday]'s entries. A single read should not go
+  /// through a stream: `.first` on a drift select stream waits on the
+  /// subscription's cancel future, which completes only on a real event-loop
+  /// turn, so it never settles under a widget test's fake async.
+  Future<List<Entry>> getToday([DateTime? day]) {
+    final (start, end) = _dayRange(day);
+    return getEntriesInRange(start, end);
+  }
+
+  /// The half-open calendar day around [day] (defaults to now).
+  static (DateTime, DateTime) _dayRange(DateTime? day) {
     final d = day ?? clock.now();
     final start = DateTime(d.year, d.month, d.day);
-    final end = start.add(const Duration(days: 1));
-    return watchEntriesInRange(start, end);
+    return (start, start.add(const Duration(days: 1)));
   }
 
   /// Entries in the half-open range [from, to), newest first.

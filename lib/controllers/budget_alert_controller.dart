@@ -41,8 +41,7 @@ class BudgetAlertController extends _$BudgetAlertController {
     final budget = goals.dailyBudget;
     if (budget <= 0) return; // no meaningful budget to cross
 
-    final entries =
-        await ref.read(entryRepositoryProvider).watchToday(now).first;
+    final entries = await ref.read(entryRepositoryProvider).getToday(now);
     final spent = entries
         .where((e) => e.type == EntryType.money && (e.amount ?? 0) < 0)
         .fold<double>(0, (sum, e) => sum + e.amount!.abs());
@@ -90,13 +89,10 @@ class BudgetAlertController extends _$BudgetAlertController {
     final now = clock.now();
     // Start-of-last-month is always at least 28 days back, so this window
     // covers the 14 days velocity needs and both months a spike compares.
-    final entries = await ref
-        .read(entryRepositoryProvider)
-        .watchEntriesInRange(
+    final entries = await ref.read(entryRepositoryProvider).getEntriesInRange(
           DateTime(now.year, now.month - 1),
           DateTime(now.year, now.month + 1),
-        )
-        .first;
+        );
 
     await _alertVelocity(settings, entries, now);
     await _alertSpike(settings, entries, now);

@@ -65,7 +65,6 @@ const double _collapseDrag = 300;
 const double _scrollStep = 200;
 // a bound on the set-logging loops, well above any seeded routine's sets.
 const _maxTaps = 60;
-const _dbTick = Duration(milliseconds: 50);
 const _oldSession = Duration(days: 280);
 
 const _legsPick = WorkoutSuggestion(
@@ -163,7 +162,7 @@ Future<void> _boot(
   ]);
   if (freshDay) await _workouts(tester).deleteById(_seededToday);
   appRouter(tester).go(AppRoute.move.path);
-  await _settleDb(tester);
+  await tester.pumpAndSettle();
 }
 
 ProviderContainer _container(WidgetTester tester) =>
@@ -173,12 +172,6 @@ WorkoutRepository _workouts(WidgetTester tester) => _container(tester).read(work
 
 ActiveSessionState _session(WidgetTester tester) =>
     _container(tester).read(workoutSessionControllerProvider(_pushRoutine)).requireValue;
-
-/// Lets Drift's stream notifications run on the real event loop, then settles.
-Future<void> _settleDb(WidgetTester tester) async {
-  await tester.runAsync(() => Future<void>.delayed(_dbTick));
-  await tester.pumpAndSettle();
-}
 
 Future<void> _tap(WidgetTester tester, Finder finder) async {
   await tester.ensureVisible(finder);
@@ -376,7 +369,7 @@ void main() {
 
     // workout_tab_settled
     saveGate.complete();
-    await _settleDb(tester);
+    await tester.pumpAndSettle();
     expect(find.byType(PostWorkoutScreen), findsNothing);
     expect(find.byType(MoveScreen), findsOneWidget);
     await _toTop(tester, MoveScreen);
@@ -601,7 +594,6 @@ void main() {
 
     // routine_editor_saved: the picker shows the new routine without reopening.
     await _tapIn(tester, RoutineEditorScreen, find.bySemanticsLabel('Save'));
-    await _settleDb(tester);
     expect(find.byType(RoutineEditorScreen), findsNothing);
     expect(find.byType(StartWorkoutScreen), findsOneWidget);
     await _reveal(tester, StartWorkoutScreen,
@@ -616,7 +608,6 @@ void main() {
 
     // weekly_plan
     await _tapIn(tester, MoveScreen, _onTab(find.text('Weekly plan')));
-    await _settleDb(tester);
     expect(find.byType(WeeklyPlanScreen), findsOneWidget);
     expect(find.text('Your plan'), findsOneWidget);
     expect(find.text('Start workout'), findsOneWidget);
@@ -630,14 +621,12 @@ void main() {
 
     // weekly_plan_rest_day
     await _tap(tester, find.text('Rest day'));
-    await _settleDb(tester);
     expect(find.text('Assign routine'), findsNothing);
     expect(find.bySemanticsLabel(RegExp(r'^Rest, Tue\b')), findsOneWidget);
     await _shot(tester, 'weekly_plan_rest_day', dark);
 
     // weekly_plan_start_today: the button reads the schedule before it opens.
     await _tapIn(tester, WeeklyPlanScreen, find.text('Start workout'));
-    await _settleDb(tester);
     expect(find.byType(ActiveSessionScreen), findsOneWidget);
     expect(find.text('Push Day A'), findsOneWidget);
     await _shot(tester, 'weekly_plan_start_today', dark);
@@ -647,7 +636,6 @@ void main() {
     // weekly_plan_rest_today
     await _tapIn(tester, WeeklyPlanScreen, find.text('Mon'));
     await _tap(tester, find.text('Rest day'));
-    await _settleDb(tester);
     await _toTop(tester, WeeklyPlanScreen);
     expect(find.text('Rest day'), findsOneWidget);
     expect(find.text('Start workout'), findsNothing);
@@ -677,7 +665,7 @@ void main() {
       endedAt: startedAt.add(const Duration(hours: 1)),
       sets: const [SetLog(id: '', exerciseId: 'squat', weightKg: 100, reps: 5, done: true)],
     ));
-    await _settleDb(tester);
+    await tester.pumpAndSettle();
 
     await _tapIn(tester, MoveScreen, _onTab(find.text('History and trends')));
     expect(find.byType(WorkoutHistoryScreen), findsOneWidget);
