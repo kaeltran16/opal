@@ -50,6 +50,7 @@ class WeeklyStats {
     required this.moveTarget,
     required this.ritualsKept,
     required this.ritualsTarget,
+    required this.hasRoutines,
   });
 
   /// Monday 00:00 of the week these stats cover.
@@ -72,6 +73,9 @@ class WeeklyStats {
 
   /// Weekly rituals target = effective daily target * 7.
   final int ritualsTarget;
+
+  /// Whether any routine exists, so a target of 0 can say why.
+  final bool hasRoutines;
 
   /// Sunday (week end, inclusive) — Monday + 6 days.
   DateTime get weekEnd => weekStart.add(const Duration(days: 6));
@@ -112,7 +116,9 @@ class WeeklyStats {
         WeekStat(
           label: 'Routines',
           value: '$ritualsKept',
-          sub: 'of $ritualsTarget',
+          sub: ritualsTarget == 0
+              ? noTargetLine(hasRoutines: hasRoutines)
+              : 'of $ritualsTarget',
           colorToken: 'rituals',
         ),
       ];
@@ -151,7 +157,8 @@ WeeklyStats buildWeeklyStats(
     moveTarget: goals.dailyMoveKcal * 7,
     ritualsKept: completedRoutinesInPeriod(entries, routines,
         start: weekStart, days: 7),
-    ritualsTarget: effectiveDailyRitualTarget(routines, goals) * 7,
+    ritualsTarget: effectiveDailyRitualTarget(routines) * 7,
+    hasRoutines: routines.isNotEmpty,
   );
 }
 

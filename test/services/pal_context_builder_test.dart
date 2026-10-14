@@ -60,9 +60,8 @@ void main() {
     expect((ctx['todayEntries'] as List).length, 3);
   });
 
-  test('ritual goals derive from the routine count when provided, else fall back',
-      () {
-    // 3 routines → targets track them (3, 3*7); empty list → daily fallback (5).
+  test('ritual goals derive from the routine count', () {
+    // 3 routines → targets track them (3, 3*7).
     final routines = [
       routine('a', ['a0']),
       routine('b', ['b0']),
@@ -88,6 +87,43 @@ void main() {
       routines: routines,
     );
     expect(insights['ritualsTarget'], 21);
+  });
+
+  test('no routines sends a ritual target of 0, not the stored 5', () {
+    final chat = buildChatContext(
+      userName: 'Kael',
+      goals: goals,
+      todayEntries: const [],
+      weekEntries: const [],
+      moveStreakDays: 0,
+    );
+    expect(chat['ritualGoal'], 0);
+    expect(chat['weekRitualGoal'], 0);
+
+    final insights = buildInsightsContext(
+      range: InsightRange.week,
+      entries: const [],
+      goals: goals,
+      periodDays: 7,
+      streakDays: 0,
+    );
+    expect(insights['ritualsTarget'], 0);
+
+    final review = buildReviewContext(
+      range: ReviewRange.week,
+      spent: 0,
+      spentDeltaPct: null,
+      kcalMoved: 0,
+      movedDeltaPct: null,
+      activeDays: 0,
+      ritualsKept: 0,
+      ritualsTarget: 0,
+      streakDays: 0,
+      topCategory: '—',
+      topCategoryPct: 0,
+    );
+    expect(review['ritualsTarget'], 0);
+    expect(review['ritualsPct'], 0);
   });
 
   test('an empty routine is not in the ritual targets', () {

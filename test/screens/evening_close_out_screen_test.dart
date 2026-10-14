@@ -19,7 +19,6 @@ final _monday = Clock.fixed(DateTime(2026, 9, 28, 21, 30));
 const _first = 'Phone on the charger';
 const _second = 'Skincare';
 const _loadError = "Couldn't load your routines. Try again in a moment.";
-const _retryWindow = Duration(minutes: 3);
 
 /// Boots Today on a tall surface, then pushes the close-out.
 void _closeOutTest(
@@ -121,10 +120,7 @@ void main() {
   }, overrides: [ritualRoutinesStreamProvider.overrideWith((ref) => pending.stream)]);
 
   _closeOutTest('a failing load shows calm copy and no card', (tester) async {
-    // riverpod holds a failure as loading while it retries; outlast the retries.
-    for (var i = 0; i < _retryWindow.inSeconds && find.text(_loadError).evaluate().isEmpty; i++) {
-      await tester.pump(const Duration(seconds: 1));
-    }
+    await tester.pumpAndSettle();
     expect(find.text(_loadError), findsOneWidget);
     expect(find.text('Mark done'), findsNothing);
     expect(find.text('Good night'), findsNothing);

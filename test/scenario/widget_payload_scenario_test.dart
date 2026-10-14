@@ -34,6 +34,7 @@ GlanceNumbers _numbers({
       moveGoal: 500,
       routinesDone: routinesDone,
       routinesTotal: 4,
+      hasRoutines: true,
     );
 
 final _fixtures = [

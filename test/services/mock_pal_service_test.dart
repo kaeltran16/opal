@@ -18,6 +18,15 @@ void main() {
     expect(next.routineId, isNot('seed-routine-push-a'));
   });
 
+  test("the agenda's wind-down ritual proposal adds a ritual; the close-out one navigates",
+      () async {
+    final proposals = (await MockPalService(latency: fast).agenda()).proposals;
+    final byId = {for (final p in proposals) p.id: p};
+    expect(byId['add-wind-down-ritual']!.addsRitual, isTrue);
+    expect(byId['close-out-tonight']!.navigatesToCloseOut, isTrue);
+    expect(byId['close-out-tonight']!.addsRitual, isFalse);
+  });
+
   group('chat logging', () {
     LogEntryAction onlyAction(PalChatResult r) =>
         r.actions.single as LogEntryAction;

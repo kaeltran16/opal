@@ -48,6 +48,18 @@ describe('Pal.agenda', () => {
     expect(res.streakDays).toBe(11)
   })
 
+  it('gives an add_ritual proposal its own action', async () => {
+    const model = JSON.stringify({
+      proposals: [{
+        kind: 'add_ritual', colorToken: 'rituals', tag: 'Rituals', title: 'Add a 2-min wind-down ritual',
+        body: 'A short wind-down could anchor it.', approveLabel: 'Add ritual', doneLabel: 'Added',
+      }],
+      autopilot: [],
+    })
+    const res = await new Pal(fakeClient(model)).agenda(ctx)
+    expect(res.proposals[0]).toMatchObject({ icon: 'sparkles', approveIcon: 'plus', action: 'add_ritual' })
+  })
+
   it('coerces an unknown proposal kind to the generic (non-navigating) presentation', async () => {
     const model = JSON.stringify({
       proposals: [{

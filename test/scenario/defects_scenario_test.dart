@@ -31,6 +31,7 @@ import 'package:opal/screens/rituals/rituals_builder_screen.dart';
 import 'package:opal/screens/rituals/routine_player_screen.dart';
 import 'package:opal/screens/settings/budgets_goals_screen.dart';
 import 'package:opal/screens/today/today_screen.dart';
+import 'package:opal/screens/pal/pal_composer_screen.dart';
 import 'package:opal/screens/workout/post_workout_screen.dart';
 import 'package:opal/screens/workout/routine_generator_screen.dart';
 import 'package:opal/theme/theme.dart';
@@ -53,6 +54,13 @@ const _deleteFailed = "Couldn't delete. Try again.";
 const _noSteps = 'No steps in your routines yet.';
 const _morningRow = 'Morning, 7:00 AM, 5 steps. Edit';
 const _manageRoute = '/areas/routines/manage';
+const _morningPagesStarter = 'Finished morning pages';
+
+/// A target the stored goal or a routine-less day would draw: `of 5`, `of 0`.
+final _staleTarget = RegExp(r'of [05]');
+
+/// No routines, a stored target of 5, and a step logged that no routine has.
+const _noRoutinesDay = TodayDay(routines: [], legacyRitual: true);
 
 /// The stored names of the seed routines' glyphs, all filled forms.
 const _routineIcons = ['sunrise.fill', 'sun.max.fill', 'moon.stars.fill'];
@@ -107,6 +115,10 @@ const _anyTime = RitualRoutine(
   order: 5,
   steps: [RitualStep(id: 'any-time-step-0', title: 'Breathe', note: '', icon: 'sparkles')],
 );
+
+/// One routine with no steps, a stored target of 5, and a step logged that no
+/// routine has.
+const _steplessDay = TodayDay(routines: [_stretch], legacyRitual: true);
 
 RitualRoutine _seed(String id) => SeedData.ritualRoutines().singleWhere((r) => r.id == id);
 
@@ -299,7 +311,7 @@ void main() {
 
     expect(_onPage(find.text(_noSteps)), findsOneWidget);
     expect(_onPage(find.text('0')), findsOneWidget);
-    expect(_onPage(find.text('routines set up')), findsOneWidget);
+    expect(_onPage(find.text('steps in your routines')), findsOneWidget);
     expect(_onPage(find.byType(ContributorBar)), findsNothing);
     await shot(tester, 'routines_area_no_steps_${_theme(dark)}');
   });
@@ -361,6 +373,77 @@ void main() {
     expect(find.text('Routines'), findsOneWidget);
     expect(find.text('1 routine'), findsOneWidget);
     await shot(tester, 'budgets_goals_routines_target_${_theme(dark)}');
+  });
+
+  // --- no routines is a target of 0 ---
+
+  scenarioTest('recap_no_routines', (tester, dark) async {
+    await bootToday(tester, dark: dark, day: _noRoutinesDay, overrides: [
+      recapMemoryRefreshProvider.overrideWith((_) async {}),
+    ]);
+    await _go(tester, '/recap?range=day');
+
+    expect(_within(RecapScreen, find.text('Rituals')), findsOneWidget);
+    expect(_within(RecapScreen, find.text(kNoRoutinesLine)), findsOneWidget);
+    expect(_within(RecapScreen, find.textContaining(_staleTarget)), findsNothing);
+    await shot(tester, 'recap_no_routines_${_theme(dark)}');
+  });
+
+  scenarioTest('weekly_review_no_routines', (tester, dark) async {
+    await bootToday(tester, dark: dark, day: _noRoutinesDay, overrides: [
+      recapMemoryRefreshProvider.overrideWith((_) async {}),
+    ]);
+    await _go(tester, '/weekly-review');
+
+    expect(find.byType(RecapScreen), findsOneWidget);
+    expect(_within(RecapScreen, find.text('Rituals')), findsOneWidget);
+    expect(_within(RecapScreen, find.text(kNoRoutinesLine)), findsOneWidget);
+    expect(_within(RecapScreen, find.textContaining(_staleTarget)), findsNothing);
+    await shot(tester, 'weekly_review_no_routines_${_theme(dark)}');
+  });
+
+  scenarioTest('composer_rituals_turn_no_routines', (tester, dark) async {
+    await bootToday(tester, dark: dark, day: _noRoutinesDay,
+        pal: TodayPal(offline: true, proposals: const []));
+    await _push(tester, AppRoute.palComposer.path);
+    final sheet = find.byType(PalComposerSheet);
+    await _tap(tester, find.descendant(of: sheet, matching: find.text(_morningPagesStarter)));
+
+    Finder inSheet(Finder matching) => find.descendant(of: sheet, matching: matching);
+    expect(inSheet(find.text('Rituals today')), findsOneWidget);
+    expect(inSheet(find.text(kNoRoutinesLine)), findsOneWidget);
+    expect(inSheet(find.textContaining(_staleTarget)), findsNothing);
+    await shot(tester, 'composer_rituals_turn_no_routines_${_theme(dark)}');
+  });
+
+  // --- stepless routines read the stepless line ---
+
+  scenarioTest('recap_stepless_routines', (tester, dark) async {
+    await bootToday(tester, dark: dark, day: _steplessDay, overrides: [
+      recapMemoryRefreshProvider.overrideWith((_) async {}),
+    ]);
+    await _go(tester, '/recap?range=day');
+
+    expect(_within(RecapScreen, find.text('Rituals')), findsOneWidget);
+    expect(_within(RecapScreen, find.text(_noSteps)), findsOneWidget);
+    expect(_within(RecapScreen, find.text(kNoRoutinesLine)), findsNothing);
+    expect(_within(RecapScreen, find.textContaining(_staleTarget)), findsNothing);
+    await shot(tester, 'recap_stepless_routines_${_theme(dark)}');
+  });
+
+  scenarioTest('composer_rituals_turn_stepless', (tester, dark) async {
+    await bootToday(tester, dark: dark, day: _steplessDay,
+        pal: TodayPal(offline: true, proposals: const []));
+    await _push(tester, AppRoute.palComposer.path);
+    final sheet = find.byType(PalComposerSheet);
+    await _tap(tester, find.descendant(of: sheet, matching: find.text(_morningPagesStarter)));
+
+    Finder inSheet(Finder matching) => find.descendant(of: sheet, matching: matching);
+    expect(inSheet(find.text('Rituals today')), findsOneWidget);
+    expect(inSheet(find.text(_noSteps)), findsOneWidget);
+    expect(inSheet(find.text(kNoRoutinesLine)), findsNothing);
+    expect(inSheet(find.textContaining(_staleTarget)), findsNothing);
+    await shot(tester, 'composer_rituals_turn_stepless_${_theme(dark)}');
   });
 
   // --- one close-out row on today ---

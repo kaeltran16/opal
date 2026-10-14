@@ -98,6 +98,28 @@ void main() {
     expect(move.calories, 240);
   });
 
+  test('agenda decodes a proposal action into addsRitual or navigatesToCloseOut', () async {
+    final service = build(MockClient((req) async => http.Response(
+        jsonEncode({
+          'proposals': [
+            {'id': 'add_ritual-0', 'title': 'Add a ritual', 'action': 'add_ritual'},
+            {'id': 'close_out-1', 'title': 'Close out', 'action': 'close_out'},
+            {'id': 'generic-2', 'title': 'Plain', 'action': null},
+          ],
+          'autopilot': <Object>[],
+        }),
+        200)));
+
+    final [addRitual, closeOut, plain] = (await service.agenda()).proposals;
+
+    expect(addRitual.addsRitual, isTrue);
+    expect(addRitual.navigatesToCloseOut, isFalse);
+    expect(closeOut.addsRitual, isFalse);
+    expect(closeOut.navigatesToCloseOut, isTrue);
+    expect(plain.addsRitual, isFalse);
+    expect(plain.navigatesToCloseOut, isFalse);
+  });
+
   test('parse maps the response into a ParsedEntryDraft (expense negated)', () async {
     final service = build(MockClient((req) async => http.Response(
           jsonEncode({'type': 'money', 'amount': 5, 'duration': null, 'category': 'Coffee', 'title': 'Coffee', 'note': null, 'direction': 'expense'}),

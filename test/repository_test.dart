@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opal/data/db/database.dart';
@@ -104,6 +106,38 @@ void main() {
       // Stream should now emit the new entry.
       final next = await stream.firstWhere((rows) => rows.isNotEmpty);
       expect(next.single.id, 'e1');
+    });
+
+    test('getToday returns only the day\'s entries, newest first', () async {
+      final repo = EntryRepository(db);
+      for (final (id, at) in [
+        ('day-start', DateTime(2026, 6, 9)),
+        ('day-evening', DateTime(2026, 6, 9, 19, 0)),
+        ('day-before', DateTime(2026, 6, 8, 23, 59)),
+        ('day-after', DateTime(2026, 6, 10)),
+      ]) {
+        await repo.insert(Entry(
+          id: id,
+          timestamp: at,
+          type: EntryType.money,
+          title: id,
+          amount: -1,
+          source: EntrySource.manual,
+        ));
+      }
+
+      final today = await repo.getToday(DateTime(2026, 6, 9, 12, 0));
+      expect(today.map((e) => e.id), ['day-evening', 'day-start']);
+    });
+
+    testWidgets('getToday completes under fake async', (tester) async {
+      final repo = EntryRepository(db);
+      var done = false;
+      unawaited(repo.getToday(DateTime(2026, 6, 9)).then((_) => done = true));
+      await tester.pump();
+      // a drift stream's `.first` would wait on a cancel future that fake
+      // async never completes.
+      expect(done, isTrue);
     });
 
     test('watchEntriesInRange respects half-open bounds', () async {

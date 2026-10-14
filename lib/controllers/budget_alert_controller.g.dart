@@ -78,7 +78,7 @@ final class BudgetAlertControllerProvider
 }
 
 String _$budgetAlertControllerHash() =>
-    r'6e051027f56690890e02f73490159b6fa2d0eec8';
+    r'c11604b155012f6bb5f38b1460307daa10529ed0';
 
 /// Fires an over-budget alert when a spending entry pushes the day's total spend
 /// over [Goals.dailyBudget].

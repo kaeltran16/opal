@@ -60,6 +60,7 @@ GlanceNumbers _numbers({
       moveGoal: moveGoal,
       routinesDone: routinesDone,
       routinesTotal: routinesTotal,
+      hasRoutines: routinesTotal > 0,
     );
 
 DateTime _at(int hour, [int minute = 0]) => DateTime(2026, 10, 13, hour, minute);
@@ -101,6 +102,42 @@ void main() {
           buildWidgetSnapshot(state.glance, Currency.usd, now).toJson());
       expect(recorder.last!.routines.value, '1 of 2 done');
       expect(recorder.last!.money.value, r'$18 left of $60');
+    });
+  });
+
+  group('TodayState.glance', () {
+    // a ritual entry logged before the routines lost their steps.
+    final legacy = Entry(
+      id: 'legacy',
+      timestamp: DateTime(2026, 10, 13, 8),
+      type: EntryType.rituals,
+      title: 'Stretch',
+      ritualId: 'gone',
+      source: EntrySource.manual,
+    );
+
+    test('routines with no steps read none done', () {
+      final n = TodayState(
+        entries: [legacy],
+        goals: const Goals(dailyRitualTarget: 5),
+        routines: [_routine('stretch', const [])],
+      ).glance;
+
+      expect(n.routinesTotal, 0);
+      expect(n.routinesDone, 0);
+      expect(n.hasRoutines, isTrue);
+    });
+
+    test('no routines read none done and none set up', () {
+      final n = TodayState(
+        entries: [legacy],
+        goals: const Goals(dailyRitualTarget: 5),
+        routines: const [],
+      ).glance;
+
+      expect(n.routinesTotal, 0);
+      expect(n.routinesDone, 0);
+      expect(n.hasRoutines, isFalse);
     });
   });
 

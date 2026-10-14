@@ -47,6 +47,19 @@ const _closeOutProposal = PalProposal(
   action: 'close_out',
 );
 
+const _addRitualProposal = PalProposal(
+  id: 'add-wind-down-ritual',
+  tag: 'Rituals',
+  colorToken: 'rituals',
+  icon: 'sparkles',
+  title: 'Add a 2-min wind-down ritual',
+  body: 'A short wind-down could anchor it.',
+  approveLabel: 'Add ritual',
+  approveIcon: 'plus',
+  doneLabel: 'Added',
+  action: 'add_ritual',
+);
+
 RitualRoutine _routine(String id, String time, {int steps = 1}) => RitualRoutine(
       id: id,
       name: 'Routine $id',
@@ -501,6 +514,30 @@ void main() {
         rituals: _rituals([_routine('morning', '7:00 AM')]),
       );
       expect(_ids(plan.items), ['routine:morning', 'mood', 'meal']);
+    });
+
+    test("beside the close-out row Pal's add-ritual proposal is dropped, a plain one stays", () {
+      final plan = _plan(
+        agenda: const PalAgenda(proposals: [_closeOutProposal, _addRitualProposal, _proposal]),
+        rituals: _rituals([_routine('evening', '9:00 PM')]),
+      );
+      expect(_ids(plan.items), ['proposal:rent', 'mood', 'meal', 'closeOut']);
+    });
+
+    test("with no close-out row Pal's add-ritual proposal is a proposal row", () {
+      for (final rituals in [
+        null,
+        _rituals([_routine('morning', '7:00 AM')]),
+        _rituals([_routine('evening', '9:00 PM', steps: 0)]),
+      ]) {
+        final plan = _plan(
+          agenda: const PalAgenda(proposals: [_closeOutProposal, _addRitualProposal, _proposal]),
+          rituals: rituals,
+        );
+        final proposals = plan.items.where((i) => i.kind == PlanKind.proposal);
+        expect(_ids(proposals), ['proposal:add-wind-down-ritual', 'proposal:rent']);
+        expect(plan.items.where((i) => i.kind == PlanKind.closeOut), isEmpty);
+      }
     });
 
     test('empty inputs leave only mood and Log a meal open; settling both ends the day', () {

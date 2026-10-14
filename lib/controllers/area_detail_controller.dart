@@ -392,9 +392,9 @@ AreaDetail _routines(
 
   final String palLine;
   if (routines.isEmpty) {
-    palLine = 'No routines set up yet.';
+    palLine = kNoRoutinesLine;
   } else if (total == 0) {
-    palLine = 'No steps in your routines yet.';
+    palLine = kNoStepsLine;
   } else if (done >= total) {
     palLine = 'All $total done.';
   } else {
@@ -411,7 +411,11 @@ AreaDetail _routines(
   return AreaDetail(
     area: Area.routines,
     hero: '$done',
-    unit: total == 0 ? 'routines set up' : 'of $total routines done',
+    unit: total > 0
+        ? 'of $total routines done'
+        : routines.isEmpty
+            ? kNoRoutinesUnit
+            : kNoStepsUnit,
     state: progressState(done: done, goal: total, now: now),
     palLine: palLine,
     contributors: [

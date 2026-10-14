@@ -59,7 +59,7 @@ class TodayState {
   /// metric counts *completed routines ÷ total routines* — a routine is
   /// complete only when every one of its steps is done. Empty when routine
   /// data isn't supplied (tests / pre-load), in which case the metric falls
-  /// back to the legacy per-step count against [Goals.dailyRitualTarget].
+  /// back to the legacy per-step count, against a target of 0.
   final List<RitualRoutine> routines;
 
   /// Move-kcal for the day: sum of the active energy of logged move entries.
@@ -83,9 +83,8 @@ class TodayState {
   /// per-step count.
   bool get _hasRoutines => routines.isNotEmpty;
 
-  /// The "Routines" denominator: the routines with steps when known, else the
-  /// legacy [Goals.dailyRitualTarget].
-  int get ritualsTarget => effectiveDailyRitualTarget(routines, goals);
+  /// The "Routines" denominator: the routines with steps, 0 when there are none.
+  int get ritualsTarget => effectiveDailyRitualTarget(routines);
 
   /// The "Routines" numerator: completed *routines* when routine data is
   /// known, else the legacy count of completed ritual *steps*.
@@ -104,16 +103,21 @@ class TodayState {
 
   List<double> get rings => [moneyRing, moveRing, ritualsRing];
 
-  /// The widget's [GlanceNumbers], counting routines the way Today does: the
-  /// total is today's routines with steps, and none done when there are none.
-  GlanceNumbers get glance => GlanceNumbers(
-        spent: moneySpent,
-        budget: goals.dailyBudget,
-        moveKcal: moveKcal,
-        moveGoal: goals.dailyMoveKcal,
-        routinesTotal: trackedRoutines(routines).length,
-        routinesDone: routines.isEmpty ? 0 : ritualsDone,
-      );
+  /// Today's [GlanceNumbers], for the widget, the Areas tab and Today's care
+  /// rule: the total is today's routines with steps, and none done when there
+  /// are none, so neither the stored target nor the legacy step count applies.
+  GlanceNumbers get glance {
+    final total = trackedRoutines(routines).length;
+    return GlanceNumbers(
+      spent: moneySpent,
+      budget: goals.dailyBudget,
+      moveKcal: moveKcal,
+      moveGoal: goals.dailyMoveKcal,
+      routinesTotal: total,
+      routinesDone: total == 0 ? 0 : ritualsDone,
+      hasRoutines: routines.isNotEmpty,
+    );
+  }
 
   /// Rituals remaining to hit target (never negative).
   int get ritualsRemaining =>

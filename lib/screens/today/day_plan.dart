@@ -218,7 +218,8 @@ bool _isToday(DateTime at, DateTime now) =>
 /// Builds the day from local data and Pal's pending proposals. Nothing here
 /// calls the model, so the plan stands when Pal is offline. The evening
 /// routine is the close-out row, and Pal's close-out proposal only lends it
-/// a sentence.
+/// a sentence. Beside the close-out row, Pal's add-ritual proposals are left
+/// out; without one they are ordinary proposal rows.
 DayPlan buildDayPlan({
   required PalAgenda agenda,
   required RitualsState? rituals,
@@ -236,7 +237,7 @@ DayPlan buildDayPlan({
 
   return DayPlan([
     for (final p in agenda.proposals)
-      if (!p.navigatesToCloseOut)
+      if (!p.navigatesToCloseOut && !(closeOut != null && p.addsRitual))
         PlanItem(
           id: 'proposal:${p.id}',
           kind: PlanKind.proposal,

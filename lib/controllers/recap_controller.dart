@@ -52,6 +52,7 @@ class RecapData {
     required this.moveTarget,
     required this.ritualsKept,
     required this.ritualsTarget,
+    required this.hasRoutines,
   });
 
   /// The period this recap covers.
@@ -80,6 +81,9 @@ class RecapData {
 
   /// Period rituals target = effective daily target * days-in-period.
   final int ritualsTarget;
+
+  /// Whether any routine exists, so a target of 0 can say why.
+  final bool hasRoutines;
 
   static const _monthsLong = [
     'January', 'February', 'March', 'April', 'May', 'June',
@@ -134,7 +138,9 @@ class RecapData {
         RecapStat(
           label: 'Rituals',
           value: '$ritualsKept',
-          sub: 'of $ritualsTarget',
+          sub: ritualsTarget == 0
+              ? noTargetLine(hasRoutines: hasRoutines)
+              : 'of $ritualsTarget',
           colorToken: 'rituals',
         ),
       ];
@@ -196,7 +202,8 @@ RecapData buildRecapData(
     moveTarget: goals.dailyMoveKcal * days,
     ritualsKept: completedRoutinesInPeriod(periodEntries, routines,
         start: periodStart, days: days),
-    ritualsTarget: effectiveDailyRitualTarget(routines, goals) * days,
+    ritualsTarget: effectiveDailyRitualTarget(routines) * days,
+    hasRoutines: routines.isNotEmpty,
   );
 }
 

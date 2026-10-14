@@ -22,6 +22,7 @@ const receiptTitle = 'Verve Coffee';
 const receiptId = 'receipt-verve';
 const mealTitle = 'Oats & banana';
 const workoutRoutineId = 'seed-routine-push-a';
+const legacyRitualId = 'legacy-step';
 
 /// A Pal whose day headline and proposals the test picks. [offline] makes
 /// both the brief and the agenda throw; a test can flip it after boot and
@@ -83,6 +84,7 @@ class TodayDay {
     this.mood = false,
     this.meal = false,
     this.firstRoutineDone = false,
+    this.legacyRitual = false,
     this.historyDays = 0,
   });
 
@@ -98,6 +100,7 @@ class TodayDay {
         mood = false,
         meal = false,
         firstRoutineDone = false,
+        legacyRitual = false,
         historyDays = 0;
 
   final Goals goals;
@@ -110,6 +113,9 @@ class TodayDay {
   final double spent;
   final int moveKcal;
   final bool receipt, sleep, mood, meal, firstRoutineDone;
+
+  /// A ritual step logged today whose step no longer exists in any routine.
+  final bool legacyRitual;
 
   /// Earlier days, each with a spend, a meal and a check-in in the morning, so
   /// the Areas cards draw where the user usually is by this hour.
@@ -172,6 +178,16 @@ class TodayDay {
           source: EntrySource.manual,
         ));
       }
+    }
+    if (legacyRitual) {
+      await entries.insert(Entry(
+        id: legacyRitualId,
+        timestamp: at(6, 55),
+        type: EntryType.rituals,
+        title: 'Old step',
+        ritualId: legacyRitualId,
+        source: EntrySource.manual,
+      ));
     }
     if (sleep) {
       await SleepRepository(db)

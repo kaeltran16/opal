@@ -46,10 +46,6 @@ const _closeOutError = "Couldn't load your routines. Try again in a moment.";
 const _saveFailed = "Couldn't save. Try again.";
 const _seedRoutines = ['Morning', 'Midday reset', 'Evening wind-down'];
 
-/// How long riverpod's default auto-retry can hold a failed load as loading.
-const _retryWindow = Duration(minutes: 3);
-const _retryStep = Duration(seconds: 1);
-
 /// The drag that reorders a row in widget tests: six short moves up.
 const _dragMoves = 6;
 const _dragStep = Offset(0, -40);
@@ -81,16 +77,6 @@ Future<void> _tap(WidgetTester tester, Finder finder) async {
 Future<void> _tapLabel(WidgetTester tester, String label) =>
     _tap(tester, find.bySemanticsLabel(label));
 
-/// Pumps one second at a time until [finder] shows, so a failed load outlasts
-/// riverpod's retries.
-Future<void> _pumpUntil(WidgetTester tester, Finder finder) async {
-  for (var waited = Duration.zero;
-      waited < _retryWindow && finder.evaluate().isEmpty;
-      waited += _retryStep) {
-    await tester.pump(_retryStep);
-  }
-}
-
 Future<void> _push(WidgetTester tester, String path) async {
   appRouter(tester).push(path);
   await tester.pumpAndSettle();
@@ -108,8 +94,10 @@ class _PendingBuilder extends RitualsBuilderController {
 }
 
 class _FailingBuilder extends RitualsBuilderController {
+  // an Exception, not an Error: riverpod's default retry skips Errors, so only
+  // an Exception shows whether the provider opts out of retry.
   @override
-  Stream<List<RitualRoutine>> build() => throw StateError('no database');
+  Stream<List<RitualRoutine>> build() => throw Exception('no database');
 }
 
 Future<void> _bootManage(
@@ -265,7 +253,7 @@ void main() {
     await _bootManage(tester, dark, overrides: [
       ritualsBuilderControllerProvider.overrideWith(_FailingBuilder.new),
     ]);
-    await _pumpUntil(tester, find.text(_manageError));
+    await tester.pumpAndSettle();
 
     expect(find.text(_manageError), findsOneWidget);
     expect(find.text('Morning'), findsNothing);
@@ -507,7 +495,7 @@ void main() {
       ritualRoutinesStreamProvider
           .overrideWith((ref) => Stream<List<RitualRoutine>>.error(Exception('db closed'))),
     ]);
-    await _pumpUntil(tester, find.text("Couldn't load routine"));
+    await tester.pumpAndSettle();
 
     expect(_title("Couldn't load routine"), findsOneWidget);
     expect(find.text('Try again in a moment.'), findsOneWidget);
@@ -633,7 +621,7 @@ void main() {
       ritualRoutinesStreamProvider
           .overrideWith((ref) => Stream<List<RitualRoutine>>.error(Exception('db closed'))),
     ]);
-    await _pumpUntil(tester, find.text(_closeOutError));
+    await tester.pumpAndSettle();
 
     expect(find.text(_closeOutError), findsOneWidget);
     expect(find.text('Mark done'), findsNothing);

@@ -244,9 +244,9 @@ Future<void> _tap(WidgetTester tester, Finder finder) async {
   await tester.pumpAndSettle();
 }
 
-/// Taps [finder] for a write that then closes the screen. The full app's
-/// database finishes such a write only on a real async turn, which the
-/// test's fake-async zone never takes.
+/// Taps [finder] for a meal save that then closes the sheet. The save awaits
+/// a haptic, a platform-channel call the test engine answers only on a real
+/// async turn, which the test's fake-async zone never takes.
 Future<void> _tapToWrite(WidgetTester tester, Finder finder) async {
   await tester.ensureVisible(finder);
   await tester.pumpAndSettle();
@@ -459,6 +459,31 @@ void main() {
     await shot(tester, 'composer_starters_fallback_${_theme(dark)}');
   });
 
+  scenarioTest('composer starter vnd', (tester, dark) async {
+    final theme = _theme(dark);
+    // pal offline: no starters of its own and no chat, so the static coffee
+    // starter shows and logs locally.
+    await _boot(tester, dark,
+        prefs: {'settings.currency': Currency.vnd.code},
+        pal: _ScenarioPal(starters: _Starters.none));
+    await _ask(tester);
+
+    // composer_starter_vnd
+    const label = 'Verve coffee, 5.000\u00a0₫';
+    expect(_inSheet(find.text(label)), findsOneWidget);
+    expect(_inSheet(find.text('Verve coffee, \$5')), findsNothing);
+    await shot(tester, 'composer_starter_vnd_$theme');
+
+    // composer_starter_vnd_logged
+    await _tap(tester, _inSheet(find.text(label)));
+    expect(_inSheet(find.textContaining('offline.')), findsOneWidget);
+    final all = await _container(tester).read(entryRepositoryProvider).getAll();
+    expect(all.where((e) => e.type == EntryType.money && e.title == 'Verve coffee'),
+        hasLength(1));
+    expect(all.where((e) => e.title == 'Verve coffee' && e.amount == -5000), hasLength(1));
+    await shot(tester, 'composer_starter_vnd_logged_$theme');
+  });
+
   scenarioTest('composer conversation', (tester, dark) async {
     final theme = _theme(dark);
     final pal = _ScenarioPal();
@@ -606,7 +631,7 @@ void main() {
     await shot(tester, 'add_meal_edit_$theme');
 
     // meal_delete: back on the Nutrition page, without the meal.
-    await _tapToWrite(tester, _onDetail(find.bySemanticsLabel('Delete')));
+    await _tap(tester, _onDetail(find.bySemanticsLabel('Delete')));
     expect(find.byType(NutritionMealDetailScreen), findsNothing);
     expect(find.byWidgetPredicate((w) => w is DetailScreen && w.area == Area.nutrition),
         findsOneWidget);
@@ -733,7 +758,7 @@ void main() {
     await shot(tester, 'budgets_goals_stepper_$theme');
 
     // budgets_goals_saved: Save writes the goals and returns to You.
-    await _tapToWrite(tester, find.bySemanticsLabel('Save'));
+    await _tap(tester, find.bySemanticsLabel('Save'));
     expect(find.byType(BudgetsGoalsScreen), findsNothing);
     expect(find.byType(ProfileScreen), findsOneWidget);
     final goals = await _container(tester).read(goalsRepositoryProvider).get();
@@ -765,7 +790,7 @@ void main() {
     await shot(tester, 'new_entry_quick_pick_$theme');
 
     // new_entry_added: Add writes the expense and closes the sheet.
-    await _tapToWrite(tester, _onEntry(find.bySemanticsLabel('Add')));
+    await _tap(tester, _onEntry(find.bySemanticsLabel('Add')));
     expect(find.byType(NewEntrySheet), findsNothing);
     final all = await _container(tester).read(entryRepositoryProvider).getAll();
     expect(all.where((e) => e.title == _habit.title && e.amount == -4.5), hasLength(1));

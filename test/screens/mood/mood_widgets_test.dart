@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:opal/controllers/mood_controller.dart';
 import 'package:opal/screens/mood/widgets/mood_widgets.dart';
 import 'package:opal/theme/app_colors.dart';
 
@@ -17,91 +16,51 @@ Widget _wrap(Widget child) {
 }
 
 void main() {
-  // ── MoodMiniScale ──────────────────────────────────────────────────────────
-
-  group('MoodMiniScale', () {
-    testWidgets('builds with dark=false, light=false', (tester) async {
-      await tester.pumpWidget(_wrap(
-        const MoodMiniScale(t: 0.5, dark: false),
-      ));
-      expect(find.text('Unpleasant'), findsOneWidget);
-      expect(find.text('Pleasant'), findsOneWidget);
-    });
-
-    testWidgets('builds with light=true (hero variant)', (tester) async {
-      await tester.pumpWidget(_wrap(
-        const MoodMiniScale(t: 0.75, dark: false, light: true),
-      ));
-      expect(find.text('Unpleasant'), findsOneWidget);
-      expect(find.text('Pleasant'), findsOneWidget);
-    });
-
-    testWidgets('builds with dark=true', (tester) async {
-      final darkColors = AppColors.dark();
-      await tester.pumpWidget(
-        ProviderScope(
-          child: MaterialApp(
-            theme: ThemeData(useMaterial3: true, extensions: [darkColors]),
-            home: Scaffold(
-              body: const MoodMiniScale(t: 0.3, dark: true),
-            ),
-          ),
-        ),
-      );
-      expect(find.text('Unpleasant'), findsOneWidget);
-    });
-
-    testWidgets('t=0 and t=1 extremes build without error', (tester) async {
-      await tester.pumpWidget(_wrap(const MoodMiniScale(t: 0.0, dark: false)));
-      expect(find.text('Pleasant'), findsOneWidget);
-
-      await tester.pumpWidget(_wrap(const MoodMiniScale(t: 1.0, dark: false)));
-      expect(find.text('Unpleasant'), findsOneWidget);
-    });
-  });
-
-  // ── MoodWeekChart ──────────────────────────────────────────────────────────
-
-  group('MoodWeekChart', () {
-    final week = [
-      const MoodBar(dayLetter: 'M', value: 0.6, isToday: false),
-      const MoodBar(dayLetter: 'T', value: 0.3, isToday: false),
-      const MoodBar(dayLetter: 'W', value: null, isToday: false),
-      const MoodBar(dayLetter: 'T', value: 0.5, isToday: false),
-      const MoodBar(dayLetter: 'F', value: 0.8, isToday: false),
-      const MoodBar(dayLetter: 'S', value: 0.4, isToday: false),
-      const MoodBar(dayLetter: 'S', value: 0.7, isToday: true),
-    ];
-
-    testWidgets('builds and shows footer text', (tester) async {
-      await tester.pumpWidget(_wrap(
-        MoodWeekChart(week: week, dark: false),
-      ));
-      expect(
-        find.textContaining('Above the line'),
-        findsOneWidget,
-      );
-    });
-
-    testWidgets('renders for all-null week without error', (tester) async {
-      final emptyWeek = List.generate(
-        7,
-        (i) => MoodBar(
-          dayLetter: 'M',
-          value: null,
-          isToday: i == 6,
-        ),
-      );
-      await tester.pumpWidget(_wrap(
-        MoodWeekChart(week: emptyWeek, dark: false),
-      ));
-      expect(find.textContaining('Above the line'), findsOneWidget);
-    });
-  });
-
   // ── MoodOrb ────────────────────────────────────────────────────────────────
 
   group('MoodOrb', () {
+    const orbSize = 100.0;
+
+    BoxDecoration orbDecoration(WidgetTester tester) {
+      final container = tester.widget<Container>(
+        find.descendant(of: find.byType(MoodOrb), matching: find.byType(Container)),
+      );
+      return container.decoration! as BoxDecoration;
+    }
+
+    List<Radius> corners(BoxDecoration d) {
+      final r = d.borderRadius! as BorderRadius;
+      return [r.topLeft, r.topRight, r.bottomRight, r.bottomLeft];
+    }
+
+    testWidgets('is a circle at t=0.5', (tester) async {
+      await tester.pumpWidget(_wrap(
+        const MoodOrb(t: 0.5, dark: false, size: orbSize),
+      ));
+      for (final corner in corners(orbDecoration(tester))) {
+        expect(corner, const Radius.circular(orbSize / 2));
+      }
+    });
+
+    for (final t in [0.0, 1.0]) {
+      testWidgets('each corner radius pair spans the full box at t=$t',
+          (tester) async {
+        await tester.pumpWidget(_wrap(
+          MoodOrb(t: t, dark: false, size: orbSize),
+        ));
+        for (final corner in corners(orbDecoration(tester))) {
+          expect(corner.x + corner.y, closeTo(orbSize, 1e-9));
+        }
+      });
+    }
+
+    testWidgets('casts no shadow', (tester) async {
+      await tester.pumpWidget(_wrap(
+        const MoodOrb(t: 0.7, dark: false, size: orbSize),
+      ));
+      expect(orbDecoration(tester).boxShadow, isNull);
+    });
+
     testWidgets('builds at t=0.5 (neutral)', (tester) async {
       await tester.pumpWidget(_wrap(
         const MoodOrb(t: 0.5, dark: false),

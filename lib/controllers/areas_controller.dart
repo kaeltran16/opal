@@ -221,7 +221,11 @@ AreaSummary _routines(GlanceNumbers today, DateTime now) {
     Area.routines,
     state: progressState(done: done, goal: total, now: now),
     number: '$done',
-    unit: total > 0 ? 'of $total done' : 'routines set up',
+    unit: total > 0
+        ? 'of $total done'
+        : today.hasRoutines
+            ? kNoStepsUnit
+            : kNoRoutinesUnit,
     progress: total > 0 ? done / total : 0,
   );
 }
@@ -392,18 +396,8 @@ Stream<AreasSummary> areasSummary(Ref ref) async* {
   final entries = await ref.watch(_recentEntriesProvider.future);
   final meals = await ref.watch(_recentMealsProvider.future);
   final checkins = await ref.watch(_recentCheckinsProvider.future);
-  // the routines with steps are the target, as on today. with none there is
-  // nothing to complete, so the legacy step count does not apply.
-  final routinesTotal = trackedRoutines(today.routines).length;
   yield buildAreasSummary(
-    today: GlanceNumbers(
-      spent: today.moneySpent,
-      budget: today.goals.dailyBudget,
-      moveKcal: today.moveKcal,
-      moveGoal: today.goals.dailyMoveKcal,
-      routinesDone: routinesTotal == 0 ? 0 : today.ritualsDone,
-      routinesTotal: routinesTotal,
-    ),
+    today: today.glance,
     entries: entries,
     meals: meals,
     checkins: checkins,

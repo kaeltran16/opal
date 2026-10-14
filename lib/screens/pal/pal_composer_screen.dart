@@ -5,10 +5,13 @@ import 'package:go_router/go_router.dart';
 import '../../analysis/area.dart';
 import '../../controllers/pal_composer_controller.dart';
 import '../../controllers/pal_suggestions_controller.dart';
+import '../../controllers/providers.dart';
 import '../../controllers/start_workout_controller.dart';
 import '../../models/models.dart';
+import '../../services/pal/coffee_starter.dart';
 import '../../services/services.dart';
 import '../../theme/theme.dart';
+import '../../util/format.dart';
 import '../../widgets/app_icon.dart';
 import '../../widgets/pal_label.dart';
 import '../../widgets/press_scale.dart';
@@ -310,27 +313,24 @@ class _IdleBody extends ConsumerWidget {
   final VoidCallback onStartWorkout;
   final ValueChanged<_Starter> onSendStarter;
 
-  static const _starters = <_Starter>[
-    _Starter(
-      'Verve coffee, \$5',
-      payload: StarterEntry(
-        type: EntryType.money,
-        title: 'Verve coffee',
-        amount: -5, // negative = expense
-        category: 'Coffee',
+  /// The fallback starters, priced in [currency].
+  static List<_Starter> _starters(Currency currency) {
+    final coffee = coffeeStarter(currency);
+    return [
+      _Starter(coffee.label, payload: coffee.entry),
+      const _Starter(
+        'Finished morning pages',
+        payload: StarterEntry(type: EntryType.rituals, title: 'Morning pages'),
       ),
-    ),
-    _Starter(
-      'Finished morning pages',
-      payload: StarterEntry(type: EntryType.rituals, title: 'Morning pages'),
-    ),
-    // an open prompt, with nothing to log offline.
-    _Starter('How’s my week so far?'),
-  ];
+      // an open prompt, with nothing to log offline.
+      const _Starter('How’s my week so far?'),
+    ];
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final c = context.colors;
+    final currency = ref.watch(appSettingsControllerProvider.select((s) => s.currency));
     final pick = ref.watch(palPickControllerProvider).asData?.value;
     final suggestions = ref.watch(palSuggestionsProvider(SuggestionSurface.composer));
     // the static list is the offline or empty answer. loading gets its own
@@ -358,7 +358,7 @@ class _IdleBody extends ConsumerWidget {
           if (loading)
             const _StarterSkeletons(key: Key('starter-skeleton'))
           else
-            for (final starter in palStarters ?? _starters)
+            for (final starter in palStarters ?? _starters(currency))
               _Pill(label: starter.label, onTap: () => onSendStarter(starter)),
         ],
       ),

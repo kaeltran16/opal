@@ -49,6 +49,7 @@ AreasSummary _summary({
       moveGoal: 500,
       routinesDone: routinesDone,
       routinesTotal: 4,
+      hasRoutines: true,
     ),
     entries: [
       for (final d in days)
