@@ -276,11 +276,17 @@ Task 8 also owns any fix-ups in `routines_onboarding_scenario_test.dart` and `ar
 - **`routines_area_mixed`.** The routines area with one complete routine and one routine with no steps.
   - The hero reads `1` of `1` routines done, and no next contributor shows.
   - The Areas summary for the same day reads the Routines area as done.
+- **`rituals_detail_empty_routine`.** The rituals detail with one full routine and one routine with no steps.
+  - The target is `1`.
+- **`recap_empty_routine`.** Recap Day and Week with the same routines.
+  - The routines totals count only the full routine.
 - **`closeout_done_today`.** Every evening step done.
   - The close-out row shows as done.
   - No `Evening wind-down` routine row shows.
 - **`closeout_one_row`.** Pal online, with the `close-out-tonight` proposal.
   - Exactly one close-out row, carrying the proposal's body.
+- **`closeout_care_lead`.** Routines needs care in the evening.
+  - The close-out row leads Today.
 - **`closeout_load_error`.** `ritualRoutinesStreamProvider` errors.
   - After one pump past boot, the close-out shows `Couldn't load your routines. Try again in a moment.`
 - **`manage_load_error`.** The same error, on Manage.
@@ -294,6 +300,10 @@ Task 8 also owns any fix-ups in `routines_onboarding_scenario_test.dart` and `ar
 - **`manage_save_failed`, `manage_delete_failed` and `manage_reorder_failed`.** A throwing ritual repository.
   - Each shows its `FailureNote` copy.
   - The sheet stays open where the spec says it does.
+- **`manage_save_in_flight`.** A save that has not finished.
+  - Save is disabled.
+- **`manage_failure_cleared`.** An edit after a failed save.
+  - The failure note is gone.
 - **`budgets_goals_routines_target`.** Budgets and goals with one full routine and one empty routine.
   - The Routines row reads `1 routine`.
 - **`budgets_goals_save_failed`, `post_workout_save_failed` and `routine_generator_save_failed`.** A throwing write.
@@ -304,5 +314,5 @@ Task 8 also owns any fix-ups in `routines_onboarding_scenario_test.dart` and `ar
   - The compact `You` is centred.
 
 **Acceptance:**
-- [ ] `flutter test --tags scenario test/scenario/defects_scenario_test.dart test/scenario/routines_onboarding_scenario_test.dart test/scenario/area_page_scenario_test.dart` passes. The defects file writes all 38 shots (19 steps in light and dark) to `ARC_FINAL_OUT` or `build/scenario`.
+- [ ] `flutter test --tags scenario test/scenario/defects_scenario_test.dart test/scenario/routines_onboarding_scenario_test.dart test/scenario/area_page_scenario_test.dart` passes. The defects file writes all 48 shots (24 steps in light and dark) to `ARC_FINAL_OUT` or `build/scenario`.
 - [ ] `flutter analyze --fatal-infos` is clean.
