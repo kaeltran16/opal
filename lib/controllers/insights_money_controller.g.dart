@@ -9,13 +9,13 @@ part of 'insights_money_controller.dart';
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
 /// Streams the [InsightsData] over a rolling 6-month window. Reactive: re-emits
-/// whenever entries in the window change. Reads envelopes one-shot per emission.
+/// whenever entries in the window change. Also re-emits when an envelope changes.
 
 @ProviderFor(insightsData)
 const insightsDataProvider = InsightsDataProvider._();
 
 /// Streams the [InsightsData] over a rolling 6-month window. Reactive: re-emits
-/// whenever entries in the window change. Reads envelopes one-shot per emission.
+/// whenever entries in the window change. Also re-emits when an envelope changes.
 
 final class InsightsDataProvider
     extends
@@ -26,7 +26,7 @@ final class InsightsDataProvider
         >
     with $FutureModifier<InsightsData>, $StreamProvider<InsightsData> {
   /// Streams the [InsightsData] over a rolling 6-month window. Reactive: re-emits
-  /// whenever entries in the window change. Reads envelopes one-shot per emission.
+  /// whenever entries in the window change. Also re-emits when an envelope changes.
   const InsightsDataProvider._()
     : super(
         from: null,
@@ -53,4 +53,4 @@ final class InsightsDataProvider
   }
 }
 
-String _$insightsDataHash() => r'e663887075ab158124bbec005c0d8b542fffe251';
+String _$insightsDataHash() => r'eee9d20588673dcc8d4f47667b649043e2c87cfa';

@@ -9,13 +9,13 @@ part of 'budgets_controller.dart';
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
 /// Streams the [BudgetsData] for the current month. Reactive: re-emits whenever
-/// this month's entries change. Reads envelopes one-shot per emission.
+/// this month's entries change. Also re-emits when an envelope changes.
 
 @ProviderFor(budgetsData)
 const budgetsDataProvider = BudgetsDataProvider._();
 
 /// Streams the [BudgetsData] for the current month. Reactive: re-emits whenever
-/// this month's entries change. Reads envelopes one-shot per emission.
+/// this month's entries change. Also re-emits when an envelope changes.
 
 final class BudgetsDataProvider
     extends
@@ -26,7 +26,7 @@ final class BudgetsDataProvider
         >
     with $FutureModifier<BudgetsData>, $StreamProvider<BudgetsData> {
   /// Streams the [BudgetsData] for the current month. Reactive: re-emits whenever
-  /// this month's entries change. Reads envelopes one-shot per emission.
+  /// this month's entries change. Also re-emits when an envelope changes.
   const BudgetsDataProvider._()
     : super(
         from: null,
@@ -53,4 +53,4 @@ final class BudgetsDataProvider
   }
 }
 
-String _$budgetsDataHash() => r'550da46956558f85076a0cef0ec4be2015853e3d';
+String _$budgetsDataHash() => r'e25df92f695eaabb6286072b97b15995dbb9f125';

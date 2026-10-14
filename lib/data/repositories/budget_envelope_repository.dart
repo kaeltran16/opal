@@ -33,4 +33,18 @@ class BudgetEnvelopeRepository {
 
   Future<void> deleteById(String id) =>
       (_db.delete(_db.budgetEnvelopes)..where((t) => t.id.equals(id))).go();
+
+  /// Writes `position = index` for every envelope in [envelopes], in one
+  /// transaction. Throws [StateError] for an id that no longer exists; the
+  /// rollback then leaves every position as it was.
+  Future<void> reorder(List<BudgetEnvelope> envelopes) =>
+      _db.transaction(() async {
+        for (var i = 0; i < envelopes.length; i++) {
+          final id = envelopes[i].id;
+          final updated = await (_db.update(_db.budgetEnvelopes)
+                ..where((t) => t.id.equals(id)))
+              .write(BudgetEnvelopesCompanion(position: Value(i)));
+          if (updated == 0) throw StateError('reorder: no envelope $id');
+        }
+      });
 }

@@ -9,7 +9,7 @@ part of 'budget_forecast_controller.dart';
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
 /// Month-end outlook per capped envelope, most severe first. Reactive: re-emits
-/// whenever this month's entries change. Reads envelopes one-shot per emission,
+/// whenever this month's entries change. Also re-emits when an envelope changes,
 /// matching [budgetsDataProvider].
 ///
 /// Empty when no envelope carries a cap — the honest empty state.
@@ -18,7 +18,7 @@ part of 'budget_forecast_controller.dart';
 const envelopeForecastsProvider = EnvelopeForecastsProvider._();
 
 /// Month-end outlook per capped envelope, most severe first. Reactive: re-emits
-/// whenever this month's entries change. Reads envelopes one-shot per emission,
+/// whenever this month's entries change. Also re-emits when an envelope changes,
 /// matching [budgetsDataProvider].
 ///
 /// Empty when no envelope carries a cap — the honest empty state.
@@ -34,7 +34,7 @@ final class EnvelopeForecastsProvider
         $FutureModifier<List<fc.EnvelopeForecast>>,
         $StreamProvider<List<fc.EnvelopeForecast>> {
   /// Month-end outlook per capped envelope, most severe first. Reactive: re-emits
-  /// whenever this month's entries change. Reads envelopes one-shot per emission,
+  /// whenever this month's entries change. Also re-emits when an envelope changes,
   /// matching [budgetsDataProvider].
   ///
   /// Empty when no envelope carries a cap — the honest empty state.
@@ -64,4 +64,4 @@ final class EnvelopeForecastsProvider
   }
 }
 
-String _$envelopeForecastsHash() => r'eaaa556ff8c5451dcafdfc2640a463a0523ef25a';
+String _$envelopeForecastsHash() => r'8b8ac4112cfe2eec5d2954f96da1763aeb49b2a6';

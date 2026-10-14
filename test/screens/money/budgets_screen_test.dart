@@ -5,25 +5,38 @@ import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 
 import 'package:opal/analysis/spend_alerts.dart';
 import 'package:opal/controllers/budget_advisories_controller.dart';
+import 'package:opal/controllers/budget_envelopes_controller.dart';
 import 'package:opal/controllers/budget_recommendations_controller.dart';
 import 'package:opal/controllers/budgets_controller.dart';
 import 'package:opal/controllers/providers.dart';
 import 'package:opal/models/models.dart';
+import 'package:opal/router.dart';
 import 'package:opal/screens/money/budgets_screen.dart';
 import 'package:opal/theme/app_colors.dart';
 import 'package:opal/util/format.dart';
+import 'package:opal/widgets/app_icon.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-EnvelopeSpend _envelope(String category, {required double cap, required double spent}) =>
+const _editorMarker = 'envelope editor route';
+
+/// Envelopes held in memory; the add sheet watches this controller.
+class _NoEnvelopes extends BudgetEnvelopesController {
+  @override
+  Stream<List<BudgetEnvelope>> build() => Stream.value(const []);
+}
+
+EnvelopeSpend _envelope(String category,
+        {required double cap, required double spent, String icon = 'cart.fill'}) =>
     EnvelopeSpend(
       envelope: BudgetEnvelope(
         id: 'env-$category',
         category: category,
         cap: cap,
-        icon: 'cart.fill',
+        icon: icon,
         colorToken: 'money',
         position: 0,
       ),
@@ -55,14 +68,27 @@ Future<void> _pump(
         budgetsDataProvider.overrideWith((ref) => data),
         budgetRecommendationsProvider.overrideWith((ref) => Stream.value(const [])),
         budgetAdvisoriesProvider.overrideWith((ref) => Stream.value(advisories)),
+        budgetEnvelopesControllerProvider.overrideWith(_NoEnvelopes.new),
       ],
-      child: MaterialApp(
+      child: MaterialApp.router(
         theme: ThemeData(extensions: [AppColors.light()]),
         builder: (context, child) => MediaQuery(
           data: MediaQuery.of(context).copyWith(textScaler: TextScaler.linear(textScale)),
           child: child!,
         ),
-        home: const BudgetsScreen(),
+        routerConfig: GoRouter(routes: [
+          GoRoute(
+            path: '/',
+            builder: (_, _) => const BudgetsScreen(),
+            routes: [
+              GoRoute(
+                path: AppRoute.envelopes.path,
+                name: AppRoute.envelopes.name,
+                builder: (_, _) => const Scaffold(body: Text(_editorMarker)),
+              ),
+            ],
+          ),
+        ]),
       ),
     ),
   );
@@ -167,5 +193,69 @@ void main() {
 
     expect(find.text('Needs care'), findsWidgets);
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Budget options pushes the envelope editor', (tester) async {
+    await _pump(tester, Stream.value(_data([_envelope('Dining', cap: 100, spent: 40)])));
+
+    await tester.tap(find.bySemanticsLabel('Budget options'));
+    await tester.pumpAndSettle();
+
+    expect(find.text(_editorMarker), findsOneWidget);
+  });
+
+  testWidgets('New envelope opens the add sheet', (tester) async {
+    tester.view.physicalSize = const Size(400, 2000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await _pump(tester, Stream.value(_data([_envelope('Dining', cap: 100, spent: 40)])));
+
+    await tester.tap(find.bySemanticsLabel('New envelope'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(BottomSheet), findsOneWidget);
+    expect(find.byType(TextField), findsOneWidget);
+  });
+
+  testWidgets('envelope rows draw the line glyph for a fill name', (tester) async {
+    await _pump(
+      tester,
+      Stream.value(_data([_envelope('Groceries', cap: 500, spent: 40, icon: 'basket.fill')])),
+    );
+
+    expect(find.byIcon(lineIconForSf('basket.fill')), findsOneWidget);
+    expect(find.byIcon(iconForSf('basket.fill')), findsNothing);
+  });
+
+  testWidgets('with no envelopes a quiet row sits under the heading', (tester) async {
+    await _pump(tester, Stream.value(_data(const [])));
+
+    expect(find.text('No envelopes yet.'), findsOneWidget);
+  });
+
+  testWidgets('the uncategorized tally alone still reads as no envelopes', (tester) async {
+    await _pump(
+      tester,
+      Stream.value(_data([EnvelopeSpend(envelope: kUncategorizedEnvelope, spent: 30)])),
+    );
+
+    expect(find.text('No envelopes yet.'), findsOneWidget);
+    expect(find.text('Uncategorized'), findsOneWidget);
+  });
+
+  testWidgets('real envelopes hide the empty row', (tester) async {
+    await _pump(tester, Stream.value(_data([_envelope('Dining', cap: 100, spent: 40)])));
+
+    expect(find.text('No envelopes yet.'), findsNothing);
+  });
+
+  testWidgets('the footer reads the new copy', (tester) async {
+    tester.view.physicalSize = const Size(400, 2000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await _pump(tester, Stream.value(_data([_envelope('Dining', cap: 100, spent: 40)])));
+
+    expect(find.text('Adjust caps anytime. Pal nudges you before an envelope runs dry.'),
+        findsOneWidget);
   });
 }

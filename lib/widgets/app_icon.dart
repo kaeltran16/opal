@@ -109,6 +109,17 @@ const Map<String, IconData> _sfMap = {
   'tray': CupertinoIcons.tray,
   'cup.and.saucer': Icons.local_cafe_outlined,
   'heart': CupertinoIcons.heart,
+  // envelope line glyphs (oura): the editor's picker names and the stems of
+  // the seeded envelopes' .fill names.
+  'bag': CupertinoIcons.bag,
+  // cupertino's car and car_fill are the same glyph, so use a true outline.
+  'car': Icons.directions_car_outlined,
+  'tv': CupertinoIcons.tv,
+  'basket': Icons.shopping_basket_outlined,
+  'house': CupertinoIcons.house,
+  'creditcard': CupertinoIcons.creditcard,
+  'gift': CupertinoIcons.gift,
+  'airplane': CupertinoIcons.airplane,
 };
 
 const _fillSuffix = '.fill';

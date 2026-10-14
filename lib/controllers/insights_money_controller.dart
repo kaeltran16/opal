@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../models/models.dart';
+import 'budget_envelopes_controller.dart';
 import 'providers.dart';
 
 part 'insights_money_controller.g.dart';
@@ -213,18 +214,19 @@ InsightsData buildInsightsData(
 }
 
 /// Streams the [InsightsData] over a rolling 6-month window. Reactive: re-emits
-/// whenever entries in the window change. Reads envelopes one-shot per emission.
+/// whenever entries in the window change. Also re-emits when an envelope changes.
 @riverpod
 Stream<InsightsData> insightsData(Ref ref) async* {
   final entriesRepo = ref.watch(entryRepositoryProvider);
-  final envelopeRepo = ref.watch(budgetEnvelopeRepositoryProvider);
 
   final now = clock.now();
   final start = DateTime(now.year, now.month - 5);
   final end = DateTime(now.year, now.month + 1);
 
+  // watched before the loop so an envelope write re-runs this provider.
+  final envelopes = await ref.watch(budgetEnvelopesControllerProvider.future);
+
   await for (final entries in entriesRepo.watchEntriesInRange(start, end)) {
-    final envelopes = await envelopeRepo.getEnvelopes();
     yield buildInsightsData(entries, envelopes, now: now);
   }
 }

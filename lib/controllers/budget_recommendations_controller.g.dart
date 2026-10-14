@@ -9,13 +9,13 @@ part of 'budget_recommendations_controller.dart';
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
 /// Streams suggested caps for the current month, recomputed whenever the last
-/// three months' entries change. Reads envelopes one-shot per emission.
+/// three months' entries change. Also re-emits when an envelope changes.
 
 @ProviderFor(budgetRecommendations)
 const budgetRecommendationsProvider = BudgetRecommendationsProvider._();
 
 /// Streams suggested caps for the current month, recomputed whenever the last
-/// three months' entries change. Reads envelopes one-shot per emission.
+/// three months' entries change. Also re-emits when an envelope changes.
 
 final class BudgetRecommendationsProvider
     extends
@@ -28,7 +28,7 @@ final class BudgetRecommendationsProvider
         $FutureModifier<List<BudgetRecommendation>>,
         $StreamProvider<List<BudgetRecommendation>> {
   /// Streams suggested caps for the current month, recomputed whenever the last
-  /// three months' entries change. Reads envelopes one-shot per emission.
+  /// three months' entries change. Also re-emits when an envelope changes.
   const BudgetRecommendationsProvider._()
     : super(
         from: null,
@@ -56,4 +56,4 @@ final class BudgetRecommendationsProvider
 }
 
 String _$budgetRecommendationsHash() =>
-    r'd1250254bd67e2810908fce03189192aed2f24ff';
+    r'741b5fec5c178a9ed006987244d4125fedefdee2';

@@ -1,18 +1,22 @@
 import 'package:clock/clock.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../analysis/area_state.dart';
 import '../../controllers/budget_advisories_controller.dart';
 import '../../controllers/budget_recommendations_controller.dart';
 import '../../controllers/budgets_controller.dart';
 import '../../controllers/providers.dart';
+import '../../router.dart';
 import '../../theme/theme.dart';
 import '../../util/dates.dart';
 import '../../util/format.dart';
 import '../../widgets/app_icon.dart';
+import '../../widgets/press_scale.dart';
 import '../../widgets/state_colors.dart';
 import '../you/sub_screen.dart';
+import 'envelope_sheets.dart';
 
 const double _minTap = 44;
 const double _rowMinHeight = 48;
@@ -59,14 +63,14 @@ class BudgetsScreen extends ConsumerWidget {
       );
 }
 
-class _Body extends StatelessWidget {
+class _Body extends ConsumerWidget {
   const _Body({required this.data, required this.currency});
 
   final BudgetsData data;
   final Currency currency;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final c = context.colors;
     final state = budgetState(
       spent: data.totalSpent,
@@ -107,9 +111,9 @@ class _Body extends StatelessWidget {
         Row(
           children: [
             const Expanded(child: _Heading('Envelopes')),
-            Semantics(
-              button: true,
-              label: 'Budget options',
+            PressScale(
+              onTap: () => context.pushNamed(AppRoute.envelopes.name),
+              semanticLabel: 'Budget options',
               child: SizedBox(
                 width: _minTap,
                 height: _minTap,
@@ -120,18 +124,44 @@ class _Body extends StatelessWidget {
             ),
           ],
         ),
+        if (data.envelopes.every((s) => s.envelope.id == kUncategorizedEnvelope.id))
+          _Hairline(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: Spacing.md),
+              child: Text('No envelopes yet.',
+                  style: AppType.subhead.copyWith(color: c.ink3)),
+            ),
+          ),
         for (final spend in data.envelopes)
           _EnvelopeRow(spend: spend, currency: currency, elapsed: data.monthPaceFraction),
         _SuggestedCaps(currency: currency),
         _BudgetAdvisories(currency: currency),
         const SizedBox(height: Spacing.xxxl),
-        const _Row(icon: 'plus', title: 'New envelope'),
+        _Hairline(
+          child: PressScale(
+            onTap: () => showNewEnvelopeSheet(context, ref),
+            semanticLabel: 'New envelope',
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(minHeight: _rowMinHeight),
+              child: Row(
+                children: [
+                  AppIcon('plus', size: _rowIcon, color: c.ink2),
+                  const SizedBox(width: Spacing.md),
+                  Expanded(
+                    child: Text('New envelope',
+                        style: AppType.callout.copyWith(color: c.ink, height: _rowLineHeight)),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
         const _Row(
           icon: 'arrow.triangle.2.circlepath',
           title: 'Roll unused into next month',
           value: 'On',
         ),
-        const _Footer('Adjust caps anytime — Pal nudges you before an envelope runs dry.'),
+        const _Footer('Adjust caps anytime. Pal nudges you before an envelope runs dry.'),
       ],
     );
   }
@@ -170,7 +200,7 @@ class _EnvelopeRow extends StatelessWidget {
             MergeSemantics(
               child: Row(
                 children: [
-                  AppIcon(env.icon, size: _rowIcon, color: c.ink2),
+                  AppIcon.line(env.icon, size: _rowIcon, color: c.ink2),
                   const SizedBox(width: Spacing.md),
                   Expanded(
                     child: Text(env.category,

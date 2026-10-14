@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../models/models.dart';
+import 'budget_envelopes_controller.dart';
 import 'providers.dart';
 import 'today_controller.dart' show goalsStreamProvider;
 
@@ -98,7 +99,7 @@ class BudgetsData {
 /// Catch-all row for expenses whose category matches no envelope. Cap 0 — it's
 /// a tally, not a budget. Its presence keeps the Budgets total equal to the
 /// real month spend (and to Insights), so nothing is ever silently dropped.
-const _uncategorizedEnvelope = BudgetEnvelope(
+const kUncategorizedEnvelope = BudgetEnvelope(
   id: 'env-uncategorized',
   category: 'Uncategorized',
   cap: 0,
@@ -144,7 +145,7 @@ BudgetsData buildBudgetsData(
     for (final env in ordered)
       EnvelopeSpend(envelope: env, spent: byCategory[normalizeCategory(env.category)] ?? 0),
     if (uncategorized > 0)
-      EnvelopeSpend(envelope: _uncategorizedEnvelope, spent: uncategorized),
+      EnvelopeSpend(envelope: kUncategorizedEnvelope, spent: uncategorized),
   ];
 
   final anchor = now ?? clock.now();
@@ -158,11 +159,10 @@ BudgetsData buildBudgetsData(
 }
 
 /// Streams the [BudgetsData] for the current month. Reactive: re-emits whenever
-/// this month's entries change. Reads envelopes one-shot per emission.
+/// this month's entries change. Also re-emits when an envelope changes.
 @riverpod
 Stream<BudgetsData> budgetsData(Ref ref) async* {
   final entriesRepo = ref.watch(entryRepositoryProvider);
-  final envelopeRepo = ref.watch(budgetEnvelopeRepositoryProvider);
   // watched (not one-shot) so a daily-budget edit re-emits the monthly target.
   final goals = ref.watch(goalsStreamProvider).asData?.value ?? const Goals();
 
@@ -170,8 +170,10 @@ Stream<BudgetsData> budgetsData(Ref ref) async* {
   final start = DateTime(now.year, now.month);
   final end = DateTime(now.year, now.month + 1);
 
+  // watched before the loop so an envelope write re-runs this provider.
+  final envelopes = await ref.watch(budgetEnvelopesControllerProvider.future);
+
   await for (final entries in entriesRepo.watchEntriesInRange(start, end)) {
-    final envelopes = await envelopeRepo.getEnvelopes();
     yield buildBudgetsData(envelopes, entries, goals: goals, now: now);
   }
 }

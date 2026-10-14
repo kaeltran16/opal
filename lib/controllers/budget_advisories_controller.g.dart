@@ -9,7 +9,7 @@ part of 'budget_advisories_controller.dart';
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
 /// Streams the advisory findings, recomputed whenever entries in the window
-/// change. Reads envelopes one-shot per emission, mirroring
+/// change. Also re-emits when an envelope changes, mirroring
 /// `budgetRecommendations`.
 ///
 /// The window spans the three completed months (for the savings average) plus
@@ -20,7 +20,7 @@ part of 'budget_advisories_controller.dart';
 const budgetAdvisoriesProvider = BudgetAdvisoriesProvider._();
 
 /// Streams the advisory findings, recomputed whenever entries in the window
-/// change. Reads envelopes one-shot per emission, mirroring
+/// change. Also re-emits when an envelope changes, mirroring
 /// `budgetRecommendations`.
 ///
 /// The window spans the three completed months (for the savings average) plus
@@ -36,7 +36,7 @@ final class BudgetAdvisoriesProvider
         >
     with $FutureModifier<BudgetAdvisories>, $StreamProvider<BudgetAdvisories> {
   /// Streams the advisory findings, recomputed whenever entries in the window
-  /// change. Reads envelopes one-shot per emission, mirroring
+  /// change. Also re-emits when an envelope changes, mirroring
   /// `budgetRecommendations`.
   ///
   /// The window spans the three completed months (for the savings average) plus
@@ -68,4 +68,4 @@ final class BudgetAdvisoriesProvider
   }
 }
 
-String _$budgetAdvisoriesHash() => r'b1704725181184b2225e8ae851bfdb11111c9761';
+String _$budgetAdvisoriesHash() => r'09c6ced5c8fbd2e7c7e9e6074b5cb8dd91bff055';

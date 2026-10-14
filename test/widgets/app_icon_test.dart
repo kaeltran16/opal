@@ -10,6 +10,15 @@ const _pickerFillKeys = [
   'heart.fill',
 ];
 
+const _envelopePickerNames = [
+  'cup.and.saucer', 'basket', 'bolt', 'bag', 'car', 'tv', //
+  'heart', 'house', 'fork.knife', 'creditcard', 'gift', 'airplane',
+];
+
+const _envelopeFillKeys = [
+  'bag.fill', 'car.fill', 'tv.fill', 'basket.fill', 'house.fill',
+];
+
 void main() {
   test('maps the drag-handle glyph rather than falling back', () {
     expect(iconForSf('line.3.horizontal'), CupertinoIcons.line_horizontal_3);
@@ -18,6 +27,19 @@ void main() {
 
   test('every filled picker glyph has a distinct line form', () {
     for (final key in _pickerFillKeys) {
+      expect(lineIconForSf(key), isNot(iconForSf(key)), reason: key);
+      expect(lineIconForSf(key), isNot(CupertinoIcons.circle), reason: key);
+    }
+  });
+
+  test('every envelope picker glyph is mapped', () {
+    for (final name in _envelopePickerNames) {
+      expect(lineIconForSf(name), isNot(CupertinoIcons.circle), reason: name);
+    }
+  });
+
+  test('seeded envelope .fill names draw as a distinct outline', () {
+    for (final key in _envelopeFillKeys) {
       expect(lineIconForSf(key), isNot(iconForSf(key)), reason: key);
       expect(lineIconForSf(key), isNot(CupertinoIcons.circle), reason: key);
     }
