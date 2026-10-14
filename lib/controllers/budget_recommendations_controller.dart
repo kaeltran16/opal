@@ -4,6 +4,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../analysis/spend_alerts.dart';
 import '../models/models.dart';
+import 'budget_envelopes_controller.dart';
 import 'providers.dart';
 
 part 'budget_recommendations_controller.g.dart';
@@ -175,11 +176,10 @@ List<BudgetRecommendation> buildBudgetRecommendations(
 }
 
 /// Streams suggested caps for the current month, recomputed whenever the last
-/// three months' entries change. Reads envelopes one-shot per emission.
+/// three months' entries change. Also re-emits when an envelope changes.
 @riverpod
 Stream<List<BudgetRecommendation>> budgetRecommendations(Ref ref) async* {
   final entriesRepo = ref.watch(entryRepositoryProvider);
-  final envelopeRepo = ref.watch(budgetEnvelopeRepositoryProvider);
   final currency = ref.watch(appSettingsControllerProvider).currency;
 
   final now = clock.now();
@@ -187,9 +187,11 @@ Stream<List<BudgetRecommendation>> budgetRecommendations(Ref ref) async* {
   final windowEnd = DateTime(now.year, now.month);
   final roundTo = kBudgetRoundingBaseUnit * currency.budgetScale;
 
+  // watched before the loop so an envelope write re-runs this provider.
+  final envelopes = await ref.watch(budgetEnvelopesControllerProvider.future);
+
   await for (final entries
       in entriesRepo.watchEntriesInRange(windowStart, windowEnd)) {
-    final envelopes = await envelopeRepo.getEnvelopes();
     yield buildBudgetRecommendations(
       entries,
       envelopes: envelopes,

@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../analysis/spend_alerts.dart';
+import 'budget_envelopes_controller.dart';
 import 'providers.dart';
 
 part 'budget_advisories_controller.g.dart';
@@ -32,7 +33,7 @@ class BudgetAdvisories {
 }
 
 /// Streams the advisory findings, recomputed whenever entries in the window
-/// change. Reads envelopes one-shot per emission, mirroring
+/// change. Also re-emits when an envelope changes, mirroring
 /// `budgetRecommendations`.
 ///
 /// The window spans the three completed months (for the savings average) plus
@@ -41,7 +42,6 @@ class BudgetAdvisories {
 @riverpod
 Stream<BudgetAdvisories> budgetAdvisories(Ref ref) async* {
   final entriesRepo = ref.watch(entryRepositoryProvider);
-  final envelopeRepo = ref.watch(budgetEnvelopeRepositoryProvider);
   final currency = ref.watch(appSettingsControllerProvider).currency;
 
   final now = clock.now();
@@ -50,9 +50,11 @@ Stream<BudgetAdvisories> budgetAdvisories(Ref ref) async* {
   final roundTo = kBudgetRoundingBaseUnit * currency.budgetScale;
   final minSpend = _unbudgetedFloorBase * currency.budgetScale;
 
+  // watched before the loop so an envelope write re-runs this provider.
+  final envelopes = await ref.watch(budgetEnvelopesControllerProvider.future);
+
   await for (final entries
       in entriesRepo.watchEntriesInRange(windowStart, windowEnd)) {
-    final envelopes = await envelopeRepo.getEnvelopes();
     yield BudgetAdvisories(
       unbudgeted: detectUnbudgetedCategories(
         entries,
