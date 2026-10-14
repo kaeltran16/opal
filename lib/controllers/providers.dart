@@ -174,7 +174,9 @@ DeviceTokenStore _deviceTokens(http.Client client) {
 @Riverpod(keepAlive: true)
 PalService palService(Ref ref) {
   if (_palBaseUrl.isEmpty) {
-    return MockPalService();
+    // read per call, not watched: a currency switch must not rebuild this
+    // keep-alive service, and the mock still prices its starter in it.
+    return MockPalService(currency: () => ref.read(settingsRepositoryProvider).currency);
   }
 
   final httpClient = _HttpClientHolder.instance;

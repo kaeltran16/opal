@@ -459,6 +459,31 @@ void main() {
     await shot(tester, 'composer_starters_fallback_${_theme(dark)}');
   });
 
+  scenarioTest('composer starter vnd', (tester, dark) async {
+    final theme = _theme(dark);
+    // pal offline: no starters of its own and no chat, so the static coffee
+    // starter shows and logs locally.
+    await _boot(tester, dark,
+        prefs: {'settings.currency': Currency.vnd.code},
+        pal: _ScenarioPal(starters: _Starters.none));
+    await _ask(tester);
+
+    // composer_starter_vnd
+    const label = 'Verve coffee, 5.000\u00a0₫';
+    expect(_inSheet(find.text(label)), findsOneWidget);
+    expect(_inSheet(find.text('Verve coffee, \$5')), findsNothing);
+    await shot(tester, 'composer_starter_vnd_$theme');
+
+    // composer_starter_vnd_logged
+    await _tap(tester, _inSheet(find.text(label)));
+    expect(_inSheet(find.textContaining('offline.')), findsOneWidget);
+    final all = await _container(tester).read(entryRepositoryProvider).getAll();
+    expect(all.where((e) => e.type == EntryType.money && e.title == 'Verve coffee'),
+        hasLength(1));
+    expect(all.where((e) => e.title == 'Verve coffee' && e.amount == -5000), hasLength(1));
+    await shot(tester, 'composer_starter_vnd_logged_$theme');
+  });
+
   scenarioTest('composer conversation', (tester, dark) async {
     final theme = _theme(dark);
     final pal = _ScenarioPal();

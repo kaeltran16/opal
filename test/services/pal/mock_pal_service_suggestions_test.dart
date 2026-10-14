@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opal/services/pal/mock_pal_service.dart';
 import 'package:opal/services/pal/pal_service.dart';
+import 'package:opal/util/format.dart';
 
 void main() {
   test('mock returns non-empty suggestions for each surface', () async {
@@ -17,6 +18,20 @@ void main() {
     final pal = MockPalService(latency: Duration.zero);
     final out = await pal.suggestions(SuggestionSurface.composer);
     expect(out.any((s) => s.entry != null), isTrue);
+  });
+
+  test('composer coffee starter follows the currency between calls', () async {
+    var currency = Currency.vnd;
+    final pal = MockPalService(latency: Duration.zero, currency: () => currency);
+
+    final vnd = await pal.suggestions(SuggestionSurface.composer);
+    expect(vnd.first.label, 'Verve coffee, 5.000\u00a0₫');
+    expect(vnd.first.entry?.amount, -5000);
+
+    currency = Currency.usd;
+    final usd = await pal.suggestions(SuggestionSurface.composer);
+    expect(usd.first.label, 'Verve coffee, \$5');
+    expect(usd.first.entry?.amount, -5);
   });
 
   test('routineGoal suggestions are label-only (no entry payload)', () async {

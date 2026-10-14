@@ -1,6 +1,8 @@
 import 'dart:math' as math;
 
 import '../../models/models.dart';
+import '../../util/format.dart';
+import 'coffee_starter.dart';
 import 'pal_service.dart';
 
 /// On-brand canned [PalService] for Windows preview + tests.
@@ -13,10 +15,18 @@ class MockPalService implements PalService {
   MockPalService({
     this.latency = const Duration(milliseconds: 600),
     int? seed,
+    this.currency = _usd,
   }) : _rng = math.Random(seed);
+
+  static Currency _usd() => Currency.usd;
 
   /// Fake round-trip latency applied to every call.
   final Duration latency;
+
+  /// The display currency, read on each composer suggestions call so a
+  /// currency switch is followed without rebuilding the service.
+  final Currency Function() currency;
+
   final math.Random _rng;
 
   int _suggestionIndex = 0;
@@ -534,21 +544,15 @@ class MockPalService implements PalService {
     await Future<void>.delayed(latency);
     switch (surface) {
       case SuggestionSurface.composer:
-        return const [
-          PalSuggestion(
-            label: 'Verve coffee, \$5',
-            icon: 'cup.and.saucer.fill',
-            colorToken: 'money',
-            entry: StarterEntry(
-                type: EntryType.money, title: 'Verve coffee', amount: -5, category: 'Food & Drink'),
-          ),
-          PalSuggestion(
+        return [
+          coffeeStarter(currency()),
+          const PalSuggestion(
             label: 'Finished morning pages',
             icon: 'sparkles',
             colorToken: 'rituals',
             entry: StarterEntry(type: EntryType.rituals, title: 'Morning pages'),
           ),
-          PalSuggestion(
+          const PalSuggestion(
             label: "How's my week so far?",
             icon: 'chart.bar.fill',
             colorToken: 'accent',
