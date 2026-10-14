@@ -122,6 +122,13 @@ void main() {
         routines: const [], now: DateTime(2026, 4, 22, 12));
     expect(none.ritualsTarget, 0);
     expect(none.tiles(Currency.usd)[2].sub, kNoRoutinesLine);
+
+    // routines exist but none has a step: the target is 0, and the tile says
+    // the routines need steps, not that there are none.
+    final stepless = buildWeeklyStats(entries, goals,
+        routines: [_routine('a', const [])], now: DateTime(2026, 4, 22, 12));
+    expect(stepless.ritualsTarget, 0);
+    expect(stepless.tiles(Currency.usd)[2].sub, kNoStepsLine);
   });
 
   // ---------------------------------------------------------------------------

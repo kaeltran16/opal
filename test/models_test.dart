@@ -183,6 +183,11 @@ void main() {
       expect(effectiveDailyRitualTarget(const []), 0);
     });
 
+    test('a target of 0 reads the no-routines line only when there are no routines', () {
+      expect(noTargetLine(hasRoutines: false), kNoRoutinesLine);
+      expect(noTargetLine(hasRoutines: true), kNoStepsLine);
+    });
+
     test('copyWith and equality', () {
       const g = Goals();
       final custom = g.copyWith(dailyBudget: 120);

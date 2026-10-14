@@ -73,6 +73,23 @@ void main() {
     expect(find.textContaining(' of '), findsNothing);
   });
 
+  testWidgets('the Rituals today turn with only stepless routines reads the no-steps line',
+      (tester) async {
+    await _pumpLoggedRitual(
+      tester,
+      TodayState(
+        entries: [_step('legacy')],
+        goals: const Goals(dailyRitualTarget: 5),
+        routines: [_routine('a').copyWith(steps: const [])],
+      ),
+    );
+
+    expect(find.text(_ritualsToday), findsOneWidget);
+    expect(find.text(kNoStepsLine), findsOneWidget);
+    expect(find.text(kNoRoutinesLine), findsNothing);
+    expect(find.textContaining(' of '), findsNothing);
+  });
+
   testWidgets('the Rituals today turn counts the tracked routines', (tester) async {
     await _pumpLoggedRitual(
       tester,

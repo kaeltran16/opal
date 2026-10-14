@@ -23,6 +23,7 @@ final _recap = RecapData(
   moveTarget: 500,
   ritualsKept: 2,
   ritualsTarget: 3,
+  hasRoutines: true,
 );
 
 const _insights = PalInsights(
@@ -111,6 +112,28 @@ void main() {
     expect(find.text('Rituals'), findsOneWidget);
     expect(find.text(kNoRoutinesLine), findsOneWidget);
     expect(find.text('of 5'), findsNothing);
+    expect(find.text('of 0'), findsNothing);
+  });
+
+  testWidgets('with only stepless routines the rituals stat reads the no-steps line',
+      (tester) async {
+    final day = DateTime(2026, 10, 14, 12);
+    const stepless = RitualRoutine(
+      id: 'evening',
+      name: 'Evening',
+      time: '9:00 PM',
+      tone: RitualTone.evening,
+      icon: 'x',
+      blurb: '',
+      steps: [],
+    );
+    await _pump(tester,
+        recap: buildRecapData(InsightRange.day, const [], const Goals(dailyRitualTarget: 5),
+            routines: const [stepless], now: day));
+
+    expect(find.text('Rituals'), findsOneWidget);
+    expect(find.text(kNoStepsLine), findsOneWidget);
+    expect(find.text(kNoRoutinesLine), findsNothing);
     expect(find.text('of 0'), findsNothing);
   });
 

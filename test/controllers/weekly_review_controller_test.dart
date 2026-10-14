@@ -176,5 +176,19 @@ void main() {
       expect(routines.sub, kNoRoutinesLine);
       expect(routines.sub, isNot(contains('of ')));
     });
+
+    test('ritualsTarget is 0 with only stepless routines, and the tile reads the no-steps line',
+        () {
+      final stats = buildWeeklyStats(
+        entries,
+        const Goals(dailyRitualTarget: 5),
+        routines: [_routine('r', const [])],
+        now: now,
+      );
+      expect(stats.ritualsTarget, 0);
+      final routines = stats.tiles(Currency.usd).last;
+      expect(routines.sub, kNoStepsLine);
+      expect(routines.sub, isNot(contains('of ')));
+    });
   });
 }

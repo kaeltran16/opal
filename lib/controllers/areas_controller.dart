@@ -113,10 +113,6 @@ class AreasSummary {
 
 const String _areasTitle = 'Areas';
 
-/// The Routines card's unit when no routine has a step to complete.
-const String _noRoutinesUnit = 'routines set up';
-const String _noStepsUnit = 'steps in your routines';
-
 /// Days of history the usual band looks back over, and the fewest it needs.
 const int _historyDays = 14;
 const int _minHistoryDays = 7;
@@ -228,8 +224,8 @@ AreaSummary _routines(GlanceNumbers today, DateTime now) {
     unit: total > 0
         ? 'of $total done'
         : today.hasRoutines
-            ? _noStepsUnit
-            : _noRoutinesUnit,
+            ? kNoStepsUnit
+            : kNoRoutinesUnit,
     progress: total > 0 ? done / total : 0,
   );
 }

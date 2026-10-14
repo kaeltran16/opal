@@ -116,6 +116,10 @@ const _anyTime = RitualRoutine(
   steps: [RitualStep(id: 'any-time-step-0', title: 'Breathe', note: '', icon: 'sparkles')],
 );
 
+/// One routine with no steps, a stored target of 5, and a step logged that no
+/// routine has.
+const _steplessDay = TodayDay(routines: [_stretch], legacyRitual: true);
+
 RitualRoutine _seed(String id) => SeedData.ritualRoutines().singleWhere((r) => r.id == id);
 
 /// The morning routine, done, and one routine with no steps.
@@ -410,6 +414,36 @@ void main() {
     expect(inSheet(find.text(kNoRoutinesLine)), findsOneWidget);
     expect(inSheet(find.textContaining(_staleTarget)), findsNothing);
     await shot(tester, 'composer_rituals_turn_no_routines_${_theme(dark)}');
+  });
+
+  // --- stepless routines read the stepless line ---
+
+  scenarioTest('recap_stepless_routines', (tester, dark) async {
+    await bootToday(tester, dark: dark, day: _steplessDay, overrides: [
+      recapMemoryRefreshProvider.overrideWith((_) async {}),
+    ]);
+    await _go(tester, '/recap?range=day');
+
+    expect(_within(RecapScreen, find.text('Rituals')), findsOneWidget);
+    expect(_within(RecapScreen, find.text(_noSteps)), findsOneWidget);
+    expect(_within(RecapScreen, find.text(kNoRoutinesLine)), findsNothing);
+    expect(_within(RecapScreen, find.textContaining(_staleTarget)), findsNothing);
+    await shot(tester, 'recap_stepless_routines_${_theme(dark)}');
+  });
+
+  scenarioTest('composer_rituals_turn_stepless', (tester, dark) async {
+    await bootToday(tester, dark: dark, day: _steplessDay,
+        pal: TodayPal(offline: true, proposals: const []));
+    await _push(tester, AppRoute.palComposer.path);
+    final sheet = find.byType(PalComposerSheet);
+    await _tap(tester, find.descendant(of: sheet, matching: find.text(_morningPagesStarter)));
+
+    Finder inSheet(Finder matching) => find.descendant(of: sheet, matching: matching);
+    expect(inSheet(find.text('Rituals today')), findsOneWidget);
+    expect(inSheet(find.text(_noSteps)), findsOneWidget);
+    expect(inSheet(find.text(kNoRoutinesLine)), findsNothing);
+    expect(inSheet(find.textContaining(_staleTarget)), findsNothing);
+    await shot(tester, 'composer_rituals_turn_stepless_${_theme(dark)}');
   });
 
   // --- one close-out row on today ---

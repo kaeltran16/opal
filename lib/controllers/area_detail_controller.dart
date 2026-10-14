@@ -143,10 +143,6 @@ const int _kcalPerGramFat = 9;
 const String _noMeals = 'No meals logged yet today.';
 const String _noCheckin = 'No check-in yet today.';
 
-/// The Routines hero's unit when no routine has a step to complete.
-const String _noRoutinesUnit = 'routines set up';
-const String _noStepsUnit = 'steps in your routines';
-
 /// Builds the [AreaDetail] for [area], one with an entry tracker (Money, Move
 /// or Routines). Pure: [entries] is the full entry history, [now] anchors
 /// "today" and the week.
@@ -398,7 +394,7 @@ AreaDetail _routines(
   if (routines.isEmpty) {
     palLine = kNoRoutinesLine;
   } else if (total == 0) {
-    palLine = 'No steps in your routines yet.';
+    palLine = kNoStepsLine;
   } else if (done >= total) {
     palLine = 'All $total done.';
   } else {
@@ -418,8 +414,8 @@ AreaDetail _routines(
     unit: total > 0
         ? 'of $total routines done'
         : routines.isEmpty
-            ? _noRoutinesUnit
-            : _noStepsUnit,
+            ? kNoRoutinesUnit
+            : kNoStepsUnit,
     state: progressState(done: done, goal: total, now: now),
     palLine: palLine,
     contributors: [

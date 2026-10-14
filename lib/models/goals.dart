@@ -68,6 +68,19 @@ int effectiveDailyRitualTarget(List<RitualRoutine> routines) =>
 /// What a routines surface reads in place of `0 of 0` when the target is 0.
 const kNoRoutinesLine = 'No routines set up yet.';
 
+/// What a routines surface reads when routines exist but none has a step.
+const kNoStepsLine = 'No steps in your routines yet.';
+
+/// The unit after `No` on a target-0 surface: `No routines set up` or
+/// `No steps in your routines`.
+const kNoRoutinesUnit = 'routines set up';
+const kNoStepsUnit = 'steps in your routines';
+
+/// The line a target-0 surface reads: the routines may exist with no steps,
+/// and saying there are none would then be false.
+String noTargetLine({required bool hasRoutines}) =>
+    hasRoutines ? kNoStepsLine : kNoRoutinesLine;
+
 bool _sameDay(DateTime a, DateTime b) =>
     a.year == b.year && a.month == b.month && a.day == b.day;
 
