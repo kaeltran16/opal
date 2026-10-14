@@ -134,7 +134,7 @@ class RecapData {
         RecapStat(
           label: 'Rituals',
           value: '$ritualsKept',
-          sub: 'of $ritualsTarget',
+          sub: ritualsTarget == 0 ? kNoRoutinesLine : 'of $ritualsTarget',
           colorToken: 'rituals',
         ),
       ];
@@ -196,7 +196,7 @@ RecapData buildRecapData(
     moveTarget: goals.dailyMoveKcal * days,
     ritualsKept: completedRoutinesInPeriod(periodEntries, routines,
         start: periodStart, days: days),
-    ritualsTarget: effectiveDailyRitualTarget(routines, goals) * days,
+    ritualsTarget: effectiveDailyRitualTarget(routines) * days,
   );
 }
 

@@ -117,10 +117,11 @@ void main() {
         now: DateTime(2026, 4, 22, 12));
     expect(s.ritualsTarget, 21);
 
-    // No routines → fall back to the stored daily target.
-    final fallback = buildWeeklyStats(entries, goals,
+    // no routines: the stored 5 does not apply, and the tile reads the line.
+    final none = buildWeeklyStats(entries, goals,
         routines: const [], now: DateTime(2026, 4, 22, 12));
-    expect(fallback.ritualsTarget, 35);
+    expect(none.ritualsTarget, 0);
+    expect(none.tiles(Currency.usd)[2].sub, kNoRoutinesLine);
   });
 
   // ---------------------------------------------------------------------------

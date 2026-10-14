@@ -17,6 +17,18 @@ void main() {
     expect(ctx['weekday'], DateTime.saturday); // 6
   });
 
+  test('buildChatContext with no routines sends a ritual goal of 0, not the stored 3', () {
+    final ctx = buildChatContext(
+      userName: 'Kael',
+      goals: const Goals(dailyBudget: 50, dailyMoveKcal: 400, dailyRitualTarget: 3),
+      todayEntries: const [],
+      weekEntries: const [],
+      moveStreakDays: 0,
+      now: DateTime(2026, 6, 20, 8),
+    );
+    expect(ctx['ritualGoal'], 0);
+  });
+
   test('buildChatContext carries the currency descriptor and formats entries with it', () {
     final ctx = buildChatContext(
       userName: 'Kael',

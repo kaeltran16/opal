@@ -57,14 +57,16 @@ bool isRoutineComplete(RitualRoutine r, Set<String> doneStepIds) =>
 List<RitualRoutine> trackedRoutines(List<RitualRoutine> routines) =>
     [for (final r in routines) if (r.steps.isNotEmpty) r];
 
-/// Effective daily ritual target: the count of [trackedRoutines] when the user
-/// has any routines, else the stored [Goals.dailyRitualTarget] fallback. The
-/// daily ring, detail hero, period reviews, and Pal context all size the ritual
-/// goal this way so targets track the routines that actually exist (a fixed 5
-/// was unreachable when only 3 routines are seeded). Routines that all lack
-/// steps give 0: there is nothing to complete, so the fallback does not apply.
-int effectiveDailyRitualTarget(List<RitualRoutine> routines, Goals goals) =>
-    routines.isEmpty ? goals.dailyRitualTarget : trackedRoutines(routines).length;
+/// Effective daily ritual target: the count of [trackedRoutines]. The daily
+/// ring, detail hero, period reviews, and Pal context all size the ritual goal
+/// this way so targets track the routines that actually exist. The stored
+/// [Goals.dailyRitualTarget] is not read: with no routines, or none with
+/// steps, there is nothing to complete, so the target is 0.
+int effectiveDailyRitualTarget(List<RitualRoutine> routines) =>
+    trackedRoutines(routines).length;
+
+/// What a routines surface reads in place of `0 of 0` when the target is 0.
+const kNoRoutinesLine = 'No routines set up yet.';
 
 bool _sameDay(DateTime a, DateTime b) =>
     a.year == b.year && a.month == b.month && a.day == b.day;

@@ -396,7 +396,7 @@ AreaDetail _routines(
 
   final String palLine;
   if (routines.isEmpty) {
-    palLine = 'No routines set up yet.';
+    palLine = kNoRoutinesLine;
   } else if (total == 0) {
     palLine = 'No steps in your routines yet.';
   } else if (done >= total) {

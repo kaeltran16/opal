@@ -112,7 +112,7 @@ class WeeklyStats {
         WeekStat(
           label: 'Routines',
           value: '$ritualsKept',
-          sub: 'of $ritualsTarget',
+          sub: ritualsTarget == 0 ? kNoRoutinesLine : 'of $ritualsTarget',
           colorToken: 'rituals',
         ),
       ];
@@ -151,7 +151,7 @@ WeeklyStats buildWeeklyStats(
     moveTarget: goals.dailyMoveKcal * 7,
     ritualsKept: completedRoutinesInPeriod(entries, routines,
         start: weekStart, days: 7),
-    ritualsTarget: effectiveDailyRitualTarget(routines, goals) * 7,
+    ritualsTarget: effectiveDailyRitualTarget(routines) * 7,
   );
 }
 

@@ -43,7 +43,7 @@ Map<String, Object?> buildChatContext({
   DateTime? now,
 }) {
   final current = now ?? clock.now();
-  final ritualTarget = effectiveDailyRitualTarget(routines, goals);
+  final ritualTarget = effectiveDailyRitualTarget(routines);
   return {
     'userName': userName,
     'todayEntries': todayEntries.map((e) => formatEntryLine(e, currency)).toList(),
@@ -207,7 +207,7 @@ Map<String, Object?> buildInsightsContext({
         ? _rituals(entries)
         : completedRoutinesInPeriod(entries, routines,
             start: periodStart, days: periodDays),
-    'ritualsTarget': effectiveDailyRitualTarget(routines, goals) * periodDays,
+    'ritualsTarget': effectiveDailyRitualTarget(routines) * periodDays,
     'activeDays': activeMoveDays.length,
     'streakDays': streakDays,
     'topCategory': topCategory,

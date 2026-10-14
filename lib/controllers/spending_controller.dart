@@ -85,15 +85,16 @@ enum DetailTracker {
     }
   }
 
-  /// The budget/target to compare the total against, read off [Goals].
-  double targetOf(Goals goals) {
+  /// The budget/target to compare the total against: money and move off
+  /// [Goals], rituals off the [routines] with steps.
+  double targetOf(Goals goals, List<RitualRoutine> routines) {
     switch (this) {
       case DetailTracker.money:
         return goals.dailyBudget;
       case DetailTracker.move:
         return goals.dailyMoveKcal.toDouble();
       case DetailTracker.rituals:
-        return goals.dailyRitualTarget.toDouble();
+        return effectiveDailyRitualTarget(routines).toDouble();
     }
   }
 }
@@ -179,8 +180,8 @@ class DetailData {
 /// [routines] supplies the Rituals tracker its hero numerator/denominator:
 /// completed routines (every step done today) ÷ total routine count — the same
 /// semantics as the Today screen. When empty (money/move, or tests/pre-load)
-/// the rituals hero falls back to the legacy per-step count vs
-/// [Goals.dailyRitualTarget].
+/// the rituals hero falls back to the legacy per-step count, against a target
+/// of 0.
 DetailData buildDetailData(
   DetailTracker tracker,
   List<Entry> entries,
@@ -236,17 +237,10 @@ DetailData buildDetailData(
       .toList()
     ..sort((a, b) => b.day.compareTo(a.day));
 
-  // Rituals denominator matches Today: the routines with steps, else the
-  // legacy goal off [Goals] when there are no routines. Money and move always
-  // use the goal off [Goals].
-  final target = tracker == DetailTracker.rituals
-      ? effectiveDailyRitualTarget(routines, goals).toDouble()
-      : tracker.targetOf(goals);
-
   return DetailData(
     tracker: tracker,
     total: total,
-    target: target,
+    target: tracker.targetOf(goals, routines),
     categories: categories,
     days: days,
   );

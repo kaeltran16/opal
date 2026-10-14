@@ -179,6 +179,10 @@ void main() {
       expect(g.dailyRitualTarget, 5);
     });
 
+    test('no routines is a daily ritual target of 0, not the stored 5', () {
+      expect(effectiveDailyRitualTarget(const []), 0);
+    });
+
     test('copyWith and equality', () {
       const g = Goals();
       final custom = g.copyWith(dailyBudget: 120);

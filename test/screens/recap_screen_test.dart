@@ -9,6 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:opal/controllers/insights_controller.dart';
 import 'package:opal/controllers/providers.dart';
 import 'package:opal/controllers/recap_controller.dart';
+import 'package:opal/models/models.dart' hide Provider;
 import 'package:opal/screens/recap/recap_screen.dart';
 import 'package:opal/services/pal/pal_service.dart';
 import 'package:opal/theme/theme.dart';
@@ -39,6 +40,7 @@ const _insights = PalInsights(
 Future<void> _pump(
   WidgetTester tester, {
   Future<PalInsights?> Function()? insights,
+  RecapData? recap,
   Map<String, Object> prefs = const {},
   double textScale = 1,
 }) async {
@@ -56,7 +58,7 @@ Future<void> _pump(
     overrides: [
       sharedPreferencesProvider.overrideWithValue(sp),
       recapMemoryRefreshProvider.overrideWith((_) async {}),
-      recapDataProvider(InsightRange.day).overrideWith((_) => Stream.value(_recap)),
+      recapDataProvider(InsightRange.day).overrideWith((_) => Stream.value(recap ?? _recap)),
       insightsProvider(InsightRange.day)
           .overrideWith((_) => (insights ?? () async => _insights)()),
     ],
@@ -89,6 +91,27 @@ void main() {
     expect(find.text('Moved'), findsOneWidget);
     expect(find.text('Rituals'), findsOneWidget);
     expect(find.text('of \$60'), findsOneWidget);
+  });
+
+  testWidgets('with no routines the rituals stat reads the no-routines line', (tester) async {
+    final day = DateTime(2026, 10, 14, 12);
+    // a step logged today that no routine has, against a stored target of 5.
+    final legacy = Entry(
+      id: 'legacy',
+      timestamp: day,
+      type: EntryType.rituals,
+      title: 'Old step',
+      ritualId: 'legacy',
+      source: EntrySource.manual,
+    );
+    await _pump(tester,
+        recap: buildRecapData(InsightRange.day, [legacy], const Goals(dailyRitualTarget: 5),
+            now: day));
+
+    expect(find.text('Rituals'), findsOneWidget);
+    expect(find.text(kNoRoutinesLine), findsOneWidget);
+    expect(find.text('of 5'), findsNothing);
+    expect(find.text('of 0'), findsNothing);
   });
 
   testWidgets('the spent stat follows the user currency', (tester) async {

@@ -282,7 +282,6 @@ PalService palService(Ref ref) {
           prev == 0 ? null : (((current - prev) / prev) * 100).round();
       final hasPrev = prevEntries.isNotEmpty;
 
-      final g = await goals.get();
       final routines = await ritualRoutines.getAll();
       final kept = completedRoutinesInPeriod(periodEntries, routines,
           start: start, days: periodDays);
@@ -294,7 +293,7 @@ PalService palService(Ref ref) {
         movedDeltaPct: hasPrev ? pctChange(movedKcal, prevMovedKcal) : null,
         activeDays: periodEntries.map((e) => e.timestamp.day).toSet().length,
         ritualsKept: kept,
-        ritualsTarget: effectiveDailyRitualTarget(routines, g) * periodDays,
+        ritualsTarget: effectiveDailyRitualTarget(routines) * periodDays,
         streakDays: await moveStreak(now),
         topCategory: topCat,
         topCategoryPct: topPct,

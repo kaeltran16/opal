@@ -151,7 +151,7 @@ class _LogTurn extends ConsumerWidget {
         final goal = today.ritualsTarget;
         return ContributorBar(
           label: 'Rituals today',
-          value: '$now of $goal',
+          value: goal == 0 ? kNoRoutinesLine : '$now of $goal',
           fraction: share(now, goal),
         );
     }

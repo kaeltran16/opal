@@ -38,7 +38,7 @@ const _dateLine = 'MON 28 SEP · 9:30 AM';
 const _manage = 'Manage routines';
 const _addMeal = 'Add a meal';
 const _noMeals = 'No meals logged yet today.';
-const _noRoutines = 'No routines set up yet.';
+const _noRoutines = kNoRoutinesLine;
 const _seedRoutines = ['Morning', 'Midday reset', 'Evening wind-down'];
 
 String _theme(bool dark) => dark ? 'dark' : 'light';
@@ -177,6 +177,8 @@ void main() {
     expect(_onPage(find.text('0')), findsOneWidget);
     expect(_onPage(find.text('routines set up')), findsOneWidget);
     expect(_onPage(find.text(_noRoutines)), findsOneWidget);
+    expect(_onPage(find.textContaining('of 5')), findsNothing);
+    expect(_onPage(find.textContaining('0 of 0')), findsNothing);
     expect(_onPage(find.text('Done')), findsNothing);
     await _reveal(tester, _onPage(find.text(_manage)));
     for (final name in _seedRoutines) {

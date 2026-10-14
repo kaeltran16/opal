@@ -233,10 +233,10 @@ void main() {
       expect(data.remaining, 0);
     });
 
-    test('no routines falls back to the stored target', () {
+    test('no routines targets 0, not the stored 5', () {
       final data =
           buildDetailData(DetailTracker.rituals, const [], goals, now: now);
-      expect(data.target, 5);
+      expect(data.target, 0);
     });
   });
 
@@ -307,6 +307,42 @@ void main() {
     expect(find.text('\$30'), findsWidgets);
 
     expect(find.textContaining('Ask Pal about'), findsNothing);
+    await flushProviderTimers(tester);
+  });
+
+  testWidgets('the rituals detail with no routines reads the no-routines line',
+      (tester) async {
+    final db = LoopDatabase.forTesting(NativeDatabase.memory());
+    addTearDown(db.close);
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
+
+    await GoalsRepository(db).upsert(const Goals(dailyRitualTarget: 5));
+    // a step logged today that no routine has, so a legacy count would be 1.
+    await EntryRepository(db).insert(Entry(
+      id: 'legacy',
+      timestamp: _todayAt(7, 0),
+      type: EntryType.rituals,
+      title: 'Old step',
+      ritualId: 'legacy',
+      source: EntrySource.manual,
+    ));
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          loopDatabaseProvider.overrideWithValue(db),
+          sharedPreferencesProvider.overrideWithValue(prefs),
+        ],
+        child: _wrap(const DetailScreen(area: Area.routines)),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text(kNoRoutinesLine), findsOneWidget);
+    expect(find.textContaining('of 5'), findsNothing);
+    expect(find.textContaining('0 of 0'), findsNothing);
+    expect(find.textContaining('1 of 0'), findsNothing);
     await flushProviderTimers(tester);
   });
 }
