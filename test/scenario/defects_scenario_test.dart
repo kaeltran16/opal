@@ -581,7 +581,7 @@ void main() {
     expect(today.ritualsDone, 1);
     expect(today.ritualsTarget, 3);
     expect(_card(_closeOutTitle), findsOneWidget);
-    expect(find.descendant(of: find.byKey(todayCardKey), matching: find.text('At 9:30 PM')),
+    expect(find.descendant(of: find.byKey(todayCardKey), matching: find.text('At 9:30 PM · 4 steps')),
         findsOneWidget);
     await shot(tester, 'closeout_care_lead_${_theme(dark)}');
   });

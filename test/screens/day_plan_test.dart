@@ -4,7 +4,7 @@ import 'package:opal/controllers/spending_controller.dart' show DetailTracker;
 import 'package:opal/controllers/weekly_plan_controller.dart';
 import 'package:opal/models/models.dart';
 import 'package:opal/screens/today/day_plan.dart';
-import 'package:opal/services/pal/pal_service.dart' show PalAgenda, PalProposal;
+import 'package:opal/services/pal/pal_service.dart' show PalAgenda, PalProposal, PlanFact;
 
 // 8:30 AM: a 7:00 AM routine is overdue but not yet missed, a 9:00 PM one is
 // still ahead.
@@ -62,9 +62,9 @@ const _addRitualProposal = PalProposal(
   action: 'add_ritual',
 );
 
-RitualRoutine _routine(String id, String time, {int steps = 1}) => RitualRoutine(
+RitualRoutine _routine(String id, String time, {int steps = 1, String? name}) => RitualRoutine(
       id: id,
-      name: 'Routine $id',
+      name: name ?? 'Routine $id',
       time: time,
       tone: RitualTone.morning,
       icon: 'sparkles',
@@ -411,6 +411,265 @@ void main() {
       expect(plan.whyNote(legs, session, _now, online),
           contains("Pal proposed it, and Pal's proposals lead while Pal is online."));
     });
+
+    test('reads the same as before reasonFor was pulled out', () {
+      final evening = DateTime(2026, 10, 4, 20, 6);
+      final plan = _plan(
+        rituals: _rituals([_routine('morning', '7:00 AM'), _routine('evening', '9:30 PM')]),
+      );
+      final settled = session.settle('mood', done: true, label: '').settle('meal', done: true, label: '');
+      final lead = plan.current(settled, evening, online)!;
+
+      expect(
+        plan.whyNote(lead, settled, evening, online),
+        'Today shows Close-out first. It is the next thing on the clock, at 9:30 PM. '
+        'Still open after it: Routine morning (missed, was at 7:00 AM). '
+        "Today's order: an area in Needs care, then Pal's proposals while Pal is "
+        'online, then the clock: items due in the last four hours, untimed items, '
+        'upcoming items, then missed ones.',
+      );
+    });
+  });
+
+  group('rows', () {
+    // 8:06 PM: Morning is missed, the close-out is still ahead.
+    final evening = DateTime(2026, 10, 4, 20, 6);
+
+    PlanRow row(DayPlan plan, String id, PlanSession s, [DateTime? at]) =>
+        plan.rows(s, at ?? _now).singleWhere((r) => r.item.id == id);
+
+    test('lists timed items by minute, then untimed ones in build order', () {
+      final plan = _plan(
+        agenda: const PalAgenda(proposals: [_proposal]),
+        rituals: _rituals([_routine('evening', '9:00 PM'), _routine('morning', '7:00 AM')]),
+        workout: _workout(),
+      );
+      expect(_ids(plan.rows(session, _now).map((r) => r.item)),
+          ['routine:morning', 'closeOut', 'proposal:rent', 'workout', 'mood', 'meal']);
+    });
+
+    test('done and put-off items stay listed; done ones count in progress', () {
+      final plan = _plan(
+        agenda: const PalAgenda(proposals: [_proposal]),
+        rituals: _rituals([_routine('morning', '7:00 AM'), _routine('evening', '9:00 PM')],
+            progress: {
+              'morning': {0},
+            }),
+      );
+      final s = session
+          .settle('proposal:rent', done: true, label: '')
+          .settle('meal', done: false, label: '');
+
+      final rows = plan.rows(s, _now);
+      expect(_ids(rows.map((r) => r.item)),
+          ['routine:morning', 'closeOut', 'proposal:rent', 'mood', 'meal']);
+      expect(rows.map((r) => r.state), [
+        PlanRowState.done,
+        PlanRowState.open,
+        PlanRowState.done,
+        PlanRowState.open,
+        PlanRowState.putOff,
+      ]);
+      expect(plan.progress(s), (done: 2, total: 5));
+    });
+
+    test('an open row reads its detail and acts with its action label', () {
+      final plan = _plan(
+        rituals: _rituals([_routine('morning', '7:00 AM', steps: 4)], progress: {
+          'morning': {0, 1},
+        }),
+        workout: _workout(),
+      );
+      final morning = row(plan, 'routine:morning', session);
+      expect(morning.state, PlanRowState.open);
+      expect(morning.detail, '2 of 4 steps');
+      expect(morning.verb, 'Start');
+      expect(morning.tappable, isTrue);
+      expect(morning.semanticLabel, 'Start: Routine morning, 2 of 4 steps');
+
+      expect(row(plan, 'workout', session).detail, '45 min');
+      final meal = row(plan, 'meal', session);
+      expect(meal.detail, isNull);
+      expect(meal.semanticLabel, 'Log a meal: Log a meal');
+    });
+
+    test('a put-off row reads Put off until tomorrow and brings it back', () {
+      final r = row(_plan(), 'meal', session.settle('meal', done: false, label: ''));
+      expect(r.state, PlanRowState.putOff);
+      expect(r.detail, 'Put off until tomorrow');
+      expect(r.verb, 'Bring back');
+      expect(r.tappable, isTrue);
+      expect(r.semanticLabel, 'Bring back: Log a meal, Put off until tomorrow');
+    });
+
+    test('a missed row reads Missed before its detail', () {
+      final plan = _plan(
+        rituals: _rituals([_routine('morning', '7:00 AM', steps: 3, name: 'Morning')]),
+      );
+      final r = row(plan, 'routine:morning', session, evening);
+      expect(r.state, PlanRowState.missed);
+      expect(r.detail, 'Missed · 3 steps');
+      expect(r.semanticLabel, 'Start: Morning, Missed · 3 steps');
+
+      const bare = PlanItem(id: 'x', kind: PlanKind.routine, title: 'X', icon: 'sparkles');
+      expect(const PlanRow(item: bare, state: PlanRowState.missed).detail, 'Missed');
+    });
+
+    test('an open proposal reads Pal suggests', () {
+      final plan = _plan(agenda: const PalAgenda(proposals: [_proposal]));
+      final r = row(plan, 'proposal:rent', session);
+      expect(r.detail, 'Pal suggests');
+      expect(r.semanticLabel, 'Hold \$40: Hold \$40 for rent, Pal suggests');
+    });
+
+    test('an approved proposal reads its done label and is inert', () {
+      final plan = _plan(agenda: const PalAgenda(proposals: [_proposal]));
+      final r = row(plan, 'proposal:rent', session.settle('proposal:rent', done: true, label: ''));
+      expect(r.state, PlanRowState.done);
+      expect(r.detail, 'Held');
+      expect(r.verb, isNull);
+      expect(r.tappable, isFalse);
+      expect(r.semanticLabel, 'Hold \$40 for rent, Held');
+    });
+
+    test('a done routine or workout reads Done and is inert', () {
+      final plan = _plan(
+        rituals: _rituals([_routine('morning', '7:00 AM')], progress: {
+          'morning': {0},
+        }),
+        workout: _workout(done: true),
+      );
+      for (final id in ['routine:morning', 'workout']) {
+        final r = row(plan, id, session);
+        expect(r.detail, 'Done');
+        expect(r.tappable, isFalse);
+      }
+    });
+
+    test('a done mood row reads the mood word and checks in again', () {
+      final plan = _plan(lastCheckin: _checkin(DateTime(2026, 10, 4, 8, 15)));
+      final r = row(plan, 'mood', session);
+      expect(r.state, PlanRowState.done);
+      expect(r.detail, 'Slightly pleasant');
+      expect(r.verb, 'Check in again');
+      expect(r.semanticLabel, 'Check in again: Mood check-in, Slightly pleasant');
+    });
+  });
+
+  group('plan facts', () {
+    final evening = DateTime(2026, 10, 4, 20, 6);
+
+    DayPlan day({Map<String, Set<int>> progress = const {}}) => _plan(
+          agenda: const PalAgenda(proposals: [_proposal]),
+          rituals: _rituals(
+            [_routine('morning', '7:00 AM', steps: 3), _routine('evening', '9:00 PM')],
+            progress: progress,
+          ),
+          workout: _workout(),
+          lastCheckin: _checkin(DateTime(2026, 10, 4, 8, 15)),
+        );
+
+    test('are the open local items in lead order, without proposals or settled items', () {
+      final plan = day(progress: {
+        'morning': {0},
+      });
+      final s = session.settle('meal', done: false, label: '');
+
+      final facts = plan.planFacts(s, _now);
+
+      expect(facts.map((f) => f.title), ['Routine morning', 'Push Day A', 'Close-out']);
+      final morning = facts.first;
+      expect(morning.key, 'routine:morning|due|1 of 3 steps');
+      expect(morning.when, '7:00 AM');
+      expect(morning.status, PlanFact.due);
+      expect(morning.steps, '1 of 3 steps');
+      expect(morning.why, 'It was due at 7:00 AM, under four hours ago, and is still open.');
+      final workout = facts[1];
+      expect(workout.key, 'workout|anytime|45 min');
+      expect(workout.when, 'any time');
+      expect(workout.status, PlanFact.anytime);
+      expect(workout.steps, '45 min');
+      final closeOut = facts[2];
+      expect(closeOut.status, PlanFact.upcoming);
+      expect(closeOut.when, '9:00 PM');
+      expect(closeOut.steps, '1 step');
+    });
+
+    test('a missed item says so, and an untimed item without detail has an empty key part', () {
+      final facts = day().planFacts(session, evening);
+      final morning = facts.singleWhere((f) => f.title == 'Routine morning');
+      expect(morning.status, PlanFact.missed);
+      expect(morning.key, 'routine:morning|missed|3 steps');
+      expect(facts.singleWhere((f) => f.title == 'Log a meal').key, 'meal|anytime|');
+    });
+
+    test('why follows the lead rules it is given', () {
+      final plan = day();
+      final closeOut = plan.items.singleWhere((i) => i.id == 'closeOut');
+      final fact = plan.factFor(closeOut, session, evening, LeadRules(care: [DetailTracker.rituals]));
+      expect(fact.why, 'Routines needs care, and an area in Needs care always leads.');
+      expect(fact.why,
+          plan.reasonFor(closeOut, session, evening, LeadRules(care: [DetailTracker.rituals])));
+    });
+
+    test('the key changes when the steps or the status change', () {
+      String key(DayPlan plan, DateTime at) => plan
+          .factFor(plan.items.singleWhere((i) => i.id == 'routine:morning'), session, at)
+          .key;
+      final fresh = key(day(), _now);
+      final stepped = key(day(progress: {
+        'morning': {0},
+      }), _now);
+      final missed = key(day(), evening);
+      expect({fresh, stepped, missed}, hasLength(3));
+    });
+  });
+
+  group('leadLine', () {
+    final plan = _plan(
+      agenda: const PalAgenda(proposals: [_proposal]),
+      rituals: _rituals([_routine('morning', '7:00 AM')]),
+      workout: _workout(),
+    );
+    PlanItem item(String id) => plan.items.singleWhere((i) => i.id == id);
+    final morningKey = plan.factFor(item('routine:morning'), session, _now).key;
+    final agenda = PalAgenda(lines: {morningKey: 'Pal says start the morning.'});
+
+    test('with no lead, the day is done', () {
+      expect(leadLine(lead: null, agenda: agenda, online: true, leadKey: null),
+          'Nothing is left. Rest up.');
+    });
+
+    test('a proposal says its body', () {
+      expect(
+          leadLine(lead: item('proposal:rent'), agenda: agenda, online: true, leadKey: morningKey),
+          _proposal.body);
+    });
+
+    test("online with a line for the lead's key, Pal's line", () {
+      expect(
+          leadLine(lead: item('routine:morning'), agenda: agenda, online: true, leadKey: morningKey),
+          'Pal says start the morning.');
+    });
+
+    test("offline, the item's sentence even with a matching line", () {
+      expect(
+          leadLine(
+              lead: item('routine:morning'), agenda: agenda, online: false, leadKey: morningKey),
+          'Blurb morning');
+    });
+
+    test("a stale key falls back to the item's sentence", () {
+      const stepped = 'routine:morning|due|1 of 1 steps';
+      expect(
+          leadLine(lead: item('routine:morning'), agenda: agenda, online: true, leadKey: stepped),
+          'Blurb morning');
+    });
+
+    test('with no sentence, the title', () {
+      expect(leadLine(lead: item('workout'), agenda: agenda, online: true, leadKey: 'workout|anytime|45 min'),
+          'Push Day A');
+    });
   });
 
   group('PlanSession', () {
@@ -650,7 +909,7 @@ void main() {
       );
       expect(closeOut.whenLabel, 'At 9:30 PM · 5 min');
       final evening = full().items.firstWhere((i) => i.id == 'closeOut');
-      expect(evening.whenLabel, 'At 9:00 PM');
+      expect(evening.whenLabel, 'At 9:00 PM · 1 step');
     });
 
     test('an untimed item reads Any time, with and without detail', () {

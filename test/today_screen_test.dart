@@ -201,7 +201,7 @@ void main() {
     await _boot(tester);
 
     expect(_card('Close-out'), findsOneWidget);
-    expect(_onToday(find.text('At 9:30 PM')), findsOneWidget);
+    expect(_onToday(find.text('At 9:30 PM · 4 steps')), findsOneWidget);
     expect(_onToday(find.text('Now')), findsNothing);
   });
 
