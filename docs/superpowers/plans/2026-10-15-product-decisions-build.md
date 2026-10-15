@@ -13,6 +13,7 @@
 
 **Effort:** effort:c4342184-d6c7-424a-be76-048d8a167e17
 **Spec:** `docs/superpowers/specs/2026-10-15-product-decisions-build-design.md`
+**As landed:** the merge with run 8602490a moved this plan's schema v11 to v12 and renamed `targetMinutes` to `targetDurationMin` (see the spec).
 **Verify:** `sh -c 'c="${ARC_VERIFY_CHANGED:-}"; f=1; s=1; if [ -n "$c" ]; then grep -qE "^(lib|test|pubspec|assets)" "$c" || f=0; grep -q "^server/" "$c" || s=0; fi; if [ $f = 1 ]; then flutter test --exclude-tags "golden || scenario" || exit 1; fi; if [ $s = 1 ]; then (cd server && npx vitest run) && (cd server/worker && npx vitest run) || exit 1; fi'`
 **Setup:** `flutter pub get && (cd server && npm ci) && (cd server/worker && npm ci)`
 **Check:** `flutter analyze --fatal-infos && (cd server && npx tsc -p tsconfig.json --noEmit)`
