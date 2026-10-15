@@ -8,78 +8,74 @@ part of 'autopilot_controller.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
-/// The user's autopilot switches for this app session, as overrides of each
-/// item's server default by item id.
+/// The Autopilot switches, which are the stored notification settings: Spend
+/// nudge is `budgetAlerts` and Routine reminders is `ritualReminders`.
 ///
-/// Kept alive so a switch survives leaving and reopening Autopilot. Not
-/// persisted: there is no server endpoint yet, so a switch cannot stop the
-/// task, and a stored value would claim more than it does.
+/// Autopilot and Notifications both switch through here, so the two screens
+/// and You's count can never disagree.
 
-@ProviderFor(AutopilotSwitches)
-const autopilotSwitchesProvider = AutopilotSwitchesProvider._();
+@ProviderFor(Automations)
+const automationsProvider = AutomationsProvider._();
 
-/// The user's autopilot switches for this app session, as overrides of each
-/// item's server default by item id.
+/// The Autopilot switches, which are the stored notification settings: Spend
+/// nudge is `budgetAlerts` and Routine reminders is `ritualReminders`.
 ///
-/// Kept alive so a switch survives leaving and reopening Autopilot. Not
-/// persisted: there is no server endpoint yet, so a switch cannot stop the
-/// task, and a stored value would claim more than it does.
-final class AutopilotSwitchesProvider
-    extends $NotifierProvider<AutopilotSwitches, Map<String, bool>> {
-  /// The user's autopilot switches for this app session, as overrides of each
-  /// item's server default by item id.
+/// Autopilot and Notifications both switch through here, so the two screens
+/// and You's count can never disagree.
+final class AutomationsProvider
+    extends $NotifierProvider<Automations, Map<Automation, bool>> {
+  /// The Autopilot switches, which are the stored notification settings: Spend
+  /// nudge is `budgetAlerts` and Routine reminders is `ritualReminders`.
   ///
-  /// Kept alive so a switch survives leaving and reopening Autopilot. Not
-  /// persisted: there is no server endpoint yet, so a switch cannot stop the
-  /// task, and a stored value would claim more than it does.
-  const AutopilotSwitchesProvider._()
+  /// Autopilot and Notifications both switch through here, so the two screens
+  /// and You's count can never disagree.
+  const AutomationsProvider._()
     : super(
         from: null,
         argument: null,
         retry: null,
-        name: r'autopilotSwitchesProvider',
+        name: r'automationsProvider',
         isAutoDispose: false,
         dependencies: null,
         $allTransitiveDependencies: null,
       );
 
   @override
-  String debugGetCreateSourceHash() => _$autopilotSwitchesHash();
+  String debugGetCreateSourceHash() => _$automationsHash();
 
   @$internal
   @override
-  AutopilotSwitches create() => AutopilotSwitches();
+  Automations create() => Automations();
 
   /// {@macro riverpod.override_with_value}
-  Override overrideWithValue(Map<String, bool> value) {
+  Override overrideWithValue(Map<Automation, bool> value) {
     return $ProviderOverride(
       origin: this,
-      providerOverride: $SyncValueProvider<Map<String, bool>>(value),
+      providerOverride: $SyncValueProvider<Map<Automation, bool>>(value),
     );
   }
 }
 
-String _$autopilotSwitchesHash() => r'f3455e789e1aaf55c041604ce854043c62127d30';
+String _$automationsHash() => r'e16934147dfe1f2cfa380f6f17f57cf3de9d6f7a';
 
-/// The user's autopilot switches for this app session, as overrides of each
-/// item's server default by item id.
+/// The Autopilot switches, which are the stored notification settings: Spend
+/// nudge is `budgetAlerts` and Routine reminders is `ritualReminders`.
 ///
-/// Kept alive so a switch survives leaving and reopening Autopilot. Not
-/// persisted: there is no server endpoint yet, so a switch cannot stop the
-/// task, and a stored value would claim more than it does.
+/// Autopilot and Notifications both switch through here, so the two screens
+/// and You's count can never disagree.
 
-abstract class _$AutopilotSwitches extends $Notifier<Map<String, bool>> {
-  Map<String, bool> build();
+abstract class _$Automations extends $Notifier<Map<Automation, bool>> {
+  Map<Automation, bool> build();
   @$mustCallSuper
   @override
   void runBuild() {
     final created = build();
-    final ref = this.ref as $Ref<Map<String, bool>, Map<String, bool>>;
+    final ref = this.ref as $Ref<Map<Automation, bool>, Map<Automation, bool>>;
     final element =
         ref.element
             as $ClassProviderElement<
-              AnyNotifier<Map<String, bool>, Map<String, bool>>,
-              Map<String, bool>,
+              AnyNotifier<Map<Automation, bool>, Map<Automation, bool>>,
+              Map<Automation, bool>,
               Object?,
               Object?
             >;

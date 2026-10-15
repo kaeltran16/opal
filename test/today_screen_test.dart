@@ -3,8 +3,10 @@ import 'dart:async';
 import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:opal/controllers/rituals_controller.dart';
 import 'package:opal/controllers/today_controller.dart';
 import 'package:opal/data/seed/seed_data.dart';
 import 'package:opal/screens/pal/pal_composer_screen.dart';
@@ -12,7 +14,10 @@ import 'package:opal/screens/reflect/evening_close_out_screen.dart';
 import 'package:opal/screens/rituals/routine_player_screen.dart';
 import 'package:opal/screens/shell/plan_undo_toast.dart';
 import 'package:opal/screens/today/today_screen.dart';
+import 'package:opal/models/models.dart'
+    show RitualRoutine, RitualTone;
 import 'package:opal/screens/workout/start_workout_screen.dart';
+import 'package:opal/services/pal/pal_service.dart';
 import 'package:opal/theme/theme.dart';
 import 'package:opal/util/mood_scale.dart' show moodWord;
 import 'package:opal/widgets/app_icon.dart';
@@ -20,6 +25,7 @@ import 'package:opal/widgets/pal_label.dart';
 import 'package:opal/widgets/pal_lead.dart';
 
 import 'support/flush_provider_timers.dart';
+import 'support/golden_harness.dart' show appRouter;
 import 'support/today_fixture.dart';
 
 final _monday = Clock.fixed(DateTime(2026, 9, 28, 9, 30));
@@ -34,6 +40,31 @@ const _otherLongTitle = 'Walk around the block and refill the water bottle again
 const _offlineLabel = 'Pal is offline · next on the clock';
 const _morningLine = 'Morning is still open. Ease in before the desk.';
 const _morningSaid = 'Ease into the day';
+const _step = 'Two-minute wind-down';
+/// Pal's add-ritual proposal, as the mock sends it.
+const _addRitual = PalProposal(
+  id: 'add-wind-down-ritual',
+  tag: 'Rituals',
+  colorToken: 'rituals',
+  icon: 'sparkles',
+  title: 'Add a 2-min wind-down ritual',
+  body: 'A short wind-down could anchor it.',
+  approveLabel: 'Add ritual',
+  approveIcon: 'plus',
+  doneLabel: 'Added',
+  action: addRitualAction,
+  ritual: (routineId: 'evening', step: _step),
+);
+/// An evening routine with no steps yet, so it is no close-out and an
+/// add-ritual proposal for it shows on Today.
+const _emptyEvening = RitualRoutine(
+  id: 'evening',
+  name: 'Evening wind-down',
+  time: '9:30 PM',
+  tone: RitualTone.evening,
+  icon: 'moon.stars.fill',
+  blurb: 'Close the day gently',
+);
 
 /// Only the mood check-in and Log a meal, so proposals set the count.
 const _bare = TodayDay(routines: [], workout: false);
@@ -83,6 +114,16 @@ Finder _toast(String text) =>
 
 Finder get _toastUndo =>
     find.descendant(of: find.byKey(planUndoToastKey), matching: find.text('Undo'));
+
+List<String> _eveningSteps(WidgetTester tester) => [
+      for (final s in ProviderScope.containerOf(tester.element(find.byType(Scaffold).first))
+          .read(ritualsControllerProvider)
+          .requireValue
+          .routines
+          .firstWhere((r) => r.id == _emptyEvening.id)
+          .steps)
+        s.title,
+    ];
 
 Future<void> _tap(WidgetTester tester, Finder finder) async {
   await tester.tap(finder);
@@ -215,6 +256,40 @@ void main() {
     expect(find.descendant(
             of: find.byType(PalComposerSheet), matching: find.text('Why Rent auto-pays first?')),
         findsOneWidget);
+  });
+
+  _todayTest('approving add-ritual on the card adds the step, and the toast Undo removes it',
+      (tester) async {
+    await _boot(tester,
+        day: const TodayDay(routines: [_emptyEvening], workout: false),
+        pal: TodayPal(proposals: const [_addRitual]));
+
+    await _tap(tester, find.text('Add ritual'));
+
+    expect(_toast('Added $_step to ${_emptyEvening.name}'), findsOneWidget);
+    expect(_eveningSteps(tester), [_step]);
+
+    await _tap(tester, _toastUndo);
+    expect(_eveningSteps(tester), isEmpty);
+    expect(_card(_addRitual.title), findsOneWidget);
+  });
+
+  _todayTest('approved on You, the toast names it and Undo removes the step', (tester) async {
+    await _boot(tester,
+        day: const TodayDay(routines: [_emptyEvening], workout: false),
+        pal: TodayPal(proposals: const [_addRitual]));
+    final router = appRouter(tester);
+
+    router.go('/you');
+    await tester.pumpAndSettle();
+    await _tap(tester, find.bySemanticsLabel('Add ritual: ${_addRitual.title}'));
+    expect(_toast('Added $_step to ${_emptyEvening.name}'), findsOneWidget);
+    await _tap(tester, _toastUndo);
+
+    expect(_eveningSteps(tester), isEmpty);
+    router.go('/today');
+    await tester.pumpAndSettle();
+    expect(_card(_addRitual.title), findsOneWidget);
   });
 
   _todayTest('Why shows when Needs care forces the lead, and carries the rule',
@@ -422,13 +497,12 @@ void main() {
 
     _todayTest('a proposal, which it approves in place', (tester) async {
       await _boot(tester,
-          day: _bare,
           pal: TodayPal(proposals: [proposal('a', 'Rent auto-pays'), proposal('b', 'Cap dinner')]));
 
       await _tap(tester, find.bySemanticsLabel('Got it: Cap dinner, Pal suggests'));
       expect(find.bySemanticsLabel('Cap dinner, Cap dinner done'), findsOneWidget);
       expect(_card('Rent auto-pays'), findsOneWidget);
-      expect(_toast('Cap dinner done'), findsOneWidget);
+      expect(_toast('Planned Leg Day for Friday'), findsOneWidget);
       expect(_toastUndo, findsOneWidget);
     });
   });

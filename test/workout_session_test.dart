@@ -280,4 +280,142 @@ void main() {
       expect(s.sets.length, 1);
     });
   });
+
+  group('timed sets', () {
+    const timedCatalog = [
+      Exercise(
+        id: 'bench',
+        name: 'Bench Press',
+        group: 'Push',
+        muscle: 'Chest',
+        icon: 'x',
+        pr: ExercisePR(weightKg: 55, reps: 5),
+      ),
+      Exercise(
+        id: 'treadmill',
+        name: 'Treadmill Run',
+        group: 'Cardio',
+        muscle: 'Cardio',
+        icon: 'x',
+        timed: true,
+      ),
+      Exercise(
+        id: 'plank',
+        name: 'Plank',
+        group: 'Core',
+        muscle: 'Core',
+        icon: 'x',
+        timed: true,
+      ),
+    ];
+
+    WorkoutSession timedSession(List<RoutineExercise> slots) => WorkoutSession(
+          routine: Routine(
+            id: 'r-timed',
+            name: 'Timed',
+            tag: RoutineTag.cardio,
+            restSeconds: 60,
+            exercises: slots,
+          ),
+          exercises: timedCatalog,
+          startedAt: DateTime(2026, 10, 15, 7),
+        );
+
+    test('a timed slot made before targets existed seeds 1 minute', () {
+      final s = timedSession(const [
+        RoutineExercise(
+            id: 're-tm', exerciseId: 'treadmill', order: 0, targetSets: 1),
+      ]);
+      final set = s.sets.single;
+      expect(set.isTimed, isTrue);
+      expect(set.minutes, kDefaultTimedMinutes);
+      expect(set.minutes, 1);
+      expect(set.distanceKm, isNull);
+      expect(set.weightKg, 0);
+      expect(set.reps, 0);
+    });
+
+    test('a timed slot seeds its minute and km targets', () {
+      final s = timedSession(const [
+        RoutineExercise(
+          id: 're-tm',
+          exerciseId: 'treadmill',
+          order: 0,
+          targetSets: 2,
+          targetDurationMin: 20,
+          targetKm: 3,
+        ),
+      ]);
+      expect(s.sets, hasLength(2));
+      expect(s.sets.every((x) => x.minutes == 20 && x.distanceKm == 3), isTrue);
+    });
+
+    test('logCurrentTimedSet logs minutes and km, never a PR, then rests', () {
+      final s = timedSession(const [
+        RoutineExercise(
+            id: 're-tm', exerciseId: 'treadmill', order: 0, targetSets: 2),
+      ]);
+      s.logCurrentTimedSet(minutes: 21, distanceKm: 3.2);
+
+      final logged = s.sets.first;
+      expect(logged.done, isTrue);
+      expect(logged.isPR, isFalse);
+      expect(logged.minutes, 21);
+      expect(logged.distanceKm, 3.2);
+      expect(logged.volumeKg, 0);
+      expect(s.currentSetIndex, 1);
+      expect(s.isResting, isTrue);
+      expect(s.restRemaining, 60);
+
+      s.logCurrentTimedSet(minutes: 30);
+      expect(s.sets.last.isPR, isFalse);
+      expect(s.sets.last.distanceKm, isNull);
+      expect(s.isComplete, isTrue);
+    });
+
+    test('a bench then plank routine flags the bench PR and not the plank',
+        () {
+      final s = timedSession(const [
+        RoutineExercise(
+          id: 're-bench',
+          exerciseId: 'bench',
+          order: 0,
+          targetSets: 1,
+          targetReps: 5,
+          targetWeightKg: 60,
+        ),
+        RoutineExercise(
+            id: 're-plank', exerciseId: 'plank', order: 1, targetSets: 1),
+      ]);
+      expect(s.sets.first.isTimed, isFalse);
+      expect(s.sets.last.isTimed, isTrue);
+
+      s.logCurrentSet(weightKg: 60, reps: 5);
+      s.logCurrentTimedSet(minutes: 2);
+
+      final w = s.finish(endedAt: DateTime(2026, 10, 15, 8));
+      expect(w.sets.first.isPR, isTrue);
+      expect(w.sets.last.isPR, isFalse);
+      expect(w.prCount, 1);
+      expect(w.totalVolumeKg, 300);
+      expect(w.totalMinutes, 2);
+    });
+
+    test('addSet on a timed exercise copies minutes and km', () {
+      final s = timedSession(const [
+        RoutineExercise(
+          id: 're-tm',
+          exerciseId: 'treadmill',
+          order: 0,
+          targetSets: 1,
+          targetDurationMin: 20,
+          targetKm: 3,
+        ),
+      ]);
+      final added = s.addSet();
+      expect(added.minutes, 20);
+      expect(added.distanceKm, 3);
+      expect(added.done, isFalse);
+    });
+  });
 }

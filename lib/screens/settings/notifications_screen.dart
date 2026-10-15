@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart' show CupertinoSwitch;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../controllers/autopilot_controller.dart';
 import '../../controllers/providers.dart';
 import '../../services/notifications/notification_service.dart';
 import '../../theme/theme.dart';
@@ -13,9 +14,9 @@ const double _hairline = 1;
 
 /// Settings → Notifications.
 ///
-/// Toggles ritual-reminder and budget-alert preferences (persisted via
-/// [SettingsRepository]) and lets the user request OS permission through
-/// [NotificationService]. Actual delivery is only verifiable on a real iOS
+/// Toggles ritual-reminder and budget-alert preferences through [Automations],
+/// the same switches Autopilot shows, and lets the user request OS permission
+/// through [NotificationService]. Actual delivery is only verifiable on a real iOS
 /// build; elsewhere the no-op service simply reports success.
 class NotificationsScreen extends ConsumerStatefulWidget {
   const NotificationsScreen({super.key});
@@ -26,8 +27,6 @@ class NotificationsScreen extends ConsumerStatefulWidget {
 }
 
 class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
-  late bool _ritualReminders;
-  late bool _budgetAlerts;
   late TimeOfDay _reminderTime;
   String? _permStatus;
   bool _requesting = false;
@@ -35,10 +34,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
   @override
   void initState() {
     super.initState();
-    final repo = ref.read(settingsRepositoryProvider);
-    _ritualReminders = repo.ritualReminders;
-    _budgetAlerts = repo.budgetAlerts;
-    _reminderTime = repo.reminderTime;
+    _reminderTime = ref.read(settingsRepositoryProvider).reminderTime;
     _loadPermStatus();
   }
 
@@ -53,6 +49,9 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
   /// True once permission is confirmed granted; until then a toggled-on reminder
   /// can't actually be delivered.
   bool get _permissionGranted => _permStatus == 'Allowed';
+
+  bool get _ritualReminders =>
+      ref.read(automationsProvider)[Automation.routineReminders] ?? false;
 
   Future<void> _requestPerms() async {
     if (_requesting) return;
@@ -96,15 +95,9 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
   }
 
   Future<void> _setRitualReminders(bool v) async {
-    setState(() => _ritualReminders = v);
-    await ref.read(settingsRepositoryProvider).setRitualReminders(v);
-    if (v) {
-      await _scheduleReminder();
-    } else {
-      await ref
-          .read(notificationServiceProvider)
-          .cancel(NotificationIds.ritualReminder);
-    }
+    final scheduled =
+        await ref.read(automationsProvider.notifier).set(Automation.routineReminders, v);
+    if (!scheduled && mounted) setState(() => _permStatus = 'Denied');
   }
 
   Future<void> _pickReminderTime() async {
@@ -124,18 +117,19 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
     return '$hour12:$minute $period';
   }
 
-  void _setBudgetAlerts(bool v) {
-    setState(() => _budgetAlerts = v);
-    ref.read(settingsRepositoryProvider).setBudgetAlerts(v);
-  }
+  void _setBudgetAlerts(bool v) =>
+      ref.read(automationsProvider.notifier).set(Automation.spendNudge, v);
 
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
+    final automations = ref.watch(automationsProvider);
+    final ritualReminders = automations[Automation.routineReminders] ?? false;
+    final budgetAlerts = automations[Automation.spendNudge] ?? false;
     // a toggle promising delivery while the OS hasn't granted permission is the
     // gap to surface (defaults are on, so this is the fresh-install state).
     final permissionGap =
-        (_ritualReminders || _budgetAlerts) && !_permissionGranted;
+        (ritualReminders || budgetAlerts) && !_permissionGranted;
     return SubScreen(
       eyebrow: 'Settings',
       title: 'Notifications',
@@ -163,10 +157,10 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
           ),
         _SwitchRow(
           title: 'Routine reminders',
-          value: _ritualReminders,
+          value: ritualReminders,
           onChanged: _setRitualReminders,
         ),
-        if (_ritualReminders)
+        if (ritualReminders)
           _Row(
             title: 'Reminder time',
             value: _formatTime(_reminderTime),
@@ -174,7 +168,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
           ),
         _SwitchRow(
           title: 'Budget alerts',
-          value: _budgetAlerts,
+          value: budgetAlerts,
           onChanged: _setBudgetAlerts,
         ),
         const _Footer('Reminders are scheduled and delivered on your device only.'),

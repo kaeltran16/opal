@@ -44,13 +44,34 @@ class Workout {
   /// Ordered set logs for this session.
   final List<SetLog> sets;
 
-  /// Sum of `weight × reps` over completed ([SetLog.done]) sets only.
+  /// Sum of `weight × reps` over completed ([SetLog.done]) sets only. Timed
+  /// sets add nothing ([SetLog.volumeKg] is 0 for them).
   double get totalVolumeKg => sets
       .where((s) => s.done)
       .fold(0.0, (sum, s) => sum + s.volumeKg);
 
-  /// Number of completed sets flagged as a personal record.
-  int get prCount => sets.where((s) => s.done && s.isPR).length;
+  /// Number of completed weighted sets flagged as a personal record.
+  int get prCount => sets.where((s) => s.done && s.isPR && !s.isTimed).length;
+
+  /// Whole minutes over completed timed sets.
+  int get totalMinutes => sets
+      .where((s) => s.done && s.isTimed)
+      .fold(0, (sum, s) => sum + s.minutes!);
+
+  /// Kilometres over completed timed sets (0 when none logged a distance).
+  double get totalKm => sets
+      .where((s) => s.done && s.isTimed)
+      .fold(0.0, (sum, s) => sum + (s.distanceKm ?? 0));
+
+  /// True when the session has completed sets and every one is timed.
+  bool get isTimedSession {
+    final done = sets.where((s) => s.done);
+    return done.isNotEmpty && done.every((s) => s.isTimed);
+  }
+
+  /// Minutes the session counts for: a timed session counts the minutes it
+  /// logged, a weighted session the time it took.
+  int? get countedMinutes => isTimedSession ? totalMinutes : duration?.inMinutes;
 
   /// Count of completed sets.
   int get completedSetCount => sets.where((s) => s.done).length;

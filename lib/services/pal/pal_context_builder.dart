@@ -285,11 +285,15 @@ Map<String, Object?> buildPostWorkoutContext({
   required int? daysAgoLastSession,
 }) {
   final done = workout.sets.where((s) => s.done);
-  final prExercises = done.where((s) => s.isPR).map((s) => s.exerciseId).toSet().toList();
+  final prExercises =
+      done.where((s) => s.isPR && !s.isTimed).map((s) => s.exerciseId).toSet().toList();
+  final km = workout.totalKm;
   return {
     'routineName': workout.name,
     'setCount': done.length,
     'volumeKg': workout.totalVolumeKg,
+    'minutes': workout.totalMinutes,
+    'km': km > 0 ? km : null,
     'prCount': workout.prCount,
     'prExercises': prExercises,
     'lastSessionVolumeKg': lastSessionVolumeKg,

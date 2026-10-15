@@ -248,11 +248,12 @@ class _Recent extends StatelessWidget {
             first: i == 0,
             when: s.relativeDate,
             title: s.workout.name,
-            detail: [
-              '${s.durationMinutes} min',
-              // cardio logs no volume, so it shows time alone.
-              if (s.volumeTonnes > 0) '${s.volumeTonnes.toStringAsFixed(1)} t',
-            ].join(' · '),
+            detail: s.timedDetail ??
+                [
+                  '${s.durationMinutes} min',
+                  // cardio logs no volume, so it shows time alone.
+                  if (s.volumeTonnes > 0) '${s.volumeTonnes.toStringAsFixed(1)} t',
+                ].join(' · '),
             newBest: s.workout.prCount > 0,
             onTap: () => context.pushNamed(
               AppRoute.workoutDetail.name,

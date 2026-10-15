@@ -2,52 +2,54 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:opal/controllers/pal_agenda_controller.dart';
+import 'package:opal/controllers/providers.dart';
+import 'package:opal/screens/settings/notifications_screen.dart';
 import 'package:opal/screens/you/autopilot_screen.dart';
+import 'package:opal/services/notifications/noop_notification_service.dart';
 import 'package:opal/services/pal/pal_service.dart';
 import 'package:opal/theme/app_colors.dart';
 
-const _rent = PalAutopilotItem(
-  id: 'rent-watch',
-  colorToken: 'money',
-  icon: 'house.fill',
-  title: 'Rent auto-pay watch',
-  subtitle: 'Alerts if balance dips before Mon',
-  enabled: true,
-);
+const _spend = 'Spend nudge';
+const _reminders = 'Routine reminders';
+const _spendFallback = "Alerts you when today's spending passes your budget.";
+const _remindersFallback = 'A daily nudge at 9:00 AM.';
 
-const _coffee = PalAutopilotItem(
-  id: 'coffee-nudge',
-  colorToken: 'money',
-  icon: 'cup.and.saucer.fill',
-  title: 'Coffee nudge at \$15 / wk',
-  subtitle: "You're at \$23, currently paused",
-  enabled: false,
-);
-
-/// Opens Autopilot from a launcher page, as You pushes it.
+/// Opens Autopilot, or Notifications, from a launcher page, as You pushes them.
 Future<void> _pump(WidgetTester tester, Future<PalAgenda> Function() agenda) async {
+  SharedPreferences.setMockInitialValues({});
+  final prefs = await SharedPreferences.getInstance();
+  Widget launch(BuildContext context, String label, Widget screen) => TextButton(
+        onPressed: () => Navigator.of(context)
+            .push(CupertinoPageRoute<void>(builder: (_) => screen)),
+        child: Text(label),
+      );
   await tester.pumpWidget(ProviderScope(
-    overrides: [palAgendaProvider.overrideWith((ref) => agenda())],
+    overrides: [
+      palAgendaProvider.overrideWith((ref) => agenda()),
+      sharedPreferencesProvider.overrideWithValue(prefs),
+      notificationServiceProvider.overrideWithValue(const NoopNotificationService()),
+    ],
     child: MaterialApp(
       theme: ThemeData(useMaterial3: true, extensions: [AppColors.light()]),
       home: Builder(
-        builder: (context) => Center(
-          child: TextButton(
-            onPressed: () => Navigator.of(context).push(
-                CupertinoPageRoute<void>(builder: (_) => const AutopilotScreen())),
-            child: const Text('Open autopilot'),
-          ),
+        builder: (context) => Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            launch(context, 'Open autopilot', const AutopilotScreen()),
+            launch(context, 'Open notifications', const NotificationsScreen()),
+          ],
         ),
       ),
     ),
   ));
-  await _open(tester);
+  await _open(tester, 'Open autopilot');
 }
 
-Future<void> _open(WidgetTester tester) async {
-  await tester.tap(find.text('Open autopilot'));
+Future<void> _open(WidgetTester tester, String label) async {
+  await tester.tap(find.text(label));
   await tester.pumpAndSettle();
 }
 
@@ -58,77 +60,63 @@ bool _isOn(WidgetTester tester, String title) =>
     tester.widget<CupertinoSwitch>(_switchOf(title)).value;
 
 void main() {
-  testWidgets('renders a row per autopilot item with its switch', (tester) async {
-    await _pump(tester, () async => const PalAgenda(autopilot: [_rent, _coffee]));
+  testWidgets('both rows show with the fallback lines when the agenda fails',
+      (tester) async {
+    await _pump(tester, () => Future.error(Exception('pal offline')));
 
     expect(find.text('Pal'), findsOneWidget);
     expect(find.text('Autopilot'), findsOneWidget);
-    expect(find.text('What Pal handles quietly. Switch any of it off.'), findsOneWidget);
-    expect(find.text('Rent auto-pay watch'), findsOneWidget);
-    expect(find.text('Alerts if balance dips before Mon'), findsOneWidget);
-    expect(find.text('Coffee nudge at \$15 / wk'), findsOneWidget);
-    expect(find.byType(CupertinoSwitch), findsNWidgets(2));
-    expect(_isOn(tester, _rent.title), isTrue);
-    expect(_isOn(tester, _coffee.title), isFalse);
+    expect(find.text(_spend), findsOneWidget);
+    expect(find.text(_spendFallback), findsOneWidget);
+    expect(find.text(_reminders), findsOneWidget);
+    expect(find.text(_remindersFallback), findsOneWidget);
+    expect(_isOn(tester, _spend), isTrue);
+    expect(_isOn(tester, _reminders), isTrue);
+    expect(find.text("Couldn't load autopilot."), findsNothing);
   });
 
-  testWidgets('tapping a switch flips it and its semantics report checked', (tester) async {
+  testWidgets("a row shows the model's line when the agenda has one",
+      (tester) async {
+    await _pump(
+        tester,
+        () async => const PalAgenda(
+            autopilotSubtitles: {'spend_nudge': 'Watching \$12 left today.'}));
+
+    expect(find.text('Watching \$12 left today.'), findsOneWidget);
+    expect(find.text(_spendFallback), findsNothing);
+    expect(find.text(_remindersFallback), findsOneWidget);
+  });
+
+  testWidgets('tapping a switch flips it and its semantics report it',
+      (tester) async {
     final handle = tester.ensureSemantics();
-    await _pump(tester, () async => const PalAgenda(autopilot: [_rent, _coffee]));
+    await _pump(tester, () async => const PalAgenda());
 
-    expect(
-      tester.getSemantics(_switchOf(_coffee.title)),
-      isSemantics(label: _coffee.title, hasToggledState: true, isToggled: false),
-    );
-
-    await tester.tap(_switchOf(_coffee.title));
+    await tester.tap(_switchOf(_reminders));
     await tester.pumpAndSettle();
 
-    expect(_isOn(tester, _coffee.title), isTrue);
+    expect(_isOn(tester, _reminders), isFalse);
     expect(
-      tester.getSemantics(_switchOf(_coffee.title)),
-      isSemantics(label: _coffee.title, hasToggledState: true, isToggled: true),
+      tester.getSemantics(_switchOf(_reminders)),
+      isSemantics(label: _reminders, hasToggledState: true, isToggled: false),
     );
-    // the other switch keeps its own state.
-    expect(_isOn(tester, _rent.title), isTrue);
+    expect(_isOn(tester, _spend), isTrue);
     handle.dispose();
   });
 
-  testWidgets('tapping the row text flips its switch too', (tester) async {
-    await _pump(tester, () async => const PalAgenda(autopilot: [_rent, _coffee]));
-
-    await tester.tap(find.text(_rent.subtitle));
-    await tester.pumpAndSettle();
-
-    expect(_isOn(tester, _rent.title), isFalse);
-  });
-
-  testWidgets('a flipped switch survives popping and reopening Autopilot', (tester) async {
-    await _pump(tester, () async => const PalAgenda(autopilot: [_rent, _coffee]));
-
-    await tester.tap(_switchOf(_coffee.title));
-    await tester.pumpAndSettle();
-    expect(find.bySemanticsLabel('Back to You'), findsOneWidget);
-    await tester.tap(find.text('You'));
-    await tester.pumpAndSettle();
-    expect(find.byType(AutopilotScreen), findsNothing);
-
-    await _open(tester);
-    expect(_isOn(tester, _coffee.title), isTrue);
-    expect(_isOn(tester, _rent.title), isTrue);
-  });
-
-  testWidgets('shows the empty copy when nothing is on autopilot', (tester) async {
+  testWidgets("flipping Spend nudge off shows off on Notifications' Budget alerts",
+      (tester) async {
     await _pump(tester, () async => const PalAgenda());
 
-    expect(find.text('Nothing on autopilot yet.'), findsOneWidget);
-    expect(find.byType(CupertinoSwitch), findsNothing);
-  });
+    await tester.tap(find.text(_spendFallback));
+    await tester.pumpAndSettle();
+    expect(_isOn(tester, _spend), isFalse);
 
-  testWidgets('shows the error copy when the agenda fails', (tester) async {
-    await _pump(tester, () => Future.error(Exception('pal offline')));
+    await tester.tap(find.text('You'));
+    await tester.pumpAndSettle();
+    await _open(tester, 'Open notifications');
 
-    expect(find.text("Couldn't load autopilot."), findsOneWidget);
-    expect(find.byType(CupertinoSwitch), findsNothing);
+    expect(_isOn(tester, 'Budget alerts'), isFalse);
+    expect(_isOn(tester, _reminders), isTrue);
   });
 }

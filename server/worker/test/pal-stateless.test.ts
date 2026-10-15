@@ -24,7 +24,7 @@ const PLAN = [
   { key: 'legs|due|', title: 'Legs', when: '6:00 PM', status: 'due', steps: null, why: 'Planned for today.' },
 ]
 const AGENDA = JSON.stringify({
-  proposals: [{ kind: 'generic', colorToken: 'move', tag: 'Workout', title: 'Stretch', body: 'A short stretch.', approveLabel: 'Add it', doneLabel: 'Added' }],
+  proposals: [{ kind: 'close_out', colorToken: 'rituals', tag: 'Routines', title: 'Stretch', body: 'A short stretch.', approveLabel: 'Add it', doneLabel: 'Added' }],
   autopilot: [],
 })
 
@@ -88,6 +88,17 @@ describe('stateless pal routes', () => {
     const tok = await token()
     const res = await post(tok, '/v1/post-workout-note', { context: POST_WORKOUT_CTX }, stubPal({ text: 'strong session' }))
     expect(await res.json()).toEqual({ note: 'strong session' })
+  })
+
+  it('POST /v1/agenda returns 200 with and without targets', async () => {
+    const tok = await token()
+    const canned = JSON.stringify({ proposals: [{ kind: 'close_out', title: 't', body: 'b', approveLabel: 'Go', doneLabel: 'Went' }], autopilot: [] })
+    const targets = { rituals: [], workouts: [{ id: 'w1', name: 'Push' }], week: [{ weekday: 1, routineId: null }] }
+    for (const body of [{ context: CHAT_CTX }, { context: CHAT_CTX, targets }]) {
+      const res = await post(tok, '/v1/agenda', body, stubPal({ text: canned }))
+      expect(res.status).toBe(200)
+      expect((await res.json() as any).proposals[0].action).toBe('close_out')
+    }
   })
 
   it('POST /v1/suggestions returns derived chips', async () => {

@@ -21,6 +21,7 @@ import '../../theme/theme.dart';
 import '../../util/dates.dart' show clockLabel;
 import '../../widgets/app_icon.dart';
 import '../../widgets/day_scene.dart';
+import '../../widgets/failure_note.dart' show saveFailedCopy;
 import '../../widgets/pal_label.dart';
 import '../../widgets/pal_lead.dart' show PalLeadText;
 import '../../widgets/press_scale.dart';
@@ -71,10 +72,10 @@ const Key todayCardKey = ValueKey('today.card');
 
 /// Acts on [item] as Today's card does: a proposal is approved, anything
 /// else opens where it is done. You's Pal suggests approves through this too.
-void actOnPlanItem(BuildContext context, WidgetRef ref, PlanItem item) {
+Future<void> actOnPlanItem(BuildContext context, WidgetRef ref, PlanItem item) async {
   switch (item.kind) {
     case PlanKind.proposal:
-      ref.read(planSessionControllerProvider.notifier).approve(item);
+      await _orSaveFailed(context, ref.read(planSessionControllerProvider.notifier).approve(item));
     case PlanKind.routine:
       context.pushNamed(AppRoute.routinePlayer.name,
           pathParameters: {'routineId': item.ref!});
@@ -86,6 +87,16 @@ void actOnPlanItem(BuildContext context, WidgetRef ref, PlanItem item) {
       context.pushNamed(AppRoute.palComposer.name);
     case PlanKind.closeOut:
       context.pushNamed(AppRoute.eveningCloseOut.name);
+  }
+}
+
+/// Awaits [write], and says so in a snack bar when it fails.
+Future<void> _orSaveFailed(BuildContext context, Future<void> write) async {
+  try {
+    await write;
+  } catch (_) {
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(saveFailedCopy)));
   }
 }
 
@@ -156,7 +167,6 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
   Widget build(BuildContext context) {
     final c = context.colors;
     final async = ref.watch(todayStateProvider);
-
     return async.when(
       loading: () => Center(
         child: Text('…', style: AppType.body.copyWith(color: c.ink3)),

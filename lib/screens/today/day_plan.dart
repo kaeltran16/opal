@@ -42,6 +42,7 @@ class PlanItem {
     this.done = false,
     this.ref,
     this.area,
+    this.proposal,
   });
 
   final String id;
@@ -69,6 +70,9 @@ class PlanItem {
 
   /// The area a Needs care state can force this item to lead for.
   final DetailTracker? area;
+
+  /// The proposal this item stands for, which approving performs.
+  final PalProposal? proposal;
 
   /// The card's when line: "At 9:30 PM" or "Any time", then the detail.
   String get whenLabel {
@@ -112,11 +116,36 @@ class PlanRow {
   }
 }
 
-/// One change made in place on the plan, named for the toast that undoes it.
-class PlanChange {
-  const PlanChange({required this.id, required this.label});
+/// A real change an approval made, which Undo reverses.
+sealed class PlanChange {
+  const PlanChange();
+}
 
-  final String id, label;
+/// A step added to a ritual routine.
+class AddedRitualStep extends PlanChange {
+  const AddedRitualStep(this.routineId, this.stepId);
+
+  final String routineId;
+  final String stepId;
+}
+
+/// A weekly plan slot set, and the routine it held before (null for rest).
+class SetPlanSlot extends PlanChange {
+  const SetPlanSlot(this.weekday, this.priorRoutineId);
+
+  /// 1=Mon..7=Sun.
+  final int weekday;
+  final String? priorRoutineId;
+}
+
+/// One settled item: [label] is what Undo names, [change] what it reverses.
+/// A skip changes nothing.
+class PlanStep {
+  const PlanStep(this.id, this.label, [this.change]);
+
+  final String id;
+  final String label;
+  final PlanChange? change;
 }
 
 /// What the toast says about the last change, and whether it offers Undo.
@@ -140,25 +169,27 @@ class PlanSession {
   /// The start of the local day the session belongs to.
   final DateTime day;
   final Map<String, bool> settled;
-  final List<PlanChange> history;
+  final List<PlanStep> history;
 
   /// A new instance per change, so the toast restarts.
   final PlanNotice? notice;
 
-  PlanSession settle(String id, {required bool done, required String label}) =>
+  PlanSession settle(String id,
+          {required bool done, required String label, PlanChange? change}) =>
       PlanSession(
         day: day,
         settled: {...settled, id: done},
-        history: [...history, PlanChange(id: id, label: label)],
+        history: [...history, PlanStep(id, label, change)],
         notice: PlanNotice(label: label, undoable: true),
       );
 
   /// Reverses the last change and clears the notice.
   PlanSession undo() {
-    if (history.isEmpty) return this;
+    final last = lastStep;
+    if (last == null) return this;
     return PlanSession(
       day: day,
-      settled: {...settled}..remove(history.last.id),
+      settled: {...settled}..remove(last.id),
       history: history.sublist(0, history.length - 1),
     );
   }
@@ -175,6 +206,8 @@ class PlanSession {
   PlanSession dismissNotice() => PlanSession(day: day, settled: settled, history: history);
 
   bool get canUndo => history.isNotEmpty;
+
+  PlanStep? get lastStep => history.lastOrNull;
 }
 
 /// What decides the lead beyond the clock. The default is the clock alone.
@@ -415,6 +448,7 @@ PlanItem proposalItem(PalProposal p) => PlanItem(
       skipLabel: _notNow,
       ref: p.id,
       area: DetailTracker.values.asNameMap()[p.colorToken],
+      proposal: p,
     );
 
 /// Every proposal in [agenda] not yet approved or put off in [session], in

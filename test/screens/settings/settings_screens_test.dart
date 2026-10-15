@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:opal/controllers/autopilot_controller.dart';
 import 'package:opal/controllers/providers.dart';
 import 'package:opal/data/db/database.dart';
 import 'package:opal/screens/settings/about_screen.dart';
@@ -196,6 +197,19 @@ void main() {
       expect(prefs.getBool('settings.budgetAlerts'), isTrue);
       expect(find.text('Reminder time'), findsOneWidget);
       expect(service.daily, [NotificationIds.ritualReminder]);
+    });
+
+    testWidgets('the toggles are the Autopilot switches', (tester) async {
+      await pump(tester, const NotificationsScreen());
+      final container = containerOf(tester, NotificationsScreen);
+      expect(container.read(automationsProvider)[Automation.spendNudge], isFalse);
+
+      await tester.tap(find.text('Budget alerts'));
+      await tester.pumpAndSettle();
+
+      final automations = container.read(automationsProvider);
+      expect(automations[Automation.spendNudge], isTrue);
+      expect(automations[Automation.routineReminders], isFalse);
     });
 
     testWidgets('without permission an on toggle shows the not-allowed row',

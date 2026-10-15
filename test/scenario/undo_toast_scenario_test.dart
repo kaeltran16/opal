@@ -85,7 +85,9 @@ void main() {
 
     await _tap(tester, _onCard(find.text('Got it')));
     expect(_card(_plan), findsNothing);
-    expect(_inToast(find.text('$_plan done')), findsOneWidget);
+    // approving performs the proposal; the fixture's plans Leg Day on Friday.
+    expect(_inToast(find.textContaining(RegExp(r'^Planned Leg Day for (Friday|tomorrow)$'))),
+        findsOneWidget);
     expect(_toastUndo, findsOneWidget);
     await shot(tester, 'toast_approve_${_theme(dark)}');
 

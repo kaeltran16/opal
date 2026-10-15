@@ -19,7 +19,8 @@ import 'package:opal/models/models.dart' show RitualRoutine, RitualTone;
 import 'package:opal/screens/shell/plan_undo_toast.dart';
 import 'package:opal/screens/today/today_screen.dart';
 import 'package:opal/screens/workout/start_workout_screen.dart';
-import 'package:opal/services/pal/pal_service.dart' show PalProposal, PalRole;
+import 'package:opal/services/pal/pal_service.dart'
+    show PalProposal, PalRole, rescheduleWorkoutAction;
 import 'package:opal/theme/theme.dart';
 import 'package:opal/util/mood_scale.dart' show moodWord;
 import 'package:opal/widgets/app_icon.dart';
@@ -34,6 +35,7 @@ import 'scenario_harness.dart';
 
 const _rentTitle = 'Set aside \$40 for rent';
 const _capTitle = 'Cap dinner at \$10';
+const _legsTitle = 'Move Legs day to Friday';
 const _offlineLabel = 'Pal is offline · next on the clock';
 const _why = 'Why this first';
 const _morningLine = 'Morning is still open. Ease in before the desk.';
@@ -56,11 +58,13 @@ const _legs = PalProposal(
   tag: 'Workout',
   colorToken: 'move',
   icon: 'figure.run',
-  title: 'Move Legs day to Friday',
+  title: _legsTitle,
   body: 'Friday is clear and open.',
   approveLabel: 'Move it',
   approveIcon: 'checkmark',
   doneLabel: 'Moved',
+  action: rescheduleWorkoutAction,
+  slot: (weekday: 5, routineId: 'seed-routine-legs'),
 );
 
 const _cap = PalProposal(
@@ -224,7 +228,7 @@ void main() {
         day: const TodayDay(mood: true, firstRoutineDone: true, moveKcal: 520),
         pal: TodayPal(proposals: const [_rent, _legs]));
 
-    await _tap(tester, find.bySemanticsLabel('Hold \$40: $_rentTitle, Pal suggests'));
+    await _tap(tester, find.bySemanticsLabel('Move it: $_legsTitle, Pal suggests'));
     final lead = tester.widget<Text>(_onCard(find.byType(Text)).at(1)).data!;
     await _tap(tester, _skip);
 
@@ -233,7 +237,7 @@ void main() {
     expect(find.bySemanticsLabel(RegExp(r'^Start: Midday reset, Missed · ')), findsOneWidget);
     expect(find.bySemanticsLabel('Morning, Done'), findsOneWidget);
     expect(find.bySemanticsLabel('Bring back: $lead, Put off until tomorrow'), findsOneWidget);
-    expect(find.bySemanticsLabel('$_rentTitle, Held \$40'), findsOneWidget);
+    expect(find.bySemanticsLabel('$_legsTitle, Moved'), findsOneWidget);
     expect(find.bySemanticsLabel('Check in again: Mood check-in, ${moodWord(0.7)}'),
         findsOneWidget);
     expect(_onToday(find.text('· 3 of 8 done')), findsOneWidget);
@@ -269,17 +273,26 @@ void main() {
     expect(find.byType(EveningCloseOutScreen), findsOneWidget);
   });
 
+  // approving performs the proposal, moving Leg Day to Friday, and the
+  // toast's Undo reverses it.
   scenarioTest('today row approve', (tester, dark) async {
-    await bootToday(tester, dark: dark, pal: TodayPal(proposals: const [_rent, _cap]));
+    await bootToday(tester, dark: dark, pal: TodayPal(proposals: const [_rent, _legs]));
     expect(_card(_rentTitle), findsOneWidget);
 
-    await _tap(tester, find.bySemanticsLabel('Set the cap: $_capTitle, Pal suggests'));
+    await _tap(tester, find.bySemanticsLabel('Move it: $_legsTitle, Pal suggests'));
 
-    expect(_toast('Capped'), findsOneWidget);
+    final planned = find.descendant(
+        of: find.byKey(planUndoToastKey), matching: find.textContaining('Planned Leg Day for '));
+    expect(planned, findsOneWidget);
     expect(_toastUndo, findsOneWidget);
-    expect(find.bySemanticsLabel('$_capTitle, Capped'), findsOneWidget);
+    expect(find.bySemanticsLabel('$_legsTitle, Moved'), findsOneWidget);
     expect(_card(_rentTitle), findsOneWidget);
     await shot(tester, 'today_row_approve_${_theme(dark)}');
+
+    await _tap(tester, _toastUndo);
+    expect(planned, findsNothing);
+    expect(find.bySemanticsLabel('Move it: $_legsTitle, Pal suggests'), findsOneWidget);
+    expect(_card(_rentTitle), findsOneWidget);
   });
 
   scenarioTest('today bring back', (tester, dark) async {

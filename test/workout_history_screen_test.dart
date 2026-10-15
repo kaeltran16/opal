@@ -103,6 +103,33 @@ void main() {
     _workout('w3', 'Legs A', const Duration(days: 280)),
   ];
 
+  _historyTest('a timed session row reads minutes and km, not tonnes', (tester) async {
+    final started = _now.subtract(const Duration(days: 1));
+    await _pump(tester, [
+      Workout(
+        id: 'run',
+        name: 'Treadmill intervals',
+        startedAt: started,
+        endedAt: started.add(const Duration(minutes: 25)),
+        sets: [
+          SetLog(
+              id: 'run-1',
+              exerciseId: 'bench',
+              weightKg: 0,
+              reps: 0,
+              done: true,
+              minutes: 20,
+              distanceKm: 3.2),
+        ],
+      ),
+    ]);
+    await tester.scrollUntilVisible(find.text('Treadmill intervals'), 200,
+        scrollable: find.byType(Scrollable).first);
+
+    expect(find.text('20 min · 3.2 km'), findsOneWidget);
+    expect(find.textContaining(' · 0.0 t'), findsNothing);
+  });
+
   _historyTest('renders the header, range control and summary', (tester) async {
     await _pump(tester, workouts);
 

@@ -9,6 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:opal/analysis/pal_findings.dart';
 import 'package:opal/controllers/pal_findings_controller.dart';
 import 'package:opal/controllers/pal_memory_controller.dart';
+import 'package:opal/controllers/plan_session_controller.dart';
 import 'package:opal/controllers/profile_controller.dart';
 import 'package:opal/controllers/providers.dart';
 import 'package:opal/data/db/database.dart';
@@ -529,7 +530,7 @@ void main() {
           ]));
 
       expect(find.bySemanticsLabel('What Pal remembers, 3 facts'), findsOneWidget);
-      // the mock has two of its three autopilot items on.
+      // both automations default on.
       expect(find.bySemanticsLabel('Autopilot, 2 on'), findsOneWidget);
 
       await _tapText(tester, 'What Pal remembers');
@@ -540,6 +541,22 @@ void main() {
 
       await _tapText(tester, 'Autopilot');
       expect(find.byType(AutopilotScreen), findsOneWidget);
+      await flushProviderTimers(tester);
+    });
+
+    testWidgets('the Autopilot value counts the switches that are on',
+        (tester) async {
+      await _pumpYou(tester, findings: const []);
+      expect(find.bySemanticsLabel('Autopilot, 2 on'), findsOneWidget);
+
+      await _tapText(tester, 'Autopilot');
+      await tester.tap(find.bySemanticsLabel('Spend nudge'));
+      await tester.pumpAndSettle();
+      await tester.tap(
+          find.descendant(of: find.byType(AutopilotScreen), matching: find.text('You')));
+      await tester.pumpAndSettle();
+
+      expect(find.bySemanticsLabel('Autopilot, 1 on'), findsOneWidget);
       await flushProviderTimers(tester);
     });
 
@@ -585,6 +602,25 @@ void main() {
       }
       await flushProviderTimers(tester);
     });
+  });
+
+  testWidgets('Not now on a Pal suggests row records a step that Undo names',
+      (tester) async {
+    const title = 'Move Legs day to Friday';
+    await _pumpYou(tester, findings: const []);
+    final notNow = find.bySemanticsLabel('Not now: $title');
+    await tester.ensureVisible(notNow);
+    await tester.pumpAndSettle();
+
+    await tester.tap(notNow);
+    await tester.pumpAndSettle();
+
+    expect(find.text(title), findsNothing);
+    final session = ProviderScope.containerOf(tester.element(find.byType(ProfileScreen)))
+        .read(planSessionControllerProvider);
+    expect(session.settled, {'proposal:move-legs-friday': false});
+    expect(session.notice?.label, 'Put off until tomorrow: $title');
+    await flushProviderTimers(tester);
   });
 
   testWidgets(

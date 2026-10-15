@@ -7,6 +7,7 @@ import '../../controllers/workout_history_controller.dart';
 import '../../router.dart';
 import '../../theme/theme.dart';
 import '../../util/dates.dart' show relativeDateLabel;
+import '../../util/format.dart' show formatTimed;
 import '../../widgets/contributor_bar.dart';
 import '../../widgets/controls.dart';
 import '../../widgets/exercise_row.dart';
@@ -396,8 +397,10 @@ String _prDetail(HistoryPr pr, DateTime now) {
 /// A record that beat an earlier best inside the range.
 bool _beaten(HistoryPr pr) => pr.deltaKg != null || pr.deltaReps != null;
 
-/// "45 min · 4.2 t" for a lift session, "30 min" for cardio.
+/// "45 min · 4.2 t" for a lift session, "30 min" for cardio and
+/// "20 min · 3.2 km" for a timed one.
 String _sessionDetail(HistorySessionRow row) {
+  if (row.timed) return formatTimed(row.minutes, row.timedKm!);
   final minutes = '${row.minutes} min';
   if (row.isCardio || row.volumeKg <= 0) return minutes;
   return '$minutes · ${(row.volumeKg / 1000).toStringAsFixed(1)} t';

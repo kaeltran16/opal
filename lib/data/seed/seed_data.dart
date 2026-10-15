@@ -485,6 +485,7 @@ class SeedData {
           muscle: 'Core',
           icon: 'figure.core.training',
           equipment: 'Bodyweight',
+          timed: true,
         ),
         Exercise(
           id: 'hanging-leg',
@@ -535,6 +536,7 @@ class SeedData {
           muscle: 'Cardio',
           icon: 'figure.run',
           equipment: 'Treadmill',
+          timed: true,
         ),
         Exercise(
           id: 'rower',
@@ -543,6 +545,7 @@ class SeedData {
           muscle: 'Cardio',
           icon: 'figure.rower',
           equipment: 'Rower',
+          timed: true,
         ),
         Exercise(
           id: 'bike',
@@ -551,6 +554,7 @@ class SeedData {
           muscle: 'Cardio',
           icon: 'figure.indoor.cycle',
           equipment: 'Bike',
+          timed: true,
         ),
         Exercise(
           id: 'stairmaster',
@@ -559,6 +563,7 @@ class SeedData {
           muscle: 'Cardio',
           icon: 'figure.stair.stepper',
           equipment: 'Machine',
+          timed: true,
         ),
       ];
 
@@ -581,7 +586,6 @@ class SeedData {
         'leg-press': ExercisePR(weightKg: 180, reps: 10),
         'calf-raise': ExercisePR(weightKg: 80, reps: 15),
         'walking-lunge': ExercisePR(weightKg: 20, reps: 12),
-        'plank': ExercisePR(weightKg: 0, reps: 90),
         'hanging-leg': ExercisePR(weightKg: 0, reps: 12),
       };
 
@@ -789,6 +793,8 @@ class SeedData {
               exerciseId: 'treadmill',
               order: 0,
               targetSets: 1,
+              targetDurationMin: 30,
+              targetKm: 5,
             ),
           ],
         ),

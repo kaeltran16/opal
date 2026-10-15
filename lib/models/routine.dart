@@ -1,5 +1,8 @@
 import 'enums.dart';
 
+/// Minutes a timed slot (cardio or a hold) starts at when it has no target.
+const int kDefaultTimedMinutes = 1;
+
 /// Internal value-equality helper for ordered lists of [RoutineExercise].
 bool _exListEquals(List<RoutineExercise> a, List<RoutineExercise> b) {
   if (identical(a, b)) return true;
@@ -25,6 +28,7 @@ class RoutineExercise {
     this.targetReps,
     this.targetWeightKg,
     this.targetDurationMin,
+    this.targetKm,
   });
 
   /// Caller-supplied id (never self-generated).
@@ -44,8 +48,12 @@ class RoutineExercise {
   /// Planned working weight in kg. Nullable.
   final double? targetWeightKg;
 
-  /// Planned minutes per set for a timed set (a plank). Nullable.
+  /// Planned whole minutes per set of a timed exercise. Null falls back to
+  /// [kDefaultTimedMinutes] when a session seeds it.
   final int? targetDurationMin;
+
+  /// Planned distance per set of a timed exercise. Nullable.
+  final double? targetKm;
 
   RoutineExercise copyWith({
     String? id,
@@ -55,6 +63,7 @@ class RoutineExercise {
     int? targetReps,
     double? targetWeightKg,
     int? targetDurationMin,
+    double? targetKm,
   }) {
     return RoutineExercise(
       id: id ?? this.id,
@@ -64,6 +73,7 @@ class RoutineExercise {
       targetReps: targetReps ?? this.targetReps,
       targetWeightKg: targetWeightKg ?? this.targetWeightKg,
       targetDurationMin: targetDurationMin ?? this.targetDurationMin,
+      targetKm: targetKm ?? this.targetKm,
     );
   }
 
@@ -77,7 +87,8 @@ class RoutineExercise {
           other.targetSets == targetSets &&
           other.targetReps == targetReps &&
           other.targetWeightKg == targetWeightKg &&
-          other.targetDurationMin == targetDurationMin;
+          other.targetDurationMin == targetDurationMin &&
+          other.targetKm == targetKm;
 
   @override
   int get hashCode => Object.hash(
@@ -88,6 +99,7 @@ class RoutineExercise {
         targetReps,
         targetWeightKg,
         targetDurationMin,
+        targetKm,
       );
 
   @override

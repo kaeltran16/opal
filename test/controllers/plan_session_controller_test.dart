@@ -1,4 +1,5 @@
 import 'package:clock/clock.dart';
+import 'package:drift/native.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
@@ -6,19 +7,52 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:opal/controllers/plan_session_controller.dart';
 import 'package:opal/controllers/providers.dart';
-import 'package:opal/data/repositories/settings_repository.dart';
+import 'package:opal/data/db/database.dart';
+import 'package:opal/data/repositories/repositories.dart';
+import 'package:opal/data/seed/seed_data.dart';
+import 'package:opal/data/seed/seeder.dart';
 import 'package:opal/screens/today/day_plan.dart';
+import 'package:opal/services/pal/pal_service.dart';
 
+const _step = 'Two-minute wind-down';
+const _evening = 'Evening wind-down';
+const _legs = 'seed-routine-legs';
+const _treadmill = 'seed-routine-treadmill-int';
+const _friday = 5;
+
+// a sunday, so friday is neither today nor tomorrow.
 final _lateEvening = Clock.fixed(DateTime(2026, 10, 4, 23, 58));
 final _nextMorning = Clock.fixed(DateTime(2026, 10, 5, 7, 30));
+// a thursday, so friday is tomorrow.
+final _thursday = Clock.fixed(DateTime(2026, 10, 15, 9));
 
-const _rent = PlanItem(
-  id: 'proposal:rent',
-  kind: PlanKind.proposal,
-  title: r'Hold $40 for rent',
-  icon: 'dollarsign.circle.fill',
-  doneDetail: r'Held $40 in your Rent envelope',
-);
+PalProposal _proposal({
+  String action = addRitualAction,
+  ({String routineId, String step})? ritual,
+  ({int weekday, String routineId})? slot,
+}) =>
+    PalProposal(
+      id: 'p',
+      tag: 'Rituals',
+      colorToken: 'rituals',
+      icon: 'sparkles',
+      title: 'A proposal',
+      body: 'Body.',
+      approveLabel: 'Approve',
+      approveIcon: 'plus',
+      doneLabel: 'Done',
+      action: action,
+      ritual: ritual,
+      slot: slot,
+    );
+
+PlanItem _addRitual([String routineId = 'evening']) =>
+    proposalItem(_proposal(ritual: (routineId: routineId, step: _step)));
+
+PlanItem _reschedule() => proposalItem(_proposal(
+    action: rescheduleWorkoutAction, slot: (weekday: _friday, routineId: _legs)));
+
+const _mood = PlanItem(id: 'mood', kind: PlanKind.mood, title: 'Mood check-in', icon: 'heart.fill');
 
 const _morning = PlanItem(
   id: 'routine:morning',
@@ -36,139 +70,255 @@ class _FailingSave extends SettingsRepository {
       Future.error(StateError('disk full'));
 }
 
-Future<SharedPreferences> _prefs() async {
-  SharedPreferences.setMockInitialValues({});
-  return SharedPreferences.getInstance();
+late LoopDatabase _db;
+late SharedPreferences _prefs;
+late ProviderContainer _container;
+
+/// Another app launch on the same database and preferences. The session is
+/// built on its first read, so read it inside the clock the test runs at.
+ProviderContainer _launch({List<Override> overrides = const []}) {
+  final c = ProviderContainer(overrides: [
+    loopDatabaseProvider.overrideWithValue(_db),
+    sharedPreferencesProvider.overrideWithValue(_prefs),
+    ...overrides,
+  ]);
+  addTearDown(c.dispose);
+  return c;
 }
 
-ProviderContainer _container(SharedPreferences prefs, {List<Override> overrides = const []}) {
-  final container = ProviderContainer(
-    overrides: [sharedPreferencesProvider.overrideWithValue(prefs), ...overrides],
-  );
-  addTearDown(container.dispose);
-  return container;
-}
+PlanSessionController get _plan => _container.read(planSessionControllerProvider.notifier);
+PlanSession get _session => _container.read(planSessionControllerProvider);
 
-PlanSessionController _plan(ProviderContainer c) => c.read(planSessionControllerProvider.notifier);
-
-PlanSession _session(ProviderContainer c) => c.read(planSessionControllerProvider);
+PlanSessionController _planOf(ProviderContainer c) => c.read(planSessionControllerProvider.notifier);
+PlanSession _sessionOf(ProviderContainer c) => c.read(planSessionControllerProvider);
 
 /// Lets the fire-and-forget saves land.
 Future<void> _flush() => Future<void>.delayed(Duration.zero);
 
+Future<List<String>> _eveningSteps() async => [
+      for (final s in (await RitualRepository(_db).getAll()).firstWhere((r) => r.id == 'evening').steps)
+        s.title,
+    ];
+
+Future<String?> _slot(int weekday) async => (await WeeklyPlanRepository(_db).getSchedule())
+    .where((a) => a.weekday == weekday)
+    .firstOrNull
+    ?.routineId;
+
 void main() {
-  test('a put-off and an approval survive a relaunch on the same day', () async {
-    final prefs = await _prefs();
-    await withClock(_lateEvening, () async {
-      final first = _container(prefs);
-      _plan(first).putOff(_morning);
-      _plan(first).approve(_rent);
-      await _flush();
+  setUp(() async {
+    _db = LoopDatabase.forTesting(NativeDatabase.memory());
+    await Seeder(_db).seedReferenceData();
+    for (final r in SeedData.ritualRoutines()) {
+      await RitualRepository(_db).upsertRoutine(r);
+    }
+    for (final r in SeedData.routines()) {
+      await RoutineRepository(_db).insert(r);
+    }
+    await WeeklyPlanRepository(_db).upsert(_friday, _treadmill);
+    SharedPreferences.setMockInitialValues({});
+    _prefs = await SharedPreferences.getInstance();
+    _container = _launch();
+  });
 
-      final relaunched = _container(prefs);
-      expect(_session(relaunched).settled, {'routine:morning': false, 'proposal:rent': true});
-      expect(_session(relaunched).day, DateTime(2026, 10, 4));
-      // the toast is gone after a relaunch, so is what it could undo.
-      expect(_session(relaunched).canUndo, isFalse);
-      expect(_session(relaunched).notice, isNull);
+  tearDown(() async {
+    await _db.close();
+  });
+
+  group('approve performs and undo reverses', () {
+    test('approving add_ritual appends the step, and undo removes it', () async {
+      final before = await _eveningSteps();
+
+      await _plan.approve(_addRitual());
+
+      expect(await _eveningSteps(), [...before, _step]);
+      expect(_session.settled, {'proposal:p': true});
+      expect(_session.notice?.label, 'Added $_step to $_evening');
+      expect(_session.notice?.undoable, isTrue);
+
+      await _plan.undo();
+
+      expect(await _eveningSteps(), before);
+      expect(_session.settled, isEmpty);
+      expect(_session.canUndo, isFalse);
+    });
+
+    test('approving reschedule sets the slot, and undo restores the prior routine', () async {
+      await withClock(_lateEvening, () async {
+        await _plan.approve(_reschedule());
+
+        expect(await _slot(_friday), _legs);
+        expect(_session.notice?.label, 'Planned Leg Day for Friday');
+
+        await _plan.undo();
+
+        expect(await _slot(_friday), _treadmill);
+        expect(_session.settled, isEmpty);
+      });
+    });
+
+    test('a reschedule onto tomorrow names it tomorrow', () async {
+      await withClock(_thursday, () async {
+        await _plan.approve(_reschedule());
+        expect(_session.notice?.label, 'Planned Leg Day for tomorrow');
+      });
+    });
+
+    test('undo after a reschedule onto a rest day restores the rest day', () async {
+      await WeeklyPlanRepository(_db).upsert(_friday, null);
+
+      await _plan.approve(_reschedule());
+      expect(await _slot(_friday), _legs);
+
+      await _plan.undo();
+
+      expect(await _slot(_friday), isNull);
+    });
+
+    test('approving add_ritual for a missing routine throws, settles and changes nothing',
+        () async {
+      final before = await RitualRepository(_db).getAll();
+
+      await expectLater(_plan.approve(_addRitual('gone')), throwsA(isA<StateError>()));
+
+      expect(_session.settled, isEmpty);
+      expect(_session.canUndo, isFalse);
+      final after = await RitualRepository(_db).getAll();
+      expect(after.map((r) => r.id), before.map((r) => r.id));
+      expect(after.map((r) => r.steps.length), before.map((r) => r.steps.length));
+    });
+
+    test('approving a proposal with an unknown action throws a StateError', () async {
+      await expectLater(
+          _plan.approve(proposalItem(_proposal(action: closeOutAction))), throwsStateError);
+      expect(_session.settled, isEmpty);
+    });
+
+    test('a put-off settles the item as not done and names it', () async {
+      _plan.putOff(_mood);
+
+      expect(_session.settled, {'mood': false});
+      expect(_session.notice?.label, 'Put off until tomorrow: Mood check-in');
+
+      await _plan.undo();
+      expect(_session.settled, isEmpty);
+    });
+
+    test('bring back names the item, offers no Undo, and dismiss clears the notice', () async {
+      _plan.putOff(_morning);
+      expect(_session.notice!.undoable, isTrue);
+
+      _plan.bringBack(_morning);
+      expect(_session.notice!.label, 'Morning is back on today');
+      expect(_session.notice!.undoable, isFalse);
+      expect(_session.settled, isNot(contains('routine:morning')));
+
+      _plan.dismissNotice();
+      expect(_session.notice, isNull);
+      await _flush();
+    });
+
+    test('a double undo pops only the step it reversed', () async {
+      _plan.putOff(_mood);
+      await _plan.approve(_addRitual());
+
+      await Future.wait([_plan.undo(), _plan.undo()]);
+
+      expect(_session.settled, {'mood': false});
+      expect(_session.lastStep?.label, 'Put off until tomorrow: Mood check-in');
+    });
+
+    test('a failed undo write throws and keeps the step', () async {
+      await _plan.approve(_addRitual());
+      await _db.close();
+
+      await expectLater(_plan.undo(), throwsA(anything));
+
+      expect(_session.lastStep?.label, 'Added $_step to $_evening');
+      expect(_session.settled, {'proposal:p': true});
     });
   });
 
-  test('a container built the next day starts empty', () async {
-    final prefs = await _prefs();
-    await withClock(_lateEvening, () async {
-      _plan(_container(prefs)).putOff(_morning);
-      await _flush();
+  group('the day is saved', () {
+    test('a put-off and an approval survive a relaunch on the same day', () async {
+      await withClock(_lateEvening, () async {
+        final first = _launch();
+        _planOf(first).putOff(_morning);
+        await _planOf(first).approve(_addRitual());
+        await _flush();
+
+        final relaunched = _launch();
+        expect(_sessionOf(relaunched).settled, {'routine:morning': false, 'proposal:p': true});
+        expect(_sessionOf(relaunched).day, DateTime(2026, 10, 4));
+        // the toast is gone after a relaunch, so is what it could undo.
+        expect(_sessionOf(relaunched).canUndo, isFalse);
+        expect(_sessionOf(relaunched).notice, isNull);
+      });
     });
 
-    await withClock(_nextMorning, () async {
-      final next = _container(prefs);
-      expect(_session(next).settled, isEmpty);
-      expect(_session(next).day, DateTime(2026, 10, 5));
-    });
-  });
+    test('a container built the next day starts empty', () async {
+      await withClock(_lateEvening, () async {
+        _planOf(_launch()).putOff(_morning);
+        await _flush();
+      });
 
-  test('syncDay past midnight empties the state, and a later save writes the new day', () async {
-    final prefs = await _prefs();
-    final c = await withClock(_lateEvening, () async {
-      final c = _container(prefs);
-      _plan(c).putOff(_morning);
-      await _flush();
-      // the same day keeps the session.
-      _plan(c).syncDay(DateTime(2026, 10, 4, 23, 59));
-      expect(_session(c).settled, {'routine:morning': false});
-      return c;
+      await withClock(_nextMorning, () async {
+        final next = _launch();
+        expect(_sessionOf(next).settled, isEmpty);
+        expect(_sessionOf(next).day, DateTime(2026, 10, 5));
+      });
     });
 
-    _plan(c).syncDay(_nextMorning.now());
-    expect(_session(c).settled, isEmpty);
-    expect(_session(c).canUndo, isFalse);
-    expect(_session(c).day, DateTime(2026, 10, 5));
+    test('syncDay past midnight empties the state, and a later save writes the new day',
+        () async {
+      final c = await withClock(_lateEvening, () async {
+        final c = _launch();
+        _planOf(c).putOff(_morning);
+        await _flush();
+        // the same day keeps the session.
+        _planOf(c).syncDay(DateTime(2026, 10, 4, 23, 59));
+        expect(_sessionOf(c).settled, {'routine:morning': false});
+        return c;
+      });
 
-    _plan(c).approve(_rent);
-    await _flush();
-    final repo = SettingsRepository(prefs);
-    expect(repo.planSettled(DateTime(2026, 10, 5)), {'proposal:rent': true});
-    expect(repo.planSettled(DateTime(2026, 10, 4)), isEmpty);
-  });
+      _planOf(c).syncDay(_nextMorning.now());
+      expect(_sessionOf(c).settled, isEmpty);
+      expect(_sessionOf(c).canUndo, isFalse);
+      expect(_sessionOf(c).day, DateTime(2026, 10, 5));
 
-  test('undo reverses the last change and saves it', () async {
-    final prefs = await _prefs();
-    await withClock(_lateEvening, () async {
-      final c = _container(prefs);
-      _plan(c).approve(_rent);
-      _plan(c).putOff(_morning);
+      _planOf(c).putOff(_mood);
       await _flush();
-
-      await _plan(c).undo();
-
-      expect(_session(c).settled, {'proposal:rent': true});
-      expect(_session(c).notice, isNull);
-      expect(SettingsRepository(prefs).planSettled(DateTime(2026, 10, 4)),
-          {'proposal:rent': true});
+      final repo = SettingsRepository(_prefs);
+      expect(repo.planSettled(DateTime(2026, 10, 5)), {'mood': false});
+      expect(repo.planSettled(DateTime(2026, 10, 4)), isEmpty);
     });
-  });
 
-  test('a failed undo save throws and leaves the change in place', () async {
-    final prefs = await _prefs();
-    await withClock(_lateEvening, () async {
-      final c = _container(prefs,
-          overrides: [settingsRepositoryProvider.overrideWithValue(_FailingSave(prefs))]);
-      _plan(c).putOff(_morning);
-      await _flush();
+    test('undo reverses the last change and saves it', () async {
+      await withClock(_lateEvening, () async {
+        final c = _launch();
+        await _planOf(c).approve(_addRitual());
+        _planOf(c).putOff(_morning);
+        await _flush();
 
-      await expectLater(_plan(c).undo(), throwsStateError);
-      expect(_session(c).settled, {'routine:morning': false});
-      expect(_session(c).canUndo, isTrue);
+        await _planOf(c).undo();
+
+        expect(_sessionOf(c).settled, {'proposal:p': true});
+        expect(_sessionOf(c).notice, isNull);
+        expect(SettingsRepository(_prefs).planSettled(DateTime(2026, 10, 4)), {'proposal:p': true});
+      });
     });
-  });
 
-  test('each change sets a named notice', () async {
-    final prefs = await _prefs();
-    await withClock(_lateEvening, () async {
-      final c = _container(prefs);
+    test('a failed undo save throws and leaves the change in place', () async {
+      await withClock(_lateEvening, () async {
+        final c = _launch(
+            overrides: [settingsRepositoryProvider.overrideWithValue(_FailingSave(_prefs))]);
+        _planOf(c).putOff(_morning);
+        await _flush();
 
-      _plan(c).putOff(_morning);
-      expect(_session(c).notice!.label, 'Put off until tomorrow: Morning');
-      expect(_session(c).notice!.undoable, isTrue);
-
-      _plan(c).approve(_rent);
-      expect(_session(c).notice!.label, r'Held $40 in your Rent envelope');
-      expect(_session(c).notice!.undoable, isTrue);
-
-      // with no done detail, an approval names the item.
-      _plan(c).approve(const PlanItem(
-          id: 'proposal:walk', kind: PlanKind.proposal, title: 'Walk at noon', icon: 'figure.walk'));
-      expect(_session(c).notice!.label, 'Walk at noon');
-
-      _plan(c).bringBack(_morning);
-      expect(_session(c).notice!.label, 'Morning is back on today');
-      expect(_session(c).notice!.undoable, isFalse);
-      expect(_session(c).settled, isNot(contains('routine:morning')));
-
-      _plan(c).dismissNotice();
-      expect(_session(c).notice, isNull);
-      await _flush();
+        await expectLater(_planOf(c).undo(), throwsStateError);
+        expect(_sessionOf(c).settled, {'routine:morning': false});
+        expect(_sessionOf(c).canUndo, isTrue);
+      });
     });
   });
 }

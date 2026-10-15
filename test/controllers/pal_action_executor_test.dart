@@ -134,6 +134,37 @@ void main() {
     });
   });
 
+  group('routineFromDraft — timed sets', () {
+    test('a draft plank set with a duration saves and reads back a slot with targetDurationMin',
+        () async {
+      final db = LoopDatabase.forTesting(NativeDatabase.memory());
+      addTearDown(db.close);
+      await db.into(db.exercises).insert(ExercisesCompanion.insert(
+          id: 'plank', name: 'Plank', group: 'Core', muscle: 'Core', icon: 'x'));
+
+      final repo = RoutineRepository(db);
+      final id = await repo.insert(routineFromDraft(const GeneratedRoutineDraft(
+        name: 'Core',
+        tag: RoutineTag.custom,
+        exercises: [
+          GeneratedExerciseDraft(
+            exerciseId: 'plank',
+            sets: [
+              GeneratedSetDraft(durationMinutes: 1),
+              GeneratedSetDraft(durationMinutes: 1),
+            ],
+          ),
+        ],
+      )));
+
+      final slot = (await repo.getById(id))!.exercises.single;
+      expect(slot.targetSets, 2);
+      expect(slot.targetDurationMin, 1);
+      expect(slot.targetReps, isNull);
+      expect(slot.targetWeightKg, isNull);
+    });
+  });
+
   group('applyPalActions — meal', () {
     test('logs a meal and rolls it back on reverse', () async {
       final db = LoopDatabase.forTesting(NativeDatabase.memory());

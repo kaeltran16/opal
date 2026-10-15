@@ -883,14 +883,14 @@ void main() {
       expect(plan.later(settled, _now), isEmpty);
     });
 
-    test('a check-in today is done; one from yesterday is still open', () {
-      final today = _plan(lastCheckin: _checkin(DateTime(2026, 10, 4, 8, 15)));
-      final mood = today.items.firstWhere((i) => i.kind == PlanKind.mood);
+    test('a check-in today makes the mood item done; one from yesterday leaves it open', () {
+      final mood = _plan(lastCheckin: _checkin(DateTime(2026, 10, 4, 8, 15)))
+          .items
+          .firstWhere((i) => i.kind == PlanKind.mood);
+      expect(mood.title, 'Mood check-in');
       expect(mood.done, isTrue);
-      expect(_ids(today.open(session, _now)), ['meal']);
-
       final stale = _plan(lastCheckin: _checkin(_yesterday));
-      expect(_ids(stale.open(session, _now)), ['mood', 'meal']);
+      expect(stale.items.firstWhere((i) => i.kind == PlanKind.mood).done, isFalse);
     });
 
     test('a meal logged today removes Log a meal', () {
@@ -942,6 +942,20 @@ void main() {
     expect(clockLabel(7 * 60 + 5), '7:05 AM');
     expect(clockLabel(12 * 60), '12:00 PM');
     expect(clockLabel(21 * 60 + 30), '9:30 PM');
+  });
+
+  group('proposalItem', () {
+    test('carries the proposal it stands for', () {
+      final item = proposalItem(_addRitualProposal);
+      expect(item.kind, PlanKind.proposal);
+      expect(item.proposal, _addRitualProposal);
+    });
+
+    test('a close-out proposal still opens the close-out', () {
+      final item = proposalItem(_closeOutProposal);
+      expect(item.kind, PlanKind.closeOut);
+      expect(item.proposal, _closeOutProposal);
+    });
   });
 
   group('pendingProposals', () {

@@ -68,6 +68,7 @@ extension ExerciseRowMapper on ExerciseRow {
         pr: (prWeightKg != null && prReps != null)
             ? ExercisePR(weightKg: prWeightKg!, reps: prReps!)
             : null,
+        timed: timed,
       );
 }
 
@@ -81,6 +82,7 @@ extension ExerciseModelMapper on Exercise {
         equipment: Value(equipment),
         prWeightKg: Value(pr?.weightKg),
         prReps: Value(pr?.reps),
+        timed: Value(timed),
       );
 }
 
@@ -96,6 +98,8 @@ extension SetLogRowMapper on SetLogRow {
         reps: reps,
         done: done,
         isPR: isPR,
+        minutes: minutes,
+        distanceKm: distanceKm,
       );
 }
 
@@ -110,6 +114,8 @@ extension SetLogModelMapper on SetLog {
         done: Value(done),
         isPR: Value(isPR),
         position: Value(position),
+        minutes: Value(minutes),
+        distanceKm: Value(distanceKm),
       );
 }
 
@@ -146,6 +152,7 @@ extension RoutineExerciseRowMapper on RoutineExerciseRow {
         targetReps: targetReps,
         targetWeightKg: targetWeightKg,
         targetDurationMin: targetDurationMin,
+        targetKm: targetKm,
       );
 }
 
@@ -160,6 +167,7 @@ extension RoutineExerciseModelMapper on RoutineExercise {
         targetReps: Value(targetReps),
         targetWeightKg: Value(targetWeightKg),
         targetDurationMin: Value(targetDurationMin),
+        targetKm: Value(targetKm),
       );
 }
 

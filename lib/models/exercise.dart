@@ -43,6 +43,7 @@ class Exercise {
     required this.icon,
     this.equipment,
     this.pr,
+    this.timed = false,
   });
 
   /// Caller-supplied id (never self-generated).
@@ -64,6 +65,10 @@ class Exercise {
   /// Best recorded set for this exercise. Nullable (never performed).
   final ExercisePR? pr;
 
+  /// Logged in minutes (and optional km) rather than weight × reps: cardio and
+  /// timed holds. A timed exercise keeps no [pr].
+  final bool timed;
+
   Exercise copyWith({
     String? id,
     String? name,
@@ -72,6 +77,7 @@ class Exercise {
     String? icon,
     String? equipment,
     ExercisePR? pr,
+    bool? timed,
   }) {
     return Exercise(
       id: id ?? this.id,
@@ -81,6 +87,7 @@ class Exercise {
       icon: icon ?? this.icon,
       equipment: equipment ?? this.equipment,
       pr: pr ?? this.pr,
+      timed: timed ?? this.timed,
     );
   }
 
@@ -94,11 +101,12 @@ class Exercise {
           other.muscle == muscle &&
           other.icon == icon &&
           other.equipment == equipment &&
-          other.pr == pr;
+          other.pr == pr &&
+          other.timed == timed;
 
   @override
   int get hashCode =>
-      Object.hash(id, name, group, muscle, icon, equipment, pr);
+      Object.hash(id, name, group, muscle, icon, equipment, pr, timed);
 
   @override
   String toString() => 'Exercise(id: $id, name: $name, group: $group)';

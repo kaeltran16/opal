@@ -147,6 +147,68 @@ void main() {
       await _unmount(tester);
     });
 
+    testWidgets('a timed session leads with minutes and km, not kg', (tester) async {
+      await tester.runAsync(() => WorkoutRepository(db).insert(Workout(
+        id: 'timed-run',
+        name: 'Treadmill intervals',
+        startedAt: DateTime(2026, 6, 10, 9),
+        endedAt: DateTime(2026, 6, 10, 9, 20),
+        sets: const [
+          SetLog(
+              id: 'timed-run-1',
+              exerciseId: 'treadmill',
+              weightKg: 0,
+              reps: 0,
+              done: true,
+              minutes: 20,
+              distanceKm: 3.2),
+        ],
+      )));
+      await _pumpDetail(tester, db, workoutId: 'timed-run');
+      await tester.pump(_palLatency);
+
+      expect(find.text('20'), findsOneWidget);
+      expect(find.textContaining('3.2 km'), findsWidgets);
+      expect(find.text('kg lifted'), findsNothing);
+      expect(find.textContaining('0 kg'), findsNothing);
+      expect(find.text('New best'), findsNothing);
+
+      await _unmount(tester);
+    });
+
+    testWidgets('a mixed session keeps kg lifted and reads a plank row in minutes',
+        (tester) async {
+      await tester.runAsync(() => WorkoutRepository(db).insert(Workout(
+        id: 'mixed',
+        name: 'Push plus core',
+        startedAt: DateTime(2026, 6, 10, 9),
+        endedAt: DateTime(2026, 6, 10, 10),
+        sets: const [
+          SetLog(id: 'mixed-1', exerciseId: 'bench', weightKg: 80, reps: 5, done: true),
+          SetLog(
+              id: 'mixed-2',
+              exerciseId: 'plank',
+              weightKg: 0,
+              reps: 0,
+              done: true,
+              isPR: true,
+              minutes: 2),
+        ],
+      )));
+      await _pumpDetail(tester, db, workoutId: 'mixed');
+      await tester.pump(_palLatency);
+
+      expect(find.text('400'), findsOneWidget);
+      expect(find.text('kg lifted'), findsOneWidget);
+      await tester.scrollUntilVisible(find.text('2 min'), 200,
+          scrollable: find.byType(Scrollable).first);
+      expect(find.text('2 min'), findsOneWidget);
+      expect(find.text('0 reps'), findsNothing);
+      expect(find.text('New best'), findsNothing); // a timed set is never a record
+
+      await _unmount(tester);
+    });
+
     testWidgets('Cancel in the delete confirm keeps the workout', (tester) async {
       await _pumpDetail(tester, db);
 
@@ -178,9 +240,12 @@ void main() {
 
 const _workoutId = 'seed-workout-today-push';
 const _home = 'home';
+// outlasts the mock Pal note's latency, whose timer the stream starts late.
+const _palLatency = Duration(seconds: 1);
 
 /// Pumps the detail screen as a route pushed over [_home], so it can pop.
-Future<void> _pumpDetail(WidgetTester tester, LoopDatabase db) async {
+Future<void> _pumpDetail(WidgetTester tester, LoopDatabase db,
+    {String workoutId = _workoutId}) async {
   SharedPreferences.setMockInitialValues({});
   final prefs = await SharedPreferences.getInstance();
   final router = GoRouter(
@@ -192,8 +257,7 @@ Future<void> _pumpDetail(WidgetTester tester, LoopDatabase db) async {
         routes: [
           GoRoute(
             path: 'w',
-            builder: (context, state) =>
-                const WorkoutDetailScreen(workoutId: _workoutId),
+            builder: (context, state) => WorkoutDetailScreen(workoutId: workoutId),
           ),
         ],
       ),

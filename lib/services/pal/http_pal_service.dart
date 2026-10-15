@@ -37,6 +37,7 @@ class PalContextSource {
     required this.suggest,
     required this.postWorkout,
     required this.resolveRoutineTitle,
+    this.agendaTargets = _noAgendaTargets,
   });
   final Future<Map<String, Object?>> Function() chat;
   final Future<Map<String, Object?>> Function(DateTime anchor, ReviewRange range) review;
@@ -44,7 +45,14 @@ class PalContextSource {
   final Future<Map<String, Object?>> Function(bool another, String? excludeRoutineId) suggest;
   final Future<Map<String, Object?>> Function(Workout workout) postWorkout;
   final Future<String?> Function(String routineId) resolveRoutineTitle;
+
+  /// What an agenda proposal may point at: ritual routines with their steps,
+  /// workout routines, and the weekly plan's slots.
+  final Future<Map<String, Object?>> Function() agendaTargets;
 }
+
+Future<Map<String, Object?>> _noAgendaTargets() async =>
+    {'rituals': <Object?>[], 'workouts': <Object?>[], 'week': <Object?>[]};
 
 /// Cache seam for the period-stable Pal responses (insights, review). Keyed by
 /// the request context, so a still-changing period misses and regenerates while
@@ -415,10 +423,9 @@ class HttpPalService implements PalService {
 
   @override
   Future<PalAgenda> agenda({List<PlanFact> plan = const []}) async {
-    // Reuses the chat context (today + week + goals + streak) — the agenda is
-    // generated from the same signals, so there's no separate context seam.
     final json = await _post('/v1/agenda', {
       'context': await context.chat(),
+      'targets': await context.agendaTargets(),
       'plan': [for (final f in plan) f.toJson()],
     });
     final sent = {for (final f in plan) f.key};
@@ -434,33 +441,55 @@ class HttpPalService implements PalService {
           if (sent.contains(l['key']) && ((l['line'] as String?)?.trim().isNotEmpty ?? false))
             l['key'] as String: (l['line'] as String).trim(),
       },
-      // colorToken passes through raw; the screen's color map clamps unknowns.
-      proposals: mapList(
-        'proposals',
-        (p) => PalProposal(
-          id: p['id'] as String? ?? '',
-          tag: p['tag'] as String? ?? '',
-          colorToken: p['colorToken'] as String? ?? 'accent',
-          icon: p['icon'] as String? ?? 'sparkles',
-          title: p['title'] as String? ?? '',
-          body: p['body'] as String? ?? '',
-          approveLabel: p['approveLabel'] as String? ?? 'Approve',
-          approveIcon: p['approveIcon'] as String? ?? 'checkmark',
-          doneLabel: p['doneLabel'] as String? ?? 'Done',
-          action: p['action'] as String?,
-        ),
-      ),
-      autopilot: mapList(
-        'autopilot',
-        (a) => PalAutopilotItem(
-          id: a['id'] as String? ?? '',
-          colorToken: a['colorToken'] as String? ?? 'accent',
-          icon: a['icon'] as String? ?? 'sparkles',
-          title: a['title'] as String? ?? '',
-          subtitle: a['subtitle'] as String? ?? '',
-          enabled: a['enabled'] as bool? ?? false,
-        ),
-      ),
+      proposals: [
+        for (final p in mapList('proposals', (p) => p))
+          ?_decodeProposal(p),
+      ],
+      autopilotSubtitles: {
+        for (final a in mapList('autopilot', (a) => a))
+          if (a case {'id': final String id, 'subtitle': final String subtitle})
+            id: subtitle,
+      },
+    );
+  }
+
+  // an unknown action, or a payload missing its target, is dropped: the client
+  // can only perform what it can name.
+  static PalProposal? _decodeProposal(Map<String, dynamic> p) {
+    final action = p['action'] as String?;
+    if (action != closeOutAction &&
+        action != addRitualAction &&
+        action != rescheduleWorkoutAction) {
+      return null;
+    }
+    ({String routineId, String step})? ritual;
+    ({int weekday, String routineId})? slot;
+    if (action == addRitualAction) {
+      final r = p['ritual'];
+      final routineId = r is Map ? r['routineId'] : null;
+      final step = r is Map ? r['step'] : null;
+      if (routineId is! String || step is! String) return null;
+      ritual = (routineId: routineId, step: step);
+    } else if (action == rescheduleWorkoutAction) {
+      final s = p['slot'];
+      final weekday = s is Map ? s['weekday'] : null;
+      final routineId = s is Map ? s['routineId'] : null;
+      if (weekday is! num || routineId is! String) return null;
+      slot = (weekday: weekday.round(), routineId: routineId);
+    }
+    return PalProposal(
+      id: p['id'] as String? ?? '',
+      tag: p['tag'] as String? ?? '',
+      colorToken: p['colorToken'] as String? ?? 'accent',
+      icon: p['icon'] as String? ?? 'sparkles',
+      title: p['title'] as String? ?? '',
+      body: p['body'] as String? ?? '',
+      approveLabel: p['approveLabel'] as String? ?? 'Approve',
+      approveIcon: p['approveIcon'] as String? ?? 'checkmark',
+      doneLabel: p['doneLabel'] as String? ?? 'Done',
+      action: action,
+      ritual: ritual,
+      slot: slot,
     );
   }
 

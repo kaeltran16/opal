@@ -64,7 +64,7 @@ class TodayPal extends MockPalService {
       final base = await super.agenda(plan: plan);
       return PalAgenda(
         proposals: base.proposals,
-        autopilot: base.autopilot,
+        autopilotSubtitles: base.autopilotSubtitles,
         streakDays: base.streakDays,
         lines: lines,
       );
@@ -73,8 +73,11 @@ class TodayPal extends MockPalService {
   }
 }
 
-/// A proposal for [colorToken]'s area, money by default.
-PalProposal proposal(String id, String title, {String? action, String colorToken = 'money'}) =>
+/// A proposal for [colorToken]'s area, money by default. Approving it plans
+/// the seed's Leg Day on Friday, so the day needs the workout routines
+/// ([TodayDay.workout]) for an approval to succeed.
+PalProposal proposal(String id, String title,
+        {String action = rescheduleWorkoutAction, String colorToken = 'money'}) =>
     PalProposal(
       id: id,
       tag: colorToken,
@@ -86,6 +89,7 @@ PalProposal proposal(String id, String title, {String? action, String colorToken
       approveIcon: 'checkmark',
       doneLabel: '$title done',
       action: action,
+      slot: action == rescheduleWorkoutAction ? (weekday: 5, routineId: 'seed-routine-legs') : null,
     );
 
 /// The day Today's tests start from, written to a fresh database before the

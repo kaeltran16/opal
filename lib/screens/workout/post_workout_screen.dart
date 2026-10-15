@@ -18,6 +18,7 @@ import '../../widgets/nav_bar.dart' show NavIconButton;
 import '../../widgets/pal_lead.dart';
 import '../../widgets/press_scale.dart';
 import '../../widgets/stat_row.dart';
+import '../../widgets/timed_total.dart';
 
 // where the prototype's content starts, just under the status bar.
 const double _contentTop = 52;
@@ -78,7 +79,10 @@ class PostWorkoutScreen extends ConsumerWidget {
             const SizedBox(height: _leadTop),
             _Note(workout: w),
             const SizedBox(height: _volumeTop),
-            _Volume(volumeKg: w.totalVolumeKg),
+            if (w.isTimedSession)
+              TimedTotal(minutes: w.totalMinutes, km: w.totalKm)
+            else
+              _Volume(volumeKg: w.totalVolumeKg),
             if (pr != null) ...[
               const SizedBox(height: Spacing.md),
               _NewBest(pr: pr),
@@ -338,8 +342,15 @@ class _ExerciseBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
+    final timed = group.sets.every((s) => s.isTimed);
     final heaviest = group.sets.fold<double>(0, (m, s) => math.max(m, s.weightKg));
-    final ahead = group.sets.any((s) => s.isPR);
+    final ahead = group.sets.any((s) => s.isPR && !s.isTimed);
+    final value = timed
+        ? formatTimed(
+            group.sets.fold(0, (m, s) => m + s.minutes!),
+            group.sets.fold(0.0, (m, s) => m + (s.distanceKm ?? 0)),
+          )
+        : '${group.sets.length} × ${formatWeight(heaviest)} kg';
     final radius = BorderRadius.circular(Radii.pill);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -352,24 +363,26 @@ class _ExerciseBar extends StatelessWidget {
             spacing: Spacing.md,
             children: [
               Expanded(child: Text(group.name, style: AppType.subhead.copyWith(color: c.ink2))),
-              Text('${group.sets.length} × ${formatWeight(heaviest)} kg',
+              Text(value,
                   style: AppType.subhead.copyWith(
                       color: c.ink, fontWeight: FontWeight.w600, fontFeatures: _tabular)),
               if (ahead) Text('Ahead', style: AppType.subhead.copyWith(color: c.thrivingInk)),
             ],
           ),
         ),
-        DecoratedBox(
-          decoration: BoxDecoration(color: c.track, borderRadius: radius),
-          child: FractionallySizedBox(
-            alignment: AlignmentDirectional.centerStart,
-            widthFactor: fraction.clamp(0.0, 1.0),
-            child: Container(
-              height: _barHeight,
-              decoration: BoxDecoration(color: c.ink, borderRadius: radius),
+        // the bar compares volume, which a timed exercise has none of.
+        if (!timed)
+          DecoratedBox(
+            decoration: BoxDecoration(color: c.track, borderRadius: radius),
+            child: FractionallySizedBox(
+              alignment: AlignmentDirectional.centerStart,
+              widthFactor: fraction.clamp(0.0, 1.0),
+              child: Container(
+                height: _barHeight,
+                decoration: BoxDecoration(color: c.ink, borderRadius: radius),
+              ),
             ),
           ),
-        ),
       ],
     );
   }
