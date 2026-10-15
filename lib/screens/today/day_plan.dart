@@ -2,7 +2,7 @@ import '../../controllers/rituals_controller.dart';
 import '../../controllers/spending_controller.dart' show DetailTracker;
 import '../../controllers/weekly_plan_controller.dart';
 import '../../models/models.dart';
-import '../../services/pal/pal_service.dart' show PalAgenda;
+import '../../services/pal/pal_service.dart' show PalAgenda, PalProposal;
 import '../../util/dates.dart';
 import 'today_logic.dart';
 
@@ -277,6 +277,27 @@ List<PlanItem> _byMinute(Iterable<PlanItem> items) {
   return [for (final (_, item) in indexed) item];
 }
 
+/// Pal's proposal [p] as a plan item. A close-out proposal acts as the
+/// close-out row does: it opens the close-out.
+PlanItem proposalItem(PalProposal p) => PlanItem(
+      id: 'proposal:${p.id}',
+      kind: p.navigatesToCloseOut ? PlanKind.closeOut : PlanKind.proposal,
+      title: p.title,
+      icon: p.icon,
+      said: p.body,
+      actionLabel: p.approveLabel,
+      skipLabel: _notNow,
+      ref: p.id,
+      area: DetailTracker.values.asNameMap()[p.colorToken],
+    );
+
+/// Every proposal in [agenda] not yet approved or put off in [session], in
+/// the order Pal sent them. Unlike the day plan, nothing is folded or hidden.
+List<PlanItem> pendingProposals(PalAgenda agenda, PlanSession session) => [
+      for (final p in agenda.proposals)
+        if (!session.settled.containsKey(proposalItem(p).id)) proposalItem(p),
+    ];
+
 bool _isToday(DateTime at, DateTime now) =>
     startOfDay(at.toLocal()) == startOfDay(now.toLocal());
 
@@ -303,17 +324,7 @@ DayPlan buildDayPlan({
   return DayPlan([
     for (final p in agenda.proposals)
       if (!p.navigatesToCloseOut && !(closeOut != null && p.addsRitual))
-        PlanItem(
-          id: 'proposal:${p.id}',
-          kind: PlanKind.proposal,
-          title: p.title,
-          icon: p.icon,
-          said: p.body,
-          actionLabel: p.approveLabel,
-          skipLabel: _notNow,
-          ref: p.id,
-          area: DetailTracker.values.asNameMap()[p.colorToken],
-        ),
+        proposalItem(p),
     for (final r in trackedRoutines(routines))
       if (r.id != eveningRoutineId)
         PlanItem(

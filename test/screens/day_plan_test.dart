@@ -671,4 +671,26 @@ void main() {
     expect(clockLabel(12 * 60), '12:00 PM');
     expect(clockLabel(21 * 60 + 30), '9:30 PM');
   });
+
+  group('pendingProposals', () {
+    const agenda = PalAgenda(proposals: [_proposal, _closeOutProposal, _addRitualProposal]);
+
+    test('lists every proposal, the ones Today folds or hides included', () {
+      final items = pendingProposals(agenda, const PlanSession());
+
+      expect(items.map((i) => i.title),
+          [_proposal.title, _closeOutProposal.title, _addRitualProposal.title]);
+      expect(items.map((i) => i.kind),
+          [PlanKind.proposal, PlanKind.closeOut, PlanKind.proposal]);
+    });
+
+    test('leaves out what the session approved or put off', () {
+      final session = const PlanSession()
+          .settle('proposal:${_proposal.id}', done: true)
+          .settle('proposal:${_addRitualProposal.id}', done: false);
+
+      expect(pendingProposals(agenda, session).map((i) => i.title),
+          [_closeOutProposal.title]);
+    });
+  });
 }

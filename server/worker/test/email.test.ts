@@ -22,8 +22,21 @@ describe('extractFromCandidates', () => {
     const items = await extractFromCandidates([CAND], completer)
     expect(items).toEqual([{
       id: 'msg-1', merchant: 'Cafe', amount: -5,
-      receivedAt: '2026-01-06T11:27:00.000Z', category: 'Food & Drink',
+      receivedAt: '2026-01-06T11:27:00.000Z', category: 'Food & Drink', orderRef: null,
     }])
+  })
+
+  it('passes the stated order ref through, so a confirmation and its delivered notice match', async () => {
+    const confirmed = { ...CAND, id: 'msg-c', subject: 'Xac nhan don hang #2610ABC', text: 'Tong thanh toan: 459.000 VND' }
+    const delivered = { ...CAND, id: 'msg-d', subject: 'Don hang 2610ABC da duoc giao', text: 'Tong thanh toan: 459.000 VND' }
+    const completer = new StubCompleter({
+      text: modelResults([
+        { index: 0, isReceipt: true, merchant: 'Shopee', amount: 459000, category: 'Shopping', orderRef: '#2610ABC' },
+        { index: 1, isReceipt: true, merchant: 'Shopee', amount: 459000, category: 'Shopping', orderRef: '2610ABC' },
+      ]),
+    })
+    const items = await extractFromCandidates([confirmed, delivered], completer)
+    expect(items.map((i) => i.orderRef)).toEqual(['2610ABC', '2610ABC'])
   })
 
   it('drops candidates the model marks non-receipt, preserving order', async () => {

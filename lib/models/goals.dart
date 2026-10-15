@@ -71,8 +71,8 @@ const kNoRoutinesLine = 'No routines set up yet.';
 /// What a routines surface reads when routines exist but none has a step.
 const kNoStepsLine = 'No steps in your routines yet.';
 
-/// The unit after `No` on a target-0 surface: `No routines set up` or
-/// `No steps in your routines`.
+/// The unit after the `0` hero on a target-0 surface: `0 routines set up` or
+/// `0 steps in your routines`.
 const kNoRoutinesUnit = 'routines set up';
 const kNoStepsUnit = 'steps in your routines';
 

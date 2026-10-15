@@ -2,7 +2,6 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:opal/controllers/weekly_review_controller.dart';
 import 'package:opal/models/models.dart';
-import 'package:opal/util/format.dart';
 
 Entry _money(DateTime t, double amount) => Entry(
       id: 't',
@@ -54,7 +53,7 @@ void main() {
   });
 
   // ---------------------------------------------------------------------------
-  // Pure math — buildWeeklyStats folds entries against goals into the tiles.
+  // Pure math — buildWeeklyStats folds entries against goals.
   // ---------------------------------------------------------------------------
   test('buildWeeklyStats sums spend / move / rituals against weekly targets',
       () {
@@ -88,22 +87,6 @@ void main() {
     expect(s.moveTarget, 420); // 60 * 7
     expect(s.ritualsKept, 3); // completed on Apr 21, 22, 24
     expect(s.ritualsTarget, 7); // 1 routine * 7
-
-    // Tiles render in handoff order with the "of <target>" subs.
-    final tiles = s.tiles(Currency.usd);
-    expect(tiles.map((t) => t.label).toList(),
-        ['Spent', 'Workout', 'Routines']);
-    expect(tiles[0].value, '\$42');
-    expect(tiles[0].sub, 'of \$595');
-    expect(tiles[1].value, '95');
-    expect(tiles[1].sub, 'of 420 kcal');
-    expect(tiles[2].value, '3');
-    expect(tiles[2].sub, 'of 7');
-
-    // Money tile honours the display currency (regression: was hardcoded '$').
-    final vnd = s.tiles(Currency.vnd);
-    expect(vnd[0].value, formatCurrency(42, Currency.vnd));
-    expect(vnd[0].sub, 'of ${formatCurrency(595, Currency.vnd)}');
   });
 
   test('buildWeeklyStats derives the rituals target from the routine count', () {
@@ -117,18 +100,15 @@ void main() {
         now: DateTime(2026, 4, 22, 12));
     expect(s.ritualsTarget, 21);
 
-    // no routines: the stored 5 does not apply, and the tile reads the line.
+    // no routines: the stored 5 does not apply.
     final none = buildWeeklyStats(entries, goals,
         routines: const [], now: DateTime(2026, 4, 22, 12));
     expect(none.ritualsTarget, 0);
-    expect(none.tiles(Currency.usd)[2].sub, kNoRoutinesLine);
 
-    // routines exist but none has a step: the target is 0, and the tile says
-    // the routines need steps, not that there are none.
+    // routines exist but none has a step: the target is still 0.
     final stepless = buildWeeklyStats(entries, goals,
         routines: [_routine('a', const [])], now: DateTime(2026, 4, 22, 12));
     expect(stepless.ritualsTarget, 0);
-    expect(stepless.tiles(Currency.usd)[2].sub, kNoStepsLine);
   });
 
   // ---------------------------------------------------------------------------

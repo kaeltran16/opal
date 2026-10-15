@@ -178,6 +178,8 @@ const receiptResultSchema = z.object({
   merchant: z.string().nullable(),
   amount: z.number().nullable(),
   category: z.enum(SPEND_CATEGORIES).nullable().catch(null),
+  // optional so an older or terse reply still parses; null when absent.
+  orderRef: z.string().nullish().catch(null),
 })
 
 const receiptsBatchSchema = z.object({ results: z.array(receiptResultSchema) })
@@ -187,6 +189,20 @@ export interface ReceiptFields {
   merchant: string
   amount: number
   category: string | null
+  // the order number the email states, so the client can tell an order
+  // confirmation and its delivered notice apart from two orders.
+  orderRef: string | null
+}
+
+/**
+ * The model's order ref, normalized ('#2610ABC' and '2610ABC' are one order),
+ * or null unless it has a digit and appears in what the model was shown: a ref
+ * is read, never invented, and a redaction placeholder is not one.
+ */
+export function verifiedOrderRef(ref: string | null | undefined, shown: string): string | null {
+  const normalized = ref?.replace(/\s+/g, '').replace(/^#+/, '') ?? ''
+  if (!/\d/.test(normalized)) return null
+  return shown.toLowerCase().includes(normalized.toLowerCase()) ? normalized : null
 }
 
 /**
@@ -202,17 +218,13 @@ export async function extractReceipts(
   if (!emails.length) return []
   // scrub PII before the body leaves for the LLM; `from` is the merchant's
   // sender address (needed for merchant inference, not the user's data).
+  const shown = emails.map((e) => ({
+    from: e.from,
+    subject: redactPii(e.subject),
+    text: redactPii(e.text),
+  }))
   const raw = await client.complete([
-    {
-      role: 'user',
-      content: receiptsBatchPrompt(
-        emails.map((e) => ({
-          from: e.from,
-          subject: redactPii(e.subject),
-          text: redactPii(e.text),
-        })),
-      ),
-    },
+    { role: 'user', content: receiptsBatchPrompt(shown) },
   ], { json: true, temperature: 0, maxTokens: emails.length * MAX_TOKENS_PER_RECEIPT })
   const { results } = receiptsBatchSchema.parse(extractJson(raw))
 
@@ -222,7 +234,13 @@ export async function extractReceipts(
     if (r.index < 0 || r.index >= emails.length || filled.has(r.index)) continue
     filled.add(r.index)
     if (!r.isReceipt || r.amount === null || !r.merchant) continue
-    out[r.index] = { merchant: r.merchant, amount: r.amount, category: r.category }
+    const { subject, text } = shown[r.index]
+    out[r.index] = {
+      merchant: r.merchant,
+      amount: r.amount,
+      category: r.category,
+      orderRef: verifiedOrderRef(r.orderRef, `${subject}\n${text}`),
+    }
   }
   return out
 }

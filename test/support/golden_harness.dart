@@ -11,6 +11,7 @@ import 'package:opal/app.dart';
 import 'package:opal/controllers/providers.dart';
 import 'package:opal/data/db/database.dart';
 import 'package:opal/data/seed/seeder.dart';
+import 'package:opal/services/haptics/haptics_service.dart';
 import 'package:opal/services/pal/mock_pal_service.dart';
 
 import 'flush_provider_timers.dart';
@@ -37,6 +38,21 @@ void ignoreOverflowErrors() {
     }
     inner?.call(details);
   };
+}
+
+/// Haptics for the full-app boots: keeps the platform channel, which the test
+/// engine answers only on a real async turn, out of fake-async steps.
+class NoHaptics implements HapticsService {
+  const NoHaptics();
+
+  @override
+  void light() {}
+
+  @override
+  void medium() {}
+
+  @override
+  void success() {}
 }
 
 /// Pins the test surface so golden geometry is deterministic.
@@ -78,6 +94,7 @@ Future<void> bootApp(
         palServiceProvider.overrideWithValue(
           palService ?? MockPalService(latency: Duration.zero, seed: 0),
         ),
+        hapticsServiceProvider.overrideWithValue(const NoHaptics()),
         ...overrides,
       ],
       child: const LoopApp(),

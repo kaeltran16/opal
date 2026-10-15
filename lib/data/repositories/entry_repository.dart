@@ -82,8 +82,8 @@ class EntryRepository {
   }
 
   /// Whether an entry with this [sourceRef] already exists. Used to dedup
-  /// email imports (`sourceRef` = the email message-id) so re-syncs don't
-  /// re-import the same receipt.
+  /// email imports (`sourceRef` = `EmailImportItem.dedupRef`) so re-syncs
+  /// don't re-import the same receipt.
   Future<bool> existsBySourceRef(String sourceRef) async {
     final q = _db.select(_db.entries)
       ..where((t) => t.sourceRef.equals(sourceRef))

@@ -215,6 +215,7 @@ Future<void> _boot(
       loopDatabaseProvider.overrideWithValue(db),
       palServiceProvider.overrideWithValue(pal ?? _ScenarioPal()),
       notificationServiceProvider.overrideWithValue(notifications ?? _FakeNotifications()),
+      hapticsServiceProvider.overrideWithValue(const NoHaptics()),
       ...overrides,
     ],
     child: const LoopApp(),

@@ -12,6 +12,7 @@ import '../../widgets/app_icon.dart';
 import '../../widgets/failure_note.dart';
 import '../../widgets/press_scale.dart';
 import '../you/sub_screen.dart';
+import 'budgets_screen.dart' show kSuggestedCapsFooter, spendTrendWord;
 import 'envelope_sheets.dart';
 
 const double _tapTarget = 44;
@@ -25,7 +26,8 @@ const List<FontFeature> _tabular = [FontFeature.tabularFigures()];
 /// Budgets' envelope editor: each envelope's cap (tap to edit, drag to
 /// reorder), New envelope, and the suggested caps to apply. Every write goes
 /// through [budgetEnvelopesControllerProvider]; a failed list write shows a
-/// [FailureNote] under the summary until the next write lands.
+/// [FailureNote] under the summary until the next write lands or a sheet's
+/// draft is edited.
 class EnvelopeEditorScreen extends ConsumerStatefulWidget {
   const EnvelopeEditorScreen({super.key});
 
@@ -64,6 +66,10 @@ class _EnvelopeEditorScreenState extends ConsumerState<EnvelopeEditorScreen> {
       () => ref.read(budgetEnvelopesControllerProvider.notifier).reorder(oldIndex, newIndex),
       'reordering',
     );
+  }
+
+  void _clearListNote() {
+    if (_listFailed) setState(() => _listFailed = false);
   }
 
   void _apply(BudgetRecommendation rec) => _write(
@@ -156,13 +162,13 @@ class _EnvelopeEditorScreenState extends ConsumerState<EnvelopeEditorScreen> {
                 index: i,
                 envelope: envelope,
                 cap: formatCurrency(envelope.cap, currency),
-                onTap: () => showEnvelopeCapSheet(context, ref, envelope),
+                onTap: () => showEnvelopeCapSheet(context, ref, envelope, onEdit: _clearListNote),
               );
             },
           ),
         _HairTop(
           child: PressScale(
-            onTap: () => showNewEnvelopeSheet(context, ref),
+            onTap: () => showNewEnvelopeSheet(context, ref, onEdit: _clearListNote),
             semanticLabel: 'New envelope',
             child: ConstrainedBox(
               constraints: const BoxConstraints(minHeight: _rowHeight),
@@ -281,17 +287,11 @@ class _Suggestions extends ConsumerWidget {
   final Currency currency;
   final ValueChanged<BudgetRecommendation> onUse;
 
-  static String _trendWord(SpendTrend trend) => switch (trend) {
-        SpendTrend.increasing => 'trending up',
-        SpendTrend.decreasing => 'trending down',
-        SpendTrend.stable => 'steady',
-      };
-
   String _why(BudgetRecommendation rec) {
     final average = '${formatCurrency(rec.monthlyAverage, currency)}/mo';
     final current = rec.currentCap;
     if (current == null) return 'No envelope yet · $average';
-    return '$average · ${_trendWord(rec.trend)} · now ${formatCurrency(current, currency)}';
+    return '$average · ${spendTrendWord(rec.trend)} · now ${formatCurrency(current, currency)}';
   }
 
   @override
@@ -315,7 +315,7 @@ class _Suggestions extends ConsumerWidget {
         const SizedBox(height: Spacing.xs),
         for (final rec in recs) _suggestion(context, rec),
         const SizedBox(height: Spacing.sm),
-        Text('From your spending over the last 3 months.',
+        Text(kSuggestedCapsFooter,
             style: AppType.subhead.copyWith(color: c.ink3)),
       ],
     );

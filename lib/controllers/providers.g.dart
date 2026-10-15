@@ -936,7 +936,7 @@ final class PalServiceProvider
   }
 }
 
-String _$palServiceHash() => r'b06beb8f861b571d982064b7d044c8a78c0017c6';
+String _$palServiceHash() => r'cc3d7ec04a37d5796554d1392456c3c6054836c3';
 
 /// Real [HttpHealthService] when `PAL_BASE_URL` is set; [MockHealthService]
 /// otherwise (tests, backend-less preview). Shares the proxy's http client +

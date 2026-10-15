@@ -46,8 +46,13 @@ const double _hairWidth = 1;
 const List<FontFeature> _tabular = [FontFeature.tabularFigures()];
 
 /// Opens the two-step new-envelope sheet (category and icon, then the cap) and
-/// adds the envelope through [budgetEnvelopesControllerProvider].
-Future<void> showNewEnvelopeSheet(BuildContext context, WidgetRef ref) {
+/// adds the envelope through [budgetEnvelopesControllerProvider]. [onEdit] runs
+/// on every edit to the draft.
+Future<void> showNewEnvelopeSheet(
+  BuildContext context,
+  WidgetRef ref, {
+  VoidCallback? onEdit,
+}) {
   final notifier = ref.read(budgetEnvelopesControllerProvider.notifier);
   return showAppSheet<void>(
     context,
@@ -56,17 +61,20 @@ Future<void> showNewEnvelopeSheet(BuildContext context, WidgetRef ref) {
       envelope: null,
       onAdd: (category, icon, cap) =>
           notifier.add(category: category, icon: icon, cap: cap),
+      onEdit: onEdit,
     ),
   );
 }
 
 /// Opens the cap keypad for [envelope], with its delete confirm, writing
-/// through [budgetEnvelopesControllerProvider].
+/// through [budgetEnvelopesControllerProvider]. [onEdit] runs on every edit to
+/// the draft.
 Future<void> showEnvelopeCapSheet(
   BuildContext context,
   WidgetRef ref,
-  BudgetEnvelope envelope,
-) {
+  BudgetEnvelope envelope, {
+  VoidCallback? onEdit,
+}) {
   final notifier = ref.read(budgetEnvelopesControllerProvider.notifier);
   return showAppSheet<void>(
     context,
@@ -75,6 +83,7 @@ Future<void> showEnvelopeCapSheet(
       envelope: envelope,
       onSave: (cap) => notifier.setCap(envelope.id, cap),
       onDelete: () => notifier.delete(envelope.id),
+      onEdit: onEdit,
     ),
   );
 }
@@ -90,6 +99,7 @@ class _EnvelopeSheet extends ConsumerStatefulWidget {
     this.onSave,
     this.onDelete,
     this.onAdd,
+    this.onEdit,
   });
 
   /// The envelope whose cap is edited; null adds a new one.
@@ -97,6 +107,9 @@ class _EnvelopeSheet extends ConsumerStatefulWidget {
   final Future<void> Function(double cap)? onSave;
   final Future<void> Function()? onDelete;
   final Future<void> Function(String category, String icon, double cap)? onAdd;
+
+  /// Runs on every edit to the draft, so the opener can clear its own note.
+  final VoidCallback? onEdit;
 
   @override
   ConsumerState<_EnvelopeSheet> createState() => _EnvelopeSheetState();
@@ -129,15 +142,20 @@ class _EnvelopeSheetState extends ConsumerState<_EnvelopeSheet> {
   int get _max => _maxCapBase * _currency.budgetScale;
 
   /// Applies an edit to the draft; any edit clears a failure note.
-  void _edit(VoidCallback change) => setState(() {
-        _failure = null;
-        change();
-      });
+  void _edit(VoidCallback change) {
+    widget.onEdit?.call();
+    setState(() {
+      _failure = null;
+      change();
+    });
+  }
 
+  /// A digit past the max leaves the draft as it is, but is still an edit.
   void _digit(String d) {
     final next = _draft * 10 + int.parse(d);
-    if (next > _max) return;
-    _edit(() => _draft = next);
+    _edit(() {
+      if (next <= _max) _draft = next;
+    });
   }
 
   void _stepBy(int delta) => _edit(() => _draft = (_draft + delta).clamp(0, _max));

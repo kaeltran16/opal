@@ -212,8 +212,8 @@ class EmailDashboardController extends _$EmailDashboardController {
 
   /// Runs a sync; the staged [SyncStatus] is emitted via the service's stream
   /// (read through [syncStatusProvider]). On completion the returned imports are
-  /// materialised as timeline [Entry]s (deduped by `sourceRef` so re-syncs don't
-  /// double-import), the imports list updates, and the last-sync time advances.
+  /// materialised as timeline [Entry]s (deduped by `sourceRef` so re-syncs and
+  /// a second email about the same order don't double-import), the imports list updates, and the last-sync time advances.
   Future<void> syncNow() async {
     try {
       final items = await ref.read(emailSyncServiceProvider).syncNow();
@@ -232,13 +232,15 @@ class EmailDashboardController extends _$EmailDashboardController {
     }
   }
 
-  /// Writes each import as a money [Entry] (`source: email`), skipping any whose
-  /// message-id was already imported. This is the "push structured entries back"
+  /// Writes each import as a money [Entry] (`source: email`), skipping any
+  /// already stored: the same merchant and order, or the same message-id when
+  /// the email states no order. Checked against stored entries, so it holds
+  /// across syncs and within one. This is the "push structured entries back"
   /// step — without it, synced receipts never reach Today/Spending.
   Future<void> _persistImports(List<EmailImportItem> items) async {
     final entries = ref.read(entryRepositoryProvider);
     for (final item in items) {
-      if (await entries.existsBySourceRef(item.id)) continue;
+      if (await entries.existsBySourceRef(item.dedupRef)) continue;
       await entries.insert(item.toEntry());
     }
   }

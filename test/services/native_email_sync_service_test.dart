@@ -194,6 +194,21 @@ void main() {
       expect(seen.single.headers['authorization'], 'Bearer tok');
     });
 
+    test('reads the order ref the worker returns, null when absent', () async {
+      final mailbox = _FakeMailbox(emails: [_email(id: 'm1'), _email(id: 'm2')]);
+      final service = await connected(
+        okClient([], items: [
+          {..._item('m1', merchant: 'Shopee'), 'orderRef': '2610ABC'},
+          _item('m2'),
+        ]),
+        mailbox,
+      );
+
+      final items = await service.syncNow();
+
+      expect(items.map((i) => i.orderRef), ['2610ABC', null]);
+    });
+
     test('redacts PII and bounds the body before sending', () async {
       final seen = <http.Request>[];
       final mailbox = _FakeMailbox(emails: [
