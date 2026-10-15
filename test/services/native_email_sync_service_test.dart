@@ -209,6 +209,33 @@ void main() {
       expect(items.map((i) => i.orderRef), ['2610ABC', null]);
     });
 
+    test('keys an order on the sender domain, mapped back by candidate id',
+        () async {
+      final mailbox = _FakeMailbox(emails: [
+        _email(id: 'confirm', from: 'info@mail.shopee.vn'),
+        _email(id: 'delivered', from: 'no-reply@shopee.vn'),
+        _email(id: 'card', from: 'info@card.vib.com.vn'),
+      ]);
+      // the worker answers out of order and the model's wording drifts.
+      final service = await connected(
+        okClient([], items: [
+          {..._item('card', merchant: 'VIB'), 'orderRef': 'X1'},
+          {..._item('delivered', merchant: 'SHOPEE MALL'), 'orderRef': '2610ABC'},
+          {..._item('confirm', merchant: 'Shopee'), 'orderRef': '2610ABC'},
+        ]),
+        mailbox,
+      );
+
+      final items = await service.syncNow();
+
+      expect(
+        items.map((i) => i.senderDomain),
+        ['vib.com.vn', 'shopee.vn', 'shopee.vn'],
+      );
+      expect(items[1].dedupRef, items[2].dedupRef);
+      expect(items[1].dedupRef, 'order:shopee.vn:2610abc');
+    });
+
     test('redacts PII and bounds the body before sending', () async {
       final seen = <http.Request>[];
       final mailbox = _FakeMailbox(emails: [

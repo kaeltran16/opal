@@ -16,6 +16,7 @@ class EmailImportItem {
     required this.receivedAt,
     this.category,
     this.orderRef,
+    this.senderDomain,
     this.isNew = true,
   });
 
@@ -32,17 +33,23 @@ class EmailImportItem {
   /// none. An order confirmation and its delivered notice share it.
   final String? orderRef;
 
+  /// The registrable domain of the email's From address (`shopee.vn`), set
+  /// on the client from the fetched email, never by the model.
+  final String? senderDomain;
+
   /// Drives the "NEW" badge fade on the dashboard.
   final bool isNew;
 
   /// What makes two imports the same purchase, stored as the entry's
-  /// `sourceRef`: the merchant and order number when the email states one,
-  /// so a later email about the same order matches across syncs; else the
-  /// message id.
+  /// `sourceRef`: the sender domain and order number when the email states
+  /// one, so a later email about the same order matches across syncs; else
+  /// the message id. Keyed on the domain, not [merchant], because the model's
+  /// merchant wording drifts between draws of the same email.
   String get dedupRef {
     final order = orderRef;
-    if (order == null) return id;
-    return 'order:${merchant.trim().toLowerCase()}:${order.toLowerCase()}';
+    final domain = senderDomain;
+    if (order == null || domain == null) return id;
+    return 'order:$domain:${order.toLowerCase()}';
   }
 
   /// Materialise this import as a money [Entry] (`source: email`).
@@ -67,11 +74,12 @@ class EmailImportItem {
           other.receivedAt == receivedAt &&
           other.category == category &&
           other.orderRef == orderRef &&
+          other.senderDomain == senderDomain &&
           other.isNew == isNew;
 
   @override
-  int get hashCode =>
-      Object.hash(id, merchant, amount, receivedAt, category, orderRef, isNew);
+  int get hashCode => Object.hash(id, merchant, amount, receivedAt, category,
+      orderRef, senderDomain, isNew);
 }
 
 /// IMAP receipt-import service.
