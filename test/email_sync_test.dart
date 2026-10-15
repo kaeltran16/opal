@@ -389,20 +389,27 @@ void main() {
     },
   );
 
-  // --- Container: imports dedupe by merchant + order number across syncs -----
+  // --- Container: imports dedupe by sender domain + order number -----------
   group('Dashboard syncNow dedupes an order across its emails', () {
     late LoopDatabase db;
     late _StubSyncService service;
     late ProviderContainer container;
 
-    EmailImportItem shopee(String id, {String? orderRef, int day = 11}) =>
+    EmailImportItem shopee(
+      String id, {
+      String? orderRef,
+      int day = 11,
+      String merchant = 'Shopee',
+      String senderDomain = 'shopee.vn',
+    }) =>
         EmailImportItem(
           id: id,
-          merchant: 'Shopee',
+          merchant: merchant,
           amount: -459000,
           receivedAt: DateTime(2026, 10, day, 9),
           category: 'Shopping',
           orderRef: orderRef,
+          senderDomain: senderDomain,
         );
 
     Future<List<Entry>> syncWith(List<EmailImportItem> items) async {
@@ -441,7 +448,48 @@ void main() {
 
       expect(all, hasLength(1));
       expect(all.single.title, 'Shopee');
-      expect(all.single.sourceRef, 'order:shopee:2610abc');
+      expect(all.single.sourceRef, 'order:shopee.vn:2610abc');
+    });
+
+    test('the same order with drifting merchant wording imports once',
+        () async {
+      await syncWith([
+        shopee('confirm', orderRef: '2610ABC', merchant: 'Highlands Coffee'),
+      ]);
+      final all = await syncWith([
+        shopee(
+          'delivered',
+          orderRef: '2610ABC',
+          merchant: 'HIGHLANDS COFFEE NGUYEN HUE',
+          day: 14,
+        ),
+      ]);
+
+      expect(all, hasLength(1));
+      expect(all.single.title, 'Highlands Coffee');
+    });
+
+    test('the same order ref from two different domains imports twice',
+        () async {
+      final all = await syncWith([
+        shopee('shopee', orderRef: '2610ABC'),
+        shopee('lazada', orderRef: '2610ABC', senderDomain: 'lazada.vn'),
+      ]);
+
+      expect(all, hasLength(2));
+    });
+
+    test('an order ref without a known sender dedupes by its message id',
+        () async {
+      final item = EmailImportItem(
+        id: 'no-sender',
+        merchant: 'Shopee',
+        amount: -459000,
+        receivedAt: DateTime(2026, 10, 11, 9),
+        orderRef: '2610ABC',
+      );
+
+      expect(item.dedupRef, 'no-sender');
     });
 
     test('two different orders at the same merchant and amount both import',

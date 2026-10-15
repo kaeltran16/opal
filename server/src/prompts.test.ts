@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { chatSystemPrompt, reviewPrompt, insightsPrompt, parsePrompt, suggestPrompt, postWorkoutPrompt, routinePrompt, receiptsBatchPrompt, memoryBlock, agendaPrompt, memoryPatternsPrompt, nutritionEstimatePrompt } from './prompts.js'
+import { chatSystemPrompt, reviewPrompt, insightsPrompt, parsePrompt, suggestPrompt, postWorkoutPrompt, routinePrompt, receiptsBatchPrompt, memoryBlock, agendaPrompt, memoryPatternsPrompt, nutritionEstimatePrompt, suggestionsPrompt, dayFacts, budgetState, PLAIN_TEXT } from './prompts.js'
 import { SPEND_CATEGORIES } from './product.js'
 import { insightsContext } from './schemas.js'
 
@@ -15,10 +15,9 @@ describe('prompts', () => {
     expect(p).toContain('You are Pal')
     expect(p).toContain('Kael')
     expect(p).toContain('08:00 Coffee (money, -$5)')
-    expect(p).toContain('Daily budget $60')
-    expect(p).toContain('move goal 400kcal')
-    expect(p).toContain('moved 250kcal')
-    expect(p).toContain('1800kcal moved')
+    expect(p).toContain('$12 spent of the $60 daily budget, under by $48')
+    expect(p).toContain('250 of 400kcal')
+    expect(p).toContain('Move: 1800kcal')
     expect(p).toContain('11-day move streak')
     expect(p).toContain('Never say "amazing" or "great job"')
   })
@@ -84,6 +83,7 @@ describe('prompts', () => {
     expect(p).toContain('12000kcal moved')
     expect(p).toContain('12-day move streak')
     expect(p).toContain('Food 34%')
+    expect(p).toContain('Rituals: 120 of 150 routines finished this month (80%)')
     expect(p).toContain("this month's tracking data")
     expect(p).toContain('down 12% vs last month')
     expect(p).toContain('up 8% vs last month')
@@ -144,7 +144,7 @@ describe('prompts', () => {
       ritualsKept: 18, ritualsTarget: 35, activeDays: 5, streakDays: 11,
       topCategory: 'Food', topCategoryPct: 34, spendByWeekday: [10, 20, 30, 40, 50, 25, 25], entries: ['08:00 Coffee'],
     })
-    expect(p).toContain('$200 of $420')
+    expect(p).toContain('$200 spent of the $420 budget, under by $220')
     expect(p).toContain('1400 of 2100 move kcal')
     expect(p).toContain('Food 34%')
     expect(p).toContain('11-day move streak')
@@ -355,5 +355,147 @@ describe('memory injection', () => {
     const out = memoryPatternsPrompt(insightsCtx, mem)
     expect(out).toContain('Trains mornings')           // current patterns shown
     expect(out.toLowerCase()).toContain('revise')      // framed as revision, not fresh
+  })
+})
+
+// the seed's evening on a Thursday: $96.15 of $85, three morning steps logged, no routine finished.
+const thursdayEvening = {
+  userName: 'Kael',
+  todayEntries: ['07:05 Glass of water (rituals)', '08:10 Wash my face (rituals)', '08:20 Moisturize + SPF (rituals)', '19:30 Thai Basil (money, -$24.80)'],
+  dailyBudget: 85, moveGoalKcal: 500, ritualGoal: 3,
+  spentToday: 96.15, movedTodayKcal: 610, ritualsDoneToday: 0,
+  weekSpent: 301.4, weekBudget: 595, weekMovedKcal: 1820, weekRitualsDone: 5, weekRitualGoal: 21,
+  moveStreakDays: 11, hourOfDay: 20, weekday: 4,
+}
+
+describe('budgetState', () => {
+  it('names over or under with the amount', () => {
+    expect(budgetState(96.15, 85)).toBe('over by $11.15')
+    expect(budgetState(40, 85)).toBe('under by $45')
+    expect(budgetState(85, 85)).toBe('exactly on budget')
+  })
+
+  it('rounds to the minor unit so float noise is not over', () => {
+    expect(budgetState(0.1 + 0.2, 0.3)).toBe('exactly on budget')
+  })
+
+  it('renders the amount in the user currency', () => {
+    const vnd = { symbol: '₫', symbolBefore: false, decimals: 0, group: '.', decimal: ',' }
+    expect(budgetState(2_150_000, 2_000_000, vnd)).toBe('over by 150.000 ₫')
+  })
+})
+
+describe('dayFacts', () => {
+  it('states today over budget by how much, never leaving it to infer', () => {
+    expect(dayFacts(thursdayEvening)).toContain('$96.15 spent of the $85 daily budget, over by $11.15.')
+  })
+
+  it('states routines finished of total and that logged steps are not finished routines', () => {
+    const f = dayFacts(thursdayEvening)
+    expect(f).toContain('0 of 3 routines finished today, none yet')
+    expect(f).toContain('logged steps do not make a routine finished')
+    expect(f).toContain('5 of 21 routines finished this week')
+  })
+
+  it('splits the week spend between today and earlier days', () => {
+    const f = dayFacts(thursdayEvening)
+    expect(f).toContain('Monday to Thursday, 4 of 7 days')
+    expect(f).toContain('$301.40 spent, $96.15 today and $205.25 on earlier days')
+    expect(f).not.toContain('all of it today')
+  })
+
+  it('compares the week with the budget for the days so far and for the whole week', () => {
+    const f = dayFacts(thursdayEvening)
+    expect(f).toContain('Against the $340 budgeted for these 4 days, under by $38.60')
+    expect(f).toContain('against the $595 weekly budget, under by $293.60')
+  })
+
+  it('says the week spend is all today only when it is', () => {
+    const f = dayFacts({ ...thursdayEvening, weekday: 1, weekSpent: 96.15 })
+    expect(f).toContain('Monday only, 1 of 7 days')
+    expect(f).toContain('$96.15 spent, all of it today')
+  })
+
+  it('states the move goal as met or kcal to go', () => {
+    expect(dayFacts(thursdayEvening)).toContain('610 of 500kcal, goal met, 110kcal past it')
+    expect(dayFacts({ ...thursdayEvening, movedTodayKcal: 320 })).toContain('320 of 500kcal, 180kcal to go')
+  })
+
+  it('says no routines are set up instead of 0 of 0', () => {
+    expect(dayFacts({ ...thursdayEvening, ritualGoal: 0, weekRitualGoal: 0 })).toContain('Rituals: no routines set up')
+  })
+
+  it('feeds chat, agenda and the composer chips alike', () => {
+    for (const p of [chatSystemPrompt(thursdayEvening), agendaPrompt(thursdayEvening), suggestionsPrompt('composer', thursdayEvening)]) {
+      expect(p).toContain(dayFacts(thursdayEvening))
+    }
+  })
+
+  it('renders in the user currency in the composer chips too', () => {
+    const vnd = { symbol: '₫', symbolBefore: false, decimals: 0, group: '.', decimal: ',' }
+    const p = suggestionsPrompt('composer', { ...thursdayEvening, todayEntries: [], dailyBudget: 200000, spentToday: 50000, weekSpent: 50000, weekBudget: 1400000, currency: vnd })
+    expect(p).toContain('50.000 ₫ spent of the 200.000 ₫ daily budget, under by 150.000 ₫')
+    expect(p).not.toMatch(/\$\d/)
+  })
+})
+
+describe('insights data', () => {
+  const day = {
+    range: 'day' as const, spent: 96.15, budget: 85, moveKcal: 610, moveTargetKcal: 500,
+    ritualsKept: 0, ritualsTarget: 3, activeDays: 1, streakDays: 11, topCategory: 'Food & Drink', topCategoryPct: 48,
+    spendByWeekday: [0, 0, 0, 96.15, 0, 0, 0], entries: [],
+  }
+
+  it('a day range sends no weekday split to misread as "all of it on Thursday"', () => {
+    expect(insightsPrompt(day)).not.toContain('Spend by weekday')
+    expect(insightsPrompt({ ...day, range: 'week' })).toContain('Spend by weekday: Mon $0')
+  })
+
+  it('states over budget and routines finished explicitly', () => {
+    const p = insightsPrompt(day)
+    expect(p).toContain('$96.15 spent of the $85 budget, over by $11.15')
+    expect(p).toContain('0 of 3 routines finished this day, none yet')
+    expect(memoryPatternsPrompt(day, { facts: [], patterns: [] })).toContain('over by $11.15')
+  })
+})
+
+describe('plain text', () => {
+  const insights = {
+    range: 'week' as const, spent: 0, budget: 0, moveKcal: 0, moveTargetKcal: 0, ritualsKept: 0, ritualsTarget: 0,
+    activeDays: 0, streakDays: 0, topCategory: 'Food', topCategoryPct: 0, spendByWeekday: [], entries: [],
+  }
+  const suggest = { recentWorkouts: [], dayOfWeek: 'Thursday', availableRoutines: [{ id: 'r1', name: 'Legs' }] }
+
+  it('every prompt whose words reach a Pal surface asks for plain text', () => {
+    const prompts = [
+      chatSystemPrompt(thursdayEvening),
+      agendaPrompt(thursdayEvening),
+      suggestionsPrompt('composer', thursdayEvening),
+      suggestionsPrompt('routineGoal', suggest),
+      reviewPrompt({ range: 'week', spent: 0, spentDeltaPct: null, kcalMoved: 0, movedDeltaPct: null, activeDays: 0, ritualsKept: 0, ritualsTarget: 0, ritualsPct: 0, streakDays: 0, topCategory: 'Food', topCategoryPct: 0 }),
+      insightsPrompt(insights),
+      memoryPatternsPrompt(insights, { facts: [], patterns: [] }),
+      suggestPrompt(suggest),
+      postWorkoutPrompt({ routineName: 'Legs', setCount: 3, volumeKg: 900, prCount: 0, prExercises: [], lastSessionVolumeKg: null, daysAgoLastSession: null }),
+      routinePrompt('legs', []),
+    ]
+    for (const p of prompts) expect(p).toContain(PLAIN_TEXT)
+  })
+})
+
+describe('prompt examples do not anchor output', () => {
+  it('the agenda names no example amount for a button', () => {
+    const p = agendaPrompt(thursdayEvening)
+    expect(p).not.toContain('Hold $40')
+    expect(p).toContain('must be one the title or body states')
+  })
+
+  it('the composer chips name no example merchant or amount', () => {
+    expect(suggestionsPrompt('composer', thursdayEvening)).not.toContain('Verve coffee, $5')
+  })
+
+  it('the post-workout note names no example weight', () => {
+    const p = postWorkoutPrompt({ routineName: 'Legs', setCount: 3, volumeKg: 900, prCount: 0, prExercises: [], lastSessionVolumeKg: null, daysAgoLastSession: null })
+    expect(p).not.toContain('2.5kg')
   })
 })

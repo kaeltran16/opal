@@ -1,5 +1,5 @@
 import type { MemoryDigest } from './memory.js'
-import { PRODUCT_FRAMING, SPEND_CATEGORIES, money, type CurrencyDescriptor } from './product.js'
+import { PRODUCT_FRAMING, SPEND_CATEGORIES, USD, money, type CurrencyDescriptor } from './product.js'
 
 export interface ChatContext {
   userName: string
@@ -77,6 +77,57 @@ export interface PostWorkoutContext {
   daysAgoLastSession: number | null
 }
 
+// DESIGN.md: emphasis comes from size, never bold. every Pal surface renders
+// the model's text as plain text, so markdown would show as raw asterisks.
+export const PLAIN_TEXT = 'Write plain text: no markdown, no asterisks or underscores for emphasis, no headings, no lists.'
+
+const WEEKDAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+
+// rounds to the currency's minor unit so float noise never reads as over or under.
+function roundMoney(n: number, c: CurrencyDescriptor = USD): number {
+  const f = 10 ** c.decimals
+  return Math.round(n * f) / f
+}
+
+// over or under in words, with the amount: left to compare two numbers, the
+// model called $11 over "near budget".
+export function budgetState(spent: number, budget: number, c?: CurrencyDescriptor): string {
+  const diff = roundMoney(spent - budget, c)
+  if (diff > 0) return `over by ${money(diff, c)}`
+  if (diff < 0) return `under by ${money(-diff, c)}`
+  return 'exactly on budget'
+}
+
+const moveState = (moved: number, goal: number) =>
+  moved >= goal ? `goal met${moved > goal ? `, ${moved - goal}kcal past it` : ''}` : `${goal - moved}kcal to go`
+
+// a rituals entry is one step; only the routine counts say what was finished.
+// without this the model read three logged morning steps as "the morning block held" at 0/3.
+const ROUTINE_STEPS_NOTE = 'A routine count is whole routines finished, never steps. Each rituals entry is one step of a routine; logged steps do not make a routine finished.'
+
+const routinesState = (done: number, goal: number, when: string) =>
+  goal === 0 ? 'no routines set up' : `${done} of ${goal} routines finished ${when}${done === 0 ? ', none yet' : ''}`
+
+// the day and week as explicit state (over/under and by how much, which days the
+// week's spend fell on, routines finished of total) so the model states facts
+// instead of inferring them. shared by every prompt built from ChatContext.
+export function dayFacts(c: ChatContext): string {
+  const cur = c.currency
+  const day = Math.min(Math.max(Math.round(c.weekday), 1), 7)
+  const earlier = roundMoney(c.weekSpent - c.spentToday, cur)
+  const split = earlier > 0 ? `${money(c.spentToday, cur)} today and ${money(earlier, cur)} on earlier days` : 'all of it today'
+  const span = day === 1 ? 'Monday only, 1 of 7 days' : `Monday to ${WEEKDAYS[day - 1]}, ${day} of 7 days`
+  const paceBudget = roundMoney((c.weekBudget * day) / 7, cur)
+  return `Today (${WEEKDAYS[day - 1]}, local hour ${c.hourOfDay}):
+- Money: ${money(c.spentToday, cur)} spent of the ${money(c.dailyBudget, cur)} daily budget, ${budgetState(c.spentToday, c.dailyBudget, cur)}.
+- Move: ${c.movedTodayKcal} of ${c.moveGoalKcal}kcal, ${moveState(c.movedTodayKcal, c.moveGoalKcal)}.
+- Rituals: ${routinesState(c.ritualsDoneToday, c.ritualGoal, 'today')}. ${ROUTINE_STEPS_NOTE}
+This week so far (${span}):
+- Money: ${money(c.weekSpent, cur)} spent, ${split}. Against the ${money(paceBudget, cur)} budgeted for these ${day} days, ${budgetState(c.weekSpent, paceBudget, cur)}; against the ${money(c.weekBudget, cur)} weekly budget, ${budgetState(c.weekSpent, c.weekBudget, cur)}.
+- Move: ${c.weekMovedKcal}kcal. Rituals: ${routinesState(c.weekRitualsDone, c.weekRitualGoal, 'this week')}.
+- ${c.moveStreakDays}-day move streak.`
+}
+
 // renders Pal's stored memory as a compact block for prompt injection. returns
 // '' when there is nothing to inject so callers can prepend unconditionally.
 // withIds exposes fact ids so the chat model can target them with forget.
@@ -100,10 +151,7 @@ export function chatSystemPrompt(c: ChatContext, memory?: MemoryDigest): string 
 ${memSection}${heading}
 ${entries}
 
-Daily budget ${money(c.dailyBudget, c.currency)}, move goal ${c.moveGoalKcal}kcal, ritual goal ${c.ritualGoal}.
-Spent ${money(c.spentToday, c.currency)} so far, moved ${c.movedTodayKcal}kcal, ${c.ritualsDoneToday}/${c.ritualGoal} rituals done.
-
-Week: ${money(c.weekSpent, c.currency)} of ${money(c.weekBudget, c.currency)} spent, ${c.weekMovedKcal}kcal moved, ${c.weekRitualsDone}/${c.weekRitualGoal} rituals. ${c.moveStreakDays}-day move streak.
+${dayFacts(c)}
 
 These entries and totals are current as of the user's latest message: anything logged earlier in this conversation ("Pal did: ...") is already in them, so never add it again.
 
@@ -113,7 +161,7 @@ Money amounts are in the user's own currency, not necessarily dollars — never 
 
 When you log an entry (expense, income, movement or ritual), the app already shows the user a confirmation card with the entry and an updated progress ring — so do NOT restate what was logged or say "logged it". Instead reply with at most one short, specific insight tied to their day or week (a pace, a streak, a budget heads-up), or reply with nothing at all if you have nothing genuinely useful to add. For a goal or routine change, a one-line confirmation is still helpful.
 
-Reply in 1-3 short sentences. Friendly, specific, no filler. Never say "amazing" or "great job" — be observational and warm instead.`
+Reply in 1-3 short sentences. Friendly, specific, no filler. Never say "amazing" or "great job" — be observational and warm instead. State over, under, finished or not exactly as the facts above say. ${PLAIN_TEXT}`
 }
 
 export function reviewPrompt(c: ReviewContext, memory?: MemoryDigest): string {
@@ -122,25 +170,29 @@ export function reviewPrompt(c: ReviewContext, memory?: MemoryDigest): string {
   const deltaPhrase = (pct: number | null) =>
     pct === null ? '' : ` (${pct < 0 ? 'down' : 'up'} ${Math.abs(pct)}% vs last ${period})`
   const mem = memoryBlock(memory)
-  return `${mem ? mem + '\n\n' : ''}Write a 2-3 sentence warm, specific, editorial reflection on this ${period}'s tracking data. Avoid hype words like "amazing" or "crushed it". Be specific and observational.
+  return `${mem ? mem + '\n\n' : ''}Write a 2-3 sentence warm, specific, editorial reflection on this ${period}'s tracking data. Avoid hype words like "amazing" or "crushed it". Be specific and observational. ${PLAIN_TEXT}
 
-Data: ${money(c.spent, c.currency)} spent${deltaPhrase(c.spentDeltaPct)}, ${c.kcalMoved}kcal moved${deltaPhrase(c.movedDeltaPct)}, ${c.activeDays} active days, ${c.ritualsKept}/${c.ritualsTarget} rituals kept (${c.ritualsPct}%). Current ${c.streakDays}-day move streak. Top category: ${c.topCategory} ${c.topCategoryPct}%.`
+Data: ${money(c.spent, c.currency)} spent${deltaPhrase(c.spentDeltaPct)}, ${c.kcalMoved}kcal moved${deltaPhrase(c.movedDeltaPct)}, ${c.activeDays} active days. Rituals: ${routinesState(c.ritualsKept, c.ritualsTarget, `this ${period}`)} (${c.ritualsPct}%). Current ${c.streakDays}-day move streak. Top category: ${c.topCategory} ${c.topCategoryPct}%.`
 }
 
-// the aggregates both insights and memory prompts ground on. a weekday still
+// the aggregates as explicit state. a day range carries no weekday split: its
+// one non-zero day read as "with all of it spent Thursday". a weekday still
 // ahead is left out, so the model never reads it as a no-spend day.
 function insightsData(c: InsightsContext): string {
   const weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
   const byDay = weekdays
     .flatMap((d, i) => (c.spendByWeekday[i] === null ? [] : [`${d} ${money(c.spendByWeekday[i] ?? 0, c.currency)}`]))
     .join(', ')
+  const weekdayLine = c.range === 'day' ? '' : `\nSpend by weekday: ${byDay || '(no days yet)'}.`
   const soFar = c.daysElapsed === undefined || c.range === 'day' ? '' : ` (day ${c.daysElapsed} of the ${c.range} so far)`
-  return `Data${soFar}: ${money(c.spent, c.currency)} of ${money(c.budget, c.currency)} budget, ${c.moveKcal} of ${c.moveTargetKcal} move kcal, ${c.ritualsKept}/${c.ritualsTarget} rituals kept, ${c.activeDays} active days, ${c.streakDays}-day move streak. Top category: ${c.topCategory} ${c.topCategoryPct}%.
-Spend by weekday: ${byDay || '(no days yet)'}.`
+  const entries = c.entries.length ? c.entries.join('\n') : '(none)'
+  return `Data${soFar}: ${money(c.spent, c.currency)} spent of the ${money(c.budget, c.currency)} budget, ${budgetState(c.spent, c.budget, c.currency)}. ${c.moveKcal} of ${c.moveTargetKcal} move kcal. Rituals: ${routinesState(c.ritualsKept, c.ritualsTarget, `this ${c.range}`)}. ${c.activeDays} active days, ${c.streakDays}-day move streak. Top category: ${c.topCategory} ${c.topCategoryPct}%.${weekdayLine}
+Entries:
+${entries}
+${ROUTINE_STEPS_NOTE}`
 }
 
 export function insightsPrompt(c: InsightsContext, memory?: MemoryDigest): string {
-  const entries = c.entries.length ? c.entries.join('\n') : '(none)'
   const mem = memoryBlock(memory)
   const shape = `{"headline": string|null, "lede": string|null, "suggestion": string|null, "correlationNarration": string|null, "wins": [{"colorToken": "money"|"move"|"rituals"|"nutrition", "title": string, "sub": string}], "patterns": [{"colorToken": "money"|"move"|"rituals"|"nutrition", "title": string, "detail": string}]}`
 
@@ -154,11 +206,9 @@ export function insightsPrompt(c: InsightsContext, memory?: MemoryDigest): strin
     ? `\n\nVerified relationship (computed from their data — rephrase this as ONE warm, specific sentence in "correlationNarration"; do NOT invent any other cross-domain relationship, and set "correlationNarration" to null if this is absent):\n${c.correlation.summary}`
     : '\n\nNo verified cross-domain relationship this period — set "correlationNarration" to null.'
 
-  return `${mem ? mem + '\n\n' : ''}Reflect on this ${c.range}'s tracking data. Be specific and observational. Avoid hype words like "amazing", "crushed it", or "great job".
+  return `${mem ? mem + '\n\n' : ''}Reflect on this ${c.range}'s tracking data. Be specific and observational. Avoid hype words like "amazing", "crushed it", or "great job". ${PLAIN_TEXT}
 
 ${insightsData(c)}
-Entries:
-${entries}
 
 Only make claims grounded in this data: use the spend-by-weekday numbers for day-of-week patterns, the top category for spending patterns, and the streak for streaks. Do not invent numbers that are not derivable from the data. Set "colorToken" to the metric each item is about (money, move, rituals or nutrition).${corr}
 
@@ -208,7 +258,7 @@ ${recent}
 
 Today is ${c.dayOfWeek}.${plan} Pick ONE routine from ${available} that balances their recent volume. Return strictly:
 {"routineId": string, "reason": string}
-"reason" is one short sentence, at most 20 words, spoken to the user ("you"), saying why this routine fits today. Use only the workouts listed above; when the routine is not among them, do not say when it was last done. Name days as today, yesterday or a weekday, never as a date. No reasoning steps.
+"reason" is one short sentence, at most 20 words, spoken to the user ("you"), saying why this routine fits today. Use only the workouts listed above; when the routine is not among them, do not say when it was last done. Name days as today, yesterday or a weekday, never as a date. No reasoning steps. ${PLAIN_TEXT}
 No prose. Output only the JSON object.`
 }
 
@@ -223,13 +273,13 @@ export function agendaPrompt(c: ChatContext, memory?: MemoryDigest): string {
 ${mem ? mem + '\n\n' : ''}Today's entries:
 ${entries}
 
-Daily budget ${money(c.dailyBudget, c.currency)}, move goal ${c.moveGoalKcal}kcal, ritual goal ${c.ritualGoal}. So far: ${money(c.spentToday, c.currency)} spent, ${c.movedTodayKcal}kcal moved, ${c.ritualsDoneToday}/${c.ritualGoal} rituals done. Week: ${money(c.weekSpent, c.currency)} of ${money(c.weekBudget, c.currency)}, ${c.weekMovedKcal}kcal, ${c.weekRitualsDone}/${c.weekRitualGoal} rituals. ${c.moveStreakDays}-day move streak.
+${dayFacts(c)}
 
 Produce two lists:
-- "proposals": up to 4 concrete actions you can take FOR them, each needing one approval. Set "kind" to the matching action (reschedule a workout, hold money aside, close out the day, add a ritual, or generic). "tag" is the pillar label (Workout, Money, or Rituals); "colorToken" is the pillar (move, money, rituals). "approveLabel" is a short button verb (e.g. "Hold $40"); "doneLabel" is the past-tense confirmation. Keep "body" to one or two specific sentences grounded in the numbers above.
+- "proposals": up to 4 concrete actions you can take FOR them, each needing one approval. Set "kind" to the matching action (reschedule a workout, hold money aside, close out the day, add a ritual, or generic). "tag" is the pillar label (Workout, Money, or Rituals); "colorToken" is the pillar (move, money, rituals). "approveLabel" is a short verb phrase for the button, two to four words; "doneLabel" is its past-tense confirmation. Keep "body" to one or two specific sentences grounded in the numbers above. An amount in "approveLabel" or "doneLabel" must be one the title or body states, written the same way.
 - "autopilot": up to 3 things you handle quietly in the background, each with an on/off "enabled".
 
-Calm and specific. No hype words ("amazing", "crushed it"). Never use markdown.
+Calm and specific. No hype words ("amazing", "crushed it"). ${PLAIN_TEXT}
 Return strictly this JSON shape; arrays may be empty but must be present: ${shape}
 No prose, no code fence. Output only the JSON object.`
 }
@@ -239,7 +289,7 @@ export function suggestionsPrompt(
   c: ChatContext | SuggestContext,
 ): string {
   const shape = `{"suggestions":[{"kind":"log_money"|"log_move"|"log_ritual"|"ask"|"routine_goal"|"generic","colorToken":"money"|"move"|"rituals"|"accent","label":string,"entry":{"type":"money"|"move"|"rituals","title":string,"amount":number|null,"category":string|null,"minutes":number|null}|null}]}`
-  const tail = `\nCalm and specific. No hype words, no emoji, never markdown. Return strictly this JSON shape; the array may be empty but must be present: ${shape}\nNo prose, no code fence. Output only the JSON object.`
+  const tail = `\nCalm and specific. No hype words, no emoji. ${PLAIN_TEXT} Return strictly this JSON shape; the array may be empty but must be present: ${shape}\nNo prose, no code fence. Output only the JSON object.`
 
   if (surface === 'routineGoal') {
     const sc = c as SuggestContext
@@ -254,13 +304,11 @@ Today is ${sc.dayOfWeek}. Vary muscle groups vs recent volume; keep each label u
   const cc = c as ChatContext
   const entries = cc.todayEntries.length ? cc.todayEntries.join('\n') : '(none yet)'
   const name = cc.userName || 'the user'
-  const numbers = `Daily budget $${cc.dailyBudget}, move goal ${cc.moveGoalKcal}kcal, ritual goal ${cc.ritualGoal}. So far today: $${cc.spentToday} spent, ${cc.movedTodayKcal}kcal moved, ${cc.ritualsDoneToday}/${cc.ritualGoal} rituals. Local hour ${cc.hourOfDay}, weekday ${cc.weekday} (1=Mon). ${cc.moveStreakDays}-day move streak.`
-
   // composer
   return `You are Pal in a money/movement/rituals app. Propose exactly 3 quick chips for ${name}: a mix of one-tap LOGS and short ASKS, grounded in time of day, what is not yet logged today, recent categories, and budget pace. Today's entries:
 ${entries}
-${numbers}
-For a LOG chip: set "kind" log_money / log_move / log_ritual matching entry.type, colorToken to the pillar, "label" the phrase the user would say (e.g. "Verve coffee, $5"), and a matching "entry" (money amount SIGNED, negative = expense, with a category from ${SPEND_CATEGORIES.join(', ')}; move with minutes; rituals title only). For an ASK chip: kind "ask", colorToken "accent", a short question label, entry null.${tail}`
+${dayFacts(cc)}
+For a LOG chip: set "kind" log_money / log_move / log_ritual matching entry.type, colorToken to the pillar, "label" the phrase the user would say, naming an item and amount in line with their own entries, and a matching "entry" (money amount SIGNED, negative = expense, with a category from ${SPEND_CATEGORIES.join(', ')}; move with minutes; rituals title only). For an ASK chip: kind "ask", colorToken "accent", a short question label, entry null.${tail}`
 }
 
 export interface ReceiptInput {
@@ -307,7 +355,7 @@ export function postWorkoutPrompt(c: PostWorkoutContext): string {
       : 'This is their first recorded session of this routine.'
   return `User just finished ${c.routineName}: ${c.setCount} sets, ${c.volumeKg}kg total, ${c.prCount} PRs on ${c.prExercises.join(', ') || 'none'}. ${last}
 
-Write 1-2 sentences observing the trend and recommending one concrete change next session (e.g. add 2.5kg, add a set, drop weight and focus on form). Warm, specific, no hype.`
+Write 1-2 sentences observing the trend and recommending one concrete change next session (more weight sized to this session, an added set, or a lighter load for form). Warm, specific, no hype. ${PLAIN_TEXT}`
 }
 
 export interface RoutineExercise {
@@ -333,6 +381,7 @@ Return strictly this JSON, no prose:
 {"name": string, "tag": "upper|lower|full|cardio|custom", "estMin": number, "rationale": "one short sentence", "exercises": [{"exerciseId": string, "sets": [{"reps": number|null, "weight": number|null, "duration": number|null}]}]}
 - exerciseId MUST be one of the ids listed above.
 - tag: pick the closest of upper, lower, full, cardio, custom.
+- name and rationale: ${PLAIN_TEXT}
 - Output only the JSON object.`
 }
 
@@ -340,18 +389,15 @@ Return strictly this JSON, no prose:
 // patterns are handed in as prior knowledge to REVISE, not to restate fresh, so
 // the model doesn't echo the same observations every refresh.
 export function memoryPatternsPrompt(c: InsightsContext, digest: MemoryDigest): string {
-  const entries = c.entries.length ? c.entries.join('\n') : '(none)'
   const prior = memoryBlock(digest) || '(nothing learned yet)'
   const shape = `{"patterns":[{"colorToken":"money"|"move"|"rituals","title":string,"detail":string}]}`
   return `You maintain a small set of durable patterns Pal has learned about this user.
 
 ${prior}
 
-Revise that set against the latest data below. Keep what still holds, drop what no longer does, add at most a few genuinely new ones. Return at most 5 patterns total. Ground every pattern in the data; do not invent numbers you cannot derive.
+Revise that set against the latest data below. Keep what still holds, drop what no longer does, add at most a few genuinely new ones. Return at most 5 patterns total. Ground every pattern in the data; do not invent numbers you cannot derive. ${PLAIN_TEXT}
 
 ${insightsData(c)}
-Entries:
-${entries}
 
 Return strictly this JSON shape; "patterns" must be present (use [] when nothing holds): ${shape}
 No prose, no code fence. Output only the JSON object.`

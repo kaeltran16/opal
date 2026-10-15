@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import {
   Pal, OpenRouterClient, OpenRouterError, extractJson, toolCallsToActions, toolCallsToMemoryOps, parseSchema, synthReply,
-  insightsSchema, nutritionEstimateSchema, memoryPatternsSchema,
+  insightsSchema, nutritionEstimateSchema, memoryPatternsSchema, plainText, moneyAmounts, labelsAgree,
   CHAT_TOOLS, type CompletionClient, type CompletionResult, type ToolCall, type ChatMessage,
 } from './pal.js'
 import { SPEND_CATEGORIES } from './product.js'
@@ -714,5 +714,121 @@ describe('Pal.suggestions', () => {
     const out = await pal.suggestions('composer', baseChatCtx() as never)
     expect(out.suggestions[0].icon).toBe('sparkles') // generic
     expect(out.suggestions[0].colorToken).toBe('accent')
+  })
+})
+
+describe('plainText', () => {
+  it('drops bold, italic, code and heading marks', () => {
+    expect(plainText('Tonight: **where did the money go?**')).toBe('Tonight: where did the money go?')
+    expect(plainText('__Held__ and *noted* and _kept_')).toBe('Held and noted and kept')
+    expect(plainText('Run `close_out` now')).toBe('Run close_out now')
+    expect(plainText('## Tonight\nOne prompt.')).toBe('Tonight\nOne prompt.')
+  })
+
+  it('leaves plain asterisks and underscores in words alone', () => {
+    expect(plainText('3 * 4 sets, snake_case_name')).toBe('3 * 4 sets, snake_case_name')
+    expect(plainText('$96.15 spent, over by $11.15.')).toBe('$96.15 spent, over by $11.15.')
+  })
+})
+
+describe('moneyAmounts', () => {
+  it('reads amounts written with the currency symbol', () => {
+    expect(moneyAmounts('Hold $40 of the $1,250.50')).toEqual([40, 1250.5])
+    expect(moneyAmounts('Cover 4 days')).toEqual([])
+  })
+
+  it('reads amounts in a trailing-symbol currency', () => {
+    const vnd = { symbol: '₫', symbolBefore: false, decimals: 0, group: '.', decimal: ',' }
+    expect(moneyAmounts('Giữ 150.000 ₫', vnd)).toEqual([150000])
+  })
+})
+
+describe('labelsAgree', () => {
+  const proposal = { title: 'Cover the $0.15 overage', body: 'You are 0.15 over today.', approveLabel: 'Hold $0.15', doneLabel: 'Held $0.15' }
+
+  it('accepts labels whose amounts the title or body state', () => {
+    expect(labelsAgree(proposal)).toBe(true)
+    expect(labelsAgree({ ...proposal, approveLabel: 'Hold it', doneLabel: 'Held' })).toBe(true)
+  })
+
+  it('rejects a button amount the proposal never states', () => {
+    expect(labelsAgree({ ...proposal, approveLabel: 'Hold $40' })).toBe(false)
+    expect(labelsAgree({ ...proposal, doneLabel: 'Held $40' })).toBe(false)
+  })
+
+  it('rejects a rounded amount: the button says what will happen', () => {
+    expect(labelsAgree({ title: 'Pause $11.15 of spend', body: 'Over by $11.15.', approveLabel: 'Hold $11', doneLabel: 'Held $11' })).toBe(false)
+  })
+})
+
+describe('Pal.agenda amount agreement', () => {
+  const ctx = {
+    userName: 'Kael', todayEntries: [], dailyBudget: 85, moveGoalKcal: 500, ritualGoal: 3,
+    spentToday: 85.15, movedTodayKcal: 0, ritualsDoneToday: 0,
+    weekSpent: 85.15, weekBudget: 595, weekMovedKcal: 0, weekRitualsDone: 0, weekRitualGoal: 21,
+    moveStreakDays: 0, hourOfDay: 20, weekday: 4,
+  }
+  const proposal = (approveLabel: string, title = 'Cover the $0.15 overage') => ({
+    kind: 'hold_funds', colorToken: 'money', tag: 'Money', title, body: 'Today is over by $0.15.', approveLabel, doneLabel: 'Held',
+  })
+  const draws = (...replies: unknown[]): CompletionClient => {
+    const queue = replies.map((r) => JSON.stringify(r))
+    return { complete: vi.fn(async () => queue.shift() ?? ''), completeWithTools: vi.fn() }
+  }
+
+  it('keeps a draw whose labels agree without a second call', async () => {
+    const client = draws({ proposals: [proposal('Hold $0.15')], autopilot: [] })
+    const res = await new Pal(client).agenda(ctx)
+    expect(res.proposals.map((p) => p.approveLabel)).toEqual(['Hold $0.15'])
+    expect(client.complete).toHaveBeenCalledTimes(1)
+  })
+
+  it('redraws once when a label names an amount its proposal does not state', async () => {
+    const client = draws(
+      { proposals: [proposal('Hold $40')], autopilot: [] },
+      { proposals: [proposal('Hold $0.15')], autopilot: [] },
+    )
+    const res = await new Pal(client).agenda(ctx)
+    expect(client.complete).toHaveBeenCalledTimes(2)
+    expect(res.proposals.map((p) => p.approveLabel)).toEqual(['Hold $0.15'])
+  })
+
+  it('drops a proposal still off after the redraw and keeps the rest', async () => {
+    const off = { proposals: [proposal('Hold $40'), proposal('Close out', 'Close out tonight')], autopilot: [] }
+    const client = draws(off, off)
+    const res = await new Pal(client).agenda(ctx)
+    expect(client.complete).toHaveBeenCalledTimes(2)
+    expect(res.proposals.map((p) => p.title)).toEqual(['Close out tonight'])
+    expect(res.proposals[0].id).toBe('hold_funds-0')
+  })
+})
+
+describe('Pal surfaces return plain text', () => {
+  it('chat strips markdown from the reply', async () => {
+    const pal = new Pal(fakeClient('Tonight: **what did today cost you?**'))
+    const res = await pal.chat([], 'reflection prompt', {
+      userName: 'Kael', todayEntries: [], dailyBudget: 85, moveGoalKcal: 500, ritualGoal: 3,
+      spentToday: 0, movedTodayKcal: 0, ritualsDoneToday: 0, weekSpent: 0, weekBudget: 595, weekMovedKcal: 0,
+      weekRitualsDone: 0, weekRitualGoal: 21, moveStreakDays: 0, hourOfDay: 20, weekday: 4,
+    })
+    expect(res.reply).toBe('Tonight: what did today cost you?')
+  })
+
+  it('review and the post-workout note strip markdown', async () => {
+    const pal = new Pal(fakeClient('A *quieter* week, **11 days** on the streak.'))
+    const review = await pal.review({ range: 'week', spent: 0, spentDeltaPct: null, kcalMoved: 0, movedDeltaPct: null, activeDays: 0, ritualsKept: 0, ritualsTarget: 0, ritualsPct: 0, streakDays: 11, topCategory: 'Food', topCategoryPct: 0 })
+    const note = await pal.postWorkoutNote({ routineName: 'Legs', setCount: 3, volumeKg: 900, prCount: 0, prExercises: [], lastSessionVolumeKg: null, daysAgoLastSession: null })
+    expect(review).toBe('A quieter week, 11 days on the streak.')
+    expect(note).toBe('A quieter week, 11 days on the streak.')
+  })
+
+  it('insights fields strip markdown', () => {
+    const parsed = insightsSchema.parse({
+      headline: '**Over by $11.15** today', lede: null, suggestion: '*Skip* the Lyft', correlationNarration: null,
+      wins: [{ colorToken: 'move', title: '**Streak**', sub: '11 days' }], patterns: [],
+    })
+    expect(parsed.headline).toBe('Over by $11.15 today')
+    expect(parsed.suggestion).toBe('Skip the Lyft')
+    expect(parsed.wins[0].title).toBe('Streak')
   })
 })

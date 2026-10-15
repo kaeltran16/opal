@@ -118,6 +118,29 @@ void main() {
     });
   });
 
+  group('senderDomain', () {
+    test('reduces a subdomain to the registrable domain, lowercased', () {
+      expect(senderDomain('info@mail.shopee.vn'), 'shopee.vn');
+      expect(senderDomain('No-Reply@Shopee.VN'), 'shopee.vn');
+    });
+
+    test('keeps the label before a two-part public suffix', () {
+      expect(senderDomain('info@card.vib.com.vn'), 'vib.com.vn');
+      expect(senderDomain('orders@shop.example.co.uk'), 'example.co.uk');
+    });
+
+    test('leaves a bare registrable domain unchanged', () {
+      expect(senderDomain('no-reply@grab.com'), 'grab.com');
+      expect(senderDomain('info@vib.com.vn'), 'vib.com.vn');
+    });
+
+    test('is null when the address has no domain', () {
+      expect(senderDomain(''), isNull);
+      expect(senderDomain('no-at-sign'), isNull);
+      expect(senderDomain('user@'), isNull);
+    });
+  });
+
   group('boundText', () {
     test('leaves short text unchanged', () {
       expect(boundText('abc', kMaxBodyChars), 'abc');

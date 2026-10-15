@@ -232,9 +232,14 @@ class NativeEmailSyncService implements EmailSyncService {
     List<Map<String, Object?>> batch,
   ) async {
     final json = await _post('/v1/email/extract', {'candidates': batch});
+    // the sender comes from the fetched email, never from the model's reply.
+    final domains = {
+      for (final c in batch)
+        c['id']! as String: senderDomain(c['from']! as String),
+    };
     return ((json['items'] as List?) ?? const [])
         .cast<Map<String, Object?>>()
-        .map(_itemFromJson)
+        .map((item) => _itemFromJson(item, domains[item['id']]))
         .toList();
   }
 
@@ -255,13 +260,18 @@ class NativeEmailSyncService implements EmailSyncService {
         appPassword: appPassword,
       );
 
-  EmailImportItem _itemFromJson(Map<String, Object?> json) => EmailImportItem(
+  EmailImportItem _itemFromJson(
+    Map<String, Object?> json,
+    String? senderDomain,
+  ) =>
+      EmailImportItem(
         id: json['id']! as String,
         merchant: json['merchant']! as String,
         amount: (json['amount']! as num).toDouble(),
         receivedAt: DateTime.parse(json['receivedAt']! as String),
         category: json['category'] as String?,
         orderRef: json['orderRef'] as String?,
+        senderDomain: senderDomain,
       );
 
   // Bearer-authed POST with one 401 retry (re-register), mirroring HttpPalService.

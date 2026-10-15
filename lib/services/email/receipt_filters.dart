@@ -118,6 +118,43 @@ List<T> filterBySender<T>(
   }).toList();
 }
 
+// two-label public suffixes this app's senders use, instead of the full Public
+// Suffix List. A sender under an unlisted one collapses to the bare suffix
+// (`com.br`), so add its suffix here when such a sender appears.
+const _twoLabelSuffixes = {
+  'com.vn',
+  'net.vn',
+  'org.vn',
+  'edu.vn',
+  'gov.vn',
+  'co.uk',
+  'com.au',
+  'co.jp',
+  'com.sg',
+  'com.my',
+  'co.id',
+  'co.th',
+};
+
+/// The registrable domain of a sender address, lowercased, so
+/// `info@mail.shopee.vn` and `no-reply@shopee.vn` give `shopee.vn` and
+/// `info@card.vib.com.vn` gives `vib.com.vn`. Null when [address] has no domain.
+String? senderDomain(String address) {
+  final at = address.lastIndexOf('@');
+  if (at < 0) return null;
+  final labels = address
+      .substring(at + 1)
+      .trim()
+      .toLowerCase()
+      .split('.')
+      .where((l) => l.isNotEmpty)
+      .toList();
+  if (labels.isEmpty) return null;
+  String last(int n) =>
+      labels.skip(labels.length < n ? 0 : labels.length - n).join('.');
+  return last(_twoLabelSuffixes.contains(last(2)) ? 3 : 2);
+}
+
 /// Truncates to [max] characters, or returns [value] unchanged when shorter.
 String boundText(String value, int max) =>
     value.length <= max ? value : value.substring(0, max);
