@@ -16,7 +16,7 @@ import 'package:opal/services/pal/mock_pal_service.dart';
 import 'package:opal/services/pal/pal_service.dart';
 import 'package:opal/util/dates.dart';
 
-import 'golden_harness.dart' show ignoreOverflowErrors;
+import 'golden_harness.dart' show NoHaptics, ignoreOverflowErrors;
 
 const receiptTitle = 'Verve Coffee';
 const receiptId = 'receipt-verve';
@@ -263,6 +263,7 @@ Future<void> bootToday(
         sharedPreferencesProvider.overrideWithValue(prefs),
         loopDatabaseProvider.overrideWithValue(db),
         palServiceProvider.overrideWithValue(pal ?? TodayPal(proposals: const [])),
+        hapticsServiceProvider.overrideWithValue(const NoHaptics()),
         ...overrides,
       ],
       child: const LoopApp(),

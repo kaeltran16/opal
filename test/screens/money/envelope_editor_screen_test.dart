@@ -16,6 +16,9 @@ import 'package:opal/screens/money/envelope_editor_screen.dart';
 import 'package:opal/theme/app_colors.dart';
 import 'package:opal/widgets/app_icon.dart';
 import 'package:opal/widgets/failure_note.dart';
+import 'package:opal/widgets/keypad.dart';
+
+import '../../support/failing_stream.dart';
 
 BudgetEnvelope _env(String id, String category, double cap, String icon, int position) =>
     BudgetEnvelope(
@@ -249,6 +252,29 @@ void main() {
       expect(find.byType(FailureNote), findsOneWidget);
     });
 
+    testWidgets('a key on a cap sheet clears the list note', (tester) async {
+      final fake = await _pump(tester);
+      fake.fail = true;
+      await _tap(tester, find.bySemanticsLabel(r'Use $100 for Coffee'));
+      await _tap(tester, find.bySemanticsLabel(r'Groceries, $500 a month. Edit cap'));
+      expect(find.byType(FailureNote), findsOneWidget);
+
+      await _tap(tester, find.descendant(of: find.byType(Keypad), matching: find.text('5')));
+      expect(find.byType(FailureNote), findsNothing);
+    });
+
+    testWidgets('naming a new envelope clears the list note', (tester) async {
+      final fake = await _pump(tester);
+      fake.fail = true;
+      await _tap(tester, find.bySemanticsLabel(r'Use $100 for Coffee'));
+      await _tap(tester, find.bySemanticsLabel('New envelope'));
+      expect(find.byType(FailureNote), findsOneWidget);
+
+      await tester.enterText(find.byType(TextField), 'Pets');
+      await tester.pumpAndSettle();
+      expect(find.byType(FailureNote), findsNothing);
+    });
+
     testWidgets('the section is left out when no row remains', (tester) async {
       await _pump(tester, recs: [_rec('Health', 150, 150, 120)]);
 
@@ -266,7 +292,7 @@ void main() {
     });
 
     testWidgets('a load error says so', (tester) async {
-      await _pump(tester, stream: Stream.error(StateError('no table')));
+      await _pump(tester, stream: failingStream(StateError('no table')));
 
       expect(find.text("Couldn't load your envelopes."), findsOneWidget);
     });
