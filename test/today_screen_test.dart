@@ -21,6 +21,9 @@ import 'support/today_fixture.dart';
 
 final _monday = Clock.fixed(DateTime(2026, 9, 28, 9, 30));
 
+/// Just past the close-out's slot, when it leads the clock.
+final _closeOutTime = Clock.fixed(DateTime(2026, 9, 28, 21, 40));
+
 const _tall = Size(390, 2400);
 const _phone = Size(390, 844);
 const _longTitle = 'Stretch the hips and shoulders before the long desk session';
@@ -194,11 +197,8 @@ void main() {
     expect(_onToday(find.text('Undo')), findsOneWidget);
   });
 
-  _todayTest('a timed lead reads its time', (tester) async {
+  _todayTest('a timed lead reads its time', at: _closeOutTime, (tester) async {
     await _boot(tester);
-
-    await _tap(tester, _more());
-    await _tap(tester, _row('Close-out', 'at 9:30 PM'));
 
     expect(_card('Close-out'), findsOneWidget);
     expect(_onToday(find.text('At 9:30 PM')), findsOneWidget);
@@ -235,45 +235,48 @@ void main() {
       expect(find.byType(PalComposerSheet), findsOneWidget);
     });
 
-    _todayTest('the close-out', (tester) async {
+    _todayTest('the close-out', at: _closeOutTime, (tester) async {
       await _boot(tester);
 
-      await _tap(tester, _more());
-      await _tap(tester, _row('Close-out', 'at 9:30 PM'));
+      expect(_card('Close-out'), findsOneWidget);
       await _tap(tester, find.text('Start'));
       expect(find.byType(EveningCloseOutScreen), findsOneWidget);
     });
   });
 
-  _todayTest('tapping a row makes it the lead and hides Why', (tester) async {
-    await _boot(tester, day: _bare, pal: TodayPal(proposals: [proposal('a', 'Rent auto-pays')]));
-    expect(_why(), findsOneWidget);
+  group('a row tap opens its flow and leaves the card as it was, for', () {
+    _todayTest('the mood check-in', (tester) async {
+      await _boot(tester, day: _bare, pal: TodayPal(proposals: [proposal('a', 'Rent auto-pays')]));
+      expect(_why(), findsOneWidget);
 
-    await _tap(tester, _row('Mood check-in', 'any time'));
+      await _tap(tester, _row('Mood check-in', 'any time'));
+      expect(find.byType(BottomSheet), findsOneWidget);
 
-    expect(_card('Mood check-in'), findsOneWidget);
-    expect(_row('Mood check-in', 'any time'), findsNothing);
-    expect(_row('Rent auto-pays', 'any time'), findsOneWidget);
-    expect(_why(), findsNothing);
-  });
+      Navigator.pop(tester.element(find.byType(BottomSheet)));
+      await tester.pumpAndSettle();
+      expect(_card('Rent auto-pays'), findsOneWidget);
+      expect(_row('Mood check-in', 'any time'), findsOneWidget);
+      expect(_why(), findsOneWidget);
+    });
 
-  _todayTest('a tapped row skipped returns the lead to Pal\'s pick; Undo brings it back',
-      (tester) async {
-    await _boot(tester,
-        day: _bare,
-        pal: TodayPal(headline: _headline, proposals: [proposal('a', 'Rent auto-pays')]));
+    _todayTest('the close-out', (tester) async {
+      await _boot(tester);
 
-    await _tap(tester, _row('Mood check-in', 'any time'));
-    expect(_onToday(find.text(_headline)), findsNothing);
-    await _tap(tester, find.text('Not today'));
+      await _tap(tester, _more());
+      await _tap(tester, _row('Close-out', 'at 9:30 PM'));
+      expect(find.byType(EveningCloseOutScreen), findsOneWidget);
+    });
 
-    expect(_card('Rent auto-pays'), findsOneWidget);
-    expect(_onToday(find.text(_headline)), findsOneWidget);
-    expect(_why(), findsOneWidget);
+    _todayTest('a proposal, which it approves in place', (tester) async {
+      await _boot(tester,
+          day: _bare,
+          pal: TodayPal(proposals: [proposal('a', 'Rent auto-pays'), proposal('b', 'Cap dinner')]));
 
-    await _tap(tester, _onToday(find.text('Undo')));
-    expect(_card('Mood check-in'), findsOneWidget);
-    expect(_why(), findsNothing);
+      await _tap(tester, _row('Cap dinner', 'any time'));
+      expect(_onToday(find.text('Cap dinner')), findsNothing);
+      expect(_card('Rent auto-pays'), findsOneWidget);
+      expect(_onToday(find.text('Undo')), findsOneWidget);
+    });
   });
 
   _todayTest('two open items besides the lead show both rows and no More button',

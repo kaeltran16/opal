@@ -8,30 +8,33 @@ part of 'plan_session_controller.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
-/// What the user did with today's plan this app session: Today's card and
-/// timeline, and You's Pal suggests, settle the same proposals here, so one
-/// approved or put off on either screen is gone from both.
+/// What the user did with today's plan: Today's card and timeline, and You's
+/// Pal suggests, settle the same proposals here, so one approved or put off
+/// on either screen is gone from both.
 ///
-/// Kept alive so it outlives either screen. Not persisted, as Today's own
-/// session never was.
+/// Kept alive so it outlives either screen. The settled map is saved for the
+/// day, so a relaunch keeps the day's put-offs; the undo history is not, as
+/// the toast that offers it is gone after a relaunch anyway.
 
 @ProviderFor(PlanSessionController)
 const planSessionControllerProvider = PlanSessionControllerProvider._();
 
-/// What the user did with today's plan this app session: Today's card and
-/// timeline, and You's Pal suggests, settle the same proposals here, so one
-/// approved or put off on either screen is gone from both.
+/// What the user did with today's plan: Today's card and timeline, and You's
+/// Pal suggests, settle the same proposals here, so one approved or put off
+/// on either screen is gone from both.
 ///
-/// Kept alive so it outlives either screen. Not persisted, as Today's own
-/// session never was.
+/// Kept alive so it outlives either screen. The settled map is saved for the
+/// day, so a relaunch keeps the day's put-offs; the undo history is not, as
+/// the toast that offers it is gone after a relaunch anyway.
 final class PlanSessionControllerProvider
     extends $NotifierProvider<PlanSessionController, PlanSession> {
-  /// What the user did with today's plan this app session: Today's card and
-  /// timeline, and You's Pal suggests, settle the same proposals here, so one
-  /// approved or put off on either screen is gone from both.
+  /// What the user did with today's plan: Today's card and timeline, and You's
+  /// Pal suggests, settle the same proposals here, so one approved or put off
+  /// on either screen is gone from both.
   ///
-  /// Kept alive so it outlives either screen. Not persisted, as Today's own
-  /// session never was.
+  /// Kept alive so it outlives either screen. The settled map is saved for the
+  /// day, so a relaunch keeps the day's put-offs; the undo history is not, as
+  /// the toast that offers it is gone after a relaunch anyway.
   const PlanSessionControllerProvider._()
     : super(
         from: null,
@@ -60,14 +63,15 @@ final class PlanSessionControllerProvider
 }
 
 String _$planSessionControllerHash() =>
-    r'e74e6aeb1cf325af04ac748fc048b4d2717ec04f';
+    r'c8b50488a50a22115f95e0356e123914b2426fa9';
 
-/// What the user did with today's plan this app session: Today's card and
-/// timeline, and You's Pal suggests, settle the same proposals here, so one
-/// approved or put off on either screen is gone from both.
+/// What the user did with today's plan: Today's card and timeline, and You's
+/// Pal suggests, settle the same proposals here, so one approved or put off
+/// on either screen is gone from both.
 ///
-/// Kept alive so it outlives either screen. Not persisted, as Today's own
-/// session never was.
+/// Kept alive so it outlives either screen. The settled map is saved for the
+/// day, so a relaunch keeps the day's put-offs; the undo history is not, as
+/// the toast that offers it is gone after a relaunch anyway.
 
 abstract class _$PlanSessionController extends $Notifier<PlanSession> {
   PlanSession build();

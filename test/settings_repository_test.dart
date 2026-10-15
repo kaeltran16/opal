@@ -109,4 +109,42 @@ void main() {
     final repo = SettingsRepository(await SharedPreferences.getInstance());
     expect(repo.dismissedFindings, isEmpty);
   });
+
+  group("today's plan", () {
+    final day = DateTime(2026, 10, 4, 23, 58);
+
+    test("round-trips the day's settled map", () async {
+      SharedPreferences.setMockInitialValues({});
+      final repo = SettingsRepository(await SharedPreferences.getInstance());
+      expect(repo.planSettled(day), isEmpty);
+
+      await repo.setPlanSettled(day, {'mood': true, 'proposal:rent': false});
+
+      final reloaded = SettingsRepository(await SharedPreferences.getInstance());
+      expect(reloaded.planSettled(DateTime(2026, 10, 4)),
+          {'mood': true, 'proposal:rent': false});
+    });
+
+    test('another day reads empty', () async {
+      SharedPreferences.setMockInitialValues({});
+      final repo = SettingsRepository(await SharedPreferences.getInstance());
+      await repo.setPlanSettled(day, {'mood': true});
+
+      expect(repo.planSettled(DateTime(2026, 10, 5, 0, 1)), isEmpty);
+      expect(repo.planSettled(DateTime(2026, 10, 3, 12)), isEmpty);
+    });
+
+    test('a value that does not parse reads empty', () async {
+      for (final corrupt in [
+        'not json',
+        '[]',
+        '{"day":"2026-10-04"}',
+        '{"day":"2026-10-04","settled":{"mood":"yes"}}',
+      ]) {
+        SharedPreferences.setMockInitialValues({'settings.today.planSettled': corrupt});
+        final repo = SettingsRepository(await SharedPreferences.getInstance());
+        expect(repo.planSettled(day), isEmpty, reason: corrupt);
+      }
+    });
+  });
 }

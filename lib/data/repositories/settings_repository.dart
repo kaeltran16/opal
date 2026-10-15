@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart' show Brightness, TimeOfDay;
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -51,6 +53,7 @@ class SettingsRepository {
   static const _kImportNotifications = 'settings.email.importNotifications';
   static const _kAutoCategorize = 'settings.email.autoCategorize';
   static const _kDismissedFindings = 'settings.pal.dismissedFindings';
+  static const _kPlanSettled = 'settings.today.planSettled';
 
   // --- Brightness ---------------------------------------------------------
 
@@ -181,4 +184,33 @@ class SettingsRepository {
   Future<void> addDismissedFindings(Iterable<String> ids) =>
       _prefs.setStringList(
           _kDismissedFindings, {...dismissedFindings, ...ids}.toList());
+
+  // --- Today's plan -------------------------------------------------------
+
+  /// What was done or put off on Today's plan on [day], by item id: true is
+  /// done, false is put off. Another day's map, or one that does not parse,
+  /// reads empty, so each day starts fresh.
+  Map<String, bool> planSettled(DateTime day) {
+    final raw = _prefs.getString(_kPlanSettled);
+    if (raw == null) return const {};
+    try {
+      final stored = jsonDecode(raw) as Map<String, dynamic>;
+      if (stored['day'] != _dayKey(day)) return const {};
+      final settled = stored['settled'] as Map<String, dynamic>;
+      return {for (final e in settled.entries) e.key: e.value as bool};
+    } on Object {
+      // a corrupt value only loses the day's put-offs; the plan still builds.
+      return const {};
+    }
+  }
+
+  Future<void> setPlanSettled(DateTime day, Map<String, bool> settled) =>
+      _prefs.setString(
+          _kPlanSettled, jsonEncode({'day': _dayKey(day), 'settled': settled}));
+
+  static String _dayKey(DateTime d) {
+    final m = d.month.toString().padLeft(2, '0');
+    final day = d.day.toString().padLeft(2, '0');
+    return '${d.year}-$m-$day';
+  }
 }

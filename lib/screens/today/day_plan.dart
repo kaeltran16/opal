@@ -29,6 +29,7 @@ class PlanItem {
     required this.icon,
     this.minuteOfDay,
     this.detail,
+    this.doneDetail,
     this.said,
     this.actionLabel = '',
     this.skipLabel = _notToday,
@@ -47,6 +48,9 @@ class PlanItem {
   /// When it is due, in minutes after midnight. Null when it has no time.
   final int? minuteOfDay;
   final String? detail;
+
+  /// What the item reads once done, when that is more than `Done`.
+  final String? doneDetail;
 
   /// Pal's sentence for the item, the lead when there is no brief.
   final String? said;
@@ -68,36 +72,67 @@ class PlanItem {
   }
 }
 
-/// What the user did with the plan this session. In [settled], true is done
-/// and false is skipped.
+/// One change made in place on the plan, named for the toast that undoes it.
+class PlanChange {
+  const PlanChange({required this.id, required this.label});
+
+  final String id, label;
+}
+
+/// What the toast says about the last change, and whether it offers Undo.
+class PlanNotice {
+  const PlanNotice({required this.label, required this.undoable});
+
+  final String label;
+  final bool undoable;
+}
+
+/// What the user did with the plan on [day]. In [settled], true is done and
+/// false is put off.
 class PlanSession {
   const PlanSession({
+    required this.day,
     this.settled = const {},
     this.history = const [],
-    this.selected,
+    this.notice,
   });
 
+  /// The start of the local day the session belongs to.
+  final DateTime day;
   final Map<String, bool> settled;
-  final List<String> history;
-  final String? selected;
+  final List<PlanChange> history;
 
-  PlanSession settle(String id, {required bool done}) => PlanSession(
+  /// A new instance per change, so the toast restarts.
+  final PlanNotice? notice;
+
+  PlanSession settle(String id, {required bool done, required String label}) =>
+      PlanSession(
+        day: day,
         settled: {...settled, id: done},
-        history: [...history, id],
+        history: [...history, PlanChange(id: id, label: label)],
+        notice: PlanNotice(label: label, undoable: true),
       );
 
+  /// Reverses the last change and clears the notice.
   PlanSession undo() {
     if (history.isEmpty) return this;
-    final last = history.last;
     return PlanSession(
-      settled: {...settled}..remove(last),
+      day: day,
+      settled: {...settled}..remove(history.last.id),
       history: history.sublist(0, history.length - 1),
-      selected: last,
     );
   }
 
-  PlanSession select(String id) =>
-      PlanSession(settled: settled, history: history, selected: id);
+  /// Reopens [id]. Its change leaves the history, so a later undo does not
+  /// reach past it, and the notice offers no Undo.
+  PlanSession bringBack(String id, {required String label}) => PlanSession(
+        day: day,
+        settled: {...settled}..remove(id),
+        history: [for (final c in history) if (c.id != id) c],
+        notice: PlanNotice(label: label, undoable: false),
+      );
+
+  PlanSession dismissNotice() => PlanSession(day: day, settled: settled, history: history);
 
   bool get canUndo => history.isNotEmpty;
 }
@@ -221,25 +256,9 @@ class DayPlan {
     DetailTracker.rituals: 'Routines',
   };
 
-  /// The lead Pal's order gives, whatever the user tapped.
-  PlanItem? palPick(PlanSession session, DateTime now,
+  PlanItem? current(PlanSession session, DateTime now,
           [LeadRules rules = const LeadRules()]) =>
       open(session, now, rules).firstOrNull;
-
-  PlanItem? current(PlanSession session, DateTime now,
-      [LeadRules rules = const LeadRules()]) {
-    final items = open(session, now, rules);
-    for (final i in items) {
-      if (i.id == session.selected) return i;
-    }
-    return items.firstOrNull;
-  }
-
-  bool isPalPick(PlanSession session, DateTime now,
-      [LeadRules rules = const LeadRules()]) {
-    final cur = current(session, now, rules);
-    return cur != null && cur == palPick(session, now, rules);
-  }
 
   /// The open items besides the lead, untimed first, then by time.
   List<PlanItem> later(PlanSession session, DateTime now,
@@ -285,6 +304,7 @@ PlanItem proposalItem(PalProposal p) => PlanItem(
       title: p.title,
       icon: p.icon,
       said: p.body,
+      doneDetail: p.doneLabel,
       actionLabel: p.approveLabel,
       skipLabel: _notNow,
       ref: p.id,

@@ -70,7 +70,7 @@ const Key todayCardKey = ValueKey('today.card');
 void actOnPlanItem(BuildContext context, WidgetRef ref, PlanItem item) {
   switch (item.kind) {
     case PlanKind.proposal:
-      ref.read(planSessionControllerProvider.notifier).settle(item.id, done: true);
+      ref.read(planSessionControllerProvider.notifier).approve(item);
     case PlanKind.routine:
       context.pushNamed(AppRoute.routinePlayer.name,
           pathParameters: {'routineId': item.ref!});
@@ -180,7 +180,6 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
       care: careAreas(today.glance, now),
     );
     final current = plan.current(session, now, rules);
-    final palsLead = online && plan.isPalPick(session, now, rules);
     final later = plan.later(session, now, rules);
     final hidden = _allLater ? 0 : math.max(0, later.length - _laterShown);
     final shown = hidden > 0 ? later.take(_laterShown) : later;
@@ -219,15 +218,15 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
                 ),
                 _Lead(
                   label: online ? _palOnline : _palOffline,
-                  text: _leadFor(current, palsLead ? headline : null),
-                  onWhy: palsLead && current != null
+                  text: _leadFor(current, online ? headline : null),
+                  onWhy: online && current != null
                       ? () => _askWhy(current, plan.whyNote(current, session, now, rules))
                       : null,
                 ),
                 _ActionCard(
                   item: current,
                   onAct: (item) => actOnPlanItem(context, ref, item),
-                  onSkip: (item) => _plan.settle(item.id, done: false),
+                  onSkip: _plan.putOff,
                 ),
                 if (later.isNotEmpty)
                   _Timeline(
@@ -235,7 +234,7 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
                       for (final item in shown)
                         _PlanRow(
                           item: item,
-                          onTap: () => _plan.select(item.id),
+                          onTap: () => actOnPlanItem(context, ref, item),
                         ),
                       if (hidden > 0)
                         _MoreRow(
@@ -498,7 +497,7 @@ class _Timeline extends StatelessWidget {
   }
 }
 
-/// One open item; a tap makes it the lead.
+/// One open item; a tap opens it as the card's pill does.
 class _PlanRow extends StatelessWidget {
   const _PlanRow({required this.item, required this.onTap});
 

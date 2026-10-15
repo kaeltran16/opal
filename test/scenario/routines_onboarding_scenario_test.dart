@@ -527,8 +527,8 @@ void main() {
     await bootToday(tester, dark: dark);
     final today = find.byType(TodayScreen);
     await _tap(tester, find.descendant(of: today, matching: find.textContaining('more later today')));
+    // the row opens the close-out, as the card's pill does.
     await _tap(tester, find.bySemanticsLabel('Close-out, at 9:30 PM. Do this next'));
-    await _tap(tester, find.descendant(of: today, matching: find.text('Start')));
 
     expect(find.byType(EveningCloseOutScreen), findsOneWidget);
     expect(find.text(_closeOutLead), findsOneWidget);

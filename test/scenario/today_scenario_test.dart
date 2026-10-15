@@ -160,18 +160,24 @@ void main() {
     final theme = _theme(dark);
     await bootToday(tester, dark: dark, pal: _pal());
 
+    // a row tap opens its flow; the card keeps its item.
     await _tap(tester, _later('Mood check-in', 'any time'));
+    expect(find.byType(BottomSheet), findsOneWidget);
+    await shot(tester, 'today_row_opens_$theme');
+    Navigator.pop(tester.element(find.byType(BottomSheet)));
+    await tester.pumpAndSettle();
     await _toTop(tester);
-    expect(_card('Mood check-in'), findsOneWidget);
-    expect(_onToday(find.text('Any time')), findsOneWidget);
-    expect(_whyButton(), findsNothing);
-    await shot(tester, 'today_row_selected_$theme');
-
-    await _tap(tester, find.text('Not today'));
     expect(_card(_rentTitle), findsOneWidget);
+    expect(_whyButton(), findsOneWidget);
+    expect(_undo(), findsNothing);
+
+    await _tap(tester, find.text('Not now'));
+    expect(_card(_rentTitle), findsNothing);
     expect(_undo(), findsOneWidget);
     await shot(tester, 'today_after_skip_$theme');
 
+    await _tap(tester, _undo());
+    expect(_card(_rentTitle), findsOneWidget);
     await _tap(tester, find.text('Hold \$40'));
     expect(find.text(_rentTitle), findsNothing);
     expect(_undo(), findsOneWidget);
@@ -186,11 +192,8 @@ void main() {
   scenarioTest('today mood logger', (tester, dark) async {
     await bootToday(tester, dark: dark, pal: _pal());
 
-    // the row tap only selects the check-in; its card pill opens the logger.
+    // the row tap opens the logger, as the card's pill does.
     await _tap(tester, _later('Mood check-in', 'any time'));
-    await _toTop(tester);
-    expect(_card('Mood check-in'), findsOneWidget);
-    await _tap(tester, _onToday(find.text('Check in')));
 
     final sheet = find.byType(BottomSheet);
     expect(find.descendant(of: sheet, matching: find.text('Check in')), findsOneWidget);
@@ -304,20 +307,6 @@ void main() {
     await shot(tester, 'today_more_expanded_${_theme(dark)}');
   });
 
-  scenarioTest('today undo restores tapped row', (tester, dark) async {
-    await bootToday(tester, dark: dark, day: _bare, pal: _pal());
-
-    await _tap(tester, _later('Mood check-in', 'any time'));
-    await _tap(tester, find.text('Not today'));
-    expect(_card(_rentTitle), findsOneWidget);
-    expect(_whyButton(), findsOneWidget);
-
-    await _tap(tester, _undo());
-    expect(_card('Mood check-in'), findsOneWidget);
-    expect(_whyButton(), findsNothing);
-    await shot(tester, 'today_undo_tapped_${_theme(dark)}');
-  });
-
   scenarioTest('today error', (tester, dark) async {
     await bootToday(tester, dark: dark, overrides: [
       todayStateProvider.overrideWith((ref) => Stream.error(StateError('no database'))),
@@ -341,7 +330,7 @@ void main() {
 
   // each primary pill, by the kind of item on the card.
   // the destination's finders, each expected once: the screen and its lead.
-  final actions = <String, (TodayDay, Future<void> Function(WidgetTester)?, String, List<Finder> Function())>{
+  final actions = <String, (TodayDay, Clock?, String, List<Finder> Function())>{
     'routine': (
       const TodayDay(),
       null,
@@ -368,11 +357,8 @@ void main() {
     ),
     'closeout': (
       const TodayDay(),
-      // the close-out sits behind More.
-      (tester) async {
-        await _tap(tester, _more());
-        await _tap(tester, _later('Close-out', 'at 9:30 PM'));
-      },
+      // at its slot, when the close-out leads.
+      _lateNight,
       'Start',
       () => [
         find.byType(EveningCloseOutScreen),
@@ -381,10 +367,9 @@ void main() {
       ],
     ),
   };
-  for (final MapEntry(key: kind, value: (day, select, pill, destination)) in actions.entries) {
-    scenarioTest('today action $kind', (tester, dark) async {
+  for (final MapEntry(key: kind, value: (day, at, pill, destination)) in actions.entries) {
+    scenarioTest('today action $kind', at: at, (tester, dark) async {
       await bootToday(tester, dark: dark, day: day);
-      if (select != null) await select(tester);
 
       // on the meal card the title reads the same as its pill; the pill is last.
       await _tap(tester, _onToday(find.text(pill)).last);

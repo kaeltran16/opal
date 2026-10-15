@@ -10,6 +10,7 @@ import 'package:opal/services/pal/pal_service.dart' show PalAgenda, PalProposal;
 // still ahead.
 final _now = DateTime(2026, 10, 4, 8, 30);
 final _yesterday = DateTime(2026, 10, 3, 14);
+final _day = DateTime(2026, 10, 4);
 
 const _proposal = PalProposal(
   id: 'rent',
@@ -124,7 +125,7 @@ DayPlan _plan({
 List<String> _ids(Iterable<PlanItem> items) => [for (final i in items) i.id];
 
 void main() {
-  const session = PlanSession();
+  final session = PlanSession(day: _day);
 
   /// An overdue routine, a proposal, a future routine, and the standing items.
   DayPlan full() => _plan(
@@ -159,7 +160,7 @@ void main() {
 
     test('a skipped item leaves open', () {
       final plan = full();
-      final skipped = session.settle('proposal:rent', done: false);
+      final skipped = session.settle('proposal:rent', done: false, label: '');
       expect(_ids(plan.open(skipped, _now)), isNot(contains('proposal:rent')));
     });
   });
@@ -172,18 +173,12 @@ void main() {
           ['proposal:rent', 'mood', 'meal', 'closeOut']);
     });
 
-    test('current follows select', () {
+    test('current is the first open item under the lead rules too', () {
       final plan = full();
-      final selected = session.select('closeOut');
-      expect(plan.current(selected, _now)!.id, 'closeOut');
-      expect(_ids(plan.later(selected, _now)),
-          ['proposal:rent', 'mood', 'meal', 'routine:morning']);
-    });
-
-    test('current falls back to the first open item when the selected one is settled', () {
-      final plan = full();
-      final settled = session.settle('mood', done: true).select('mood');
-      expect(plan.current(settled, _now)!.id, 'routine:morning');
+      const care = LeadRules(palOnline: true, care: [DetailTracker.rituals]);
+      expect(plan.current(session, _now, care), plan.open(session, _now, care).first);
+      final morningDone = session.settle('routine:morning', done: true, label: '');
+      expect(plan.current(morningDone, _now, care)!.id, 'closeOut');
     });
   });
 
@@ -290,10 +285,10 @@ void main() {
       );
       expect(plan.open(session, _now, rules).first.id, 'routine:morning');
 
-      final morningDone = session.settle('routine:morning', done: true);
+      final morningDone = session.settle('routine:morning', done: true, label: '');
       expect(plan.open(morningDone, _now, rules).first.id, 'closeOut');
 
-      final onlyOdd = morningDone.settle('closeOut', done: false);
+      final onlyOdd = morningDone.settle('closeOut', done: false, label: '');
       expect(plan.open(onlyOdd, _now, rules).first.id, 'routine:odd');
     });
 
@@ -319,10 +314,10 @@ void main() {
     test('a care item already settled falls through to the next rule', () {
       final rules =
           LeadRules(palOnline: true, care: [DetailTracker.money, DetailTracker.move]);
-      final rentDone = session.settle('proposal:rent', done: true);
+      final rentDone = session.settle('proposal:rent', done: true, label: '');
       expect(both().open(rentDone, _now, rules).first.id, 'workout');
 
-      final workoutSkipped = rentDone.settle('workout', done: false);
+      final workoutSkipped = rentDone.settle('workout', done: false, label: '');
       expect(both().open(workoutSkipped, _now, rules).first.id, 'proposal:legs');
     });
 
@@ -356,28 +351,6 @@ void main() {
         'closeOut',
       ]);
     });
-
-    test('palPick ignores the selection; isPalPick follows it', () {
-      final plan = both();
-      expect(plan.isPalPick(session, _now, online), isTrue);
-
-      final tapped = session.select('closeOut');
-      expect(plan.current(tapped, _now, online)!.id, 'closeOut');
-      expect(plan.palPick(tapped, _now, online)!.id, 'proposal:legs');
-      expect(plan.isPalPick(tapped, _now, online), isFalse);
-
-      final settled = tapped.settle('closeOut', done: false);
-      expect(plan.current(settled, _now, online)!.id, 'proposal:legs');
-      expect(plan.isPalPick(settled, _now, online), isTrue);
-    });
-
-    test('selecting the pick itself is still the pick; no lead is no pick', () {
-      final plan = _plan();
-      expect(plan.isPalPick(session.select('mood'), _now, online), isTrue);
-      final over = session.settle('mood', done: true).settle('meal', done: true);
-      expect(plan.palPick(over, _now, online), isNull);
-      expect(plan.isPalPick(over, _now, online), isFalse);
-    });
   });
 
   group('missed items', () {
@@ -402,7 +375,7 @@ void main() {
     test('Routines care leads with the close-out over a missed morning routine', () {
       final rules = LeadRules(care: [DetailTracker.rituals]);
       expect(plan.open(session, evening, rules).first.id, 'closeOut');
-      final closedOut = session.settle('closeOut', done: true);
+      final closedOut = session.settle('closeOut', done: true, label: '');
       expect(plan.open(closedOut, evening, rules).first.id, 'routine:morning');
     });
   });
@@ -415,7 +388,7 @@ void main() {
       final plan = _plan(
         rituals: _rituals([_routine('morning', '7:00 AM'), _routine('evening', '9:30 PM')]),
       );
-      final settled = session.settle('mood', done: true).settle('meal', done: true);
+      final settled = session.settle('mood', done: true, label: '').settle('meal', done: true, label: '');
       final lead = plan.current(settled, evening, online)!;
 
       final note = plan.whyNote(lead, settled, evening, online);
@@ -441,26 +414,58 @@ void main() {
   });
 
   group('PlanSession', () {
-    test('settle then undo restores the item and selects it', () {
+    test('settle names the change, offers Undo and keeps the day', () {
       final plan = full();
-      final settled = session.select('proposal:rent').settle('proposal:rent', done: true);
-      expect(settled.selected, isNull);
+      final settled = session.settle('proposal:rent', done: true, label: 'Held');
+      expect(settled.day, _day);
+      expect(settled.settled, {'proposal:rent': true});
       expect(settled.canUndo, isTrue);
+      expect(settled.history.single.id, 'proposal:rent');
+      expect(settled.history.single.label, 'Held');
+      expect(settled.notice!.label, 'Held');
+      expect(settled.notice!.undoable, isTrue);
       expect(_ids(plan.open(settled, _now)), isNot(contains('proposal:rent')));
-
-      final undone = settled.undo();
-      expect(undone.canUndo, isFalse);
-      expect(undone.settled, isEmpty);
-      expect(undone.selected, 'proposal:rent');
-      expect(plan.current(undone, _now)!.id, 'proposal:rent');
     });
 
-    test('undo reopens only the last settled item', () {
-      final settled = session.settle('mood', done: true).settle('meal', done: false);
+    test('each change is a new notice, so the toast restarts', () {
+      final first = session.settle('mood', done: false, label: 'Put off');
+      final again = first.undo().settle('mood', done: false, label: 'Put off');
+      expect(identical(first.notice, again.notice), isFalse);
+    });
+
+    test('undo reopens only the last change and clears the notice', () {
+      final plan = full();
+      final settled = session
+          .settle('mood', done: true, label: 'Mood')
+          .settle('meal', done: false, label: 'Meal');
       final undone = settled.undo();
       expect(undone.settled, {'mood': true});
-      expect(undone.history, ['mood']);
-      expect(undone.selected, 'meal');
+      expect(undone.history.map((c) => c.id), ['mood']);
+      expect(undone.notice, isNull);
+      expect(undone.day, _day);
+      // no tap-to-swap: the lead stays the clock's.
+      expect(plan.current(undone, _now)!.id, 'routine:morning');
+    });
+
+    test('bringBack reopens the item, drops its change and offers no Undo', () {
+      final settled = session
+          .settle('mood', done: true, label: 'Mood')
+          .settle('meal', done: false, label: 'Meal');
+      final back = settled.bringBack('meal', label: 'Log a meal is back on today');
+      expect(back.settled, {'mood': true});
+      expect(back.history.map((c) => c.id), ['mood']);
+      expect(back.notice!.label, 'Log a meal is back on today');
+      expect(back.notice!.undoable, isFalse);
+      // undo then reaches the change before it.
+      expect(back.undo().settled, isEmpty);
+    });
+
+    test('dismissNotice clears the notice and keeps the rest', () {
+      final settled = session.settle('mood', done: true, label: 'Mood');
+      final quiet = settled.dismissNotice();
+      expect(quiet.notice, isNull);
+      expect(quiet.settled, settled.settled);
+      expect(quiet.canUndo, isTrue);
     });
 
     test('undo with an empty history returns itself', () {
@@ -605,7 +610,7 @@ void main() {
       final plan = _plan();
       expect(_ids(plan.open(session, _now)), ['mood', 'meal']);
 
-      final settled = session.settle('mood', done: true).settle('meal', done: false);
+      final settled = session.settle('mood', done: true, label: '').settle('meal', done: false, label: '');
       expect(plan.open(settled, _now), isEmpty);
       expect(plan.current(settled, _now), isNull);
       expect(plan.later(settled, _now), isEmpty);
@@ -676,7 +681,7 @@ void main() {
     const agenda = PalAgenda(proposals: [_proposal, _closeOutProposal, _addRitualProposal]);
 
     test('lists every proposal, the ones Today folds or hides included', () {
-      final items = pendingProposals(agenda, const PlanSession());
+      final items = pendingProposals(agenda, PlanSession(day: _day));
 
       expect(items.map((i) => i.title),
           [_proposal.title, _closeOutProposal.title, _addRitualProposal.title]);
@@ -684,10 +689,14 @@ void main() {
           [PlanKind.proposal, PlanKind.closeOut, PlanKind.proposal]);
     });
 
+    test("a proposal's done detail is its done label", () {
+      expect(proposalItem(_proposal).doneDetail, _proposal.doneLabel);
+    });
+
     test('leaves out what the session approved or put off', () {
-      final session = const PlanSession()
-          .settle('proposal:${_proposal.id}', done: true)
-          .settle('proposal:${_addRitualProposal.id}', done: false);
+      final session = PlanSession(day: _day)
+          .settle('proposal:${_proposal.id}', done: true, label: '')
+          .settle('proposal:${_addRitualProposal.id}', done: false, label: '');
 
       expect(pendingProposals(agenda, session).map((i) => i.title),
           [_closeOutProposal.title]);

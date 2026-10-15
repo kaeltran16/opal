@@ -492,11 +492,12 @@ void main() {
     expect(_closeOutRows, findsOneWidget);
     expect(_onToday(find.text(proposal.title)), findsNothing);
     expect(_onToday(find.text('Evening wind-down')), findsNothing);
-    await _tap(tester, _closeOutRows);
-    expect(_card(_closeOutTitle), findsOneWidget);
-    expect(_onToday(find.text(proposal.body)), findsOneWidget);
     await _todayToTop(tester);
     await shot(tester, 'closeout_one_row_${_theme(dark)}');
+
+    // the one row opens the close-out, as the card's pill does.
+    await _tap(tester, _closeOutRows);
+    expect(find.byType(EveningCloseOutScreen), findsOneWidget);
   });
 
   // --- every pending proposal is reachable from You ---
