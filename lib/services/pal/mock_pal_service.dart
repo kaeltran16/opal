@@ -5,10 +5,9 @@ import '../../util/format.dart';
 import 'coffee_starter.dart';
 import 'pal_service.dart';
 
-// the agenda's money amounts in usd; [Currency.budgetScale] scales them.
-const double _rentHold = 40;
-const double _rentDue = 2400;
-const double _rentSpare = 4192;
+const int _fridayWeekday = 5;
+
+// the autopilot's money amounts in usd; [Currency.budgetScale] scales them.
 const double _coffeeNudgeCap = 15;
 const double _coffeeNudgeSpent = 23;
 
@@ -479,19 +478,8 @@ class MockPalService implements PalService {
           approveLabel: 'Reschedule',
           approveIcon: 'arrow.triangle.2.circlepath',
           doneLabel: 'Legs moved to Friday · plan updated',
-        ),
-        PalProposal(
-          id: 'hold-rent-40',
-          tag: 'Money',
-          colorToken: 'money',
-          icon: 'dollarsign.circle.fill',
-          title: 'Set aside ${money(_rentHold)} for rent',
-          body: 'Rent (${money(_rentDue)}) auto-pays Monday. Holding '
-              '${money(_rentHold)} today clears it with ${money(_rentSpare)} '
-              'to spare.',
-          approveLabel: 'Hold ${money(_rentHold)}',
-          approveIcon: 'checkmark',
-          doneLabel: 'Held ${money(_rentHold)} in your Rent envelope',
+          action: rescheduleWorkoutAction,
+          slot: (weekday: _fridayWeekday, routineId: 'seed-routine-legs'),
         ),
         const PalProposal(
           id: 'close-out-tonight',
@@ -518,6 +506,7 @@ class MockPalService implements PalService {
           approveIcon: 'plus',
           doneLabel: 'Added to your Evening rituals',
           action: addRitualAction,
+          ritual: (routineId: 'evening', step: 'Two-minute wind-down'),
         ),
       ],
       autopilot: [

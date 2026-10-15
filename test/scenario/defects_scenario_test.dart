@@ -506,14 +506,14 @@ void main() {
     await bootToday(tester, dark: dark, pal: pal);
     final agenda = await tester.runAsync(pal.agenda);
     final addRitual = agenda!.proposals.singleWhere((p) => p.addsRitual);
-    final rent = agenda.proposals.singleWhere((p) => p.id == 'hold-rent-40');
+    final legs = agenda.proposals.singleWhere((p) => p.reschedulesWorkout);
     final closeOut = agenda.proposals.singleWhere((p) => p.navigatesToCloseOut);
     await _showAllLater(tester);
 
     // beside the close-out row, today leaves the add-ritual proposal out.
     expect(_closeOutRows, findsOneWidget);
     expect(_onToday(find.text(addRitual.title)), findsNothing);
-    expect(_onToday(find.text(rent.title)), findsOneWidget);
+    expect(_onToday(find.text(legs.title)), findsOneWidget);
 
     await _toTab(tester, 'You');
     final approve = _onYou(find.bySemanticsLabel('${addRitual.approveLabel}: ${addRitual.title}'));
@@ -538,11 +538,11 @@ void main() {
     await shot(tester, 'you_pal_suggests_approved_${_theme(dark)}');
 
     // put off from You, it leaves today's timeline too.
-    await _tap(tester, _onYou(find.bySemanticsLabel('Not now: ${rent.title}')));
-    expect(_onYou(find.text(rent.title)), findsNothing);
+    await _tap(tester, _onYou(find.bySemanticsLabel('Not now: ${legs.title}')));
+    expect(_onYou(find.text(legs.title)), findsNothing);
     await _toTab(tester, 'Today');
     await _showAllLater(tester);
-    expect(_onToday(find.text(rent.title)), findsNothing);
+    expect(_onToday(find.text(legs.title)), findsNothing);
 
     // the close-out proposal opens the close-out, as today's row does.
     await _toTab(tester, 'You');

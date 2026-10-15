@@ -472,6 +472,9 @@ const String closeOutAction = 'close_out';
 /// The [PalProposal.action] of a proposal to add a ritual.
 const String addRitualAction = 'add_ritual';
 
+/// The [PalProposal.action] of a proposal to move a routine to another weekday.
+const String rescheduleWorkoutAction = 'reschedule_workout';
+
 /// A cross-pillar action Pal proposes on the Pal Home hub for the user to
 /// approve (the "Needs you" list). Presentation is data-driven: [colorToken]
 /// picks the pillar accent and [icon]/[approveIcon] are SF-symbol names rendered
@@ -490,6 +493,8 @@ class PalProposal {
     required this.approveIcon,
     required this.doneLabel,
     this.action,
+    this.ritual,
+    this.slot,
   });
 
   final String id;
@@ -503,8 +508,15 @@ class PalProposal {
   final String doneLabel;
   final String? action;
 
+  /// The step an [addRitualAction] adds, to the ritual routine [ritual.routineId].
+  final ({String routineId, String step})? ritual;
+
+  /// The weekday a [rescheduleWorkoutAction] gives [slot.routineId] (1=Mon..7=Sun).
+  final ({int weekday, String routineId})? slot;
+
   bool get navigatesToCloseOut => action == closeOutAction;
   bool get addsRitual => action == addRitualAction;
+  bool get reschedulesWorkout => action == rescheduleWorkoutAction;
 
   @override
   bool operator ==(Object other) =>
@@ -519,11 +531,13 @@ class PalProposal {
           other.approveLabel == approveLabel &&
           other.approveIcon == approveIcon &&
           other.doneLabel == doneLabel &&
-          other.action == action;
+          other.action == action &&
+          other.ritual == ritual &&
+          other.slot == slot;
 
   @override
   int get hashCode => Object.hash(id, tag, colorToken, icon, title, body,
-      approveLabel, approveIcon, doneLabel, action);
+      approveLabel, approveIcon, doneLabel, action, ritual, slot);
 }
 
 /// A background task Pal handles automatically, shown in the "On autopilot"

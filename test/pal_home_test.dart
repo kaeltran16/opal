@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart';
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -98,20 +99,20 @@ void main() {
     testWidgets('the primary pill settles a proposal; Undo brings it back',
         (tester) async {
       await _pumpApp(tester, location: '/today');
-      await select(tester, 'Set aside \$40 for rent');
+      await select(tester, 'Move Legs day to Friday');
       expect(undo(), findsNothing);
 
-      // the money action approves in place (no navigation).
-      await tester.tap(find.text('Hold \$40'));
+      // the reschedule approves in place (no navigation).
+      await tester.tap(find.text('Reschedule'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Hold \$40'), findsNothing);
-      expect(find.text('Set aside \$40 for rent'), findsNothing);
+      expect(find.text('Reschedule'), findsNothing);
+      expect(find.text('Move Legs day to Friday'), findsNothing);
 
       await tester.tap(undo());
       await tester.pumpAndSettle();
 
-      expect(find.text('Hold \$40'), findsOneWidget);
+      expect(find.text('Reschedule'), findsOneWidget);
 
       await flushProviderTimers(tester);
     });
@@ -129,23 +130,27 @@ void main() {
       await flushProviderTimers(tester);
     });
 
+    // pinned to the morning: late in the evening the close-out row leads the
+    // card itself, so there is no later row to select.
     testWidgets('the close-out proposal lends its sentence to the Close-out row',
         (tester) async {
-      await _pumpApp(tester, location: '/today');
-      await select(tester, 'Close-out');
+      await withClock(Clock.fixed(DateTime(2026, 10, 15, 9)), () async {
+        await _pumpApp(tester, location: '/today');
+        await select(tester, 'Close-out');
 
-      // no separate proposal row; Pal's body is the row's sentence.
-      expect(find.text('Close out tonight', skipOffstage: false), findsNothing);
-      expect(find.text('Start close-out', skipOffstage: false), findsNothing);
-      expect(find.textContaining('A 5-min wind-down'), findsOneWidget);
+        // no separate proposal row; Pal's body is the row's sentence.
+        expect(find.text('Close out tonight', skipOffstage: false), findsNothing);
+        expect(find.text('Start close-out', skipOffstage: false), findsNothing);
+        expect(find.textContaining('A 5-min wind-down'), findsOneWidget);
 
-      await tester.tap(find.text('Start'));
-      await tester.pumpAndSettle();
+        await tester.tap(find.text('Start'));
+        await tester.pumpAndSettle();
 
-      expect(find.byType(EveningCloseOutScreen), findsOneWidget);
-      expect(undo(), findsNothing);
+        expect(find.byType(EveningCloseOutScreen), findsOneWidget);
+        expect(undo(), findsNothing);
 
-      await flushProviderTimers(tester);
+        await flushProviderTimers(tester);
+      });
     });
   });
 }
