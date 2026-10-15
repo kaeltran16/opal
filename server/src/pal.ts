@@ -4,7 +4,7 @@ import {
   type ChatContext, type ReviewContext, type InsightsContext, type SuggestContext, type PostWorkoutContext, type RoutineExercise,
 } from './prompts.js'
 import { MAX_PATTERNS, type MemoryOp, type MemoryDigest, type MemoryPattern } from './memory.js'
-import { ENTRY_TYPES, DIMENSIONS, SPEND_CATEGORIES, spendCategory } from './product.js'
+import { ENTRY_TYPES, DIMENSIONS, SPEND_CATEGORIES, USD, spendCategory, type CurrencyDescriptor } from './product.js'
 
 const MAX_TOKENS = 1024
 // insights and routine JSON run long; a 1024 cut-off truncates the object.
@@ -159,6 +159,22 @@ export class OpenRouterClient implements CompletionClient {
   }
 }
 
+// DESIGN.md gives emphasis by size, never bold, and every Pal surface renders
+// the model's text as plain text. the prompts ask for plain text; this holds it
+// when the model slips: **bold**, *italic*, `code` and # headings lose their marks.
+export function plainText(s: string): string {
+  return s
+    .replace(/\*\*(.+?)\*\*/gs, '$1')
+    .replace(/__(.+?)__/gs, '$1')
+    .replace(/(^|[^\w*])\*(?=\S)([^*\n]*?\S)\*(?![\w*])/g, '$1$2')
+    .replace(/(^|[^\w])_(?=\S)([^_\n]*?\S)_(?!\w)/g, '$1$2')
+    .replace(/`([^`\n]+)`/g, '$1')
+    .replace(/^#{1,6}\s+/gm, '')
+}
+
+// a model-written string the app shows as Pal's words.
+const prose = z.string().transform(plainText)
+
 export const parseSchema = z.object({
   type: z.enum(ENTRY_TYPES),
   amount: z.number().nullable(),
@@ -180,7 +196,7 @@ export const nutritionEstimateSchema = z.object({
 })
 export type NutritionEstimate = z.infer<typeof nutritionEstimateSchema>
 
-export const suggestSchema = z.object({ routineId: z.string(), reason: z.string() })
+export const suggestSchema = z.object({ routineId: z.string(), reason: prose })
 export type Suggestion = z.infer<typeof suggestSchema>
 
 const colorToken = z.enum(DIMENSIONS)
@@ -191,20 +207,20 @@ const patternDetail = <T extends z.ZodTypeAny>(schema: T) =>
     return o && typeof o === 'object' && o.detail === undefined && typeof o.sub === 'string' ? { ...o, detail: o.sub } : p
   }, schema)
 export const insightsSchema = z.object({
-  headline: z.string().nullable(),
-  lede: z.string().nullable(),
-  suggestion: z.string().nullable(),
-  correlationNarration: z.string().nullable().optional(),
-  wins: z.array(z.object({ colorToken, title: z.string(), sub: z.string() })).default([]),
-  patterns: z.array(patternDetail(z.object({ colorToken, title: z.string(), detail: z.string() }))).default([]),
+  headline: prose.nullable(),
+  lede: prose.nullable(),
+  suggestion: prose.nullable(),
+  correlationNarration: prose.nullable().optional(),
+  wins: z.array(z.object({ colorToken, title: prose, sub: prose })).default([]),
+  patterns: z.array(patternDetail(z.object({ colorToken, title: prose, detail: prose }))).default([]),
 })
 export type Insights = z.infer<typeof insightsSchema>
 
 export const memoryPatternsSchema = z.object({
   patterns: z.array(patternDetail(z.object({
     colorToken: z.enum(DIMENSIONS).catch('money'),
-    title: z.string(),
-    detail: z.string(),
+    title: prose,
+    detail: prose,
   }))).default([]),
 })
 
@@ -234,20 +250,40 @@ export const agendaModelSchema = z.object({
   proposals: z.array(z.object({
     kind: z.enum(agendaProposalKinds).catch('generic'),
     colorToken,
-    tag: z.string(),
-    title: z.string(),
-    body: z.string(),
-    approveLabel: z.string(),
-    doneLabel: z.string(),
+    tag: prose,
+    title: prose,
+    body: prose,
+    approveLabel: prose,
+    doneLabel: prose,
   })).default([]),
   autopilot: z.array(z.object({
     kind: z.enum(agendaAutopilotKinds).catch('generic'),
     colorToken: z.enum(['money', 'move', 'rituals', 'accent']).catch('accent'),
-    title: z.string(),
-    subtitle: z.string(),
+    title: prose,
+    subtitle: prose,
     enabled: z.boolean(),
   })).default([]),
 })
+type AgendaProposal = z.infer<typeof agendaModelSchema>['proposals'][number]
+
+const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+
+// the amounts written in the user's currency in `text`, as numbers. `bare`
+// also counts numbers written without the symbol.
+export function moneyAmounts(text: string, c: CurrencyDescriptor = USD, bare = false): number[] {
+  const num = `\\d[\\d${escapeRe(c.group)}]*(?:${escapeRe(c.decimal)}\\d+)?`
+  const sym = escapeRe(c.symbol)
+  const pattern = bare ? `(${num})` : c.symbolBefore ? `${sym}\\s?(${num})` : `(${num})\\s?${sym}`
+  return [...text.matchAll(new RegExp(pattern, 'g'))].map((m) =>
+    Number(m[1].split(c.group).join('').replace(c.decimal, '.')))
+}
+
+// a button names only amounts its proposal states: the agenda prompt's old
+// example anchored "Hold $40" under a $0.15 overage.
+export function labelsAgree(p: Pick<AgendaProposal, 'title' | 'body' | 'approveLabel' | 'doneLabel'>, c?: CurrencyDescriptor): boolean {
+  const stated = new Set(moneyAmounts(`${p.title} ${p.body}`, c, true))
+  return [p.approveLabel, p.doneLabel].every((label) => moneyAmounts(label, c).every((n) => stated.has(n)))
+}
 
 // The wire shape the client decodes (icons/action resolved, streak echoed).
 export interface AgendaResult {
@@ -283,7 +319,7 @@ export const suggestionsModelSchema = z.object({
     kind: z.enum(suggestionKinds).catch('generic'),
     // chips include an 'accent' pillar (ask chips); off-list values coerce.
     colorToken: z.enum(['money', 'move', 'rituals', 'accent']).catch('accent'),
-    label: z.string(),
+    label: prose,
     entry: suggestionEntry,
   })).default([]),
 })
@@ -308,7 +344,7 @@ export const routineSchema = z.object({
   name: z.string(),
   tag: z.enum(['upper', 'lower', 'full', 'cardio', 'custom']).catch('custom'),
   estMin: z.number().nullable().optional(),
-  rationale: z.string().nullable().optional(),
+  rationale: prose.nullable().optional(),
   exercises: z.array(z.object({ exerciseId: z.string(), sets: z.array(routineSetSchema) })),
 })
 export type GeneratedRoutine = z.infer<typeof routineSchema>
@@ -518,12 +554,12 @@ export class Pal {
     const res = await this.client.completeWithTools(messages, CHAT_TOOLS)
     const actions = toolCallsToActions(res.toolCalls)
     const memoryOps = toolCallsToMemoryOps(res.toolCalls)
-    const reply = res.content || synthReply(actions)
+    const reply = plainText(res.content) || synthReply(actions)
     return { reply, actions, memoryOps }
   }
 
   async review(ctx: ReviewContext, memory?: MemoryDigest): Promise<string> {
-    return this.client.complete([{ role: 'user', content: reviewPrompt(ctx, memory) }])
+    return plainText(await this.client.complete([{ role: 'user', content: reviewPrompt(ctx, memory) }]))
   }
 
   async insights(ctx: InsightsContext, memory?: MemoryDigest): Promise<Insights> {
@@ -536,7 +572,7 @@ export class Pal {
   }
 
   async postWorkoutNote(ctx: PostWorkoutContext): Promise<string> {
-    return this.client.complete([{ role: 'user', content: postWorkoutPrompt(ctx) }])
+    return plainText(await this.client.complete([{ role: 'user', content: postWorkoutPrompt(ctx) }]))
   }
 
   async parse(text: string): Promise<ParsedEntry> {
@@ -553,9 +589,14 @@ export class Pal {
   }
 
   async agenda(ctx: ChatContext, memory?: MemoryDigest): Promise<AgendaResult> {
-    const parsed = await this.completeJson(agendaPrompt(ctx, memory), { maxTokens: INSIGHTS_MAX_TOKENS, temperature: 0 }, (j) => agendaModelSchema.parse(j))
+    const draw = () => this.completeJson(agendaPrompt(ctx, memory), { maxTokens: INSIGHTS_MAX_TOKENS, temperature: 0 }, (j) => agendaModelSchema.parse(j))
+    const agrees = (p: AgendaProposal) => labelsAgree(p, ctx.currency)
+    let parsed = await draw()
+    // a label naming an amount its proposal never states is redrawn once; a
+    // proposal still off after that is dropped rather than shown.
+    if (!parsed.proposals.every(agrees)) parsed = await draw()
     return {
-      proposals: parsed.proposals.map((p, i) => {
+      proposals: parsed.proposals.filter(agrees).map((p, i) => {
         const pres = PROPOSAL_PRESENTATION[p.kind]
         return {
           id: `${p.kind}-${i}`,
