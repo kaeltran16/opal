@@ -113,6 +113,32 @@ void _timedSetsMigration() {
     expect(bench.pr, const ExercisePR(weightKg: 92.5, reps: 5));
   });
 
+  test('a database already at v11 upgrades and keeps its slot minutes',
+      () async {
+    // main shipped v11 with target_duration_min alone; v12 must still run on it
+    final db = LoopDatabase.forTesting(NativeDatabase.memory(setup: (raw) {
+      _v10Schema(raw);
+      raw.execute(
+          'ALTER TABLE routine_exercises ADD COLUMN target_duration_min INTEGER NULL');
+      raw.execute("INSERT INTO routine_exercises "
+          "(id, routine_id, exercise_id, position, target_sets, target_duration_min) "
+          "VALUES ('slot1', 'r1', 'plank', 0, 2, 3)");
+      raw.execute('PRAGMA user_version = 11');
+    }));
+    addTearDown(db.close);
+
+    final plank = await RoutineRepository(db).getExerciseById('plank');
+    expect(plank!.timed, isTrue);
+    expect(plank.pr, isNull);
+    final row = await db
+        .customSelect('SELECT target_duration_min, target_km FROM routine_exercises')
+        .getSingle();
+    expect(row.read<int?>('target_duration_min'), 3);
+    expect(row.read<double?>('target_km'), isNull);
+    final w = await WorkoutRepository(db).getById('w1');
+    expect(w!.sets.every((s) => s.minutes == null), isTrue);
+  });
+
   test('keeps old logged sets as weight × reps', () async {
     final db = LoopDatabase.forTesting(NativeDatabase.memory(setup: _v10Schema));
     addTearDown(db.close);
