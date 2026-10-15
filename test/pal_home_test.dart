@@ -8,7 +8,8 @@ import 'package:opal/data/db/database.dart';
 import 'package:opal/data/seed/seeder.dart';
 import 'package:opal/router.dart';
 import 'package:opal/screens/reflect/evening_close_out_screen.dart';
-import 'package:opal/screens/today/today_screen.dart' show TodayScreen, todayCardKey;
+import 'package:opal/screens/shell/plan_undo_toast.dart' show planUndoToastKey;
+import 'package:opal/screens/today/today_screen.dart' show todayCardKey;
 import 'package:opal/services/pal/mock_pal_service.dart';
 import 'package:opal/services/pal/pal_service.dart';
 import 'package:opal/theme/app_colors.dart';
@@ -80,25 +81,14 @@ void main() {
   // the hub's Needs you cards moved to Today's action card; a proposal is
   // approved from its row or its card, and put off from the card.
   group('Needs you on Today', () {
-    // the header's Undo; the shell's toast offers one too, outside Today.
-    Finder undo() =>
-        find.descendant(of: find.byType(TodayScreen), matching: find.bySemanticsLabel('Undo'));
+    // the shell's toast holds the only Undo.
+    Finder undo() => find.descendant(
+        of: find.byKey(planUndoToastKey), matching: find.bySemanticsLabel('Undo'));
     Finder card(String title) =>
         find.descendant(of: find.byKey(todayCardKey), matching: find.text(title));
 
-    // these run on the wall clock, so which item starts on the card varies,
-    // and the row may sit behind the More button.
-    Future<void> showAllLater(WidgetTester tester) async {
-      final more = find.textContaining('more later today');
-      if (more.evaluate().isEmpty) return;
-      await tester.tap(more);
-      await tester.pumpAndSettle();
-    }
-
-    Finder row(String title) => find.bySemanticsLabel(
-        RegExp('^${RegExp.escape(title)}, (any time|at .+)[.] Do this next\$'));
-
-    /// Puts off whatever leads until [title] is on the card.
+    /// Puts off whatever leads until [title] is on the card. These run on the
+    /// wall clock, so which item starts on the card varies.
     Future<void> toCard(WidgetTester tester, String title) async {
       final skip = find.descendant(
           of: find.byKey(todayCardKey), matching: find.textContaining(RegExp(r'^Not (now|today)$')));
@@ -113,24 +103,25 @@ void main() {
         (tester) async {
       await _pumpApp(tester, location: '/today');
       const rent = 'Set aside \$40 for rent';
+      const open = 'Hold \$40: $rent, Pal suggests';
       expect(undo(), findsNothing);
 
       // the money action approves in place (no navigation).
       if (card(rent).evaluate().isNotEmpty) {
         await tester.tap(find.text('Hold \$40'));
       } else {
-        await showAllLater(tester);
-        await tester.tap(row(rent));
+        await tester.tap(find.bySemanticsLabel(open));
       }
       await tester.pumpAndSettle();
 
       expect(find.text('Hold \$40'), findsNothing);
-      expect(find.text(rent), findsNothing);
+      expect(card(rent), findsNothing);
+      expect(find.bySemanticsLabel('$rent, Held \$40 in your Rent envelope'), findsOneWidget);
 
       await tester.tap(undo());
       await tester.pumpAndSettle();
 
-      expect(find.text(rent), findsOneWidget);
+      expect(find.bySemanticsLabel(open), findsOneWidget);
 
       await flushProviderTimers(tester);
     });
@@ -143,15 +134,17 @@ void main() {
       await tester.tap(find.text('Not now'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Move Legs day to Friday'), findsNothing);
+      expect(card('Move Legs day to Friday'), findsNothing);
+      expect(find.bySemanticsLabel('Bring back: Move Legs day to Friday, Put off until tomorrow'),
+          findsOneWidget);
 
       await flushProviderTimers(tester);
     });
 
     testWidgets('the close-out proposal lends its sentence to the Close-out row',
         (tester) async {
-      // a blank brief, so the lead is the close-out's own sentence.
-      await _pumpApp(tester, location: '/today', pal: TodayPal(headline: ''));
+      // no lines, so the lead is the close-out's own sentence.
+      await _pumpApp(tester, location: '/today', pal: TodayPal());
       await toCard(tester, 'Close-out');
 
       // no separate proposal row; Pal's body is the row's sentence.

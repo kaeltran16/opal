@@ -25,14 +25,13 @@ const mealTitle = 'Oats & banana';
 const workoutRoutineId = 'seed-routine-push-a';
 const legacyRitualId = 'legacy-step';
 
-/// A Pal whose day headline and proposals the test picks. [offline] makes
-/// both the brief and the agenda throw; a test can flip it after boot and
-/// refresh to fail a fetch that succeeded before.
+/// A Pal whose proposals and lines the test picks. [offline] makes insights
+/// and the agenda throw; a test can flip it after boot and refresh to fail a
+/// fetch that succeeded before.
 class TodayPal extends MockPalService {
-  TodayPal({this.headline, this.proposals, this.linesByTitle, this.offline = false})
+  TodayPal({this.proposals, this.linesByTitle, this.offline = false})
       : super(latency: Duration.zero, seed: 0);
 
-  final String? headline;
   final List<PalProposal>? proposals;
 
   /// A line for each received fact whose title has an entry.
@@ -41,15 +40,14 @@ class TodayPal extends MockPalService {
   /// Each agenda call's plan, in call order.
   final List<List<PlanFact>> plans = [];
   bool offline;
+
+  /// How often the day's summary was asked for; Today never asks.
   int insightsCalls = 0;
 
   @override
   Future<PalInsights> insights(InsightRange range) async {
     if (range == InsightRange.day) insightsCalls++;
     if (offline) throw Exception('offline');
-    if (range == InsightRange.day && headline != null) {
-      return PalInsights(headline: headline);
-    }
     return super.insights(range);
   }
 

@@ -243,10 +243,13 @@ Oura's faces are licensed and are not bundled. Substitutes:
 **Lead** (the one big thing).
 - Pal's line in `lead`, at most three lines, followed by one card holding the next action. A
   longer line is never cut: it drops to `body` in `ink` and shows in full (`PalLeadText`).
-- The action card: icon, `label` line for when, `title` for what, one primary pill and at most
-  one secondary pill.
-- Pal picks the lead and orders the day. Offline, the order falls back to the clock, and the
-  label says so.
+- The code picks the lead; Pal words one line about that item and never picks or adds numbers.
+  When Pal is offline, or has no line for the item as it stands now, the line is the item's own
+  sentence. `Why this first` shows whenever Pal is online and there is a lead.
+- The action card: a 40px `surface2` icon disc, the `label` when line in `ink3`, the `title`
+  for what, one primary pill and one text button. With nothing left it reads `All done` /
+  `That's the day` with a check and no buttons.
+- Offline, the order falls back to the clock, and the label says so.
 - **Needs care rule.** Anything in Needs care leads Today, ahead of Pal's order, online or
   offline. This is a fixed rule in code, not a model call.
 
@@ -260,7 +263,13 @@ Oura's faces are licensed and are not bundled. Substitutes:
 on `track`; `care` only when that contributor needs attention.
 
 **Timeline.** A 1px `hair` rail with time in `caption` at left, a 28px icon disc on the rail,
-title in `callout`, detail right-aligned in `subhead` `ink3`. Done items drop to `ink3`.
+title in `callout` on one line, detail under the title in `caption` `ink3`. Done items are
+ticked and drop to `ink3`; put-off items drop to `ink3`. A tappable row carries a small `ink3`
+chevron at right; an inert row has none and is not a button.
+
+**Toast.** A `surface2` pill with a `hair` border, just above the composer. It names the change
+made in place (`Put off until tomorrow: Morning`), offers `Undo` when the change can be undone,
+and leaves after 6 seconds. It never names a flow that a tap opened.
 
 **Explore chart.** D / W / M / Y segmented control (pill, `surface2`), one series per chart
 unless comparing areas, usual-range band behind the series, a scrubber that reads out the

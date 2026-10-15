@@ -205,7 +205,8 @@ Finder _onToday(Finder matching) => _within(TodayScreen, matching);
 Finder _card(String title) =>
     find.descendant(of: find.byKey(todayCardKey), matching: find.text(title));
 
-Finder get _closeOutRows => find.bySemanticsLabel(RegExp('^$_closeOutTitle, '));
+/// The close-out's row, open or done.
+Finder get _closeOutRows => find.bySemanticsLabel(RegExp('^([^:]+: )?$_closeOutTitle, '));
 
 Future<void> _settle(WidgetTester tester, Finder finder) async {
   await tester.ensureVisible(finder);
@@ -230,12 +231,6 @@ Future<void> _go(WidgetTester tester, String location) async {
 Future<void> _push(WidgetTester tester, String location) async {
   unawaited(appRouter(tester).push(location));
   await tester.pumpAndSettle();
-}
-
-/// Opens every later row Today folds behind `N more later today`.
-Future<void> _showAllLater(WidgetTester tester) async {
-  final more = _onToday(find.textContaining('more later today'));
-  if (more.evaluate().isNotEmpty) await _tap(tester, more);
 }
 
 /// Scrolls Today back to its top, so a shot frames the lead.
@@ -303,14 +298,15 @@ void main() {
 
   scenarioTest('empty_routine_today', (tester, dark) async {
     await bootToday(tester, dark: dark, day: _fullAndEmpty);
-    await _showAllLater(tester);
 
     final today = _container(tester).read(todayStateProvider).requireValue;
     expect(today.ritualsTarget, 1);
     expect(today.ritualsDone, 1);
     expect(_onToday(find.text(_stretch.name)), findsNothing);
-    expect(find.bySemanticsLabel(RegExp('^${_stretch.name}, ')), findsNothing);
-    expect(find.bySemanticsLabel(RegExp(r'^Morning, ')), findsNothing);
+    expect(find.bySemanticsLabel(RegExp('${_stretch.name}, ')), findsNothing);
+    // the full routine is done, so it reads done and is not on the card.
+    expect(find.bySemanticsLabel('Morning, Done'), findsOneWidget);
+    expect(_card('Morning'), findsNothing);
     await _todayToTop(tester);
     await shot(tester, 'empty_routine_today_${_theme(dark)}');
   });
@@ -467,15 +463,14 @@ void main() {
         firstRoutineDone: true,
       ),
     );
-    await _showAllLater(tester);
 
     final rituals = _container(tester).read(ritualsControllerProvider).requireValue;
     expect(rituals.isComplete(rituals.evening!), isTrue);
-    // done items leave the open list, so the close-out shows nowhere on today.
-    expect(_closeOutRows, findsNothing);
+    // a done close-out stays listed, read as done, and is off the card.
+    expect(find.bySemanticsLabel('$_closeOutTitle, Done'), findsOneWidget);
     expect(_card(_closeOutTitle), findsNothing);
     expect(_onToday(find.text('Evening wind-down')), findsNothing);
-    expect(find.bySemanticsLabel(RegExp(r'^Midday reset, at 1:00 PM\. ')), findsOneWidget);
+    expect(find.bySemanticsLabel(RegExp(r'^Start: Midday reset, ')), findsOneWidget);
     await _todayToTop(tester);
     await shot(tester, 'closeout_done_today_${_theme(dark)}');
   });
@@ -487,7 +482,6 @@ void main() {
     // the mock's agenda completes only on a real async turn.
     final agenda = await tester.runAsync(pal.agenda);
     final proposal = agenda!.proposals.singleWhere((p) => p.id == 'close-out-tonight');
-    await _showAllLater(tester);
 
     expect(_closeOutRows, findsOneWidget);
     expect(_onToday(find.text(proposal.title)), findsNothing);
@@ -509,7 +503,6 @@ void main() {
     final addRitual = agenda!.proposals.singleWhere((p) => p.addsRitual);
     final rent = agenda.proposals.singleWhere((p) => p.id == 'hold-rent-40');
     final closeOut = agenda.proposals.singleWhere((p) => p.navigatesToCloseOut);
-    await _showAllLater(tester);
 
     // beside the close-out row, today leaves the add-ritual proposal out.
     expect(_closeOutRows, findsOneWidget);
@@ -538,12 +531,12 @@ void main() {
     await tester.pumpAndSettle();
     await shot(tester, 'you_pal_suggests_approved_${_theme(dark)}');
 
-    // put off from You, it leaves today's timeline too.
+    // put off from You, it reads put off on today too.
     await _tap(tester, _onYou(find.bySemanticsLabel('Not now: ${rent.title}')));
     expect(_onYou(find.text(rent.title)), findsNothing);
     await _toTab(tester, 'Today');
-    await _showAllLater(tester);
-    expect(_onToday(find.text(rent.title)), findsNothing);
+    expect(find.bySemanticsLabel('Bring back: ${rent.title}, Put off until tomorrow'),
+        findsOneWidget);
 
     // the close-out proposal opens the close-out, as today's row does.
     await _toTab(tester, 'You');
