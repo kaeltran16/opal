@@ -7,39 +7,13 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../models/models.dart';
 import '../services/services.dart' show ReviewRange;
 import '../util/dates.dart';
-import '../util/format.dart';
 import 'providers.dart';
 import 'today_controller.dart' show goalsStreamProvider;
 
 part 'weekly_review_controller.g.dart';
 
-/// One tinted stat tile in the Weekly Review three-ring summary (handoff screen
-/// 17): a label, a big value, the `of <target>` sub line, and a type accent.
-@immutable
-class WeekStat {
-  const WeekStat({
-    required this.label,
-    required this.value,
-    required this.sub,
-    required this.colorToken,
-  });
-
-  /// Tile title, e.g. "Spent".
-  final String label;
-
-  /// Big formatted value, e.g. "\$435" or "296".
-  final String value;
-
-  /// Sub line under the value, e.g. "of \$595".
-  final String sub;
-
-  /// Area token the win belongs to ('money'|'move'|'rituals').
-  final String colorToken;
-}
-
-/// The fully-computed week summary for the current week (Mon–Sun): the three
-/// stat tiles plus the date eyebrows. All math lives here so the screen stays
-/// dumb and this is unit-testable.
+/// The fully-computed week summary for the current week (Mon–Sun): the spend,
+/// move and rituals totals against their targets, plus the date eyebrows.
 @immutable
 class WeeklyStats {
   const WeeklyStats({
@@ -50,7 +24,6 @@ class WeeklyStats {
     required this.moveTarget,
     required this.ritualsKept,
     required this.ritualsTarget,
-    required this.hasRoutines,
   });
 
   /// Monday 00:00 of the week these stats cover.
@@ -74,9 +47,6 @@ class WeeklyStats {
   /// Weekly rituals target = effective daily target * 7.
   final int ritualsTarget;
 
-  /// Whether any routine exists, so a target of 0 can say why.
-  final bool hasRoutines;
-
   /// Sunday (week end, inclusive) — Monday + 6 days.
   DateTime get weekEnd => weekStart.add(const Duration(days: 6));
 
@@ -98,36 +68,12 @@ class WeeklyStats {
     final d = nextReview;
     return '${kWeekdays[d.weekday - 1]}, ${kMonthsShort[d.month - 1]} ${d.day}';
   }
-
-  /// The three week tiles, in handoff order (money / move / rituals).
-  List<WeekStat> tiles(Currency currency) => [
-        WeekStat(
-          label: 'Spent',
-          value: formatCurrency(spent, currency),
-          sub: 'of ${formatCurrency(budget, currency)}',
-          colorToken: 'money',
-        ),
-        WeekStat(
-          label: 'Workout',
-          value: '$moveKcal',
-          sub: 'of $moveTarget kcal',
-          colorToken: 'move',
-        ),
-        WeekStat(
-          label: 'Routines',
-          value: '$ritualsKept',
-          sub: ritualsTarget == 0
-              ? noTargetLine(hasRoutines: hasRoutines)
-              : 'of $ritualsTarget',
-          colorToken: 'rituals',
-        ),
-      ];
 }
 
 /// Monday 00:00 of the week containing [now].
 DateTime weekStartFor(DateTime now) => startOfWeek(now);
 
-/// Folds the week's [entries] against [goals] into the [WeeklyStats] tiles.
+/// Folds the week's [entries] against [goals] into [WeeklyStats].
 /// Pure — extracted from the provider so it can be tested with fixtures.
 /// [now] defaults to [DateTime.now] and only fixes the covered week.
 WeeklyStats buildWeeklyStats(
@@ -158,7 +104,6 @@ WeeklyStats buildWeeklyStats(
     ritualsKept: completedRoutinesInPeriod(entries, routines,
         start: weekStart, days: 7),
     ritualsTarget: effectiveDailyRitualTarget(routines) * 7,
-    hasRoutines: routines.isNotEmpty,
   );
 }
 

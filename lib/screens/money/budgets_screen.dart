@@ -243,6 +243,16 @@ class _EnvelopeRow extends StatelessWidget {
   }
 }
 
+/// Suggested caps footer, shared with the envelope editor.
+const kSuggestedCapsFooter = 'From your spending over the last 3 months.';
+
+/// A suggested cap's trend, as both Budgets and the envelope editor word it.
+String spendTrendWord(SpendTrend trend) => switch (trend) {
+      SpendTrend.increasing => 'trending up',
+      SpendTrend.decreasing => 'trending down',
+      SpendTrend.stable => 'steady',
+    };
+
 /// Read-only "Suggested caps" section: watches [budgetRecommendationsProvider]
 /// and lists each category's suggested monthly cap with a short reasoning line.
 /// Renders nothing while loading, on error, or when there's nothing to suggest.
@@ -251,12 +261,6 @@ class _SuggestedCaps extends ConsumerWidget {
 
   final Currency currency;
 
-  static String _trendWord(SpendTrend trend) => switch (trend) {
-        SpendTrend.increasing => 'trending up',
-        SpendTrend.decreasing => 'trending down',
-        SpendTrend.stable => 'steady',
-      };
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final recs = ref.watch(budgetRecommendationsProvider).asData?.value ?? const [];
@@ -264,13 +268,13 @@ class _SuggestedCaps extends ConsumerWidget {
 
     return _Section(
       heading: 'Suggested caps',
-      footer: 'From your spending over the last 3 months.',
+      footer: kSuggestedCapsFooter,
       rows: [
         for (final rec in recs)
           _Row(
             title: rec.category,
             subtitle: '${formatCurrency(rec.monthlyAverage, currency)}/mo'
-                ' · ${_trendWord(rec.trend)}'
+                ' · ${spendTrendWord(rec.trend)}'
                 ' · +${(rec.bufferFraction * 100).round()}% buffer',
             value: formatCurrency(rec.suggestedCap, currency),
           ),

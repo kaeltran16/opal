@@ -5,6 +5,13 @@ import '../../util/format.dart';
 import 'coffee_starter.dart';
 import 'pal_service.dart';
 
+// the agenda's money amounts in usd; [Currency.budgetScale] scales them.
+const double _rentHold = 40;
+const double _rentDue = 2400;
+const double _rentSpare = 4192;
+const double _coffeeNudgeCap = 15;
+const double _coffeeNudgeSpent = 23;
+
 /// On-brand canned [PalService] for Windows preview + tests.
 ///
 /// Returns deterministic-ish strings with a small fake latency so the chat
@@ -23,8 +30,8 @@ class MockPalService implements PalService {
   /// Fake round-trip latency applied to every call.
   final Duration latency;
 
-  /// The display currency, read on each composer suggestions call so a
-  /// currency switch is followed without rebuilding the service.
+  /// The display currency, read on each composer suggestions and agenda call
+  /// so a currency switch is followed without rebuilding the service.
   final Currency Function() currency;
 
   final math.Random _rng;
@@ -456,10 +463,12 @@ class MockPalService implements PalService {
   @override
   Future<PalAgenda> agenda() async {
     await Future<void>.delayed(latency);
-    return const PalAgenda(
+    final cur = currency();
+    String money(double usd) => formatCurrency(usd * cur.budgetScale, cur);
+    return PalAgenda(
       streakDays: 11,
       proposals: [
-        PalProposal(
+        const PalProposal(
           id: 'move-legs-friday',
           tag: 'Workout',
           colorToken: 'move',
@@ -476,14 +485,15 @@ class MockPalService implements PalService {
           tag: 'Money',
           colorToken: 'money',
           icon: 'dollarsign.circle.fill',
-          title: 'Set aside \$40 for rent',
-          body: 'Rent (\$2,400) auto-pays Monday. Holding \$40 today clears it '
-              'with \$4,192 to spare.',
-          approveLabel: 'Hold \$40',
+          title: 'Set aside ${money(_rentHold)} for rent',
+          body: 'Rent (${money(_rentDue)}) auto-pays Monday. Holding '
+              '${money(_rentHold)} today clears it with ${money(_rentSpare)} '
+              'to spare.',
+          approveLabel: 'Hold ${money(_rentHold)}',
           approveIcon: 'checkmark',
-          doneLabel: 'Held \$40 in your Rent envelope',
+          doneLabel: 'Held ${money(_rentHold)} in your Rent envelope',
         ),
-        PalProposal(
+        const PalProposal(
           id: 'close-out-tonight',
           tag: 'Rituals',
           colorToken: 'rituals',
@@ -496,7 +506,7 @@ class MockPalService implements PalService {
           doneLabel: 'Close-out queued for 21:30',
           action: closeOutAction,
         ),
-        PalProposal(
+        const PalProposal(
           id: 'add-wind-down-ritual',
           tag: 'Rituals',
           colorToken: 'rituals',
@@ -511,7 +521,7 @@ class MockPalService implements PalService {
         ),
       ],
       autopilot: [
-        PalAutopilotItem(
+        const PalAutopilotItem(
           id: 'rent-watch',
           colorToken: 'money',
           icon: 'house.fill',
@@ -519,7 +529,7 @@ class MockPalService implements PalService {
           subtitle: 'Alerts if balance dips before Mon',
           enabled: true,
         ),
-        PalAutopilotItem(
+        const PalAutopilotItem(
           id: 'weekly-review-draft',
           colorToken: 'accent',
           icon: 'chart.bar.fill',
@@ -531,8 +541,8 @@ class MockPalService implements PalService {
           id: 'coffee-nudge',
           colorToken: 'money',
           icon: 'cup.and.saucer.fill',
-          title: 'Coffee nudge at \$15 / wk',
-          subtitle: "You're at \$23 — currently paused",
+          title: 'Coffee nudge at ${money(_coffeeNudgeCap)} / wk',
+          subtitle: "You're at ${money(_coffeeNudgeSpent)} — currently paused",
           enabled: false,
         ),
       ],
