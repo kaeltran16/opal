@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import {
   chatSystemPrompt, reviewPrompt, insightsPrompt, parsePrompt, suggestPrompt, postWorkoutPrompt, routinePrompt, agendaPrompt, suggestionsPrompt, memoryPatternsPrompt, nutritionEstimatePrompt,
-  type ChatContext, type ReviewContext, type InsightsContext, type SuggestContext, type PostWorkoutContext, type RoutineExercise,
+  type ChatContext, type ReviewContext, type InsightsContext, type SuggestContext, type PostWorkoutContext, type RoutineExercise, type AgendaTargets,
 } from './prompts.js'
 import { MAX_PATTERNS, type MemoryOp, type MemoryDigest, type MemoryPattern } from './memory.js'
 import { ENTRY_TYPES, DIMENSIONS, SPEND_CATEGORIES, USD, spendCategory, type CurrencyDescriptor } from './product.js'
@@ -225,44 +225,36 @@ export const memoryPatternsSchema = z.object({
 })
 
 // --- Pal Home agenda (/v1/agenda) -------------------------------------------
-// The model picks each item's `kind` (and the copy); the server derives the
-// SF-symbol icons, approve icon, and navigation action from that kind, so the
-// model can never name a bad icon or a navigation it shouldn't (mirrors how
-// insights derives its icon from colorToken). off-list kinds coerce to generic.
-const agendaProposalKinds = ['reschedule_workout', 'hold_funds', 'close_out', 'add_ritual', 'generic'] as const
-const agendaAutopilotKinds = ['bills_watch', 'review_draft', 'spend_nudge', 'generic'] as const
+// The model picks each proposal's `kind` and copy; the server derives the pillar
+// tag, colour, icons and the client action from that kind, so the model can
+// never name a bad icon or an action the client cannot perform. an off-list
+// kind is dropped, never coerced.
+const agendaProposalKinds = ['reschedule_workout', 'close_out', 'add_ritual'] as const
+const agendaAutopilotKinds = ['spend_nudge', 'routine_reminders'] as const
+type ProposalKind = (typeof agendaProposalKinds)[number]
 
-const PROPOSAL_PRESENTATION: Record<(typeof agendaProposalKinds)[number], { icon: string; approveIcon: string; action: string | null }> = {
-  reschedule_workout: { icon: 'figure.run', approveIcon: 'arrow.triangle.2.circlepath', action: null },
-  hold_funds: { icon: 'dollarsign.circle.fill', approveIcon: 'checkmark', action: null },
-  close_out: { icon: 'moon.stars.fill', approveIcon: 'play.fill', action: 'close_out' },
-  add_ritual: { icon: 'sparkles', approveIcon: 'plus', action: 'add_ritual' },
-  generic: { icon: 'sparkles', approveIcon: 'checkmark', action: null },
+const PROPOSAL_PRESENTATION: Record<ProposalKind, { tag: string; colorToken: string; icon: string; approveIcon: string }> = {
+  reschedule_workout: { tag: 'Workout', colorToken: 'move', icon: 'figure.run', approveIcon: 'arrow.triangle.2.circlepath' },
+  close_out: { tag: 'Rituals', colorToken: 'rituals', icon: 'moon.stars.fill', approveIcon: 'play.fill' },
+  add_ritual: { tag: 'Rituals', colorToken: 'rituals', icon: 'sparkles', approveIcon: 'plus' },
 }
-const AUTOPILOT_ICON: Record<(typeof agendaAutopilotKinds)[number], string> = {
-  bills_watch: 'house.fill',
-  review_draft: 'chart.bar.fill',
-  spend_nudge: 'cup.and.saucer.fill',
-  generic: 'sparkles',
-}
+
+const isProposalKind = (k: string): k is ProposalKind => (agendaProposalKinds as readonly string[]).includes(k)
+
+const WEEKDAY_MIN = 1
+const WEEKDAY_MAX = 7
 
 export const agendaModelSchema = z.object({
   proposals: z.array(z.object({
-    kind: z.enum(agendaProposalKinds).catch('generic'),
-    colorToken,
-    tag: prose,
+    kind: z.string(),
     title: prose,
     body: prose,
     approveLabel: prose,
     doneLabel: prose,
+    ritual: z.object({ routineId: z.string(), step: z.string() }).nullish().catch(null),
+    slot: z.object({ weekday: z.number(), routineId: z.string() }).nullish().catch(null),
   })).default([]),
-  autopilot: z.array(z.object({
-    kind: z.enum(agendaAutopilotKinds).catch('generic'),
-    colorToken: z.enum(['money', 'move', 'rituals', 'accent']).catch('accent'),
-    title: prose,
-    subtitle: prose,
-    enabled: z.boolean(),
-  })).default([]),
+  autopilot: z.array(z.object({ kind: z.string(), subtitle: prose })).default([]),
 })
 type AgendaProposal = z.infer<typeof agendaModelSchema>['proposals'][number]
 
@@ -285,10 +277,33 @@ export function labelsAgree(p: Pick<AgendaProposal, 'title' | 'body' | 'approveL
   return [p.approveLabel, p.doneLabel].every((label) => moneyAmounts(label, c).every((n) => stated.has(n)))
 }
 
+// the payload an approval acts on must name something that exists and would
+// change something: a duplicate step or an unchanged slot is a no-op approve.
+export function proposalValid(p: AgendaProposal, targets: AgendaTargets, currency?: CurrencyDescriptor): boolean {
+  if (!labelsAgree(p, currency)) return false
+  if (p.kind === 'add_ritual') {
+    const step = p.ritual?.step.trim().toLowerCase()
+    const routine = targets.rituals.find((r) => r.id === p.ritual?.routineId)
+    return !!step && !!routine && !routine.steps.some((existing) => existing.trim().toLowerCase() === step)
+  }
+  if (p.kind === 'reschedule_workout') {
+    const slot = p.slot
+    if (!slot || !Number.isInteger(slot.weekday) || slot.weekday < WEEKDAY_MIN || slot.weekday > WEEKDAY_MAX) return false
+    if (!targets.workouts.some((w) => w.id === slot.routineId)) return false
+    const current = targets.week.find((d) => d.weekday === slot.weekday)?.routineId ?? null
+    return current !== slot.routineId
+  }
+  return true
+}
+
 // The wire shape the client decodes (icons/action resolved, streak echoed).
 export interface AgendaResult {
-  proposals: Array<{ id: string; tag: string; colorToken: string; icon: string; title: string; body: string; approveLabel: string; approveIcon: string; doneLabel: string; action: string | null }>
-  autopilot: Array<{ id: string; colorToken: string; icon: string; title: string; subtitle: string; enabled: boolean }>
+  proposals: Array<{
+    id: string; tag: string; colorToken: string; icon: string; title: string; body: string; approveLabel: string
+    approveIcon: string; doneLabel: string; action: ProposalKind
+    ritual: { routineId: string; step: string } | null; slot: { weekday: number; routineId: string } | null
+  }>
+  autopilot: Array<{ id: string; subtitle: string }>
   streakDays: number
 }
 
@@ -588,37 +603,39 @@ export class Pal {
     return this.completeJson(suggestPrompt(ctx) + nudge, {}, (j) => suggestSchema.parse(j))
   }
 
-  async agenda(ctx: ChatContext, memory?: MemoryDigest): Promise<AgendaResult> {
-    const draw = () => this.completeJson(agendaPrompt(ctx, memory), { maxTokens: INSIGHTS_MAX_TOKENS, temperature: 0 }, (j) => agendaModelSchema.parse(j))
-    const agrees = (p: AgendaProposal) => labelsAgree(p, ctx.currency)
+  async agenda(ctx: ChatContext, targets: AgendaTargets, memory?: MemoryDigest): Promise<AgendaResult> {
+    const draw = async () => {
+      const parsed = await this.completeJson(agendaPrompt(ctx, memory, targets), { maxTokens: INSIGHTS_MAX_TOKENS, temperature: 0 }, (j) => agendaModelSchema.parse(j))
+      return { ...parsed, proposals: parsed.proposals.filter((p) => isProposalKind(p.kind)) }
+    }
+    const valid = (p: AgendaProposal) => proposalValid(p, targets, ctx.currency)
     let parsed = await draw()
-    // a label naming an amount its proposal never states is redrawn once; a
-    // proposal still off after that is dropped rather than shown.
-    if (!parsed.proposals.every(agrees)) parsed = await draw()
+    // a proposal that names a missing target, a no-op change or an amount it
+    // never states is redrawn once; one still invalid after that is dropped.
+    if (!parsed.proposals.every(valid)) parsed = await draw()
     return {
-      proposals: parsed.proposals.filter(agrees).map((p, i) => {
-        const pres = PROPOSAL_PRESENTATION[p.kind]
+      proposals: parsed.proposals.filter(valid).map((p, i) => {
+        const kind = p.kind as ProposalKind
+        const pres = PROPOSAL_PRESENTATION[kind]
         return {
-          id: `${p.kind}-${i}`,
-          tag: p.tag,
-          colorToken: p.colorToken,
+          id: `${kind}-${i}`,
+          tag: pres.tag,
+          colorToken: pres.colorToken,
           icon: pres.icon,
           title: p.title,
           body: p.body,
           approveLabel: p.approveLabel,
           approveIcon: pres.approveIcon,
           doneLabel: p.doneLabel,
-          action: pres.action,
+          action: kind,
+          ritual: kind === 'add_ritual' && p.ritual ? { routineId: p.ritual.routineId, step: p.ritual.step.trim() } : null,
+          slot: kind === 'reschedule_workout' ? p.slot ?? null : null,
         }
       }),
-      autopilot: parsed.autopilot.map((a, i) => ({
-        id: `${a.kind}-${i}`,
-        colorToken: a.colorToken,
-        icon: AUTOPILOT_ICON[a.kind],
-        title: a.title,
-        subtitle: a.subtitle,
-        enabled: a.enabled,
-      })),
+      autopilot: agendaAutopilotKinds.flatMap((kind) => {
+        const first = parsed.autopilot.find((a) => a.kind === kind)
+        return first ? [{ id: kind, subtitle: first.subtitle }] : []
+      }),
       streakDays: ctx.moveStreakDays,
     }
   }
