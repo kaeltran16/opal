@@ -3,10 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../controllers/move_controller.dart' show relativeDateLabel;
 import '../../controllers/workout_history_controller.dart';
 import '../../router.dart';
 import '../../theme/theme.dart';
+import '../../util/dates.dart' show relativeDateLabel;
 import '../../widgets/contributor_bar.dart';
 import '../../widgets/controls.dart';
 import '../../widgets/exercise_row.dart';
@@ -15,8 +15,8 @@ import '../../widgets/nav_bar.dart';
 import '../../widgets/pal_label.dart';
 import '../../widgets/session_row.dart';
 import '../../widgets/stat_row.dart';
+import '../shell/loop_shell.dart' show shellBottomInset;
 
-const double _scrollTail = 48;
 const double _sectionGap = Spacing.xl;
 const double _chartHeight = 116;
 const double _barValueSlot = 16;
@@ -66,7 +66,7 @@ class _WorkoutHistoryScreenState extends ConsumerState<WorkoutHistoryScreen> {
         name: 'square.and.arrow.up',
         semanticLabel: 'Share',
       ),
-      padding: const EdgeInsets.only(bottom: _scrollTail),
+      padding: EdgeInsets.only(bottom: shellBottomInset(context)),
       children: [
         // Range control — always available, even while the data loads.
         Padding(

@@ -54,6 +54,20 @@ class PalFinding {
 
   bool get hasComparison => a != null && b != null;
 
+  /// The finding as Pal reads it when the user asks about it: the claim and
+  /// every number behind it, so Pal answers from the evidence on screen.
+  String get palNote {
+    final a = this.a;
+    final b = this.b;
+    return [
+      'The user is asking about a finding shown on their You page: "$line"',
+      ?lead,
+      if (a != null && b != null) '${a.label}: ${a.value}. ${b.label}: ${b.value}.',
+      'Evidence: $evidence.',
+      if (areas.isNotEmpty) 'Areas: $areasLabel.',
+    ].join(' ');
+  }
+
   /// [areas] as prose: 'Sleep', 'Sleep and Money', 'A, B and C'.
   String get areasLabel {
     if (areas.length < 2) return areas.join();

@@ -11,6 +11,11 @@ enum PlanKind { proposal, routine, workout, mood, meal, closeOut }
 /// When the evening close-out is due, in minutes after midnight.
 const int closeOutMinute = 21 * 60 + 30;
 
+/// How long a passed timed item keeps leading. Past this it is missed: it
+/// stays open but goes to the end, so a 7 AM routine does not lead all evening.
+const int overdueLeadMinutes = 4 * 60;
+const String _overdueLeadSpan = 'four hours';
+
 const String _notToday = 'Not today';
 const String _notNow = 'Not now';
 const String _start = 'Start';
@@ -115,13 +120,15 @@ class DayPlan {
   final List<PlanItem> items;
 
   /// What is still to do, in lead order: items forced by a Needs care area,
-  /// then Pal's proposals when Pal is online, then the clock (overdue timed
-  /// items, then untimed, then upcoming).
+  /// then Pal's proposals when Pal is online, then the clock (timed items due
+  /// in the last [overdueLeadMinutes], then untimed, then upcoming, then the
+  /// missed ones).
   List<PlanItem> open(PlanSession session, DateTime now,
       [LeadRules rules = const LeadRules()]) {
     final clock = _clockOrder(session, now);
+    final nowMinute = now.hour * 60 + now.minute;
     final lead = <PlanItem>{
-      for (final area in rules.care) ?_careLead(area, clock),
+      for (final area in rules.care) ?_careLead(area, clock, nowMinute),
       if (rules.palOnline) ...clock.where((i) => i.kind == PlanKind.proposal),
     };
     return [...lead, ...clock.where((i) => !lead.contains(i))];
@@ -134,27 +141,85 @@ class DayPlan {
         .toList();
     bool timed(PlanItem i) => i.minuteOfDay != null;
     bool passed(PlanItem i) => timed(i) && i.minuteOfDay! <= nowMinute;
+    bool missed(PlanItem i) => _missed(i, nowMinute);
     return [
-      ..._byMinute(pending.where(passed)),
+      ..._byMinute(pending.where((i) => passed(i) && !missed(i))),
       ...pending.where((i) => !timed(i)),
       ..._byMinute(pending.where((i) => timed(i) && !passed(i))),
+      ..._byMinute(pending.where(missed)),
     ];
   }
 
+  static bool _missed(PlanItem i, int nowMinute) =>
+      i.minuteOfDay != null && nowMinute - i.minuteOfDay! > overdueLeadMinutes;
+
   /// The open item a Needs care area forces to lead, or null when it has none.
-  PlanItem? _careLead(DetailTracker area, List<PlanItem> open) {
+  PlanItem? _careLead(DetailTracker area, List<PlanItem> open, int nowMinute) {
     final candidates = open.where((i) => i.area == area);
     return switch (area) {
       DetailTracker.money =>
         candidates.where((i) => i.kind == PlanKind.proposal).firstOrNull,
       DetailTracker.move =>
         candidates.where((i) => i.kind == PlanKind.workout).firstOrNull,
-      DetailTracker.rituals => _timeOrder(
+      DetailTracker.rituals => _earliestRoutine(
           candidates.where((i) => i.kind == PlanKind.routine || i.kind == PlanKind.closeOut),
-          untimedFirst: false,
-        ).firstOrNull,
+          nowMinute,
+        ),
     };
   }
+
+  /// The earliest routine still worth doing, untimed after timed, a missed
+  /// one only when nothing else is open.
+  PlanItem? _earliestRoutine(Iterable<PlanItem> routines, int nowMinute) => [
+        ..._timeOrder(routines.where((i) => !_missed(i, nowMinute)), untimedFirst: false),
+        ...routines.where((i) => _missed(i, nowMinute)),
+      ].firstOrNull;
+
+  /// Why [item] leads and what else is open, for Pal's Why thread. Built from
+  /// the same rules as [open], so Pal explains the order instead of guessing.
+  String whyNote(PlanItem item, PlanSession session, DateTime now,
+      [LeadRules rules = const LeadRules()]) {
+    final nowMinute = now.hour * 60 + now.minute;
+    final clock = _clockOrder(session, now);
+    final care = rules.care
+        .where((area) => _careLead(area, clock, nowMinute) == item)
+        .firstOrNull;
+    final minute = item.minuteOfDay;
+    final reason = switch (minute) {
+      _ when care != null =>
+        '${_areaNames[care]} needs care, and an area in Needs care always leads.',
+      _ when rules.palOnline && item.kind == PlanKind.proposal =>
+        "Pal proposed it, and Pal's proposals lead while Pal is online.",
+      null => 'It has no set time, and nothing timed was due in the last $_overdueLeadSpan.',
+      final m when m > nowMinute => 'It is the next thing on the clock, at ${clockLabel(m)}.',
+      final m when _missed(item, nowMinute) =>
+        'It was due at ${clockLabel(m)} and nothing else is open.',
+      final m => 'It was due at ${clockLabel(m)}, under $_overdueLeadSpan ago, and is still open.',
+    };
+    final rest = [
+      for (final i in open(session, now, rules))
+        if (i != item) '${i.title} (${_whenNote(i, nowMinute)})',
+    ];
+    return [
+      'Today shows ${item.title} first. $reason',
+      if (rest.isNotEmpty) 'Still open after it: ${rest.join(', ')}.',
+      "Today's order: an area in Needs care, then Pal's proposals while Pal is "
+          'online, then the clock: items due in the last $_overdueLeadSpan, untimed '
+          'items, upcoming items, then missed ones.',
+    ].join(' ');
+  }
+
+  static String _whenNote(PlanItem i, int nowMinute) => switch (i.minuteOfDay) {
+        null => 'any time',
+        final m when _missed(i, nowMinute) => 'missed, was at ${clockLabel(m)}',
+        final m => 'at ${clockLabel(m)}',
+      };
+
+  static const _areaNames = {
+    DetailTracker.money: 'Money',
+    DetailTracker.move: 'Move',
+    DetailTracker.rituals: 'Routines',
+  };
 
   /// The lead Pal's order gives, whatever the user tapped.
   PlanItem? palPick(PlanSession session, DateTime now,

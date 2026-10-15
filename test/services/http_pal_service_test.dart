@@ -61,6 +61,48 @@ void main() {
     expect(jsonDecode(seen.body)['message'], 'hi');
   });
 
+  test('chat history drops failed turns and says what logged turns did', () async {
+    late http.Request seen;
+    final service = build(MockClient((req) async {
+      seen = req;
+      return http.Response(jsonEncode({'reply': 'ok'}), 200);
+    }));
+    final t = DateTime(2026, 10, 14, 20);
+
+    await service.chat([
+      PalMessage(role: PalRole.user, text: 'dinner at Tartine 32 dollars', timestamp: t),
+      PalMessage(role: PalRole.assistant, text: '', timestamp: t, actions: const [
+        LogEntryAction(type: EntryType.money, title: 'Dinner at Tartine', amount: -32, category: 'Food & Drink'),
+      ]),
+      PalMessage(role: PalRole.user, text: 'am I going to blow my budget?', timestamp: t),
+      PalMessage(role: PalRole.assistant, text: "Pal couldn't answer that just now.", timestamp: t, offline: true),
+      PalMessage(role: PalRole.user, text: 'coffee 4', timestamp: t),
+      PalMessage(role: PalRole.assistant, text: 'Logged.', timestamp: t, undone: true, actions: const [
+        LogEntryAction(type: EntryType.money, title: 'Coffee', amount: -4),
+      ]),
+    ], 'am I going to blow my budget?');
+
+    expect(jsonDecode(seen.body)['history'], [
+      {'role': 'user', 'text': 'dinner at Tartine 32 dollars'},
+      {'role': 'assistant', 'text': '(Pal did: logged expense "Dinner at Tartine" 32 in Food & Drink.)'},
+      {'role': 'user', 'text': 'coffee 4'},
+      {'role': 'assistant', 'text': 'Logged. (Pal did: logged expense "Coffee" 4. The user undid it.)'},
+    ]);
+  });
+
+  test('a proxy error carries its status; a network failure carries none', () async {
+    final failing = build(MockClient((_) async => http.Response('{}', 502)));
+    await expectLater(
+      failing.chat([], 'hi'),
+      throwsA(isA<PalException>().having((e) => e.statusCode, 'statusCode', 502)),
+    );
+    final unreachable = build(MockClient((_) async => throw http.ClientException('down')));
+    await expectLater(
+      unreachable.chat([], 'hi'),
+      throwsA(isA<PalException>().having((e) => e.statusCode, 'statusCode', isNull)),
+    );
+  });
+
   test('chat decodes actions: expense negated, income positive, unknown dropped', () async {
     final service = build(MockClient((req) async => http.Response(
           jsonEncode({

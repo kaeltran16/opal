@@ -1,9 +1,10 @@
 import { describe, it, expect, vi } from 'vitest'
 import {
   Pal, OpenRouterClient, OpenRouterError, extractJson, toolCallsToActions, toolCallsToMemoryOps, parseSchema, synthReply,
-  insightsSchema, nutritionEstimateSchema,
-  type CompletionClient, type CompletionResult, type ToolCall, type ChatMessage,
+  insightsSchema, nutritionEstimateSchema, memoryPatternsSchema,
+  CHAT_TOOLS, type CompletionClient, type CompletionResult, type ToolCall, type ChatMessage,
 } from './pal.js'
+import { SPEND_CATEGORIES } from './product.js'
 
 // Most methods only need complete(); chat() uses completeWithTools().
 function fakeClient(reply: string): CompletionClient {
@@ -58,6 +59,35 @@ describe('Pal.agenda', () => {
     })
     const res = await new Pal(fakeClient(model)).agenda(ctx)
     expect(res.proposals[0]).toMatchObject({ icon: 'sparkles', approveIcon: 'checkmark', action: null })
+  })
+})
+
+describe('Pal JSON routes', () => {
+  const SUGGEST_CTX = { recentWorkouts: [], dayOfWeek: 'Wednesday', availableRoutines: [{ id: 'r1', name: 'Legs' }] }
+  const replies = (...texts: string[]): CompletionClient => {
+    const queue = [...texts]
+    return { complete: vi.fn(async () => queue.shift() ?? ''), completeWithTools: vi.fn() }
+  }
+
+  it('draws once more when the model output is not the schema, and returns the second draw', async () => {
+    const client = replies('{"A": "What is the correct format?"}', '{"routineId": "r1", "reason": "legs are fresh"}')
+    expect(await new Pal(client).suggestWorkout(false, SUGGEST_CTX)).toEqual({ routineId: 'r1', reason: 'legs are fresh' })
+    expect(client.complete).toHaveBeenCalledTimes(2)
+  })
+
+  it('draws at most twice on malformed output', async () => {
+    const client = replies('not json', 'still not json', '{"routineId": "r1", "reason": "x"}')
+    await expect(new Pal(client).suggestWorkout(false, SUGGEST_CTX)).rejects.toThrow()
+    expect(client.complete).toHaveBeenCalledTimes(2)
+  })
+
+  it('does not redraw on an upstream error', async () => {
+    const client: CompletionClient = {
+      complete: vi.fn(async () => { throw new OpenRouterError(502, 'down') }),
+      completeWithTools: vi.fn(),
+    }
+    await expect(new Pal(client).suggestWorkout(false, SUGGEST_CTX)).rejects.toBeInstanceOf(OpenRouterError)
+    expect(client.complete).toHaveBeenCalledTimes(1)
   })
 })
 
@@ -120,6 +150,19 @@ describe('OpenRouterClient', () => {
 
     await client.complete([{ role: 'user', content: 'hi' }], { temperature: 0 })
     expect(body.temperature).toBe(0)
+  })
+
+  it('turns provider reasoning off on every call so it cannot eat the output cap', async () => {
+    const bodies: Array<Record<string, unknown>> = []
+    const capture = (async (_url, init) => {
+      bodies.push(JSON.parse(String((init as RequestInit).body)))
+      return okResponse()
+    }) as typeof fetch
+    const client = new OpenRouterClient('k', 'm', 'http://x', capture)
+
+    await client.complete([{ role: 'user', content: 'hi' }], { json: true, maxTokens: 2048 })
+    await client.completeWithTools([{ role: 'user', content: 'hi' }], [])
+    expect(bodies.map((b) => b.reasoning)).toEqual([{ enabled: false }, { enabled: false }])
   })
 
   it('opts into usage accounting so the provider reports cost', async () => {
@@ -223,10 +266,27 @@ describe('OpenRouterClient', () => {
 
 describe('toolCallsToActions', () => {
   it('maps a log_expense tool call, defaulting title and coercing a positive amount', () => {
-    const actions = toolCallsToActions([toolCall('log_expense', { amount: -5, category: 'Coffee' })])
+    const actions = toolCallsToActions([toolCall('log_expense', { amount: -5, category: 'Food & Drink' })])
     expect(actions).toEqual([
-      { kind: 'log_expense', amount: 5, category: 'Coffee', title: 'Coffee', note: null },
+      { kind: 'log_expense', amount: 5, category: 'Food & Drink', title: 'Food & Drink', note: null },
     ])
+  })
+
+  it('keeps an expense in the spend categories: canonical spelling, off-list dropped', () => {
+    const [matched, offList] = toolCallsToActions([
+      toolCall('log_expense', { amount: 32, category: 'food & drink', title: 'Dinner at Tartine' }),
+      toolCall('log_expense', { amount: 32, category: 'Dining', title: 'Dinner at Tartine' }),
+    ])
+    expect(matched).toMatchObject({ category: 'Food & Drink', title: 'Dinner at Tartine' })
+    expect(offList).toMatchObject({ category: null, title: 'Dinner at Tartine' })
+  })
+
+  it('advertises the spend categories as the log_expense enum and asks to keep the merchant', () => {
+    const spec = CHAT_TOOLS.find((t) => t.function.name === 'log_expense')!.function.parameters as {
+      properties: { category: { enum: readonly string[] }; title: { description: string } }
+    }
+    expect(spec.properties.category.enum).toEqual(SPEND_CATEGORIES)
+    expect(spec.properties.title.description).toContain('Dinner at Tartine')
   })
 
   it('maps every supported mutation', () => {
@@ -295,6 +355,13 @@ describe('insights colour tokens', () => {
     })
     expect(parsed.patterns[0].colorToken).toBe('nutrition')
   })
+
+  it('reads a pattern written in the wins shape ({title, sub}) as its detail', () => {
+    const pattern = { colorToken: 'money', title: 'Spending is front-loaded', sub: 'Mon to Wed hold it all.' }
+    const parsed = insightsSchema.parse({ headline: null, lede: null, suggestion: null, wins: [], patterns: [pattern] })
+    expect(parsed.patterns[0]).toEqual({ colorToken: 'money', title: 'Spending is front-loaded', detail: 'Mon to Wed hold it all.' })
+    expect(memoryPatternsSchema.parse({ patterns: [pattern] }).patterns[0].detail).toBe('Mon to Wed hold it all.')
+  })
 })
 
 describe('nutritionEstimateSchema', () => {
@@ -338,12 +405,12 @@ describe('Pal', () => {
   it('chat surfaces a logged tool call but does not synthesize a restatement', async () => {
     const client = fakeToolClient({
       content: '',
-      toolCalls: [toolCall('log_expense', { amount: 5, category: 'Coffee', title: 'coffee' })],
+      toolCalls: [toolCall('log_expense', { amount: 5, category: 'Food & Drink', title: 'coffee' })],
     })
     const pal = new Pal(client)
     const result = await pal.chat([], 'add $5 for coffee', baseChatCtx())
     expect(result.actions).toEqual([
-      { kind: 'log_expense', amount: 5, category: 'Coffee', title: 'coffee', note: null },
+      { kind: 'log_expense', amount: 5, category: 'Food & Drink', title: 'coffee', note: null },
     ])
     // the client renders a confirmation card for the log, so an empty model
     // reply stays empty — synthReply no longer restates logged entries.
@@ -419,7 +486,7 @@ describe('Pal', () => {
   })
 
   it('parse returns the structured object', async () => {
-    const parsed = { type: 'money', amount: 5, duration: null, category: 'Coffee', title: 'Coffee', note: null, direction: 'expense' }
+    const parsed = { type: 'money', amount: 5, duration: null, category: 'Food & Drink', title: 'Coffee', note: null, direction: 'expense' }
     const client = fakeClient('```json\n' + JSON.stringify(parsed) + '\n```')
     const pal = new Pal(client)
     const result = await pal.parse('coffee 5')
@@ -617,7 +684,7 @@ describe('Pal.suggestions', () => {
     const raw = JSON.stringify({
       suggestions: [
         { kind: 'log_money', colorToken: 'money', label: 'Coffee, $5',
-          entry: { type: 'money', title: 'Coffee', amount: -5, category: 'Coffee', minutes: null } },
+          entry: { type: 'money', title: 'Coffee', amount: -5, category: 'Food & Drink', minutes: null } },
         { kind: 'ask', colorToken: 'accent', label: "How's my week?" },
       ],
     })

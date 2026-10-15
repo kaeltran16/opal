@@ -10,7 +10,7 @@ const usageLogger: CompletionLogger = {
 export function makeClient(env: Env): OpenRouterClient {
   return new OpenRouterClient(
     env.OPENROUTER_API_KEY,
-    env.PAL_MODEL ?? 'deepseek/deepseek-v4-flash',
+    env.PAL_MODEL ?? 'deepseek/deepseek-v4.1-flash',
     env.OPENROUTER_BASE_URL ?? 'https://openrouter.ai/api/v1',
     // bind to globalThis: OpenRouterClient calls fetchImpl as a method, and workerd
     // throws "Illegal invocation" if fetch runs with a non-global `this` (Node tolerates it).

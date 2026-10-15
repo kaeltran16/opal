@@ -1,3 +1,4 @@
+import '../shell/loop_shell.dart' show shellBottomInset;
 import 'dart:async';
 import 'dart:math' as math;
 
@@ -21,14 +22,12 @@ import '../../theme/theme.dart';
 import '../../widgets/app_icon.dart';
 import '../../widgets/day_scene.dart';
 import '../../widgets/pal_label.dart';
+import '../../widgets/pal_lead.dart' show PalLeadText;
 import '../../widgets/press_scale.dart';
 import '../mood/mood_logger_sheet.dart';
 import 'day_plan.dart';
 import 'today_logic.dart';
 
-// kept literal: the shell overlay under the content, tab bar gap 8 + bar 62 +
-// gap 10 + ask bar 52.
-const double _shellOverlay = 132;
 // kept literal: where the prototype's content starts, just under the status bar.
 const double _contentTop = 52;
 const double _minTap = 44;
@@ -47,7 +46,6 @@ const double _labelOverhang = (_minTap - _labelHeight) / 2;
 const double _whyIcon = 14;
 const double _leadMaxWidth = 300;
 const double _leadMinHeight = 100;
-const int _leadMaxLines = 3;
 const double _dateTracking = 1.2;
 // the timeline stays short so the lead is the only thing that reads first.
 const int _laterShown = 2;
@@ -135,8 +133,10 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
     }
   }
 
-  void _askWhy(PlanItem item) => context.pushNamed(AppRoute.palComposer.name,
-      queryParameters: {'seed': 'Why ${item.title} first?', 'from': '/today'});
+  void _askWhy(PlanItem item, String note) => context.pushNamed(
+        AppRoute.palComposer.name,
+        queryParameters: {'seed': 'Why ${item.title} first?', 'about': note, 'from': '/today'},
+      );
 
   @override
   Widget build(BuildContext context) {
@@ -220,7 +220,7 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
               Spacing.lg,
               math.max(_contentTop, safe.top + Spacing.xs),
               Spacing.lg,
-              _shellOverlay + Spacing.xxl + safe.bottom,
+              shellBottomInset(context),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -235,7 +235,9 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
                 _Lead(
                   label: online ? _palOnline : _palOffline,
                   text: _leadFor(current, palsLead ? headline : null),
-                  onWhy: palsLead ? () => _askWhy(current!) : null,
+                  onWhy: palsLead && current != null
+                      ? () => _askWhy(current, plan.whyNote(current, _session, now, rules))
+                      : null,
                 ),
                 _ActionCard(
                   item: current,
@@ -373,13 +375,7 @@ class _Lead extends StatelessWidget {
                   ),
                 ),
               ),
-              ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: _leadMaxWidth),
-                child: Text(text,
-                    maxLines: _leadMaxLines,
-                    overflow: TextOverflow.ellipsis,
-                    style: AppType.lead.copyWith(color: c.ink)),
-              ),
+              PalLeadText(text, color: c.ink, maxWidth: _leadMaxWidth),
             ],
           ),
         ),

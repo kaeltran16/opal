@@ -19,6 +19,10 @@ const int _sleepMinute = 22 * 60;
 /// How far actual may drift from the day's pace before it is worth watching.
 const double _paceSlack = 0.25;
 
+/// Under this share of a budget left before the period ends is worth watching,
+/// however close to pace the spending is.
+const double _lowHeadroom = 0.1;
+
 /// From this hour a goal still under [_lateShortfall] will not be met today.
 const int _lateHour = 21;
 const double _lateShortfall = 0.5;
@@ -51,8 +55,15 @@ AreaState budgetState({
   if (budget <= 0) return AreaState.good;
   if (spent > budget) return AreaState.care;
   if (spent / budget - elapsed >= _paceSlack) return AreaState.watch;
+  if (elapsed < 1 && budgetNearlySpent(spent: spent, budget: budget)) {
+    return AreaState.watch;
+  }
   return AreaState.good;
 }
+
+/// Whether under a tenth of [budget] is left, without going over.
+bool budgetNearlySpent({required double spent, required double budget}) =>
+    budget > 0 && spent <= budget && (budget - spent) / budget < _lowHeadroom;
 
 /// Progress toward a daily goal, for Move and Routines.
 AreaState progressState({

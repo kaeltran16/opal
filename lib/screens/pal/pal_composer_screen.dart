@@ -64,12 +64,14 @@ const _screenChips = {
 ///
 /// Idle, it offers what you could ask; once anything is sent it grows into
 /// the conversation. A non-empty [seed] opens straight into the conversation
-/// with that message. [from] is the path of the screen underneath, shown as
-/// the context chip only: what is sent to Pal does not change.
+/// with that message, and [about] rides along with it as context for Pal only.
+/// [from] is the path of the screen underneath, shown as the context chip
+/// only: what is sent to Pal does not change.
 class PalComposerSheet extends ConsumerStatefulWidget {
-  const PalComposerSheet({super.key, this.seed, this.from});
+  const PalComposerSheet({super.key, this.seed, this.about, this.from});
 
   final String? seed;
+  final String? about;
   final String? from;
 
   @override
@@ -96,7 +98,7 @@ class _PalComposerSheetState extends ConsumerState<PalComposerSheet> {
   }
 
   PalComposerController get _controller =>
-      ref.read(palComposerControllerProvider(seed: widget.seed).notifier);
+      ref.read(palComposerControllerProvider(seed: widget.seed, about: widget.about).notifier);
 
   Future<void> _send(String text) async {
     final trimmed = text.trim();
@@ -150,10 +152,10 @@ class _PalComposerSheetState extends ConsumerState<PalComposerSheet> {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    final state = ref.watch(palComposerControllerProvider(seed: widget.seed));
+    final state = ref.watch(palComposerControllerProvider(seed: widget.seed, about: widget.about));
 
     // keep the newest turn in view as the conversation grows.
-    ref.listen(palComposerControllerProvider(seed: widget.seed),
+    ref.listen(palComposerControllerProvider(seed: widget.seed, about: widget.about),
         (_, _) => _scrollToBottomSoon());
 
     final expanded = state.expanded;

@@ -12,11 +12,10 @@ import '../../theme/theme.dart';
 import '../../widgets/exercise_row.dart';
 import '../../widgets/inset_section.dart';
 import '../../widgets/nav_bar.dart';
+import '../shell/loop_shell.dart' show shellBottomInset;
 import 'pal_pick_lead.dart';
 import 'session_launcher.dart';
 
-// clears the floating tab bar at the end of the scroll.
-const double _scrollTail = 110;
 const int _previewNames = 2;
 const String _strengthIcon = 'dumbbell';
 const String _cardioIcon = 'figure.run';
@@ -116,7 +115,7 @@ class _Body extends ConsumerWidget {
         onTap: () => Navigator.of(context).maybePop(),
         semanticLabel: 'Back',
       ),
-      padding: const EdgeInsets.only(bottom: _scrollTail),
+      padding: EdgeInsets.only(bottom: shellBottomInset(context)),
       children: [
         const Padding(
           padding: EdgeInsets.fromLTRB(
@@ -152,7 +151,7 @@ class _Body extends ConsumerWidget {
     );
   }
 
-  /// "{n} exercises · {min} min · {when} · {first names}", one ellipsised line.
+  /// "{n} exercises · {min} min · {when} · {first names}".
   String _detail(Routine r, Map<String, String> names) {
     final n = r.exerciseCount;
     return [

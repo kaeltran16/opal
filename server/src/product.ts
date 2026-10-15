@@ -10,6 +10,27 @@ export type EntryTypeToken = (typeof ENTRY_TYPES)[number]
 export const DIMENSIONS = ['money', 'move', 'rituals', 'nutrition'] as const
 export type DimensionToken = (typeof DIMENSIONS)[number]
 
+// The spend categories, kept identical to the client's canonical
+// `kSpendCategories` (lib/models/spend_category.dart): a logged or imported
+// expense lands in one of these so it lines up with a budget envelope instead
+// of opening a new bucket beside it.
+export const SPEND_CATEGORIES = [
+  'Food & Drink',
+  'Groceries',
+  'Bills & Utilities',
+  'Shopping',
+  'Transport',
+  'Entertainment',
+  'Health',
+] as const
+
+// The canonical spelling of a model-picked category, matched case-insensitively,
+// or null when it is off the list.
+export function spendCategory(value: string | null | undefined): string | null {
+  const key = value?.trim().toLowerCase()
+  return SPEND_CATEGORIES.find((c) => c.toLowerCase() === key) ?? null
+}
+
 // One framing sentence every prompt reuses.
 export const PRODUCT_FRAMING =
   'an iOS app that tracks money, movement, daily rituals, and nutrition'

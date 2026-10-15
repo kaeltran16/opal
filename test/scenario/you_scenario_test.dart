@@ -237,6 +237,9 @@ void main() {
     final sheet = find.byType(PalComposerSheet);
     expect(sheet, findsOneWidget);
     expect(tester.widget<PalComposerSheet>(sheet).seed, 'Tell me more: $_sleepMoneyLine');
+    // the finding's numbers ride along for Pal, so it answers from them.
+    expect(tester.widget<PalComposerSheet>(sheet).about,
+        allOf(contains('After under 7 h: \$71 a day'), contains('Seen after 9 of 11 short nights')));
     expect(find.descendant(of: sheet, matching: find.text('Tell me more: $_sleepMoneyLine')),
         findsOneWidget);
     await shot(tester, 'you_finding_composer_$theme');

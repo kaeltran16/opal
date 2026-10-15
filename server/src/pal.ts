@@ -4,12 +4,15 @@ import {
   type ChatContext, type ReviewContext, type InsightsContext, type SuggestContext, type PostWorkoutContext, type RoutineExercise,
 } from './prompts.js'
 import { MAX_PATTERNS, type MemoryOp, type MemoryDigest, type MemoryPattern } from './memory.js'
-import { ENTRY_TYPES, DIMENSIONS } from './product.js'
+import { ENTRY_TYPES, DIMENSIONS, SPEND_CATEGORIES, spendCategory } from './product.js'
 
 const MAX_TOKENS = 1024
 // insights and routine JSON run long; a 1024 cut-off truncates the object.
 const INSIGHTS_MAX_TOKENS = 2048
 const ROUTINE_MAX_TOKENS = 4096
+// reasoning models (deepseek-v4.1-flash) spend hidden reasoning tokens out of max_tokens and
+// truncate the answer; Pal's prompts carry every fact the reply needs, so reasoning stays off.
+const REASONING_OFF = { enabled: false }
 // retry a transient upstream failure once after this backoff.
 const RETRY_DELAY_MS = 500
 // cap chat history sent to the model so long conversations don't grow cost unbounded.
@@ -100,7 +103,7 @@ export class OpenRouterClient implements CompletionClient {
           'content-type': 'application/json',
         },
         // usage.include asks OpenRouter to report per-request cost in the usage block.
-        body: JSON.stringify({ model: this.model, max_tokens: MAX_TOKENS, usage: { include: true }, ...extra }),
+        body: JSON.stringify({ model: this.model, max_tokens: MAX_TOKENS, reasoning: REASONING_OFF, usage: { include: true }, ...extra }),
         // extra may override max_tokens; the object spread above lets it.
         signal: AbortSignal.timeout(this.timeoutMs),
       })
@@ -160,7 +163,8 @@ export const parseSchema = z.object({
   type: z.enum(ENTRY_TYPES),
   amount: z.number().nullable(),
   duration: z.number().nullable(),
-  category: z.string().nullable(),
+  // a category off the user's list would open a new bucket beside an envelope.
+  category: z.string().nullable().transform(spendCategory),
   title: z.string(),
   note: z.string().nullable(),
   // off-list values coerce to 'expense', mirroring routineSchema.tag's catch().
@@ -180,22 +184,28 @@ export const suggestSchema = z.object({ routineId: z.string(), reason: z.string(
 export type Suggestion = z.infer<typeof suggestSchema>
 
 const colorToken = z.enum(DIMENSIONS)
+// the model sometimes writes a pattern in the wins shape ({title, sub}); read `sub` as `detail`.
+const patternDetail = <T extends z.ZodTypeAny>(schema: T) =>
+  z.preprocess((p) => {
+    const o = p as Record<string, unknown> | null
+    return o && typeof o === 'object' && o.detail === undefined && typeof o.sub === 'string' ? { ...o, detail: o.sub } : p
+  }, schema)
 export const insightsSchema = z.object({
   headline: z.string().nullable(),
   lede: z.string().nullable(),
   suggestion: z.string().nullable(),
   correlationNarration: z.string().nullable().optional(),
   wins: z.array(z.object({ colorToken, title: z.string(), sub: z.string() })).default([]),
-  patterns: z.array(z.object({ colorToken, title: z.string(), detail: z.string() })).default([]),
+  patterns: z.array(patternDetail(z.object({ colorToken, title: z.string(), detail: z.string() }))).default([]),
 })
 export type Insights = z.infer<typeof insightsSchema>
 
 export const memoryPatternsSchema = z.object({
-  patterns: z.array(z.object({
+  patterns: z.array(patternDetail(z.object({
     colorToken: z.enum(DIMENSIONS).catch('money'),
     title: z.string(),
     detail: z.string(),
-  })).default([]),
+  }))).default([]),
 })
 
 // --- Pal Home agenda (/v1/agenda) -------------------------------------------
@@ -303,6 +313,8 @@ export const routineSchema = z.object({
 })
 export type GeneratedRoutine = z.infer<typeof routineSchema>
 
+const NO_JSON = 'no JSON object found in model output'
+
 // Pull a JSON object out of a model reply: tolerate code fences and surrounding prose.
 export function extractJson(raw: string): unknown {
   let s = raw.trim()
@@ -311,7 +323,7 @@ export function extractJson(raw: string): unknown {
   const start = s.indexOf('{')
   const end = s.lastIndexOf('}')
   if (start === -1 || end === -1 || end < start) {
-    throw new Error('no JSON object found in model output')
+    throw new Error(NO_JSON)
   }
   return JSON.parse(s.slice(start, end + 1))
 }
@@ -348,7 +360,8 @@ const optStr = z.string().trim().min(1).nullish()
 const TOOL_PARSERS: Record<string, (args: unknown) => PalAction> = {
   log_expense: (a) => {
     const p = z.object({ amount: posAmount, category: optStr, title: optStr, note: optStr }).parse(a)
-    return { kind: 'log_expense', amount: p.amount, category: p.category ?? null, title: p.title ?? p.category ?? 'Expense', note: p.note ?? null }
+    const category = spendCategory(p.category)
+    return { kind: 'log_expense', amount: p.amount, category, title: p.title ?? category ?? 'Expense', note: p.note ?? null }
   },
   log_income: (a) => {
     const p = z.object({ amount: posAmount, title: optStr, note: optStr }).parse(a)
@@ -387,7 +400,7 @@ const tool = (name: string, description: string, parameters: unknown) => ({ type
 
 export const CHAT_TOOLS = [
   tool('log_expense', 'Record money the user spent. Use a positive amount in the user\'s own currency.',
-    obj({ amount: numProp('amount spent, positive, in the user\'s own currency (expand k/m suffixes: 12k -> 12000)'), category: strProp('e.g. Coffee, Dining, Transport'), title: strProp('short label, e.g. "coffee"'), note: strProp('optional note') }, ['amount'])),
+    obj({ amount: numProp('amount spent, positive, in the user\'s own currency (expand k/m suffixes: 12k -> 12000)'), category: { type: 'string', enum: SPEND_CATEGORIES, description: 'the spend category; prepared food and drinks are Food & Drink' }, title: strProp('short label that keeps the place or merchant when the user names one, e.g. "Dinner at Tartine" or "Coffee"'), note: strProp('optional note') }, ['amount'])),
   tool('log_income', 'Record money the user received. Positive amount in the user\'s own currency.',
     obj({ amount: numProp('amount received, positive, in the user\'s own currency (expand k/m suffixes: 12k -> 12000)'), title: strProp('short label, e.g. "paycheck"'), note: strProp('optional note') }, ['amount'])),
   tool('log_movement', 'Record a workout or movement session by its duration in minutes.',
@@ -474,8 +487,25 @@ export function synthReply(actions: PalAction[]): string {
   return `Done — ${joined}.`
 }
 
+// a model reply that is not JSON or misses the schema; a second draw usually lands.
+const isBadOutput = (err: unknown) =>
+  err instanceof SyntaxError || (err instanceof Error && (err.name === 'ZodError' || err.message === NO_JSON))
+
 export class Pal {
   constructor(private readonly client: CompletionClient) {}
+
+  // one JSON completion read by `parse`, drawn once more when the output is
+  // malformed. upstream errors are not retried here: the client retries the
+  // transient ones.
+  private async completeJson<T>(prompt: string, opts: { maxTokens?: number; temperature?: number }, parse: (json: unknown) => T): Promise<T> {
+    const draw = async () => parse(extractJson(await this.client.complete([{ role: 'user', content: prompt }], { json: true, ...opts })))
+    try {
+      return await draw()
+    } catch (err) {
+      if (!isBadOutput(err)) throw err
+      return draw()
+    }
+  }
 
   async chat(history: Array<{ role: 'user' | 'assistant'; text: string }>, message: string, ctx: ChatContext, memory?: MemoryDigest): Promise<ChatResult> {
     // keep only the most recent turns; system + new user message are always included and don't count.
@@ -497,16 +527,12 @@ export class Pal {
   }
 
   async insights(ctx: InsightsContext, memory?: MemoryDigest): Promise<Insights> {
-    const raw = await this.client.complete([{ role: 'user', content: insightsPrompt(ctx, memory) }], { json: true, maxTokens: INSIGHTS_MAX_TOKENS, temperature: 0 })
-    return insightsSchema.parse(extractJson(raw))
+    return this.completeJson(insightsPrompt(ctx, memory), { maxTokens: INSIGHTS_MAX_TOKENS, temperature: 0 }, (j) => insightsSchema.parse(j))
   }
 
   async refreshPatterns(ctx: InsightsContext, digest: MemoryDigest): Promise<MemoryPattern[]> {
-    const raw = await this.client.complete(
-      [{ role: 'user', content: memoryPatternsPrompt(ctx, digest) }],
-      { json: true, maxTokens: INSIGHTS_MAX_TOKENS, temperature: 0 },
-    )
-    return memoryPatternsSchema.parse(extractJson(raw)).patterns.slice(0, MAX_PATTERNS)
+    const parsed = await this.completeJson(memoryPatternsPrompt(ctx, digest), { maxTokens: INSIGHTS_MAX_TOKENS, temperature: 0 }, (j) => memoryPatternsSchema.parse(j))
+    return parsed.patterns.slice(0, MAX_PATTERNS)
   }
 
   async postWorkoutNote(ctx: PostWorkoutContext): Promise<string> {
@@ -514,30 +540,20 @@ export class Pal {
   }
 
   async parse(text: string): Promise<ParsedEntry> {
-    const raw = await this.client.complete([{ role: 'user', content: parsePrompt(text) }], { json: true, temperature: 0 })
-    return parseSchema.parse(extractJson(raw))
+    return this.completeJson(parsePrompt(text), { temperature: 0 }, (j) => parseSchema.parse(j))
   }
 
   async estimateMeal(description: string): Promise<NutritionEstimate> {
-    const raw = await this.client.complete(
-      [{ role: 'user', content: nutritionEstimatePrompt(description) }],
-      { json: true, temperature: 0 },
-    )
-    return nutritionEstimateSchema.parse(extractJson(raw))
+    return this.completeJson(nutritionEstimatePrompt(description), { temperature: 0 }, (j) => nutritionEstimateSchema.parse(j))
   }
 
   async suggestWorkout(another: boolean, ctx: SuggestContext): Promise<Suggestion> {
     const nudge = another ? '\n\nPick a DIFFERENT routine than you would normally default to.' : ''
-    const raw = await this.client.complete([{ role: 'user', content: suggestPrompt(ctx) + nudge }], { json: true })
-    return suggestSchema.parse(extractJson(raw))
+    return this.completeJson(suggestPrompt(ctx) + nudge, {}, (j) => suggestSchema.parse(j))
   }
 
   async agenda(ctx: ChatContext, memory?: MemoryDigest): Promise<AgendaResult> {
-    const raw = await this.client.complete(
-      [{ role: 'user', content: agendaPrompt(ctx, memory) }],
-      { json: true, maxTokens: INSIGHTS_MAX_TOKENS, temperature: 0 },
-    )
-    const parsed = agendaModelSchema.parse(extractJson(raw))
+    const parsed = await this.completeJson(agendaPrompt(ctx, memory), { maxTokens: INSIGHTS_MAX_TOKENS, temperature: 0 }, (j) => agendaModelSchema.parse(j))
     return {
       proposals: parsed.proposals.map((p, i) => {
         const pres = PROPOSAL_PRESENTATION[p.kind]
@@ -567,11 +583,7 @@ export class Pal {
   }
 
   async suggestions(surface: 'composer' | 'routineGoal', ctx: ChatContext | SuggestContext): Promise<SuggestionsResult> {
-    const raw = await this.client.complete(
-      [{ role: 'user', content: suggestionsPrompt(surface, ctx) }],
-      { json: true, maxTokens: INSIGHTS_MAX_TOKENS, temperature: 0 },
-    )
-    const parsed = suggestionsModelSchema.parse(extractJson(raw))
+    const parsed = await this.completeJson(suggestionsPrompt(surface, ctx), { maxTokens: INSIGHTS_MAX_TOKENS, temperature: 0 }, (j) => suggestionsModelSchema.parse(j))
     return {
       suggestions: parsed.suggestions.map((s) => ({
         label: s.label,
@@ -582,7 +594,7 @@ export class Pal {
               type: s.entry.type,
               title: s.entry.title,
               amount: s.entry.amount ?? null,
-              category: s.entry.category ?? null,
+              category: spendCategory(s.entry.category),
               minutes: s.entry.minutes ?? null,
             }
           : null,
@@ -594,8 +606,7 @@ export class Pal {
     // drop any exercise the model invented — the client can only resolve catalog ids.
     const known = new Set(exercises.map((e) => e.id))
     const draw = async (): Promise<GeneratedRoutine> => {
-      const raw = await this.client.complete([{ role: 'user', content: routinePrompt(goal, exercises, memory) }], { json: true, maxTokens: ROUTINE_MAX_TOKENS })
-      const parsed = routineSchema.parse(extractJson(raw))
+      const parsed = await this.completeJson(routinePrompt(goal, exercises, memory), { maxTokens: ROUTINE_MAX_TOKENS }, (j) => routineSchema.parse(j))
       return { ...parsed, exercises: parsed.exercises.filter((e) => known.has(e.exerciseId)) }
     }
     let routine = await draw()

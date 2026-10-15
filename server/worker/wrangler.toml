@@ -7,7 +7,7 @@ alias = { "zod" = "./node_modules/zod/index.js" }
 [vars]
 CORS_ORIGINS = "http://localhost:8080"
 OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
-PAL_MODEL = "deepseek/deepseek-v4-flash"
+PAL_MODEL = "deepseek/deepseek-v4.1-flash"
 PAL_REQUEST_TIMEOUT_MS = "30000"
 
 [[routes]]

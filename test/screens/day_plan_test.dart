@@ -6,8 +6,9 @@ import 'package:opal/models/models.dart';
 import 'package:opal/screens/today/day_plan.dart';
 import 'package:opal/services/pal/pal_service.dart' show PalAgenda, PalProposal;
 
-// 2:00 PM: a 7:00 AM routine is overdue, a 9:00 PM one is still ahead.
-final _now = DateTime(2026, 10, 4, 14);
+// 8:30 AM: a 7:00 AM routine is overdue but not yet missed, a 9:00 PM one is
+// still ahead.
+final _now = DateTime(2026, 10, 4, 8, 30);
 final _yesterday = DateTime(2026, 10, 3, 14);
 
 const _proposal = PalProposal(
@@ -363,6 +364,66 @@ void main() {
       final over = session.settle('mood', done: true).settle('meal', done: true);
       expect(plan.palPick(over, _now, online), isNull);
       expect(plan.isPalPick(over, _now, online), isFalse);
+    });
+  });
+
+  group('missed items', () {
+    // 8:06 PM, the walkthrough's evening: Morning is 13 hours past its slot.
+    final evening = DateTime(2026, 10, 4, 20, 6);
+    final plan = _plan(
+      rituals: _rituals([_routine('morning', '7:00 AM'), _routine('evening', '9:30 PM')]),
+    );
+
+    test('a timed item past its slot by more than four hours goes to the end', () {
+      expect(_ids(plan.open(session, evening)),
+          ['mood', 'meal', 'closeOut', 'routine:morning']);
+    });
+
+    test('a timed item stays in the lead up to four hours past its slot', () {
+      final atEleven = DateTime(2026, 10, 4, 11);
+      expect(plan.open(session, atEleven).first.id, 'routine:morning');
+      final justAfter = DateTime(2026, 10, 4, 11, 1);
+      expect(plan.open(session, justAfter).last.id, 'routine:morning');
+    });
+
+    test('Routines care leads with the close-out over a missed morning routine', () {
+      final rules = LeadRules(care: [DetailTracker.rituals]);
+      expect(plan.open(session, evening, rules).first.id, 'closeOut');
+      final closedOut = session.settle('closeOut', done: true);
+      expect(plan.open(closedOut, evening, rules).first.id, 'routine:morning');
+    });
+  });
+
+  group('whyNote', () {
+    const online = LeadRules(palOnline: true);
+
+    test('names the clock reason, what else is open and the order rule', () {
+      final evening = DateTime(2026, 10, 4, 20, 6);
+      final plan = _plan(
+        rituals: _rituals([_routine('morning', '7:00 AM'), _routine('evening', '9:30 PM')]),
+      );
+      final settled = session.settle('mood', done: true).settle('meal', done: true);
+      final lead = plan.current(settled, evening, online)!;
+
+      final note = plan.whyNote(lead, settled, evening, online);
+
+      expect(lead.id, 'closeOut');
+      expect(note, startsWith('Today shows Close-out first. '
+          'It is the next thing on the clock, at 9:30 PM.'));
+      expect(note, contains('Still open after it: Routine morning (missed, was at 7:00 AM).'));
+      expect(note, contains("Today's order: an area in Needs care"));
+    });
+
+    test("names Needs care and Pal's proposals when they decide the lead", () {
+      final plan = _plan(agenda: const PalAgenda(proposals: [_legs, _proposal]));
+      final care = LeadRules(palOnline: true, care: [DetailTracker.money]);
+      final rent = plan.current(session, _now, care)!;
+      expect(plan.whyNote(rent, session, _now, care),
+          contains('Money needs care, and an area in Needs care always leads.'));
+
+      final legs = plan.current(session, _now, online)!;
+      expect(plan.whyNote(legs, session, _now, online),
+          contains("Pal proposed it, and Pal's proposals lead while Pal is online."));
     });
   });
 

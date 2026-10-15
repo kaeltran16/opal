@@ -102,17 +102,6 @@ class MoveState {
       recentSessions.fold(0, (sum, s) => sum + s.workout.prCount);
 }
 
-/// Relative-date label for a session start: "Today", "Yesterday", or "Nd ago"
-/// (calendar-day difference, not 24h windows). Pure so it is unit-testable.
-String relativeDateLabel(DateTime startedAt, DateTime now) {
-  final today = DateTime(now.year, now.month, now.day);
-  final day = DateTime(startedAt.year, startedAt.month, startedAt.day);
-  final days = today.difference(day).inDays;
-  if (days <= 0) return 'Today';
-  if (days == 1) return 'Yesterday';
-  return '${days}d ago';
-}
-
 /// Builds the Mon→Sun hero week-strip from this week's completed [workouts].
 /// A day reads "done" when at least one workout was completed on it; "today"
 /// follows [now]. Pure so it is unit-testable.

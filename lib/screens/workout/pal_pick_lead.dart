@@ -33,11 +33,13 @@ const String _errorMeta = 'Today';
 
 /// Pal's lead for the Workout tab and the routine picker: a running session,
 /// the day settled, or Pal's pick (loading, failed or ready), first match wins.
+/// Once a workout is logged today both read the settled line, so the picker
+/// never asks Pal for a second workout that contradicts the plan.
 class PalPickLead extends ConsumerWidget {
   const PalPickLead({super.key, this.onPicker = false});
 
-  /// On the routine picker the settled state is skipped and a failed pick
-  /// points at the list below instead of opening the picker again.
+  /// On the routine picker a failed pick points at the list below instead of
+  /// opening the picker again.
   final bool onPicker;
 
   @override
@@ -45,10 +47,8 @@ class PalPickLead extends ConsumerWidget {
     final runningId = ref.watch(runningSessionProvider);
     if (runningId != null) return _InProgress(routineId: runningId);
 
-    if (!onPicker) {
-      final settled = _settledLine(ref);
-      if (settled != null) return PalLead(label: _settledLabel, text: settled);
-    }
+    final settled = _settledLine(ref);
+    if (settled != null) return PalLead(label: _settledLabel, text: settled);
 
     final pick = ref.watch(palPickControllerProvider);
     if (pick.isLoading) {

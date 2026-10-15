@@ -38,8 +38,9 @@ export async function handle(request: Request, env: Env, overrides?: { pal?: Pal
   let res: Response
   try {
     res = await route(request, env, overrides)
-  } catch {
-    // never leak internals; log left to Worker observability (no prompts/PII here anyway).
+  } catch (err) {
+    // never leak internals to the client; the log carries the route and a log-safe reason.
+    console.error(JSON.stringify({ msg: 'request failed', route: new URL(request.url).pathname, status: 500, reason: failureReason(err) }))
     res = error('upstream', 'request failed', 500)
   }
   return withCors(res, request, origins)
@@ -134,7 +135,7 @@ async function routeAuthed(
     // stateless: one request == one batch == one LLM call. The client owns the
     // sync loop, concurrency, and per-batch failure isolation.
     const completer = overrides?.completer ?? makeClient(env)
-    return runPal(async () => ({ items: await extractFromCandidates(parsed.data.candidates, completer) }))
+    return runPal(pathname, async () => ({ items: await extractFromCandidates(parsed.data.candidates, completer) }))
   }
 
   const pal = overrides?.pal ?? makePal(env)
@@ -143,12 +144,28 @@ async function routeAuthed(
 
 // map a Pal handler's result to JSON, preserving the status contract the client
 // expects: OpenRouterError -> 502, anything else -> 500, both as `upstream`.
-async function runPal(fn: () => Promise<unknown>): Promise<Response> {
+// every failure is logged with its route and reason; the client only sees `upstream`.
+async function runPal(route: string, fn: () => Promise<unknown>): Promise<Response> {
   try {
     return json(await fn())
   } catch (err) {
-    return error('upstream', 'pal request failed', err instanceof OpenRouterError ? 502 : 500)
+    const status = err instanceof OpenRouterError ? 502 : 500
+    console.error(JSON.stringify({ msg: 'pal request failed', route, status, reason: failureReason(err) }))
+    return error('upstream', 'pal request failed', status)
   }
+}
+
+// a log-safe reason: provider errors and our own messages verbatim, but never the
+// model output that a JSON or schema failure would otherwise quote.
+function failureReason(err: unknown): string {
+  if (err instanceof OpenRouterError) return err.message
+  if (err instanceof SyntaxError) return 'SyntaxError: model output is not valid JSON'
+  // matched by name: server/src and the worker can each resolve their own zod copy.
+  if (err instanceof Error && err.name === 'ZodError') {
+    const issues = (err as Error & { issues: Array<{ path: Array<string | number>; code: string }> }).issues
+    return `ZodError: ${issues.map((i) => `${i.path.join('.') || '(root)'} ${i.code}`).join('; ')}`
+  }
+  return err instanceof Error ? `${err.name}: ${err.message}` : String(err)
 }
 
 async function routePal(
@@ -160,70 +177,70 @@ async function routePal(
     const raw = await request.json().catch(() => null)
     const parsed = parseBody.safeParse(raw)
     if (!parsed.success) return badRequest(parsed.error, raw)
-    return runPal(() => pal.parse(parsed.data.text))
+    return runPal(pathname, () => pal.parse(parsed.data.text))
   }
 
   if (pathname === '/v1/nutrition/estimate' && method === 'POST') {
     const raw = await request.json().catch(() => null)
     const parsed = nutritionEstimateBody.safeParse(raw)
     if (!parsed.success) return badRequest(parsed.error, raw)
-    return runPal(() => pal.estimateMeal(parsed.data.text))
+    return runPal(pathname, () => pal.estimateMeal(parsed.data.text))
   }
 
   if (pathname === '/v1/suggest-workout' && method === 'POST') {
     const raw = await request.json().catch(() => null)
     const parsed = suggestBody.safeParse(raw)
     if (!parsed.success) return badRequest(parsed.error, raw)
-    return runPal(() => pal.suggestWorkout(parsed.data.another, parsed.data.context))
+    return runPal(pathname, () => pal.suggestWorkout(parsed.data.another, parsed.data.context))
   }
 
   if (pathname === '/v1/post-workout-note' && method === 'POST') {
     const raw = await request.json().catch(() => null)
     const parsed = postWorkoutBody.safeParse(raw)
     if (!parsed.success) return badRequest(parsed.error, raw)
-    return runPal(async () => ({ note: await pal.postWorkoutNote(parsed.data.context) }))
+    return runPal(pathname, async () => ({ note: await pal.postWorkoutNote(parsed.data.context) }))
   }
 
   if (pathname === '/v1/suggestions' && method === 'POST') {
     const raw = await request.json().catch(() => null)
     const parsed = suggestionsBody.safeParse(raw)
     if (!parsed.success) return badRequest(parsed.error, raw)
-    return runPal(() => pal.suggestions(parsed.data.surface, parsed.data.context))
+    return runPal(pathname, () => pal.suggestions(parsed.data.surface, parsed.data.context))
   }
 
   if (pathname === '/v1/review' && method === 'POST') {
     const raw = await request.json().catch(() => null)
     const parsed = reviewBody.safeParse(raw)
     if (!parsed.success) return badRequest(parsed.error, raw)
-    return runPal(async () => ({ text: await pal.review(parsed.data.context, await memory.digest(token)) }))
+    return runPal(pathname, async () => ({ text: await pal.review(parsed.data.context, await memory.digest(token)) }))
   }
 
   if (pathname === '/v1/insights' && method === 'POST') {
     const raw = await request.json().catch(() => null)
     const parsed = insightsBody.safeParse(raw)
     if (!parsed.success) return badRequest(parsed.error, raw)
-    return runPal(async () => pal.insights(parsed.data.context, await memory.digest(token)))
+    return runPal(pathname, async () => pal.insights(parsed.data.context, await memory.digest(token)))
   }
 
   if (pathname === '/v1/agenda' && method === 'POST') {
     const raw = await request.json().catch(() => null)
     const parsed = agendaBody.safeParse(raw)
     if (!parsed.success) return badRequest(parsed.error, raw)
-    return runPal(async () => pal.agenda(parsed.data.context, await memory.digest(token)))
+    return runPal(pathname, async () => pal.agenda(parsed.data.context, await memory.digest(token)))
   }
 
   if (pathname === '/v1/routine' && method === 'POST') {
     const raw = await request.json().catch(() => null)
     const parsed = routineBody.safeParse(raw)
     if (!parsed.success) return badRequest(parsed.error, raw)
-    return runPal(async () => pal.generateRoutine(parsed.data.goal, parsed.data.exercises, await memory.digest(token)))
+    return runPal(pathname, async () => pal.generateRoutine(parsed.data.goal, parsed.data.exercises, await memory.digest(token)))
   }
 
   if (pathname === '/v1/chat' && method === 'POST') {
     const raw = await request.json().catch(() => null)
     const parsed = chatBody.safeParse(raw)
     if (!parsed.success) return badRequest(parsed.error, raw)
-    return runPal(async () => {
+    return runPal(pathname, async () => {
       const res = await pal.chat(parsed.data.history, parsed.data.message, parsed.data.context, await memory.digest(token))
       await memory.applyOps(token, res.memoryOps) // server-side; not on the wire
       return { reply: res.reply, actions: res.actions }
@@ -234,7 +251,7 @@ async function routePal(
     const raw = await request.json().catch(() => null)
     const parsed = memoryRefreshBody.safeParse(raw)
     if (!parsed.success) return badRequest(parsed.error, raw)
-    return runPal(async () => {
+    return runPal(pathname, async () => {
       const patterns = await pal.refreshPatterns(parsed.data.context, await memory.digest(token))
       await memory.setPatterns(token, patterns)
       return memory.digest(token)

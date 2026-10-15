@@ -13,20 +13,28 @@ import 'package:opal/services/services.dart';
 /// A PalService whose `chat` returns a scripted reply (or throws to simulate the
 /// proxy being unreachable). Only `chat` is exercised; the rest are no-ops.
 class _FakePal implements PalService {
-  _FakePal({this.reply = 'Got it.', this.fails = false, this.actions = const []});
+  _FakePal({
+    this.reply = 'Got it.',
+    this.fails = false,
+    this.failStatus,
+    this.actions = const [],
+  });
 
   @override
   Future<PalAgenda> agenda() async => const PalAgenda();
 
   final String reply;
   final bool fails;
+
+  /// The proxy status a failure carries; null means the server was unreachable.
+  final int? failStatus;
   final List<PalAction> actions;
   final List<({List<PalMessage> history, String message})> chatCalls = [];
 
   @override
   Future<PalChatResult> chat(List<PalMessage> history, String message) async {
     chatCalls.add((history: history, message: message));
-    if (fails) throw const PalException('unreachable');
+    if (fails) throw PalException('failed', statusCode: failStatus);
     return PalChatResult(reply: reply, actions: actions);
   }
 
@@ -96,6 +104,27 @@ void main() {
       expect(pal.chatCalls.single.message, 'log my coffee');
       // history excludes the just-sent message.
       expect(pal.chatCalls.single.history, isEmpty);
+    });
+
+    test('an about note reaches Pal with the seed but never shows in the bubble',
+        () async {
+      final db = LoopDatabase.forTesting(NativeDatabase.memory());
+      addTearDown(db.close);
+      final pal = _FakePal(reply: 'Because it is next.');
+      final container = containerWith(db, pal);
+      final provider = palComposerControllerProvider(
+          seed: 'Why Close-out first?', about: 'It is the next thing on the clock.');
+      container.listen(provider, (_, _) {}, fireImmediately: true);
+
+      await Future<void>.delayed(Duration.zero);
+      final seedLine = container.read(provider).messages.first;
+      expect(seedLine.text, 'Why Close-out first?');
+      expect(pal.chatCalls.single.message,
+          'Why Close-out first?\n\n[App context, not typed by the user: It is the next thing on the clock.]');
+
+      // a follow-up carries the seed line, note included, as history.
+      await container.read(provider.notifier).send('and after that?');
+      expect(pal.chatCalls.last.history.first.modelText, contains('next thing on the clock'));
     });
   });
 
@@ -171,6 +200,23 @@ void main() {
       expect(await EntryRepository(db).getAll(), isEmpty);
     });
 
+    test('a question the server failed to answer says so, with no logging hint',
+        () async {
+      final db = LoopDatabase.forTesting(NativeDatabase.memory());
+      addTearDown(db.close);
+      final container =
+          containerWith(db, _FakePal(fails: true, failStatus: 502));
+      final notifier = container.read(palComposerControllerProvider().notifier);
+
+      final result =
+          await notifier.send(r'am I going to blow my $120 budget this week?');
+
+      expect(result, PalSendResult.completed);
+      final reply = container.read(palComposerControllerProvider()).messages.last;
+      expect(reply.text, "Pal couldn't answer that just now. Try again in a moment.");
+      expect(reply.offline, isTrue);
+    });
+
     test('a loggable free-text message signals the manual fallback when offline',
         () async {
       final db = LoopDatabase.forTesting(NativeDatabase.memory());
@@ -185,6 +231,7 @@ void main() {
       final state = container.read(palComposerControllerProvider());
       expect(state.isLoading, isFalse);
       expect(state.messages.last.text, contains("couldn't reach the server"));
+      expect(state.messages.last.text, contains('New Entry sheet'));
       expect(state.messages.last.offline, isTrue);
       // still nothing logged here — the manual sheet captures it.
       expect(await EntryRepository(db).getAll(), isEmpty);

@@ -35,11 +35,20 @@ class PalMessage {
     this.actions = const [],
     this.undone = false,
     this.offline = false,
+    this.note,
   });
 
   final PalRole role;
   final String text;
   final DateTime timestamp;
+
+  /// Context the app attaches to a user line for Pal to read, never shown in
+  /// the bubble: why Today leads with an item, a finding's evidence.
+  final String? note;
+
+  /// The line as Pal reads it: [text], then any [note] marked as app context.
+  String get modelText =>
+      note == null ? text : '$text\n\n[App context, not typed by the user: $note]';
 
   /// Mutations this turn applied (empty for user messages and plain replies).
   final List<PalAction> actions;
@@ -65,6 +74,7 @@ class PalMessage {
         actions: actions ?? this.actions,
         undone: undone ?? this.undone,
         offline: offline ?? this.offline,
+        note: note,
       );
 
   @override
@@ -76,11 +86,12 @@ class PalMessage {
           other.timestamp == timestamp &&
           other.undone == undone &&
           other.offline == offline &&
+          other.note == note &&
           _listEquals(other.actions, actions);
 
   @override
   int get hashCode =>
-      Object.hash(role, text, timestamp, undone, offline, Object.hashAll(actions));
+      Object.hash(role, text, timestamp, undone, offline, note, Object.hashAll(actions));
 }
 
 bool _listEquals<T>(List<T> a, List<T> b) {

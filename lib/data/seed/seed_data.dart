@@ -856,7 +856,8 @@ class SeedData {
         ),
         Workout(
           id: 'seed-workout-yday-legs',
-          routineId: null,
+          // linked, so Start workout's 'last done' agrees with Recent.
+          routineId: 'seed-routine-legs',
           name: 'Leg Day',
           startedAt: _daysAgoAt(1, 18, 0),
           endedAt: _daysAgoAt(1, 19, 2),

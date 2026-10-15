@@ -15,6 +15,8 @@ import 'package:opal/screens/today/today_logic.dart';
 import 'package:opal/theme/theme.dart';
 import 'package:opal/util/format.dart';
 import 'package:opal/widgets/glass_tab_bar.dart';
+import 'package:opal/widgets/pal_ask_bar.dart';
+import 'package:opal/widgets/session_row.dart';
 
 import '../support/flush_provider_timers.dart';
 import '../support/golden_harness.dart' show bootApp;
@@ -126,6 +128,35 @@ void main() {
 
     expect(_path(tester), '/move/history');
     expect(find.byType(WorkoutHistoryScreen), findsOneWidget);
+
+    await flushProviderTimers(tester);
+  });
+
+  testWidgets("History and trends' last session row scrolls clear of the ask bar",
+      (tester) async {
+    await bootApp(tester);
+    await tester.tap(_tab('Workout'));
+    await tester.pumpAndSettle();
+    _router(tester).go('/move/history');
+    await tester.pumpAndSettle();
+
+    // a jump, not a drag: the bars stay expanded, the most they cover.
+    final list = tester.state<ScrollableState>(find
+        .descendant(of: find.byType(WorkoutHistoryScreen), matching: find.byType(Scrollable))
+        .first);
+    // the lazy list's extent grows as rows build, so jump until it holds.
+    var end = -1.0;
+    while (list.position.maxScrollExtent != end) {
+      end = list.position.maxScrollExtent;
+      list.position.jumpTo(end);
+      await tester.pumpAndSettle();
+    }
+
+    final lastRow = tester.getRect(find
+        .descendant(of: find.byType(WorkoutHistoryScreen), matching: find.byType(SessionRow))
+        .last);
+    expect(lastRow.bottom, lessThanOrEqualTo(tester.getRect(find.byType(PalAskBar)).top));
+    expect(kShellOverlay, 132);
 
     await flushProviderTimers(tester);
   });

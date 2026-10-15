@@ -11,7 +11,7 @@ class PalAskBar extends StatelessWidget {
   const PalAskBar({super.key, required this.onAsk, required this.onMic});
 
   static const String _placeholder = 'Tell Pal anything';
-  static const double _height = 52;
+  static const double height = 52;
   static const double _micSize = 44;
   static const double _micGlyph = 20;
   static const double _inset = Spacing.xs;
@@ -24,7 +24,7 @@ class PalAskBar extends StatelessWidget {
     final c = context.colors;
     return GlassSurface(
       child: SizedBox(
-        height: _height,
+        height: height,
         child: Row(
           spacing: Spacing.sm,
           children: [
@@ -33,7 +33,7 @@ class PalAskBar extends StatelessWidget {
                 onTap: onAsk,
                 semanticLabel: _placeholder,
                 child: Container(
-                  height: _height,
+                  height: height,
                   padding: const EdgeInsets.only(left: Spacing.xl),
                   alignment: Alignment.centerLeft,
                   child: Text(

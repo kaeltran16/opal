@@ -274,6 +274,25 @@ void main() {
       expect(notDonePlan.doneCount, 0);
     });
 
+    test("a routine done on another day does not tick the day it is planned for", () {
+      // Push Day A planned Monday, done Wednesday: Monday stays open.
+      final onWednesday = Workout(
+        id: 'w2',
+        routineId: 'push',
+        name: 'Push',
+        startedAt: wednesday.add(const Duration(hours: 1)),
+      );
+      final plan = buildWeeklyPlan(
+        schedule: const [WeeklyPlanAssignment(weekday: 1, routineId: 'push')],
+        routines: [pushRoutine],
+        exercisesById: exercisesById,
+        workouts: [onWednesday],
+        now: wednesday,
+      );
+      expect(plan.days.first.done, isFalse);
+      expect(plan.doneCount, 0);
+    });
+
     test('summary counts ignore rest days; minutes sum est', () {
       final plan = buildWeeklyPlan(
         schedule: const [

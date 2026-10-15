@@ -362,15 +362,19 @@ class _NavLayout extends MultiChildLayoutDelegate {
       trailW = s.width;
     }
     if (hasChild(_Slot.compact)) {
-      // equal insets keep the compact title centred and clear of both sides.
+      // centred between equal insets when it fits there; a longer title takes
+      // all the room between the sides instead of being cut, as iOS does.
       final side = Spacing.lg + math.max(leadW, trailW) + _compactGap;
+      final left = Spacing.lg + (leadW > 0 ? leadW + _compactGap : 0);
+      final right = Spacing.lg + (trailW > 0 ? trailW + _compactGap : 0);
       final s = layoutChild(
         _Slot.compact,
-        BoxConstraints.loose(Size(math.max(0.0, size.width - 2 * side), _row)),
+        BoxConstraints.loose(Size(math.max(0.0, size.width - left - right), _row)),
       );
+      final centred = s.width <= size.width - 2 * side;
       positionChild(
         _Slot.compact,
-        Offset((size.width - s.width) / 2, (_row - s.height) / 2),
+        Offset(centred ? (size.width - s.width) / 2 : left, (_row - s.height) / 2),
       );
     }
     if (hasChild(_Slot.eyebrow)) {

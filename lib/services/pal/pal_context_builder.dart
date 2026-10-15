@@ -1,7 +1,7 @@
 import 'package:clock/clock.dart';
 
 import '../../models/models.dart';
-import '../../util/dates.dart' show startOfWeek;
+import '../../util/dates.dart' show relativeDateLabel, startOfWeek;
 import '../../util/format.dart';
 import 'pal_service.dart' show InsightRange, ReviewRange;
 
@@ -219,17 +219,22 @@ Map<String, Object?> buildInsightsContext({
   };
 }
 
+/// [plannedToday] is the weekly plan's routine for today, 'Rest' on a rest
+/// day, or null with no plan. Dates go out relative to [now] ('Today',
+/// 'Yesterday', '3d ago'): a calendar date gets echoed back into Pal's line.
 Map<String, Object?> buildSuggestContext({
   required List<Workout> recentWorkouts,
   required String dayOfWeek,
   required List<Routine> availableRoutines,
   required Map<String, Exercise> exercisesById,
+  required DateTime now,
+  String? plannedToday,
 }) {
   return {
     'recentWorkouts': recentWorkouts
         .map((w) => {
               'routineName': w.name,
-              'date': '${w.startedAt.month}/${w.startedAt.day}',
+              'date': relativeDateLabel(w.startedAt, now),
               'muscles': w.sets
                   .map((s) => _muscleLabel(exercisesById[s.exerciseId], s.exerciseId))
                   .toSet()
@@ -239,6 +244,7 @@ Map<String, Object?> buildSuggestContext({
     'dayOfWeek': dayOfWeek,
     'availableRoutines':
         availableRoutines.map((r) => {'id': r.id, 'name': r.name}).toList(),
+    'plannedToday': ?plannedToday,
   };
 }
 

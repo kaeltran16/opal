@@ -12,7 +12,7 @@ import '../../widgets/controls.dart';
 import '../../widgets/exercise_row.dart';
 import '../../widgets/inset_section.dart';
 import '../../widgets/nav_bar.dart';
-import '../you/sub_screen.dart' show kSubScreenShellOverlay;
+import '../shell/loop_shell.dart' show shellBottomInset;
 
 /// Common rest presets (seconds) offered by the rest segmented control.
 const List<int> _restPresets = [60, 90, 120, 180];
@@ -94,7 +94,7 @@ class _Body extends ConsumerWidget {
       leading: NavAction(icon: 'chevron.left', onTap: () => context.pop(), semanticLabel: 'Back'),
       padding: EdgeInsets.only(
         top: Spacing.sm,
-        bottom: kSubScreenShellOverlay + Spacing.xxl + MediaQuery.paddingOf(context).bottom,
+        bottom: shellBottomInset(context),
       ),
       children: [
         _NameField(value: draft.name, onChanged: controller.setName),
