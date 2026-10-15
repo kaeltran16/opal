@@ -8,7 +8,7 @@ import 'package:opal/data/db/database.dart';
 import 'package:opal/data/seed/seeder.dart';
 import 'package:opal/router.dart';
 import 'package:opal/screens/reflect/evening_close_out_screen.dart';
-import 'package:opal/screens/today/today_screen.dart' show todayCardKey;
+import 'package:opal/screens/today/today_screen.dart' show TodayScreen, todayCardKey;
 import 'package:opal/services/pal/mock_pal_service.dart';
 import 'package:opal/services/pal/pal_service.dart';
 import 'package:opal/theme/app_colors.dart';
@@ -80,7 +80,9 @@ void main() {
   // the hub's Needs you cards moved to Today's action card; a proposal is
   // approved from its row or its card, and put off from the card.
   group('Needs you on Today', () {
-    Finder undo() => find.bySemanticsLabel('Undo');
+    // the header's Undo; the shell's toast offers one too, outside Today.
+    Finder undo() =>
+        find.descendant(of: find.byType(TodayScreen), matching: find.bySemanticsLabel('Undo'));
     Finder card(String title) =>
         find.descendant(of: find.byKey(todayCardKey), matching: find.text(title));
 

@@ -9,6 +9,7 @@ import '../../widgets/state_colors.dart';
 import '../../widgets/glass_tab_bar.dart';
 import '../../widgets/pal_ask_bar.dart';
 import '../../router.dart';
+import 'plan_undo_toast.dart';
 
 /// The space between the tab bar and the ask bar above it.
 const double _askGapAbove = 10;
@@ -17,6 +18,11 @@ const double _askGapAbove = 10;
 /// the safe area.
 const double kShellOverlay =
     GlassTabBar.bottomGap + GlassTabBar.expandedHeight + _askGapAbove + PalAskBar.height;
+
+/// The space between the expanded composer's top and the plan toast above
+/// it. The toast keeps this place while the ask bar minimizes, so it never
+/// jumps on scroll.
+const double _toastGap = Spacing.sm;
 
 /// The bottom padding every scrolling screen under the shell ends with, so its
 /// last row scrolls clear of the floating bars. One value, so no page clips.
@@ -129,6 +135,12 @@ class _LoopShellState extends ConsumerState<LoopShell> {
               onNotification: _onUserScroll,
               child: widget.navigationShell,
             ),
+          ),
+          Positioned(
+            left: GlassTabBar.sideInset,
+            right: GlassTabBar.sideInset,
+            bottom: safeBottom + kShellOverlay + _toastGap,
+            child: const PlanUndoToast(),
           ),
           Positioned(
             left: 0,
