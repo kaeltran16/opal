@@ -40,20 +40,19 @@ void ignoreOverflowErrors() {
   };
 }
 
-/// Haptics for the full-app boots. The platform haptic is a channel call the
-/// test engine answers only on a real async turn, so a step that awaits one
-/// never finishes under the test's fake async.
+/// Haptics for the full-app boots: keeps the platform channel, which the test
+/// engine answers only on a real async turn, out of fake-async steps.
 class NoHaptics implements HapticsService {
   const NoHaptics();
 
   @override
-  Future<void> light() async {}
+  void light() {}
 
   @override
-  Future<void> medium() async {}
+  void medium() {}
 
   @override
-  Future<void> success() async {}
+  void success() {}
 }
 
 /// Pins the test surface so golden geometry is deterministic.

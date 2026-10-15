@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../controllers/insights_controller.dart';
 import '../../controllers/providers.dart';
 import '../../controllers/recap_controller.dart';
+import '../../router.dart';
 import '../../services/pal/pal_service.dart';
 import '../../theme/theme.dart';
 import '../../widgets/app_icon.dart';
@@ -233,7 +234,8 @@ class _OneThing extends StatelessWidget {
         const SizedBox(height: Spacing.lg),
         _SecondaryPill(
           label: 'Ask Pal more',
-          onTap: () => context.go('/pal-composer?seed=${Uri.encodeComponent(_askSeed)}'),
+          onTap: () => context.pushNamed(AppRoute.palComposer.name,
+              queryParameters: const {'seed': _askSeed}),
         ),
       ],
     );

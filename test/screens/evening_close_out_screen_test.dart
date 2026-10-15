@@ -130,9 +130,14 @@ void main() {
         .overrideWith((ref) => Stream<List<RitualRoutine>>.error(Exception('db closed'))),
   ]);
 
-  _closeOutTest('the Pal row opens the composer', (tester) async {
+  _closeOutTest('the Pal row opens the composer, and Close returns to the close-out',
+      (tester) async {
     await _tapLabel(tester, 'Ask Pal for a reflection prompt');
-
     expect(find.byType(PalComposerSheet), findsOneWidget);
+
+    await _tapLabel(tester, 'Close');
+
+    expect(find.byType(PalComposerSheet), findsNothing);
+    expect(find.text('Close out your day.'), findsOneWidget);
   });
 }

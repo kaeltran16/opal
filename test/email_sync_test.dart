@@ -22,11 +22,11 @@ import 'package:opal/widgets/app_icon.dart';
 /// A no-op [HapticsService] for container-only controller tests.
 class _NoHaptics implements HapticsService {
   @override
-  Future<void> light() async {}
+  void light() {}
   @override
-  Future<void> medium() async {}
+  void medium() {}
   @override
-  Future<void> success() async {}
+  void success() {}
 }
 
 /// Returns [items] on every [syncNow] so the dedup-on-re-sync path is

@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../controllers/rituals_controller.dart';
 import '../../models/models.dart';
+import '../../router.dart';
 import '../../theme/theme.dart';
 import '../../widgets/app_icon.dart';
 import '../../widgets/controls.dart';
@@ -314,7 +315,8 @@ class _PalRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     return PressScale(
-      onTap: () => context.go('/pal-composer?seed=${Uri.encodeComponent(_palSeed)}'),
+      onTap: () => context.pushNamed(AppRoute.palComposer.name,
+          queryParameters: const {'seed': _palSeed}),
       semanticLabel: _label,
       pressedScale: _rowPress,
       child: Container(

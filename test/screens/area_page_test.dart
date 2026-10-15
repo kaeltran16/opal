@@ -236,6 +236,24 @@ void main() {
     expect(find.text('Or pick a common one'), findsOneWidget);
   });
 
+  _pageTest('nutrition: a screen reader reaches the hero and each macro on its own',
+      (tester) async {
+    final handle = tester.ensureSemantics();
+    await _boot(tester, day: _fullDay);
+    await _open(tester, Area.nutrition);
+
+    // each block's own text, which no other block's node may carry.
+    const blocks = ['kcal eaten today', 'Protein', 'Carbs', 'Fat', 'Add a meal'];
+    for (final text in blocks) {
+      final label = tester.getSemantics(_onPage(find.text(text)).first).label;
+      expect(label, contains(text));
+      for (final other in blocks.where((b) => b != text)) {
+        expect(label, isNot(contains(other)), reason: '$text carries $other');
+      }
+    }
+    handle.dispose();
+  });
+
   _pageTest('nutrition with no meals today: zero, the empty line, and Add a meal',
       (tester) async {
     await _boot(tester);

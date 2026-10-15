@@ -251,10 +251,14 @@ void main() {
     final sheet = find.byType(PalComposerSheet);
     expect(sheet, findsOneWidget);
     expect(find.descendant(of: sheet, matching: find.text(question)), findsOneWidget);
+    final about = tester.widget<PalComposerSheet>(sheet).about;
+    // the reason rides with the question, so Pal explains the rule it was given.
+    expect(about, contains("Pal proposed it, and Pal's proposals lead while Pal is online."));
     final messages = ProviderScope.containerOf(tester.element(sheet))
-        .read(palComposerControllerProvider(seed: question))
+        .read(palComposerControllerProvider(seed: question, about: about))
         .messages;
     expect(messages.first.role, PalRole.user);
+    expect(messages.first.note, about);
     expect(messages.last.role, PalRole.assistant);
     expect(find.descendant(of: sheet, matching: find.text(messages.last.text)), findsOneWidget);
     await shot(tester, 'today_why_${_theme(dark)}');

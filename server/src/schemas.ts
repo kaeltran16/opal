@@ -73,6 +73,8 @@ export const suggestContext = z.object({
   recentWorkouts: z.array(z.object({ routineName: z.string(), date: z.string(), muscles: z.string() })),
   dayOfWeek: z.string(),
   availableRoutines: z.array(z.object({ id: z.string(), name: z.string() })),
+  // the weekly plan's routine for today, 'Rest' on a rest day.
+  plannedToday: z.string().nullable().optional(),
 })
 export const suggestBody = z.object({ another: z.boolean(), context: suggestContext })
 

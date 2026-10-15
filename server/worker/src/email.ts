@@ -16,7 +16,9 @@ export interface EmailImportDto {
 // One sanitized receipt candidate. The native client owns IMAP, MIME parsing,
 // sender filtering, dedup, body bounds, and PII redaction — the Worker never
 // sees credentials or unredacted bodies. `envelopeDate` is the IMAP envelope
-// date; the transaction date is re-derived server-side from `text`. `from` is
+// date; the transaction date is re-derived server-side from `text`, whose
+// wall-clock times are local to `utcOffsetMinutes` (the device's offset at the
+// envelope instant; absent reads them as UTC). `from` is
 // the merchant sender address (not user PII) and is left intact for merchant
 // inference. Bounds are defensive: the client already caps body size.
 export const emailCandidate = z.object({
@@ -25,6 +27,8 @@ export const emailCandidate = z.object({
   subject: z.string().max(1000),
   text: z.string().max(8000),
   envelopeDate: z.string().refine((s) => !Number.isNaN(Date.parse(s)), 'invalid date'),
+  // real offsets span UTC-12:00 to UTC+14:00.
+  utcOffsetMinutes: z.number().int().min(-720).max(840).optional(),
 })
 export type EmailCandidate = z.infer<typeof emailCandidate>
 
@@ -59,7 +63,7 @@ export async function extractFromCandidates(
       id: c.id,
       merchant: f.merchant,
       amount: -Math.abs(f.amount), // receipts are expenses
-      receivedAt: resolveReceivedAt(c.text, new Date(c.envelopeDate)).toISOString(),
+      receivedAt: resolveReceivedAt(c.text, new Date(c.envelopeDate), c.utcOffsetMinutes).toISOString(),
       category: f.category,
       orderRef: f.orderRef,
     })

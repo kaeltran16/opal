@@ -14,9 +14,8 @@ import '../../widgets/inset_section.dart';
 import '../../widgets/nav_bar.dart';
 import '../../widgets/pal_lead.dart';
 import '../../widgets/press_scale.dart';
+import '../shell/loop_shell.dart' show shellBottomInset;
 
-// clears the floating tab bar at the end of the scroll.
-const double _scrollTail = 110;
 const double _sectionGap = Spacing.xl;
 const double _textButtonHeight = 48;
 const int _promptMinLines = 3;
@@ -107,7 +106,7 @@ class _RoutineGeneratorScreenState
           label: 'Cancel',
           onTap: () => context.pop(),
         ),
-        padding: const EdgeInsets.only(bottom: _scrollTail),
+        padding: EdgeInsets.only(bottom: shellBottomInset(context)),
         children: [
           if (state is RoutineGeneratorResult)
             ..._result(state)

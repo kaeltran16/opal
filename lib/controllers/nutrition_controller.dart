@@ -299,7 +299,7 @@ class NutritionController extends _$NutritionController {
             macros: est.macros,
           ),
         );
-    await ref.read(hapticsServiceProvider).light();
+    ref.read(hapticsServiceProvider).light();
   }
 
   /// Edits an existing meal in place from a (possibly re-run) estimate. Keeps
@@ -321,7 +321,7 @@ class NutritionController extends _$NutritionController {
             macros: est.macros,
           ),
         );
-    await ref.read(hapticsServiceProvider).light();
+    ref.read(hapticsServiceProvider).light();
   }
 
   /// Meal slot for an hour of the day. Used by the add-by-hand sheet and Pal's

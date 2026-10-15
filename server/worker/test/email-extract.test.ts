@@ -40,6 +40,24 @@ describe('POST /v1/email/extract', () => {
     }])
   })
 
+  it('stamps a local receipt time with the candidate offset (VIB alert at UTC+7)', async () => {
+    const tok = await token()
+    const vib = {
+      id: 'vib-1', from: 'info@card.vib.com.vn', subject: 'VIB - Thong bao giao dich the',
+      text: 'So tien: 185.000 VND. Tai: HIGHLANDS COFFEE. Thoi gian: 13/10/2026 08:42.',
+      envelopeDate: '2026-10-13T01:43:00Z', utcOffsetMinutes: 420,
+    }
+    const canned = modelResults([{ index: 0, isReceipt: true, merchant: 'Highlands Coffee', amount: 185000, category: 'Food & Drink' }])
+    const res = await post(tok, { candidates: [vib] }, new StubCompleter({ text: canned }))
+    expect((await res.json() as any).items[0].receivedAt).toBe('2026-10-13T01:42:00.000Z')
+  })
+
+  it('400 on an offset outside the real UTC range', async () => {
+    const tok = await token()
+    const res = await post(tok, { candidates: [{ ...CAND, utcOffsetMinutes: 900 }] }, new StubCompleter({ text: '{}' }))
+    expect(res.status).toBe(400)
+  })
+
   it('returns an empty batch when nothing is a receipt', async () => {
     const tok = await token()
     const canned = modelResults([{ index: 0, isReceipt: false, merchant: null, amount: null, category: null }])

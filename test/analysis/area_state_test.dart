@@ -72,8 +72,13 @@ void main() {
       );
     });
 
-    test('exactly at budget late in the day is good', () {
-      expect(moneyState(spent: 60, budget: 60, now: _at(21)), AreaState.good);
+    test('nothing left before the day ends is watch; at its end, good', () {
+      expect(moneyState(spent: 60, budget: 60, now: _at(21)), AreaState.watch);
+      expect(moneyState(spent: 60, budget: 60, now: _at(22)), AreaState.good);
+    });
+
+    test('97.6% spent at 20:15 is watch, though on pace', () {
+      expect(moneyState(spent: 117.15, budget: 120, now: _at(20, 15)), AreaState.watch);
     });
 
     test('zero budget is good', () {
@@ -102,6 +107,12 @@ void main() {
 
     test('a spent share under elapsed plus slack is good', () {
       expect(budgetState(spent: 54, budget: 100, elapsed: 0.3), AreaState.good);
+    });
+
+    test('under a tenth left before the period ends is watch', () {
+      expect(budgetState(spent: 91, budget: 100, elapsed: 0.95), AreaState.watch);
+      expect(budgetState(spent: 90, budget: 100, elapsed: 0.95), AreaState.good);
+      expect(budgetState(spent: 91, budget: 100, elapsed: 1), AreaState.good);
     });
   });
 

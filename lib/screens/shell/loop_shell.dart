@@ -10,6 +10,19 @@ import '../../widgets/glass_tab_bar.dart';
 import '../../widgets/pal_ask_bar.dart';
 import '../../router.dart';
 
+/// The space between the tab bar and the ask bar above it.
+const double _askGapAbove = 10;
+
+/// What the floating tab bar and ask bar cover at the bottom of a tab, above
+/// the safe area.
+const double kShellOverlay =
+    GlassTabBar.bottomGap + GlassTabBar.expandedHeight + _askGapAbove + PalAskBar.height;
+
+/// The bottom padding every scrolling screen under the shell ends with, so its
+/// last row scrolls clear of the floating bars. One value, so no page clips.
+double shellBottomInset(BuildContext context) =>
+    kShellOverlay + Spacing.xxl + MediaQuery.paddingOf(context).bottom;
+
 /// The persistent app shell: the indexed-stack tab bodies (from go_router's
 /// [StatefulNavigationShell]) under a floating [GlassTabBar] and [PalAskBar].
 ///
@@ -37,7 +50,6 @@ class _LoopShellState extends ConsumerState<LoopShell> {
     GlassTab('you', 'You', 'person.crop.circle.fill'),
   ];
 
-  static const double _askGapAbove = 10;
   static const double _askGapBeside = Spacing.sm;
   static const Duration _transition = Duration(milliseconds: 240);
 

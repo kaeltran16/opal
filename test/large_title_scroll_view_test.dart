@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show RenderParagraph;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -120,5 +121,27 @@ void main() {
     final compact = tester.getRect(find.text(longTitle));
     expect(compact.overlaps(tester.getRect(find.byKey(trailingKey))), isFalse);
     expect(compact.overlaps(tester.getRect(find.byKey(leadingKey))), isFalse);
+  });
+
+  testWidgets('a collapsed title too wide for the centre takes the room beside the back label',
+      (tester) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    // the walkthrough cut 'History and tren...' beside a 'Workout' back label:
+    // centred between equal insets a title there had under 20px.
+    const title = 'History';
+    await pump(
+      tester,
+      title: title,
+      leading: NavAction(key: leadingKey, icon: 'chevron.left', label: 'Workout', onTap: () {}),
+    );
+
+    await tester.drag(find.byType(CustomScrollView), const Offset(0, -400));
+    await tester.pumpAndSettle();
+
+    final compact = find.text(title);
+    expect(tester.renderObject<RenderParagraph>(compact).didExceedMaxLines, isFalse);
+    expect(tester.getRect(compact).overlaps(tester.getRect(find.byKey(leadingKey))), isFalse);
   });
 }

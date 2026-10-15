@@ -372,7 +372,7 @@ void main() {
     expect(_row('Rent auto-pays', 'any time'), findsOneWidget);
   });
 
-  _todayTest('at text scale 2.0 rows and the when line hold one line and the lead three',
+  _todayTest('at text scale 2.0 rows and the when line hold one line and the lead shows in full',
       (tester) async {
     tester.platformDispatcher.textScaleFactorTestValue = 2.0;
     addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
@@ -393,9 +393,10 @@ void main() {
     );
     await _tap(tester, _more());
 
+    // past three serif lines Pal's line drops to body and is never cut.
     final lead = tester.renderObject<RenderParagraph>(_onToday(find.text(longHeadline)));
-    expect(tester.widget<Text>(_onToday(find.text(longHeadline))).maxLines, 3);
-    expect(lead.didExceedMaxLines, isTrue);
+    expect(tester.widget<Text>(_onToday(find.text(longHeadline))).maxLines, isNull);
+    expect(lead.didExceedMaxLines, isFalse);
     final row = tester.renderObject<RenderParagraph>(_onToday(find.text(_longTitle)));
     expect(row.didExceedMaxLines, isTrue);
     final when = tester.widget<Text>(_onToday(find.text('Any time')));

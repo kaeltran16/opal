@@ -268,11 +268,37 @@ void main() {
       dayOfWeek: 'Wed',
       availableRoutines: const [],
       exercisesById: catalog,
+      now: DateTime(2026, 6, 10, 20),
     );
 
     final muscles = (ctx['recentWorkouts'] as List).single as Map;
     final labels = (muscles['muscles'] as String).split(', ').toSet();
     expect(labels, {'Chest', 'Legs', 'mystery'});
+  });
+
+  test('buildSuggestContext sends relative days and the planned routine, never a date', () {
+    Workout on(DateTime at, String name) =>
+        Workout(id: name, routineId: name, name: name, startedAt: at, sets: const []);
+    final now = DateTime(2026, 10, 14, 20);
+
+    final ctx = buildSuggestContext(
+      recentWorkouts: [on(DateTime(2026, 10, 14, 7), 'Push Day A'), on(DateTime(2026, 10, 13, 18), 'Leg Day')],
+      dayOfWeek: 'Wednesday',
+      availableRoutines: const [],
+      exercisesById: const {},
+      now: now,
+      plannedToday: 'Push Day A',
+    );
+
+    final dates = [for (final w in ctx['recentWorkouts'] as List) (w as Map)['date']];
+    expect(dates, ['Today', 'Yesterday']);
+    expect(ctx['plannedToday'], 'Push Day A');
+
+    final unplanned = buildSuggestContext(
+      recentWorkouts: const [], dayOfWeek: 'Wednesday', availableRoutines: const [],
+      exercisesById: const {}, now: now,
+    );
+    expect(unplanned.containsKey('plannedToday'), isFalse);
   });
 
   test('buildPostWorkoutContext reads volume + PRs from the workout', () {

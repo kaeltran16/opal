@@ -145,7 +145,10 @@ void main() {
 
     expect(find.text('Start workout'), findsWidgets);
     expect(find.text('Pick a routine'), findsOneWidget);
-    expect(find.text("Pal's pick for today"), findsOneWidget);
+    // the seed logs a workout today, so Pal's lead is the settled line, not a
+    // second pick.
+    expect(find.textContaining('is done.'), findsOneWidget);
+    expect(find.text("Pal's pick for today"), findsNothing);
     expect(find.text('Strength'), findsOneWidget);
     expect(find.text('Pull Day A'), findsOneWidget);
 

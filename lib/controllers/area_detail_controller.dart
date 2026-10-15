@@ -272,21 +272,24 @@ AreaDetail _money(DetailData data, Currency currency, DateTime now) {
   final state = moneyState(spent: spent, budget: budget, now: now);
   String fmt(num v) => formatCurrency(v, currency);
 
+  // the hero already says how much; Pal's line says how the day is going.
   final String hero, unit, palLine;
   if (!hasBudget) {
     hero = fmt(spent);
     unit = 'spent today';
-    palLine = '$hero spent today.';
+    palLine = 'Set a daily budget to see your pace.';
   } else if (over) {
     hero = fmt(spent - budget);
     unit = 'over ${fmt(budget)} today';
-    palLine = '$hero over budget. Hold spending for today.';
+    palLine = 'Over budget. Hold spending for the rest of today.';
   } else {
     hero = fmt(data.remaining);
     unit = 'left of ${fmt(budget)} today';
-    palLine = state == AreaState.watch
-        ? '$hero left, and the day is not over.'
-        : '$hero left for today.';
+    palLine = budgetNearlySpent(spent: spent, budget: budget)
+        ? "Almost all of today's budget is spent."
+        : state == AreaState.watch
+            ? "Spending is ahead of the day's pace."
+            : "Spending is within the day's pace.";
   }
 
   final totals = _dayTotals(data);

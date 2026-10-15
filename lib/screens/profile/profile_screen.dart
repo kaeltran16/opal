@@ -22,11 +22,11 @@ import '../../widgets/app_icon.dart';
 import '../../widgets/nav_bar.dart';
 import '../../widgets/pal_label.dart';
 import '../../widgets/press_scale.dart';
+import '../shell/loop_shell.dart' show shellBottomInset;
 import '../today/day_plan.dart' show PlanItem, pendingProposals;
 import '../today/today_screen.dart' show actOnPlanItem;
 import '../you/autopilot_screen.dart';
 import '../you/pal_memory_screen.dart';
-import '../you/sub_screen.dart' show kSubScreenShellOverlay;
 
 const double _minTap = 44;
 const double _rowMinHeight = 48;
@@ -47,7 +47,6 @@ class ProfileScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final safe = MediaQuery.paddingOf(context);
     final name = ref.watch(settingsRepositoryProvider).displayNameOrDefault;
     final stats = ref.watch(profileStatsProvider);
     // the live workout streak from real entries, as the Move week strip and
@@ -67,7 +66,7 @@ class ProfileScreen extends ConsumerWidget {
       title: 'You',
       subtitle: youLine(name, streakDays, memberSince, clock.now()),
       padding: EdgeInsets.only(
-        bottom: kSubScreenShellOverlay + Spacing.xxl + safe.bottom,
+        bottom: shellBottomInset(context),
       ),
       children: [
         _Gutter(children: [
@@ -269,7 +268,7 @@ String _findingLabel(PalFinding f) {
 
 void _ask(BuildContext context, PalFinding f) => context.pushNamed(
     AppRoute.palComposer.name,
-    queryParameters: {'seed': f.question});
+    queryParameters: {'seed': f.question, 'about': f.palNote});
 
 /// The lead finding: the Pal eyebrow, the serif line, its a/b bars, then its
 /// evidence. The x dismisses it.

@@ -178,6 +178,9 @@ class NativeEmailSyncService implements EmailSyncService {
               'subject': boundText(redactPii(e.subject), kMaxSubjectChars),
               'text': boundText(redactPii(e.text), kMaxBodyChars),
               'envelopeDate': e.date.toUtc().toIso8601String(),
+              // receipt bodies carry local wall-clock times; the offset at the
+              // envelope instant lets the worker map them to UTC across DST.
+              'utcOffsetMinutes': e.date.toLocal().timeZoneOffset.inMinutes,
             })
         .toList();
   }

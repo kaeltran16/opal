@@ -1,5 +1,5 @@
 import type { MemoryDigest } from './memory.js'
-import { PRODUCT_FRAMING, money, type CurrencyDescriptor } from './product.js'
+import { PRODUCT_FRAMING, SPEND_CATEGORIES, money, type CurrencyDescriptor } from './product.js'
 
 export interface ChatContext {
   userName: string
@@ -61,6 +61,7 @@ export interface SuggestContext {
   recentWorkouts: Array<{ routineName: string; date: string; muscles: string }>
   dayOfWeek: string
   availableRoutines: Array<{ id: string; name: string }>
+  plannedToday?: string | null
 }
 
 export interface PostWorkoutContext {
@@ -100,6 +101,8 @@ Daily budget ${money(c.dailyBudget, c.currency)}, move goal ${c.moveGoalKcal}kca
 Spent ${money(c.spentToday, c.currency)} so far, moved ${c.movedTodayKcal}kcal, ${c.ritualsDoneToday}/${c.ritualGoal} rituals done.
 
 Week: ${money(c.weekSpent, c.currency)} of ${money(c.weekBudget, c.currency)} spent, ${c.weekMovedKcal}kcal moved, ${c.weekRitualsDone}/${c.weekRitualGoal} rituals. ${c.moveStreakDays}-day move streak.
+
+These entries and totals are current as of the user's latest message: anything logged earlier in this conversation ("Pal did: ...") is already in them, so never add it again.
 
 You can act, not just talk. When the user tells you they did, spent, or ate something, asks to change a goal, or asks for a workout routine, call the matching tool — for example "add $5 for coffee" calls log_expense, "ran 30 min" calls log_movement, "had a burrito for lunch" calls log_meal, "set my budget to $60" calls set_daily_budget, "build me a push day" calls create_routine. Only call a tool when the user clearly wants that change; for questions, just answer.
 
@@ -159,11 +162,11 @@ Return strictly: {"type": "money|move|rituals", "amount": number|null, "duration
 - type: "money" for spending/income, "move" for workouts/activity, "rituals" for habits/routines.
 - amount: the numeric amount for money (positive magnitude, no sign or currency symbol), else null. Expand magnitude suffixes: "k" = thousand, "m" = million (e.g. "50k" -> 50000, "1.5m" -> 1500000). Do not assume a currency.
 - duration: minutes for move, else null. A move count is a plain number — do not expand its magnitude suffix.
-- category: a short money category (e.g. Coffee, Dining, Transport), else null.
-- title: a short human label for the entry, with the amount and its suffix removed.
+- category: for money, one of ${SPEND_CATEGORIES.join(', ')} (prepared food and drinks are Food & Drink), else null.
+- title: a short human label for the entry, with the amount and its suffix removed. Keep the place or merchant when the user names one ("dinner at Tartine" -> "Dinner at Tartine").
 - direction: for money, "income" if the user received money, else "expense" (default when unclear). null for move and rituals.
-Example: "add $5 for coffee" -> {"type":"money","amount":5,"duration":null,"category":"Coffee","title":"Coffee","note":null,"direction":"expense"}
-Example: "spent 50k on ramen" -> {"type":"money","amount":50000,"duration":null,"category":"Dining","title":"Ramen","note":null,"direction":"expense"}
+Example: "add $5 for coffee" -> {"type":"money","amount":5,"duration":null,"category":"Food & Drink","title":"Coffee","note":null,"direction":"expense"}
+Example: "spent 50k on ramen" -> {"type":"money","amount":50000,"duration":null,"category":"Food & Drink","title":"Ramen","note":null,"direction":"expense"}
 Example: "got paid $500" -> {"type":"money","amount":500,"duration":null,"category":null,"title":"Paycheck","note":null,"direction":"income"}
 Example: "ran 30 min" -> {"type":"move","amount":null,"duration":30,"category":null,"title":"Run","note":null,"direction":null}
 No prose. Output only the JSON object. If ambiguous, guess from context.`
@@ -183,11 +186,17 @@ export function suggestPrompt(c: SuggestContext): string {
     ? c.recentWorkouts.map((w) => `${w.routineName} — ${w.date} — ${w.muscles}`).join('\n')
     : '(none this week)'
   const available = c.availableRoutines.map((r) => `${r.id}: ${r.name}`).join(', ')
-  return `The user logged these workouts this week:
+  const plan = !c.plannedToday
+    ? ''
+    : c.plannedToday === 'Rest'
+      ? ' Their weekly plan has today as a rest day.'
+      : ` Their weekly plan has ${c.plannedToday} today; prefer it unless their recent workouts already hit those muscles.`
+  return `The user's recent workouts, newest first (the day is relative to today):
 ${recent}
 
-Today is ${c.dayOfWeek}. Pick ONE routine from ${available} that balances their recent volume. Return strictly:
-{"routineId": string, "reason": "one sentence, specific, observational"}
+Today is ${c.dayOfWeek}.${plan} Pick ONE routine from ${available} that balances their recent volume. Return strictly:
+{"routineId": string, "reason": string}
+"reason" is one short sentence, at most 20 words, spoken to the user ("you"), saying why this routine fits today. Use only the workouts listed above; when the routine is not among them, do not say when it was last done. Name days as today, yesterday or a weekday, never as a date. No reasoning steps.
 No prose. Output only the JSON object.`
 }
 
@@ -239,7 +248,7 @@ Today is ${sc.dayOfWeek}. Vary muscle groups vs recent volume; keep each label u
   return `You are Pal in a money/movement/rituals app. Propose exactly 3 quick chips for ${name}: a mix of one-tap LOGS and short ASKS, grounded in time of day, what is not yet logged today, recent categories, and budget pace. Today's entries:
 ${entries}
 ${numbers}
-For a LOG chip: set "kind" log_money / log_move / log_ritual matching entry.type, colorToken to the pillar, "label" the phrase the user would say (e.g. "Verve coffee, $5"), and a matching "entry" (money amount SIGNED, negative = expense, with category; move with minutes; rituals title only). For an ASK chip: kind "ask", colorToken "accent", a short question label, entry null.${tail}`
+For a LOG chip: set "kind" log_money / log_move / log_ritual matching entry.type, colorToken to the pillar, "label" the phrase the user would say (e.g. "Verve coffee, $5"), and a matching "entry" (money amount SIGNED, negative = expense, with a category from ${SPEND_CATEGORIES.join(', ')}; move with minutes; rituals title only). For an ASK chip: kind "ask", colorToken "accent", a short question label, entry null.${tail}`
 }
 
 export interface ReceiptInput {
@@ -271,7 +280,7 @@ ${blocks}
 
 Return strictly: {"results": [{"index": number, "isReceipt": boolean, "merchant": string|null, "amount": number|null, "category": string|null, "orderRef": string|null}]}
 - Return exactly one result per email, in order, with index 0 for Email 1, 1 for Email 2, and so on.
-- isReceipt: true ONLY when the email confirms money was actually charged to the user (a paid receipt or a paid order confirmation). Set it false for pending or unconfirmed orders, order/booking confirmations awaiting payment, delivery or shipping status updates, tracking notifications, refunds, and review or feedback requests.
+- isReceipt: true when the email confirms money was actually charged to the user: a paid receipt, a paid order confirmation, a card or wallet transaction alert, or an order notice (a delivered order included) that states the total the user paid. Emails may be in Vietnamese without accents ("Tong thanh toan" is the total paid, "da giao" is delivered). Set it false for pending or unconfirmed orders, order/booking confirmations awaiting payment, delivery, shipping or tracking updates that state no amount paid, refunds, and review or feedback requests.
 - merchant: the store/brand name (not the email sender domain).
 - amount: the total charged as a positive number, no currency symbol. null if not found.
 - category: one of Food & Drink, Groceries, Bills & Utilities, Shopping, Transport, Entertainment, Health. Use "Food & Drink" for prepared food or drinks (restaurants, cafes, food delivery) and "Groceries" for supermarket purchases.

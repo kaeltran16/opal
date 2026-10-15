@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { chatSystemPrompt, reviewPrompt, insightsPrompt, parsePrompt, suggestPrompt, postWorkoutPrompt, routinePrompt, receiptsBatchPrompt, memoryBlock, agendaPrompt, memoryPatternsPrompt, nutritionEstimatePrompt } from './prompts.js'
-import { RECEIPT_CATEGORIES } from './receipts.js'
+import { SPEND_CATEGORIES } from './product.js'
 
 describe('prompts', () => {
   it('chat system prompt substitutes user data', () => {
@@ -20,6 +20,15 @@ describe('prompts', () => {
     expect(p).toContain('1800kcal moved')
     expect(p).toContain('11-day move streak')
     expect(p).toContain('Never say "amazing" or "great job"')
+  })
+
+  it('chat system prompt says its totals already include what the conversation logged', () => {
+    const p = chatSystemPrompt({
+      userName: 'Kael', todayEntries: [], dailyBudget: 60, moveGoalKcal: 400, ritualGoal: 5,
+      spentToday: 0, movedTodayKcal: 0, ritualsDoneToday: 0, weekSpent: 0, weekBudget: 420,
+      weekMovedKcal: 0, weekRitualsDone: 0, weekRitualGoal: 35, moveStreakDays: 0, hourOfDay: 8, weekday: 6,
+    })
+    expect(p).toContain('anything logged earlier in this conversation ("Pal did: ...") is already in them')
   })
 
   it('chat system prompt tells Pal it can take logging/goal actions via tools', () => {
@@ -177,6 +186,16 @@ describe('prompts', () => {
     expect(p).toContain('routineId')
   })
 
+  it('suggest prompt names the planned routine and asks for a short line with no dates', () => {
+    const base = { recentWorkouts: [], dayOfWeek: 'Wednesday', availableRoutines: [{ id: 'r1', name: 'Legs' }] }
+    expect(suggestPrompt({ ...base, plannedToday: 'Leg Day' })).toContain('Their weekly plan has Leg Day today')
+    expect(suggestPrompt({ ...base, plannedToday: 'Rest' })).toContain('today as a rest day')
+    expect(suggestPrompt(base)).not.toContain('weekly plan')
+    const p = suggestPrompt(base)
+    expect(p).toContain('at most 20 words')
+    expect(p).toContain('never as a date')
+  })
+
   it('post-workout prompt includes PRs and trend', () => {
     const p = postWorkoutPrompt({
       routineName: 'Push A', setCount: 18, volumeKg: 5400, prCount: 2,
@@ -214,7 +233,7 @@ describe('prompts', () => {
 
   it('receipts batch prompt lists every category the schema accepts (drift guard)', () => {
     const p = receiptsBatchPrompt([{ from: 'a@b.com', subject: 's', text: 't' }])
-    for (const c of RECEIPT_CATEGORIES) expect(p).toContain(c)
+    for (const c of SPEND_CATEGORIES) expect(p).toContain(c)
   })
 
   it('receipts batch prompt rejects pending/delivery/tracking/refund/review emails', () => {
@@ -225,6 +244,12 @@ describe('prompts', () => {
     expect(p).toContain('tracking')
     expect(p).toContain('refund')
     expect(p).toContain('review')
+  })
+
+  it('receipts batch prompt counts an order notice that states the total paid, delivered included', () => {
+    const p = receiptsBatchPrompt([{ from: 'a@b.com', subject: 's', text: 't' }])
+    expect(p).toContain('a delivered order included) that states the total the user paid')
+    expect(p).toContain('updates that state no amount paid')
   })
 
   it('receipts batch prompt asks for the stated order number, never an invented one', () => {

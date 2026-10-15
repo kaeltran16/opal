@@ -10,8 +10,12 @@ import 'pal_service.dart';
 
 /// Raised when the proxy is unreachable or returns a non-2xx (after one retry).
 class PalException implements Exception {
-  const PalException(this.message);
+  const PalException(this.message, {this.statusCode});
   final String message;
+
+  /// The proxy's HTTP status when it answered with an error; null when the
+  /// request never got an answer (network failure or timeout).
+  final int? statusCode;
   @override
   String toString() => 'PalException: $message';
 }
@@ -133,7 +137,7 @@ class HttpPalService implements PalService {
     }
 
     if (res.statusCode < 200 || res.statusCode >= 300) {
-      throw PalException('proxy returned ${res.statusCode}');
+      throw PalException('proxy returned ${res.statusCode}', statusCode: res.statusCode);
     }
     // Decode UTF-8 explicitly: Pal replies use em-dashes and other non-latin1 glyphs.
     return jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
@@ -142,9 +146,7 @@ class HttpPalService implements PalService {
   @override
   Future<PalChatResult> chat(List<PalMessage> history, String message) async {
     final body = {
-      'history': history
-          .map((m) => {'role': m.role == PalRole.user ? 'user' : 'assistant', 'text': m.text})
-          .toList(),
+      'history': _historyWire(history),
       'message': message,
       'context': await context.chat(),
     };
@@ -156,6 +158,42 @@ class HttpPalService implements PalService {
         .toList();
     return PalChatResult(reply: json['reply'] as String? ?? '', actions: actions);
   }
+
+  /// The transcript as the model should read it. A failed turn (an [PalMessage.offline]
+  /// reply and the user line it answered) never reached Pal, so it is left out;
+  /// an assistant turn that applied actions says what it did, since logged
+  /// entries carry no prose of their own and the model would otherwise think
+  /// nothing was logged.
+  static List<Map<String, String>> _historyWire(List<PalMessage> history) {
+    final wire = <Map<String, String>>[];
+    for (var i = 0; i < history.length; i++) {
+      final m = history[i];
+      final failedTurn = m.offline ||
+          (m.role == PalRole.user && i + 1 < history.length && history[i + 1].offline);
+      if (failedTurn) continue;
+      if (m.role == PalRole.user) {
+        wire.add({'role': 'user', 'text': m.modelText});
+        continue;
+      }
+      final done = m.actions.map(_describeAction).join('; ');
+      final note = done.isEmpty ? '' : (m.undone ? '(Pal did: $done. The user undid it.)' : '(Pal did: $done.)');
+      wire.add({'role': 'assistant', 'text': [m.text, note].where((s) => s.isNotEmpty).join(' ')});
+    }
+    return wire;
+  }
+
+  static String _describeAction(PalAction a) => switch (a) {
+        LogEntryAction(type: EntryType.money, :final amount?) => [
+            'logged ${amount < 0 ? 'expense' : 'income'} "${a.title}" ${formatLoggedAmount(amount.abs())}',
+            if (a.category != null) 'in ${a.category}',
+          ].join(' '),
+        LogEntryAction(type: EntryType.move, :final durationMinutes?) =>
+          'logged movement "${a.title}" $durationMinutes min',
+        LogEntryAction() => 'logged "${a.title}"',
+        LogMealAction() => 'logged meal "${a.name}" ${a.cal.lo}-${a.cal.hi} kcal',
+        SetGoalAction() => 'set ${a.target.name} to ${a.value}',
+        CreateRoutineAction() => 'created a routine for "${a.goal}"',
+      };
 
   /// Decodes one wire action by its `kind`. Returns null for unknown kinds or
   /// malformed payloads so a newer server can't break an older client.

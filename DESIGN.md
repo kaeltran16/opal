@@ -241,7 +241,8 @@ Oura's faces are licensed and are not bundled. Substitutes:
 - A round `ink` "+" at top right opens the Pal composer; anywhere else opens Today.
 
 **Lead** (the one big thing).
-- Pal's line in `lead`, at most three lines, followed by one card holding the next action.
+- Pal's line in `lead`, at most three lines, followed by one card holding the next action. A
+  longer line is never cut: it drops to `body` in `ink` and shows in full (`PalLeadText`).
 - The action card: icon, `label` line for when, `title` for what, one primary pill and at most
   one secondary pill.
 - Pal picks the lead and orders the day. Offline, the order falls back to the clock, and the
@@ -356,8 +357,9 @@ Applied in `lib/theme/`. Each row names what was done.
    is the fraction of that window elapsed: 0 at or before 07:00, 1 at or after 22:00, linear
    between. The first rule that matches wins.
    - Money: no budget (0 or less) is On track; spent over budget is Needs care; the share of
-     the budget spent 25 points or more ahead of `dayShare` is Worth watching; otherwise On
-     track. Money is never Ahead during the day.
+     the budget spent 25 points or more ahead of `dayShare` is Worth watching; under a tenth
+     of the budget left before the day ends is Worth watching; otherwise On track. Money is
+     never Ahead during the day. The same rule reads a budget over any period (envelopes).
    - Move and Routines: no goal (0 or less, or no routines) is On track; goal met is Ahead;
      under half the goal at or after 21:00 is Needs care; the share of the goal done 25
      points or more behind `dayShare` is Worth watching; otherwise On track.

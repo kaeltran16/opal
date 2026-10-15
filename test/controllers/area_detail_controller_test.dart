@@ -176,7 +176,7 @@ void main() {
       expect(d.hero, _usd(22));
       expect(d.unit, 'left of ${_usd(60)} today');
       expect(d.state, AreaState.good);
-      expect(d.palLine, '${_usd(22)} left for today.');
+      expect(d.palLine, "Spending is within the day's pace.");
       expect(d.goal, 60);
       expect(d.goalLabel, '${_usd(60)} daily budget');
 
@@ -195,7 +195,16 @@ void main() {
           now: DateTime(2026, 10, 1, 9));
 
       expect(d.state, AreaState.watch);
-      expect(d.palLine, '${_usd(22)} left, and the day is not over.');
+      expect(d.palLine, "Spending is ahead of the day's pace.");
+    });
+
+    test('almost all of the budget spent before the day ends is worth watching', () {
+      final d = _build(Area.money, [...today, _spend(17, 'Food')],
+          now: DateTime(2026, 10, 1, 20, 15));
+
+      expect(d.hero, _usd(5));
+      expect(d.state, AreaState.watch);
+      expect(d.palLine, "Almost all of today's budget is spent.");
     });
 
     test('over budget shows the overage, never a negative', () {
@@ -204,7 +213,7 @@ void main() {
       expect(d.hero, _usd(5));
       expect(d.unit, 'over ${_usd(60)} today');
       expect(d.state, AreaState.care);
-      expect(d.palLine, '${_usd(5)} over budget. Hold spending for today.');
+      expect(d.palLine, 'Over budget. Hold spending for the rest of today.');
       expect(d.contributors.first.off, isTrue);
       expect(d.contributors.first.fraction, 1);
       expect(d.contributors.first.value, '${_usd(65)} of ${_usd(60)}');
@@ -220,7 +229,7 @@ void main() {
       expect(d.hero, _usd(38));
       expect(d.unit, 'spent today');
       expect(d.state, AreaState.good);
-      expect(d.palLine, '${_usd(38)} spent today.');
+      expect(d.palLine, 'Set a daily budget to see your pace.');
       expect(d.contributors.first.value, _usd(38));
       expect(d.contributors.first.fraction, 0);
       expect(d.goal, 0);

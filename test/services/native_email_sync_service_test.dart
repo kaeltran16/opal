@@ -231,6 +231,22 @@ void main() {
       expect(sent['envelopeDate'], '2026-01-06T11:27:00.000Z');
     });
 
+    test('sends the device UTC offset at the envelope instant', () async {
+      final seen = <http.Request>[];
+      final mailbox = _FakeMailbox(emails: [_email(id: 'm1')]);
+      final service = await connected(okClient(seen), mailbox);
+
+      await service.syncNow();
+
+      final sent = (jsonDecode(seen.single.body)['candidates'] as List).single
+          as Map<String, Object?>;
+      final envelope = DateTime.parse(sent['envelopeDate']! as String);
+      expect(
+        sent['utcOffsetMinutes'],
+        envelope.toLocal().timeZoneOffset.inMinutes,
+      );
+    });
+
     test('drops repeated message ids before extraction', () async {
       final seen = <http.Request>[];
       final mailbox = _FakeMailbox(emails: [

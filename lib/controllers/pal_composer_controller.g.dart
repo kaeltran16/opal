@@ -19,7 +19,7 @@ final class PalComposerControllerProvider
   /// Owns the Pal-composer conversation and the [PalService.chat] round-trip.
   const PalComposerControllerProvider._({
     required PalComposerControllerFamily super.from,
-    required String? super.argument,
+    required ({String? seed, String? about}) super.argument,
   }) : super(
          retry: null,
          name: r'palComposerControllerProvider',
@@ -35,7 +35,7 @@ final class PalComposerControllerProvider
   String toString() {
     return r'palComposerControllerProvider'
         ''
-        '($argument)';
+        '$argument';
   }
 
   @$internal
@@ -62,7 +62,7 @@ final class PalComposerControllerProvider
 }
 
 String _$palComposerControllerHash() =>
-    r'066dd240c7bb9382506ca8d7a3715ba8b9ea7b7b';
+    r'f9456a0c98e599e93df2b2667d0f6a62b0bedbe4';
 
 /// Owns the Pal-composer conversation and the [PalService.chat] round-trip.
 
@@ -73,7 +73,7 @@ final class PalComposerControllerFamily extends $Family
           PalComposerState,
           PalComposerState,
           PalComposerState,
-          String?
+          ({String? seed, String? about})
         > {
   const PalComposerControllerFamily._()
     : super(
@@ -86,8 +86,11 @@ final class PalComposerControllerFamily extends $Family
 
   /// Owns the Pal-composer conversation and the [PalService.chat] round-trip.
 
-  PalComposerControllerProvider call({String? seed}) =>
-      PalComposerControllerProvider._(argument: seed, from: this);
+  PalComposerControllerProvider call({String? seed, String? about}) =>
+      PalComposerControllerProvider._(
+        argument: (seed: seed, about: about),
+        from: this,
+      );
 
   @override
   String toString() => r'palComposerControllerProvider';
@@ -96,14 +99,15 @@ final class PalComposerControllerFamily extends $Family
 /// Owns the Pal-composer conversation and the [PalService.chat] round-trip.
 
 abstract class _$PalComposerController extends $Notifier<PalComposerState> {
-  late final _$args = ref.$arg as String?;
-  String? get seed => _$args;
+  late final _$args = ref.$arg as ({String? seed, String? about});
+  String? get seed => _$args.seed;
+  String? get about => _$args.about;
 
-  PalComposerState build({String? seed});
+  PalComposerState build({String? seed, String? about});
   @$mustCallSuper
   @override
   void runBuild() {
-    final created = build(seed: _$args);
+    final created = build(seed: _$args.seed, about: _$args.about);
     final ref = this.ref as $Ref<PalComposerState, PalComposerState>;
     final element =
         ref.element

@@ -265,4 +265,15 @@ describe('resolveReceivedAt', () => {
   it('falls back to the envelope date when the body has no parseable date', () => {
     expect(resolveReceivedAt('Total $10', envelope).toISOString()).toBe(envelope.toISOString())
   })
+
+  it('reads a body time as local to the device offset (VIB alert in Vietnam, UTC+7)', () => {
+    const vibEnvelope = new Date('2026-10-13T01:43:00Z')
+    expect(resolveReceivedAt('Thoi gian: 13/10/2026 08:42.', vibEnvelope, 420).toISOString()).toBe('2026-10-13T01:42:00.000Z')
+    expect(resolveReceivedAt('Date: 13 Oct 2026, 19:05.', new Date('2026-10-13T12:06:00Z'), 420).toISOString()).toBe('2026-10-13T12:05:00.000Z')
+  })
+
+  it('keeps the envelope local time-of-day for a date-only body date under an offset', () => {
+    // 10:15:30Z is 17:15:30 at UTC+7; the body day is the local day.
+    expect(resolveReceivedAt('Invoice date: 8 Nov 2025', envelope, 420).toISOString()).toBe('2025-11-08T10:15:30.000Z')
+  })
 })

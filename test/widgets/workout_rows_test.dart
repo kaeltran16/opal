@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show RenderParagraph;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opal/theme/theme.dart';
@@ -143,6 +144,14 @@ void main() {
   });
 
   group('ExerciseRow', () {
+    testWidgets('the detail wraps instead of cutting the exercise list', (tester) async {
+      const detail = '6 exercises · 55 min · Yesterday · Back Squat, Romanian Deadlift, Leg Press';
+      await _pump(tester, const ExerciseRow(name: 'Leg Day', detail: detail));
+
+      expect(tester.widget<Text>(find.text(detail)).maxLines, isNull);
+      expect(tester.renderObject<RenderParagraph>(find.text(detail)).didExceedMaxLines, isFalse);
+    });
+
     testWidgets('the icon has no coloured tile and the row does not overflow at 1.3', (tester) async {
       await _pump(
         tester,
