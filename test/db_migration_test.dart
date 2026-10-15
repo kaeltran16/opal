@@ -5,6 +5,8 @@ import 'package:opal/data/repositories/repositories.dart';
 import 'package:opal/data/seed/seeder.dart';
 import 'package:opal/models/models.dart';
 
+import 'support/pre_v11_workout_tables.dart';
+
 /// Guards the v5->v6 re-base of the daily move goal from minutes to kcal.
 ///
 /// The first test exercises the real Drift `onUpgrade(5->6)` SQL: it stands up a
@@ -28,7 +30,7 @@ void main() {
           'daily_ritual_target INTEGER NOT NULL DEFAULT 5)');
       raw.execute("INSERT INTO goals (id) VALUES ('goals')");
       // later steps (v11) alter these, as they exist in any real v5 DB
-      _createWorkoutTables(raw);
+      createPreV11WorkoutTables(raw);
       raw.execute('PRAGMA user_version = 5');
     }));
     addTearDown(db.close);
@@ -65,7 +67,7 @@ void main() {
 /// and plank PR, a treadmill row and two old logged sets, stamped
 /// user_version 10.
 void _v10Schema(dynamic raw) {
-  _createWorkoutTables(raw);
+  createPreV11WorkoutTables(raw);
   raw.execute('INSERT INTO exercises VALUES '
       "('bench', 'Bench', 'Push', 'Chest', 'x', NULL, 92.5, 5), "
       "('plank', 'Plank', 'Core', 'Core', 'x', NULL, 0, 90), "
@@ -75,26 +77,6 @@ void _v10Schema(dynamic raw) {
       "('s1', 'w1', 'bench', 80, 5, 1, 0, 0), "
       "('s2', 'w1', 'plank', 0, 60, 1, 0, 1)");
   raw.execute('PRAGMA user_version = 10');
-}
-
-/// The pre-v11 exercises, workouts, set_logs and routine_exercises tables.
-void _createWorkoutTables(dynamic raw) {
-  raw.execute('CREATE TABLE exercises (id TEXT NOT NULL PRIMARY KEY, '
-      'name TEXT NOT NULL, "group" TEXT NOT NULL, muscle TEXT NOT NULL, '
-      'icon TEXT NOT NULL, equipment TEXT NULL, pr_weight_kg REAL NULL, '
-      'pr_reps INTEGER NULL)');
-  raw.execute('CREATE TABLE workouts (id TEXT NOT NULL PRIMARY KEY, '
-      'routine_id TEXT NULL, name TEXT NOT NULL, started_at INTEGER NOT NULL, '
-      'ended_at INTEGER NULL)');
-  raw.execute('CREATE TABLE set_logs (id TEXT NOT NULL PRIMARY KEY, '
-      'workout_id TEXT NOT NULL, exercise_id TEXT NOT NULL, '
-      'weight_kg REAL NOT NULL, reps INTEGER NOT NULL, '
-      'done INTEGER NOT NULL DEFAULT 0, is_p_r INTEGER NOT NULL DEFAULT 0, '
-      'position INTEGER NOT NULL DEFAULT 0)');
-  raw.execute('CREATE TABLE routine_exercises (id TEXT NOT NULL PRIMARY KEY, '
-      'routine_id TEXT NOT NULL, exercise_id TEXT NOT NULL, '
-      'position INTEGER NOT NULL, target_sets INTEGER NOT NULL DEFAULT 3, '
-      'target_reps INTEGER NULL, target_weight_kg REAL NULL)');
 }
 
 void _timedSetsMigration() {

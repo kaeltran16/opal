@@ -4,6 +4,8 @@ import 'package:opal/data/db/database.dart';
 import 'package:opal/data/repositories/repositories.dart';
 import 'package:opal/models/models.dart';
 
+import '../support/pre_v11_workout_tables.dart';
+
 const _pho = MealEstimate(
   name: 'Pho bo',
   cal: IntRange(450, 620),
@@ -106,6 +108,7 @@ void main() {
     // schema had no saved_foods table, so a successful read proves the
     // migration created it rather than onCreate having built a fresh DB.
     final upgraded = LoopDatabase.forTesting(NativeDatabase.memory(setup: (raw) {
+      createPreV11WorkoutTables(raw);
       raw.execute('PRAGMA user_version = 9');
     }));
     addTearDown(upgraded.close);
