@@ -3,20 +3,25 @@ import 'dart:async';
 import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:opal/controllers/rituals_controller.dart';
 import 'package:opal/controllers/today_controller.dart';
 import 'package:opal/data/seed/seed_data.dart';
 import 'package:opal/screens/pal/pal_composer_screen.dart';
 import 'package:opal/screens/reflect/evening_close_out_screen.dart';
 import 'package:opal/screens/rituals/routine_player_screen.dart';
 import 'package:opal/screens/today/today_screen.dart';
+import 'package:opal/models/models.dart' show RitualRoutine, RitualTone;
 import 'package:opal/screens/workout/start_workout_screen.dart';
+import 'package:opal/services/pal/pal_service.dart';
 import 'package:opal/theme/theme.dart';
 import 'package:opal/widgets/app_icon.dart';
 import 'package:opal/widgets/pal_label.dart';
 
 import 'support/flush_provider_timers.dart';
+import 'support/golden_harness.dart' show appRouter;
 import 'support/today_fixture.dart';
 
 final _monday = Clock.fixed(DateTime(2026, 9, 28, 9, 30));
@@ -27,6 +32,49 @@ const _longTitle = 'Stretch the hips and shoulders before the long desk session'
 const _otherLongTitle = 'Walk around the block and refill the water bottle again';
 const _offlineLabel = 'Pal is offline · next on the clock';
 const _headline = 'Steady start.';
+const _step = 'Two-minute wind-down';
+const _legsTitle = 'Move Legs day to Friday';
+const _minTap = 44.0;
+const _half = 0.5;
+
+/// Pal's two actionable proposals, as the mock sends them.
+const _addRitual = PalProposal(
+  id: 'add-wind-down-ritual',
+  tag: 'Rituals',
+  colorToken: 'rituals',
+  icon: 'sparkles',
+  title: 'Add a 2-min wind-down ritual',
+  body: 'A short wind-down could anchor it.',
+  approveLabel: 'Add ritual',
+  approveIcon: 'plus',
+  doneLabel: 'Added',
+  action: addRitualAction,
+  ritual: (routineId: 'evening', step: _step),
+);
+const _legs = PalProposal(
+  id: 'move-legs-friday',
+  tag: 'Workout',
+  colorToken: 'move',
+  icon: 'figure.run',
+  title: _legsTitle,
+  body: 'Friday is clear and open.',
+  approveLabel: 'Reschedule',
+  approveIcon: 'arrow.triangle.2.circlepath',
+  doneLabel: 'Moved',
+  action: rescheduleWorkoutAction,
+  slot: (weekday: 5, routineId: 'seed-routine-legs'),
+);
+
+/// An evening routine with no steps yet, so it is no close-out and an
+/// add-ritual proposal for it shows on Today.
+const _emptyEvening = RitualRoutine(
+  id: 'evening',
+  name: 'Evening wind-down',
+  time: '9:30 PM',
+  tone: RitualTone.evening,
+  icon: 'moon.stars.fill',
+  blurb: 'Close the day gently',
+);
 
 /// Only the mood check-in and Log a meal, so proposals set the count.
 const _bare = TodayDay(routines: [], workout: false);
@@ -64,6 +112,10 @@ Finder _why() => _onToday(find.text('Why this first'));
 Finder _row(String title, String when) => find.bySemanticsLabel('$title, $when. Do this next');
 
 Finder _rows() => find.bySemanticsLabel(RegExp(r'\. Do this next$'));
+
+/// The header's Undo, by what it names, or any Undo.
+Finder _undo([String? what]) => _onToday(
+    what == null ? find.bySemanticsLabel(RegExp(r'^Undo ')) : find.bySemanticsLabel('Undo $what'));
 
 Finder _more([int? n]) => _onToday(n == null
     ? find.textContaining('more later today')
@@ -173,25 +225,113 @@ void main() {
     await _boot(
       tester,
       day: const TodayDay(routines: []),
-      pal: TodayPal(proposals: [proposal('a', 'Rent auto-pays')]),
+      pal: TodayPal(proposals: const [_legs]),
     );
 
-    expect(_card('Rent auto-pays'), findsOneWidget);
-    expect(_onToday(find.text('Undo')), findsNothing);
+    expect(_card(_legsTitle), findsOneWidget);
+    expect(_undo(), findsNothing);
 
     await _tap(tester, find.text('Not now'));
-    expect(_onToday(find.text('Rent auto-pays')), findsNothing);
+    expect(_onToday(find.text(_legsTitle)), findsNothing);
     expect(_card('Push Day A'), findsOneWidget);
     expect(find.text('Any time · 55 min'), findsOneWidget);
-    expect(_onToday(find.text('Undo')), findsOneWidget);
+    expect(_onToday(find.text('Undo · $_legsTitle skipped')), findsOneWidget);
 
-    await _tap(tester, _onToday(find.text('Undo')));
-    expect(_card('Rent auto-pays'), findsOneWidget);
-    expect(_onToday(find.text('Undo')), findsNothing);
+    await _tap(tester, _undo('$_legsTitle skipped'));
+    expect(_card(_legsTitle), findsOneWidget);
+    expect(_undo(), findsNothing);
 
-    await _tap(tester, find.text('Got it'));
-    expect(_onToday(find.text('Rent auto-pays')), findsNothing);
-    expect(_onToday(find.text('Undo')), findsOneWidget);
+    await _tap(tester, find.text('Reschedule'));
+    expect(_onToday(find.text(_legsTitle)), findsNothing);
+    expect(_onToday(find.text('Undo · Leg Day on Friday')), findsOneWidget);
+  });
+
+  _todayTest('a skipped row names itself in Undo, and Undo brings it back', (tester) async {
+    await _boot(tester, day: _bare, pal: TodayPal(proposals: [proposal('a', 'Rent auto-pays')]));
+
+    await _tap(tester, _row('Mood check-in', 'any time'));
+    await _tap(tester, find.text('Not today'));
+
+    expect(_onToday(find.text('Undo · Mood check-in skipped')), findsOneWidget);
+    expect(_undo('Mood check-in skipped'), findsOneWidget);
+    expect(tester.getSize(_undo()).height, greaterThanOrEqualTo(_minTap));
+
+    await _tap(tester, _undo());
+    expect(_card('Mood check-in'), findsOneWidget);
+    expect(_undo(), findsNothing);
+  });
+
+  _todayTest('approving add-ritual on the card adds the step and Undo names it',
+      (tester) async {
+    await _boot(tester,
+        day: const TodayDay(routines: [_emptyEvening], workout: false),
+        pal: TodayPal(proposals: const [_addRitual]));
+
+    await _tap(tester, find.text('Add ritual'));
+
+    expect(_onToday(find.text(_addRitual.title)), findsNothing);
+    expect(_onToday(find.text('Undo · $_step added')), findsOneWidget);
+    expect(_undo('$_step added'), findsOneWidget);
+
+    await _tap(tester, _undo());
+    expect(_card(_addRitual.title), findsOneWidget);
+    expect(_undo(), findsNothing);
+  });
+
+  _todayTest('approved on You, Today names it in Undo and Undo removes the step',
+      (tester) async {
+    await _boot(tester,
+        day: const TodayDay(routines: [_emptyEvening], workout: false),
+        pal: TodayPal(proposals: const [_addRitual]));
+    final router = appRouter(tester);
+
+    router.go('/you');
+    await tester.pumpAndSettle();
+    await _tap(tester, find.bySemanticsLabel('Add ritual: ${_addRitual.title}'));
+    router.go('/today');
+    await tester.pumpAndSettle();
+
+    expect(_onToday(find.text('Undo · $_step added')), findsOneWidget);
+    await _tap(tester, _undo('$_step added'));
+
+    final evening = ProviderScope.containerOf(tester.element(find.byType(TodayScreen)))
+        .read(ritualsControllerProvider)
+        .requireValue
+        .routines
+        .firstWhere((r) => r.id == _emptyEvening.id);
+    expect(evening.steps, isEmpty);
+    expect(_card(_addRitual.title), findsOneWidget);
+  });
+
+  testWidgets('a 60 character skip ellipsises Undo within half the header at text scale 1.3',
+      (tester) async {
+    await withClock(_monday, () async {
+      final title = _longTitle.padRight(60, '.');
+      tester.view.physicalSize = _phone;
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.reset);
+      tester.platformDispatcher.textScaleFactorTestValue = 1.3;
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+      await bootToday(tester,
+          strictLayout: true, day: _bare, pal: TodayPal(proposals: [proposal('a', title)]));
+
+      await tester.ensureVisible(find.text('Not now'));
+      await tester.pumpAndSettle();
+      await _tap(tester, find.text('Not now'));
+      await tester.ensureVisible(_undo());
+      await tester.pumpAndSettle();
+
+      const date = 'MON 28 SEP · 9:30 AM';
+      final header = find.ancestor(of: find.text(date), matching: find.byType(Row)).first;
+      final width = tester.getSize(header).width;
+      expect(tester.getSize(_undo()).width, lessThanOrEqualTo(width * _half));
+      expect(tester.getSize(_undo()).height, greaterThanOrEqualTo(_minTap));
+      final label = _onToday(find.text('Undo · $title skipped'));
+      expect(tester.renderObject<RenderParagraph>(label).didExceedMaxLines, isTrue);
+      expect(tester.getSize(find.text(date)).width, greaterThanOrEqualTo(width * _half));
+      expect(tester.takeException(), isNull);
+      await flushProviderTimers(tester);
+    });
   });
 
   _todayTest('a timed lead reads its time', (tester) async {
@@ -271,7 +411,7 @@ void main() {
     expect(_onToday(find.text(_headline)), findsOneWidget);
     expect(_why(), findsOneWidget);
 
-    await _tap(tester, _onToday(find.text('Undo')));
+    await _tap(tester, _undo());
     expect(_card('Mood check-in'), findsOneWidget);
     expect(_why(), findsNothing);
   });

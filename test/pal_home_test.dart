@@ -79,7 +79,7 @@ void main() {
   // the hub's Needs you cards moved to Today's action card; a later row is
   // tapped first to bring its proposal onto the card.
   group('Needs you on Today', () {
-    Finder undo() => find.bySemanticsLabel('Undo');
+    Finder undo() => find.bySemanticsLabel(RegExp('^Undo '));
 
     // these run on the wall clock, so which item starts on the card varies,
     // and the row may sit behind the More button.

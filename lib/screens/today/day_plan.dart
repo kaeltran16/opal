@@ -35,6 +35,7 @@ class PlanItem {
     this.done = false,
     this.ref,
     this.area,
+    this.proposal,
   });
 
   final String id;
@@ -60,12 +61,47 @@ class PlanItem {
   /// The area a Needs care state can force this item to lead for.
   final DetailTracker? area;
 
+  /// The proposal this item stands for, which approving performs.
+  final PalProposal? proposal;
+
   /// The card's when line: "At 9:30 PM" or "Any time", then the detail.
   String get whenLabel {
     final minute = minuteOfDay;
     final when = minute == null ? 'Any time' : 'At ${clockLabel(minute)}';
     return detail == null ? when : '$when · $detail';
   }
+}
+
+/// A real change an approval made, which Undo reverses.
+sealed class PlanChange {
+  const PlanChange();
+}
+
+/// A step added to a ritual routine.
+class AddedRitualStep extends PlanChange {
+  const AddedRitualStep(this.routineId, this.stepId);
+
+  final String routineId;
+  final String stepId;
+}
+
+/// A weekly plan slot set, and the routine it held before (null for rest).
+class SetPlanSlot extends PlanChange {
+  const SetPlanSlot(this.weekday, this.priorRoutineId);
+
+  /// 1=Mon..7=Sun.
+  final int weekday;
+  final String? priorRoutineId;
+}
+
+/// One settled item: [label] is what Undo names, [change] what it reverses.
+/// A skip changes nothing.
+class PlanStep {
+  const PlanStep(this.id, this.label, [this.change]);
+
+  final String id;
+  final String label;
+  final PlanChange? change;
 }
 
 /// What the user did with the plan this session. In [settled], true is done
@@ -78,21 +114,23 @@ class PlanSession {
   });
 
   final Map<String, bool> settled;
-  final List<String> history;
+  final List<PlanStep> history;
   final String? selected;
 
-  PlanSession settle(String id, {required bool done}) => PlanSession(
+  PlanSession settle(String id,
+          {required bool done, String label = '', PlanChange? change}) =>
+      PlanSession(
         settled: {...settled, id: done},
-        history: [...history, id],
+        history: [...history, PlanStep(id, label, change)],
       );
 
   PlanSession undo() {
-    if (history.isEmpty) return this;
-    final last = history.last;
+    final last = lastStep;
+    if (last == null) return this;
     return PlanSession(
-      settled: {...settled}..remove(last),
+      settled: {...settled}..remove(last.id),
       history: history.sublist(0, history.length - 1),
-      selected: last,
+      selected: last.id,
     );
   }
 
@@ -100,6 +138,11 @@ class PlanSession {
       PlanSession(settled: settled, history: history, selected: id);
 
   bool get canUndo => history.isNotEmpty;
+
+  PlanStep? get lastStep => history.lastOrNull;
+
+  /// What the header's Undo names: "Mood check-in skipped".
+  String? get undoLabel => lastStep?.label;
 }
 
 /// What decides the lead beyond the clock. The default is the clock alone.
@@ -289,6 +332,7 @@ PlanItem proposalItem(PalProposal p) => PlanItem(
       skipLabel: _notNow,
       ref: p.id,
       area: DetailTracker.values.asNameMap()[p.colorToken],
+      proposal: p,
     );
 
 /// Every proposal in [agenda] not yet approved or put off in [session], in

@@ -12,6 +12,10 @@ part of 'plan_session_controller.dart';
 /// timeline, and You's Pal suggests, settle the same proposals here, so one
 /// approved or put off on either screen is gone from both.
 ///
+/// Approving a proposal performs it through the repositories, and Undo
+/// reverses it the same way. Each settles or pops only after its write, so a
+/// failed write leaves the plan as it was and throws for the screen to say so.
+///
 /// Kept alive so it outlives either screen. Not persisted, as Today's own
 /// session never was.
 
@@ -22,6 +26,10 @@ const planSessionControllerProvider = PlanSessionControllerProvider._();
 /// timeline, and You's Pal suggests, settle the same proposals here, so one
 /// approved or put off on either screen is gone from both.
 ///
+/// Approving a proposal performs it through the repositories, and Undo
+/// reverses it the same way. Each settles or pops only after its write, so a
+/// failed write leaves the plan as it was and throws for the screen to say so.
+///
 /// Kept alive so it outlives either screen. Not persisted, as Today's own
 /// session never was.
 final class PlanSessionControllerProvider
@@ -29,6 +37,10 @@ final class PlanSessionControllerProvider
   /// What the user did with today's plan this app session: Today's card and
   /// timeline, and You's Pal suggests, settle the same proposals here, so one
   /// approved or put off on either screen is gone from both.
+  ///
+  /// Approving a proposal performs it through the repositories, and Undo
+  /// reverses it the same way. Each settles or pops only after its write, so a
+  /// failed write leaves the plan as it was and throws for the screen to say so.
   ///
   /// Kept alive so it outlives either screen. Not persisted, as Today's own
   /// session never was.
@@ -60,11 +72,15 @@ final class PlanSessionControllerProvider
 }
 
 String _$planSessionControllerHash() =>
-    r'e74e6aeb1cf325af04ac748fc048b4d2717ec04f';
+    r'045459f69b81547dd824615cabd30d99a84a856e';
 
 /// What the user did with today's plan this app session: Today's card and
 /// timeline, and You's Pal suggests, settle the same proposals here, so one
 /// approved or put off on either screen is gone from both.
+///
+/// Approving a proposal performs it through the repositories, and Undo
+/// reverses it the same way. Each settles or pops only after its write, so a
+/// failed write leaves the plan as it was and throws for the screen to say so.
 ///
 /// Kept alive so it outlives either screen. Not persisted, as Today's own
 /// session never was.

@@ -459,7 +459,7 @@ void main() {
       final settled = session.settle('mood', done: true).settle('meal', done: false);
       final undone = settled.undo();
       expect(undone.settled, {'mood': true});
-      expect(undone.history, ['mood']);
+      expect(undone.history.map((s) => s.id), ['mood']);
       expect(undone.selected, 'meal');
     });
 
@@ -670,6 +670,20 @@ void main() {
     expect(clockLabel(7 * 60 + 5), '7:05 AM');
     expect(clockLabel(12 * 60), '12:00 PM');
     expect(clockLabel(21 * 60 + 30), '9:30 PM');
+  });
+
+  group('proposalItem', () {
+    test('carries the proposal it stands for', () {
+      final item = proposalItem(_addRitualProposal);
+      expect(item.kind, PlanKind.proposal);
+      expect(item.proposal, _addRitualProposal);
+    });
+
+    test('a close-out proposal still opens the close-out', () {
+      final item = proposalItem(_closeOutProposal);
+      expect(item.kind, PlanKind.closeOut);
+      expect(item.proposal, _closeOutProposal);
+    });
   });
 
   group('pendingProposals', () {
