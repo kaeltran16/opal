@@ -206,13 +206,11 @@ PalService palService(Ref ref) {
   final context = PalContextSource(
     chat: () async {
       final now = clock.now();
-      final today = await entries.watchToday(now).first;
-      final week = await entries
-          .watchEntriesInRange(
-            startOfWeek(now),
-            startOfDay(now).add(const Duration(days: 1)),
-          )
-          .first;
+      final today = await entries.getToday(now);
+      final week = await entries.getEntriesInRange(
+        startOfWeek(now),
+        startOfDay(now).add(const Duration(days: 1)),
+      );
       return buildChatContext(
         userName: settings.displayName,
         goals: await goals.get(),
@@ -240,7 +238,7 @@ PalService palService(Ref ref) {
             DateTime(anchor.year, anchor.month + 1, 0).day,
           ),
       };
-      final periodEntries = await entries.watchEntriesInRange(start, end).first;
+      final periodEntries = await entries.getEntriesInRange(start, end);
       final prevEntries = await entries.getEntriesInRange(prevStart, start);
 
       var spent = 0.0;
@@ -322,7 +320,7 @@ PalService palService(Ref ref) {
             DateTime(now.year, now.month + 1, 0).day,
           ),
       };
-      final windowEntries = await entries.watchEntriesInRange(start, end).first;
+      final windowEntries = await entries.getEntriesInRange(start, end);
       // streak needs a longer lookback than the window itself
       final lookback = await entries.getEntriesInRange(
         today.subtract(const Duration(days: 60)),
@@ -342,7 +340,7 @@ PalService palService(Ref ref) {
       );
     },
     suggest: (another, excludeRoutineId) async {
-      final recent = await workouts.watchWorkouts().first;
+      final recent = await workouts.getWorkouts();
       final all = await routines.getAll();
       final catalog = await routines.getAllExercises();
       // drop the rejected routine client-side (the model can only pick from this
@@ -359,7 +357,7 @@ PalService palService(Ref ref) {
       );
     },
     postWorkout: (workout) async {
-      final priors = (await workouts.watchWorkouts().first)
+      final priors = (await workouts.getWorkouts())
           .where((w) => w.routineId == workout.routineId && w.id != workout.id)
           .toList();
       double? lastVol;

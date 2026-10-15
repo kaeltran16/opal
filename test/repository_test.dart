@@ -252,6 +252,44 @@ void main() {
       final remainingSets = await db.select(db.setLogs).get();
       expect(remainingSets, isEmpty); // cascade removed the orphan set
     });
+
+    test('getWorkouts returns every workout newest first, with its sets', () async {
+      await db.into(db.exercises).insert(
+            ExercisesCompanion.insert(
+              id: 'bench',
+              name: 'Bench',
+              group: 'Push',
+              muscle: 'Chest',
+              icon: 'x',
+            ),
+          );
+      final repo = WorkoutRepository(db);
+      for (final (id, at) in [
+        ('older', DateTime(2026, 6, 8, 17, 0)),
+        ('newer', DateTime(2026, 6, 9, 17, 0)),
+      ]) {
+        await repo.insert(Workout(
+          id: id,
+          name: id,
+          startedAt: at,
+          sets: [SetLog(id: '$id-s1', exerciseId: 'bench', weightKg: 80, reps: 5)],
+        ));
+      }
+
+      final all = await repo.getWorkouts();
+      expect(all.map((w) => w.id), ['newer', 'older']);
+      expect(all.map((w) => w.sets.single.id), ['newer-s1', 'older-s1']);
+    });
+
+    testWidgets('getWorkouts completes under fake async', (tester) async {
+      final repo = WorkoutRepository(db);
+      var done = false;
+      unawaited(repo.getWorkouts().then((_) => done = true));
+      await tester.pump();
+      // a drift stream's `.first` would wait on a cancel future that fake
+      // async never completes.
+      expect(done, isTrue);
+    });
   });
 
   group('RoutineRepository', () {

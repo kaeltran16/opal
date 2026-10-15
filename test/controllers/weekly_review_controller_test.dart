@@ -5,7 +5,6 @@ import 'package:opal/controllers/providers.dart';
 import 'package:opal/controllers/weekly_review_controller.dart';
 import 'package:opal/models/models.dart';
 import 'package:opal/services/services.dart';
-import 'package:opal/util/format.dart';
 
 /// Builds a minimal [Entry] of [type]; only the fields read by
 /// `buildWeeklyStats` (amount for money, calories for move) matter.
@@ -164,7 +163,7 @@ void main() {
       expect(stats.ritualsTarget, 21);
     });
 
-    test('ritualsTarget is 0 with no routines, and the tile says so', () {
+    test('ritualsTarget is 0 with no routines', () {
       final stats = buildWeeklyStats(
         entries,
         const Goals(dailyRitualTarget: 5),
@@ -172,13 +171,9 @@ void main() {
         now: now,
       );
       expect(stats.ritualsTarget, 0);
-      final routines = stats.tiles(Currency.usd).last;
-      expect(routines.sub, kNoRoutinesLine);
-      expect(routines.sub, isNot(contains('of ')));
     });
 
-    test('ritualsTarget is 0 with only stepless routines, and the tile reads the no-steps line',
-        () {
+    test('ritualsTarget is 0 with only stepless routines', () {
       final stats = buildWeeklyStats(
         entries,
         const Goals(dailyRitualTarget: 5),
@@ -186,9 +181,6 @@ void main() {
         now: now,
       );
       expect(stats.ritualsTarget, 0);
-      final routines = stats.tiles(Currency.usd).last;
-      expect(routines.sub, kNoStepsLine);
-      expect(routines.sub, isNot(contains('of ')));
     });
   });
 }

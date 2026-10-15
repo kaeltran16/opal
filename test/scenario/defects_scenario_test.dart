@@ -44,6 +44,7 @@ import 'package:opal/widgets/glass_tab_bar.dart';
 import 'package:opal/widgets/nav_bar.dart';
 import 'package:opal/widgets/week_bars.dart';
 
+import '../support/failing_stream.dart';
 import '../support/golden_harness.dart' show appRouter;
 import '../support/today_fixture.dart';
 import 'scenario_harness.dart';
@@ -141,7 +142,7 @@ class _Rituals extends RitualRepository {
 
   @override
   Stream<List<RitualRoutine>> watchRoutines() => failLoad
-      ? Stream.error(StateError('routines query failed'))
+      ? failingStream<List<RitualRoutine>>(StateError('routines query failed'))
       : super.watchRoutines();
 
   @override

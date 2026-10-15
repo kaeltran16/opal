@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:opal/models/models.dart';
 import 'package:opal/services/pal/mock_pal_service.dart';
 import 'package:opal/services/pal/pal_service.dart';
+import 'package:opal/util/format.dart';
 
 void main() {
   final fast = const Duration(milliseconds: 1);
@@ -25,6 +26,26 @@ void main() {
     expect(byId['add-wind-down-ritual']!.addsRitual, isTrue);
     expect(byId['close-out-tonight']!.navigatesToCloseOut, isTrue);
     expect(byId['close-out-tonight']!.addsRitual, isFalse);
+  });
+
+  test('agenda money copy follows the display currency', () async {
+    final usd = await MockPalService(latency: fast).agenda();
+    final rent = usd.proposals.singleWhere((p) => p.id == 'hold-rent-40');
+    expect(rent.title, 'Set aside \$40 for rent');
+    expect(rent.approveLabel, 'Hold \$40');
+
+    final vnd = await MockPalService(latency: fast, currency: () => Currency.vnd)
+        .agenda();
+    final held = formatCurrency(40 * Currency.vnd.budgetScale, Currency.vnd);
+    final rentVnd = vnd.proposals.singleWhere((p) => p.id == 'hold-rent-40');
+    expect(rentVnd.title, 'Set aside $held for rent');
+    expect(rentVnd.approveLabel, 'Hold $held');
+    expect(rentVnd.doneLabel, 'Held $held in your Rent envelope');
+    final copy = [
+      rentVnd.title, rentVnd.body, rentVnd.approveLabel, rentVnd.doneLabel,
+      for (final a in vnd.autopilot) ...[a.title, a.subtitle],
+    ];
+    expect(copy.where((t) => t.contains('\$')), isEmpty);
   });
 
   group('chat logging', () {

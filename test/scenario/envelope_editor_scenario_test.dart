@@ -26,6 +26,7 @@ import 'package:opal/widgets/app_icon.dart';
 import 'package:opal/widgets/failure_note.dart';
 import 'package:opal/widgets/keypad.dart';
 
+import '../support/failing_stream.dart';
 import '../support/golden_harness.dart';
 import 'scenario_harness.dart';
 
@@ -85,7 +86,7 @@ class _StuckEnvelopes extends BudgetEnvelopesController {
   @override
   Stream<List<BudgetEnvelope>> build() {
     ref.onDispose(_stream.close);
-    return error ? Stream.error(StateError('no table')) : _stream.stream;
+    return error ? failingStream(StateError('no table')) : _stream.stream;
   }
 }
 

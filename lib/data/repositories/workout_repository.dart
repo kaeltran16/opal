@@ -16,17 +16,21 @@ class WorkoutRepository {
   final Uuid _uuid;
 
   /// All workouts (newest start first), each with its sets in stored order.
-  Stream<List<Workout>> watchWorkouts() {
-    final workoutQ = _db.select(_db.workouts)
-      ..orderBy([(t) => OrderingTerm.desc(t.startedAt)]);
-    return workoutQ.watch().asyncMap((rows) async {
-      final result = <Workout>[];
-      for (final row in rows) {
-        result.add(workoutFromRow(row, await _loadSets(row.id)));
-      }
-      return result;
-    });
-  }
+  Stream<List<Workout>> watchWorkouts() =>
+      _newestFirst().watch().asyncMap(_withSets);
+
+  /// One-shot fetch of [watchWorkouts]'s list. A single read should not go
+  /// through a stream: `.first` on a drift select stream waits on the
+  /// subscription's cancel future, which completes only on a real event-loop
+  /// turn, so it never settles under a widget test's fake async.
+  Future<List<Workout>> getWorkouts() async => _withSets(await _newestFirst().get());
+
+  SimpleSelectStatement<$WorkoutsTable, WorkoutRow> _newestFirst() =>
+      _db.select(_db.workouts)..orderBy([(t) => OrderingTerm.desc(t.startedAt)]);
+
+  Future<List<Workout>> _withSets(List<WorkoutRow> rows) async => [
+        for (final row in rows) workoutFromRow(row, await _loadSets(row.id)),
+      ];
 
   /// One-shot fetch of a single workout (with sets), or null.
   Future<Workout?> getById(String id) async {
