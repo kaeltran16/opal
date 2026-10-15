@@ -525,10 +525,8 @@ void main() {
 
   scenarioTest('closeout open', (tester, dark) async {
     await bootToday(tester, dark: dark);
-    final today = find.byType(TodayScreen);
-    await _tap(tester, find.descendant(of: today, matching: find.textContaining('more later today')));
-    // the row opens the close-out, as the card's pill does.
-    await _tap(tester, find.bySemanticsLabel('Close-out, at 9:30 PM. Do this next'));
+    // the Your day row opens the close-out, as the card's pill does.
+    await _tap(tester, find.bySemanticsLabel('Start: Close-out, 4 steps'));
 
     expect(find.byType(EveningCloseOutScreen), findsOneWidget);
     expect(find.text(_closeOutLead), findsOneWidget);
