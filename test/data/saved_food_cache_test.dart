@@ -108,7 +108,7 @@ void main() {
     // schema had no saved_foods table, so a successful read proves the
     // migration created it rather than onCreate having built a fresh DB.
     final upgraded = LoopDatabase.forTesting(NativeDatabase.memory(setup: (raw) {
-      raw.execute(v10RoutineExercises);
+      createV10WorkoutTables(raw);
       raw.execute('PRAGMA user_version = 9');
     }));
     addTearDown(upgraded.close);

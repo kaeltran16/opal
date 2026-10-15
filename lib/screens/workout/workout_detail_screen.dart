@@ -15,6 +15,7 @@ import '../../widgets/nav_bar.dart';
 import '../../widgets/pal_label.dart';
 import '../../widgets/press_scale.dart';
 import '../../widgets/stat_row.dart';
+import '../../widgets/timed_total.dart';
 import '../shell/loop_shell.dart' show shellBottomInset;
 
 const double _leadTop = Spacing.xl;
@@ -134,7 +135,7 @@ class _Lead extends StatelessWidget {
   String? get _record {
     for (final group in state.exercises) {
       for (final s in group.sets) {
-        if (s.done && s.isPR) return '${group.name}, ${formatWeight(s.weightKg)} kg';
+        if (s.done && s.isPR && !s.isTimed) return '${group.name}, ${formatWeight(s.weightKg)} kg';
       }
     }
     return null;
@@ -151,8 +152,12 @@ class _Lead extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(volume, style: AppType.display.copyWith(color: c.ink)),
-          Text('kg lifted', style: AppType.subhead.copyWith(color: c.ink2)),
+          if (w.isTimedSession)
+            TimedTotal(minutes: w.totalMinutes, km: w.totalKm)
+          else ...[
+            Text(volume, style: AppType.display.copyWith(color: c.ink)),
+            Text('kg lifted', style: AppType.subhead.copyWith(color: c.ink2)),
+          ],
           if (record != null) ...[
             const SizedBox(height: _recordTop),
             Row(
@@ -336,9 +341,11 @@ class _SetRow extends StatelessWidget {
   final int index;
   final SetLog set;
 
-  String get _load => set.weightKg == 0
-      ? '${set.reps} reps'
-      : '${formatWeight(set.weightKg)} kg × ${set.reps}';
+  String get _load => set.isTimed
+      ? formatTimed(set.minutes!, set.distanceKm ?? 0)
+      : set.weightKg == 0
+          ? '${set.reps} reps'
+          : '${formatWeight(set.weightKg)} kg × ${set.reps}';
 
   @override
   Widget build(BuildContext context) {
@@ -362,7 +369,7 @@ class _SetRow extends StatelessWidget {
               child: Text(_load,
                   style: AppType.subhead.copyWith(color: c.ink, fontFeatures: _tabular)),
             ),
-            if (set.isPR)
+            if (set.isPR && !set.isTimed)
               Text('New best', style: AppType.subhead.copyWith(color: c.thrivingInk)),
           ],
         ),

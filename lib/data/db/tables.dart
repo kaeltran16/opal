@@ -56,6 +56,9 @@ class Exercises extends Table {
   /// `ExercisePR.reps` — null when the exercise has no PR.
   IntColumn get prReps => integer().nullable()();
 
+  /// `Exercise.timed` — logged in minutes, not weight × reps (v12).
+  BoolColumn get timed => boolean().withDefault(const Constant(false))();
+
   @override
   Set<Column> get primaryKey => {id};
 }
@@ -100,8 +103,10 @@ class RoutineExercises extends Table {
   IntColumn get targetReps => integer().nullable()();
   RealColumn get targetWeightKg => real().nullable()();
 
-  /// Planned minutes per set for a timed set (a plank), else null.
+  /// Planned minutes per set for a timed set (v11), and its distance (v12);
+  /// null on a weighted slot.
   IntColumn get targetDurationMin => integer().nullable()();
+  RealColumn get targetKm => real().nullable()();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -139,6 +144,10 @@ class SetLogs extends Table {
 
   /// Preserves insertion order within a workout.
   IntColumn get position => integer().withDefault(const Constant(0))();
+
+  /// `SetLog.minutes` / `SetLog.distanceKm` (v12); null on a weighted set.
+  IntColumn get minutes => integer().nullable()();
+  RealColumn get distanceKm => real().nullable()();
 
   @override
   Set<Column> get primaryKey => {id};

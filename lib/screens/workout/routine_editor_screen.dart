@@ -30,6 +30,10 @@ const int _defaultReps = 8;
 const double _minWeight = 0;
 const double _maxWeight = 999;
 const double _weightStep = 2.5;
+const int _minMinutes = 1;
+const int _maxMinutes = 999;
+const double _minKm = 0;
+const double _maxKm = 999;
 
 /// Screen — Routine Editor (U21b). Creates a new routine ([routineId] null) or
 /// edits an existing one. Name field + tag/rest segmented controls + warmup and
@@ -145,12 +149,27 @@ class _Body extends ConsumerWidget {
           state: state,
           onReorder: controller.reorder,
           onRemove: controller.removeExercise,
-          onEdit: (slot) => _showTargetsSheet(
-            context,
-            slot: slot,
-            onSave: (sets, reps, weight) =>
-                controller.updateExerciseTargets(slot.id, sets: sets, reps: reps, weight: weight),
-          ),
+          onEdit: (slot) => state.exerciseFor(slot.exerciseId)?.timed ?? false
+              ? _showTimedTargetsSheet(
+                  context,
+                  slot: slot,
+                  onSave: (sets, minutes, km) => controller.updateTimedTargets(
+                    slot.id,
+                    sets: sets,
+                    minutes: minutes,
+                    km: km,
+                  ),
+                )
+              : _showTargetsSheet(
+                  context,
+                  slot: slot,
+                  onSave: (sets, reps, weight) => controller.updateExerciseTargets(
+                    slot.id,
+                    sets: sets,
+                    reps: reps,
+                    weight: weight,
+                  ),
+                ),
         ),
         InsetSection(
           children: [
@@ -345,6 +364,11 @@ class _ExerciseSlotRow extends StatelessWidget {
   final VoidCallback onRemove;
 
   String get _targets {
+    if (exercise?.timed ?? false) {
+      final base = '${slot.targetSets} × ${slot.targetDurationMin ?? kDefaultTimedMinutes} min';
+      final km = slot.targetKm;
+      return km != null && km > 0 ? '$base · ${formatKm(km)} km' : base;
+    }
     final minutes = slot.targetDurationMin;
     final each = slot.targetReps?.toString() ?? (minutes != null ? '$minutes min' : '—');
     final reps = '${slot.targetSets} × $each';
@@ -575,6 +599,85 @@ class _TargetsSheetState extends State<_TargetsSheet> {
             semanticLabel: 'Done',
             onTap: () {
               widget.onSave(_sets, _reps, _weight);
+              Navigator.of(context).pop();
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Opens a sheet to adjust a timed slot's sets, minutes and distance.
+Future<void> _showTimedTargetsSheet(
+  BuildContext context, {
+  required RoutineExercise slot,
+  required void Function(int sets, int minutes, double? km) onSave,
+}) {
+  return showAppSheet<void>(
+    context,
+    scrollable: true,
+    builder: (context) => _TimedTargetsSheet(slot: slot, onSave: onSave),
+  );
+}
+
+class _TimedTargetsSheet extends StatefulWidget {
+  const _TimedTargetsSheet({required this.slot, required this.onSave});
+  final RoutineExercise slot;
+  final void Function(int sets, int minutes, double? km) onSave;
+
+  @override
+  State<_TimedTargetsSheet> createState() => _TimedTargetsSheetState();
+}
+
+class _TimedTargetsSheetState extends State<_TimedTargetsSheet> {
+  late int _sets = widget.slot.targetSets;
+  late int _minutes = widget.slot.targetDurationMin ?? kDefaultTimedMinutes;
+  late double _km = widget.slot.targetKm ?? _minKm;
+
+  // steps in tenths so repeated adds never drift off one decimal.
+  void _stepKm(int tenths) => setState(
+      () => _km = ((_km * 10).round() + tenths).clamp(_minKm * 10, _maxKm * 10) / 10);
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return SingleChildScrollView(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text('Targets', style: AppType.title.copyWith(color: c.ink)),
+          const SizedBox(height: Spacing.sm),
+          _StepperRow(
+            label: 'Sets',
+            value: '$_sets',
+            first: true,
+            onDec: () => setState(() => _sets = (_sets - 1).clamp(_minSets, _maxSets)),
+            onInc: () => setState(() => _sets = (_sets + 1).clamp(_minSets, _maxSets)),
+          ),
+          _StepperRow(
+            label: 'Minutes',
+            value: '$_minutes',
+            unit: 'min',
+            onDec: () =>
+                setState(() => _minutes = (_minutes - 1).clamp(_minMinutes, _maxMinutes)),
+            onInc: () =>
+                setState(() => _minutes = (_minutes + 1).clamp(_minMinutes, _maxMinutes)),
+          ),
+          _StepperRow(
+            label: 'Distance',
+            value: _km > 0 ? formatKm(_km) : 'No distance',
+            unit: _km > 0 ? 'km' : null,
+            onDec: () => _stepKm(-1),
+            onInc: () => _stepKm(1),
+          ),
+          const SizedBox(height: Spacing.lg),
+          PillButton(
+            label: 'Done',
+            semanticLabel: 'Done',
+            onTap: () {
+              widget.onSave(_sets, _minutes, _km > 0 ? _km : null);
               Navigator.of(context).pop();
             },
           ),

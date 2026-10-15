@@ -133,14 +133,8 @@ class ProfileScreen extends ConsumerWidget {
     return facts.length == 1 ? '1 fact' : '${facts.length} facts';
   }
 
-  static String _autopilotValue(WidgetRef ref) {
-    final items = ref.watch(palAgendaProvider).asData?.value.autopilot;
-    // watched so a switch flipped on Autopilot recounts here.
-    ref.watch(autopilotSwitchesProvider);
-    if (items == null) return '';
-    final switches = ref.read(autopilotSwitchesProvider.notifier);
-    return '${items.where(switches.isOn).length} on';
-  }
+  static String _autopilotValue(WidgetRef ref) =>
+      '${ref.watch(automationsProvider).values.where((on) => on).length} on';
 }
 
 /// The line beside the You title: the workout streak, else how long the user
@@ -567,7 +561,7 @@ class _Suggestions extends ConsumerWidget {
           _SuggestionRow(
             item: item,
             onApprove: () => actOnPlanItem(context, ref, item),
-            onSkip: () => plan.settle(item.id, done: false),
+            onSkip: () => plan.skip(item),
           ),
       ],
     );

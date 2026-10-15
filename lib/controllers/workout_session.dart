@@ -25,17 +25,21 @@ class WorkoutSession {
     int? restSeconds,
   })  : _routine = routine,
         _exercisePrVolume = _seedPrHistory(exercises),
+        _timedIds = _timedIdsOf(exercises),
         _restSeconds = restSeconds ?? routine.restSeconds,
         _workout = Workout(
           id: workoutId,
           routineId: routine.id,
           name: routine.name,
           startedAt: startedAt ?? clock.now(),
-          sets: _seedSets(routine),
+          sets: _seedSets(routine, _timedIdsOf(exercises)),
         );
 
   final Routine _routine;
   final int _restSeconds;
+
+  /// Ids of catalog exercises logged in minutes rather than weight × reps.
+  final Set<String> _timedIds;
 
   /// Best historical `weight × reps` per exercise id, used as the PR baseline.
   /// Updated as new PRs are logged so later sets must beat the session best too.
@@ -112,8 +116,35 @@ class WorkoutSession {
     _startRest();
   }
 
+  /// Logs [minutes] (and optional [distanceKm]) against the current set as a
+  /// timed set, advances the cursor, and starts the rest timer. A timed set is
+  /// never a PR. No-op if there is no active set.
+  void logCurrentTimedSet({required int minutes, double? distanceKm}) {
+    final index = _absoluteCurrentIndex;
+    if (index == null) return;
+
+    final target = _workout.sets[index];
+    // built directly: copyWith cannot clear a seeded distance to null
+    _replaceSet(
+      index,
+      SetLog(
+        id: target.id,
+        exerciseId: target.exerciseId,
+        weightKg: 0,
+        reps: 0,
+        minutes: minutes,
+        distanceKm: distanceKm,
+        done: true,
+      ),
+    );
+
+    _advanceCursor();
+    _startRest();
+  }
+
   /// Appends another set to the current exercise, copying the last seeded set's
-  /// target weight/reps (not done). Returns the new set.
+  /// target weight/reps, or minutes/km on a timed exercise (not done). Returns
+  /// the new set.
   SetLog addSet() {
     final exerciseId = exerciseIds[_currentExerciseIndex];
     final exerciseSets =
@@ -129,7 +160,14 @@ class WorkoutSession {
 
     // seed a sensible default when the exercise has no set to copy from
     final template = exerciseSets.isEmpty
-        ? SetLog(id: '', exerciseId: exerciseId, weightKg: 0, reps: 0)
+        ? SetLog(
+            id: '',
+            exerciseId: exerciseId,
+            weightKg: 0,
+            reps: 0,
+            minutes:
+                _timedIds.contains(exerciseId) ? kDefaultTimedMinutes : null,
+          )
         : exerciseSets.last;
 
     // insert after the last set of this exercise to keep grouping contiguous;
@@ -251,21 +289,31 @@ class WorkoutSession {
 
   /// Seeds one [SetLog] per planned set across all routine exercises, using the
   /// slot's target weight/reps as prefilled values (0 when the routine omits a
-  /// target). Ids are deterministic so the UI can key rows stably.
-  static List<SetLog> _seedSets(Routine routine) {
+  /// target). A slot whose exercise is timed seeds its target minutes/km
+  /// instead, falling back to [kDefaultTimedMinutes] for a slot made before
+  /// targets existed. Ids are deterministic so the UI can key rows stably.
+  static List<SetLog> _seedSets(Routine routine, Set<String> timedIds) {
     final sets = <SetLog>[];
     for (final re in routine.orderedExercises) {
+      final timed = timedIds.contains(re.exerciseId);
       for (var i = 0; i < re.targetSets; i++) {
         sets.add(SetLog(
           id: '${re.id}-set-$i',
           exerciseId: re.exerciseId,
-          weightKg: re.targetWeightKg ?? 0,
-          reps: re.targetReps ?? 0,
+          weightKg: timed ? 0 : re.targetWeightKg ?? 0,
+          reps: timed ? 0 : re.targetReps ?? 0,
+          minutes: timed ? re.targetDurationMin ?? kDefaultTimedMinutes : null,
+          distanceKm: timed ? re.targetKm : null,
         ));
       }
     }
     return sets;
   }
+
+  static Set<String> _timedIdsOf(List<Exercise> exercises) => {
+        for (final e in exercises)
+          if (e.timed) e.id,
+      };
 
   /// Baseline PR volumes from the exercise catalog (`weight × reps`).
   static Map<String, double> _seedPrHistory(List<Exercise> exercises) {

@@ -2,6 +2,15 @@
 String formatWeight(double v) =>
     v == v.roundToDouble() ? v.toStringAsFixed(0) : v.toString();
 
+/// Renders a distance to one decimal without a trailing ".0" (3.0 -> "3",
+/// 3.24 -> "3.2").
+String formatKm(double km) => formatWeight(double.parse(km.toStringAsFixed(1)));
+
+/// "20 min" or "20 min · 3.2 km" for a timed set or session; the distance is
+/// left out when none was logged.
+String formatTimed(int minutes, double km) =>
+    ['$minutes min', if (km > 0) '${formatKm(km)} km'].join(' · ');
+
 /// A display currency. Amounts are stored as raw numbers in the user's chosen
 /// currency — switching currency changes formatting only, never stored values
 /// (there is no FX conversion). [budgetScale] scales the budget editor's presets

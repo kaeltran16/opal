@@ -18,7 +18,8 @@ import 'package:opal/screens/rituals/routine_player_screen.dart';
 import 'package:opal/models/models.dart' show RitualRoutine, RitualTone;
 import 'package:opal/screens/today/today_screen.dart';
 import 'package:opal/screens/workout/start_workout_screen.dart';
-import 'package:opal/services/pal/pal_service.dart' show PalProposal, PalRole;
+import 'package:opal/services/pal/pal_service.dart'
+    show PalProposal, PalRole, rescheduleWorkoutAction;
 import 'package:opal/theme/theme.dart';
 import 'package:opal/widgets/controls.dart';
 import 'package:opal/widgets/day_scene.dart';
@@ -30,6 +31,7 @@ import 'scenario_harness.dart';
 const _headline = 'A steady start. The morning routine is first.';
 const _rentTitle = 'Set aside \$40 for rent';
 const _capTitle = 'Cap dinner at \$10';
+const _legsTitle = 'Move Legs day to Friday';
 const _offlineLabel = 'Pal is offline · next on the clock';
 const _why = 'Why this first';
 
@@ -50,11 +52,13 @@ const _legs = PalProposal(
   tag: 'Workout',
   colorToken: 'move',
   icon: 'figure.run',
-  title: 'Move Legs day to Friday',
+  title: _legsTitle,
   body: 'Friday is clear and open.',
   approveLabel: 'Move it',
   approveIcon: 'checkmark',
   doneLabel: 'Moved',
+  action: rescheduleWorkoutAction,
+  slot: (weekday: 5, routineId: 'seed-routine-legs'),
 );
 
 const _cap = PalProposal(
@@ -113,7 +117,7 @@ Finder _more([int? n]) => _onToday(n == null
     ? find.textContaining('more later today')
     : find.text('$n more later today'));
 
-Finder _undo() => _onToday(find.text('Undo'));
+Finder _undo() => _onToday(find.bySemanticsLabel(RegExp(r'^Undo ')));
 
 /// Scrolls [finder] into view and taps it.
 Future<void> _tap(WidgetTester tester, Finder finder) async {
@@ -156,9 +160,11 @@ void main() {
     });
   }
 
+  // the lead is a proposal Approve can perform: moving Leg Day to Friday.
   scenarioTest('today action card', (tester, dark) async {
     final theme = _theme(dark);
-    await bootToday(tester, dark: dark, pal: _pal());
+    await bootToday(tester,
+        dark: dark, pal: TodayPal(headline: _headline, proposals: const [_legs]));
 
     await _tap(tester, _later('Mood check-in', 'any time'));
     await _toTop(tester);
@@ -168,17 +174,17 @@ void main() {
     await shot(tester, 'today_row_selected_$theme');
 
     await _tap(tester, find.text('Not today'));
-    expect(_card(_rentTitle), findsOneWidget);
-    expect(_undo(), findsOneWidget);
+    expect(_card(_legsTitle), findsOneWidget);
+    expect(_onToday(find.text('Undo · Mood check-in skipped')), findsOneWidget);
     await shot(tester, 'today_after_skip_$theme');
 
-    await _tap(tester, find.text('Hold \$40'));
-    expect(find.text(_rentTitle), findsNothing);
-    expect(_undo(), findsOneWidget);
+    await _tap(tester, find.text('Move it'));
+    expect(find.text(_legsTitle), findsNothing);
+    expect(_onToday(find.text('Undo · Leg Day on Friday')), findsOneWidget);
     await shot(tester, 'today_after_action_$theme');
 
     await _tap(tester, _undo());
-    expect(_card(_rentTitle), findsOneWidget);
+    expect(_card(_legsTitle), findsOneWidget);
     expect(_onToday(find.text('Now')), findsNothing);
     await shot(tester, 'today_after_undo_$theme');
   });

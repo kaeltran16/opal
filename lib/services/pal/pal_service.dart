@@ -476,6 +476,9 @@ const String closeOutAction = 'close_out';
 /// The [PalProposal.action] of a proposal to add a ritual.
 const String addRitualAction = 'add_ritual';
 
+/// The [PalProposal.action] of a proposal to move a routine to another weekday.
+const String rescheduleWorkoutAction = 'reschedule_workout';
+
 /// A cross-pillar action Pal proposes on the Pal Home hub for the user to
 /// approve (the "Needs you" list). Presentation is data-driven: [colorToken]
 /// picks the pillar accent and [icon]/[approveIcon] are SF-symbol names rendered
@@ -494,6 +497,8 @@ class PalProposal {
     required this.approveIcon,
     required this.doneLabel,
     this.action,
+    this.ritual,
+    this.slot,
   });
 
   final String id;
@@ -507,8 +512,15 @@ class PalProposal {
   final String doneLabel;
   final String? action;
 
+  /// The step an [addRitualAction] adds, to the ritual routine [ritual.routineId].
+  final ({String routineId, String step})? ritual;
+
+  /// The weekday a [rescheduleWorkoutAction] gives [slot.routineId] (1=Mon..7=Sun).
+  final ({int weekday, String routineId})? slot;
+
   bool get navigatesToCloseOut => action == closeOutAction;
   bool get addsRitual => action == addRitualAction;
+  bool get reschedulesWorkout => action == rescheduleWorkoutAction;
 
   @override
   bool operator ==(Object other) =>
@@ -523,46 +535,13 @@ class PalProposal {
           other.approveLabel == approveLabel &&
           other.approveIcon == approveIcon &&
           other.doneLabel == doneLabel &&
-          other.action == action;
+          other.action == action &&
+          other.ritual == ritual &&
+          other.slot == slot;
 
   @override
   int get hashCode => Object.hash(id, tag, colorToken, icon, title, body,
-      approveLabel, approveIcon, doneLabel, action);
-}
-
-/// A background task Pal handles automatically, shown in the "On autopilot"
-/// list with a toggle. [enabled] is the server-side default.
-class PalAutopilotItem {
-  const PalAutopilotItem({
-    required this.id,
-    required this.colorToken,
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.enabled,
-  });
-
-  final String id;
-  final String colorToken;
-  final String icon;
-  final String title;
-  final String subtitle;
-  final bool enabled;
-
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is PalAutopilotItem &&
-          other.id == id &&
-          other.colorToken == colorToken &&
-          other.icon == icon &&
-          other.title == title &&
-          other.subtitle == subtitle &&
-          other.enabled == enabled;
-
-  @override
-  int get hashCode =>
-      Object.hash(id, colorToken, icon, title, subtitle, enabled);
+      approveLabel, approveIcon, doneLabel, action, ritual, slot);
 }
 
 /// One durable fact the user told Pal (the `/v1/memory` facts list). Deletable
@@ -594,21 +573,21 @@ class PalMemoryDigest {
 }
 
 /// The Pal Home hub payload (the `/agenda` seam): the proposals to approve, the
-/// autopilot delegation list, and the current workout [streakDays] shown in the
-/// hero. Fields default empty so a partial/older server payload degrades to
+/// model's Autopilot lines keyed by automation id, and the current workout
+/// [streakDays] shown in the hero. Fields default empty so a partial/older server payload degrades to
 /// empty sections rather than an error.
 class PalAgenda {
   const PalAgenda({
     this.proposals = const [],
-    this.autopilot = const [],
+    this.autopilotSubtitles = const {},
     this.streakDays = 0,
   });
 
   final List<PalProposal> proposals;
-  final List<PalAutopilotItem> autopilot;
+  final Map<String, String> autopilotSubtitles;
   final int streakDays;
 
-  bool get isEmpty => proposals.isEmpty && autopilot.isEmpty;
+  bool get isEmpty => proposals.isEmpty && autopilotSubtitles.isEmpty;
 }
 
 /// A structured quick-log payload attached to a concrete suggestion chip. When
@@ -716,7 +695,7 @@ abstract interface class PalService {
   );
 
   /// `/agenda`: the Pal Home hub payload — cross-pillar [PalProposal]s to
-  /// approve, the autopilot delegation list, and the workout streak. Drives the
+  /// approve, the model's Autopilot lines, and the workout streak. Drives the
   /// agentic Pal Home screen.
   Future<PalAgenda> agenda();
 

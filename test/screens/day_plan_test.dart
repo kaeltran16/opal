@@ -462,7 +462,7 @@ void main() {
       final settled = session.settle('mood', done: true).settle('meal', done: false);
       final undone = settled.undo();
       expect(undone.settled, {'mood': true});
-      expect(undone.history, ['mood']);
+      expect(undone.history.map((s) => s.id), ['mood']);
       expect(undone.selected, 'meal');
     });
 
@@ -619,14 +619,99 @@ void main() {
       expect(plan.later(settled, _now), isEmpty);
     });
 
-    test('a check-in today is done; one from yesterday is still open', () {
+    test('before any check-in the mood item reads Mood check-in', () {
+      final mood = _plan().items.firstWhere((i) => i.kind == PlanKind.mood);
+      expect(mood.title, 'Mood check-in');
+      expect(mood.actionLabel, 'Check in');
+      expect(mood.trailing, isFalse);
+    });
+
+    test('after a check-in today the mood item stays open as Check in again, last', () {
       final today = _plan(lastCheckin: _checkin(DateTime(2026, 10, 4, 8, 15)));
       final mood = today.items.firstWhere((i) => i.kind == PlanKind.mood);
-      expect(mood.done, isTrue);
-      expect(_ids(today.open(session, _now)), ['meal']);
+      expect(mood.title, 'Check in again');
+      expect(mood.actionLabel, 'Check in');
+      expect(mood.id, 'mood');
+      expect(mood.done, isFalse);
+      expect(mood.trailing, isTrue);
+      expect(_ids(today.open(session, _now)), ['meal', 'mood']);
 
       final stale = _plan(lastCheckin: _checkin(_yesterday));
       expect(_ids(stale.open(session, _now)), ['mood', 'meal']);
+      expect(stale.items.firstWhere((i) => i.kind == PlanKind.mood).title, 'Mood check-in');
+    });
+
+    group('Check in again', () {
+      final checkedIn = _checkin(DateTime(2026, 10, 4, 8, 15));
+      final afternoon = DateTime(2026, 10, 4, 15);
+      const online = LeadRules(palOnline: true);
+
+      test('an upcoming close-out leads, not Check in again', () {
+        final plan = _plan(
+          rituals: _rituals([_routine('evening', '9:30 PM')]),
+          lastCheckin: checkedIn,
+          meals: [_meal('a', DateTime(2026, 10, 4, 12))],
+        );
+        expect(plan.current(session, afternoon)!.id, 'closeOut');
+        expect(plan.palPick(session, afternoon, online)!.id, 'closeOut');
+        expect(_ids(plan.open(session, afternoon)), ['closeOut', 'mood']);
+      });
+
+      test('it goes after a missed item too', () {
+        final plan = _plan(
+          rituals: _rituals([_routine('morning', '7:00 AM')]),
+          lastCheckin: checkedIn,
+          meals: [_meal('a', DateTime(2026, 10, 4, 12))],
+        );
+        final evening = DateTime(2026, 10, 4, 20);
+        expect(_ids(plan.open(session, evening)), ['routine:morning', 'mood']);
+      });
+
+      test('with nothing else open there is no lead, and later lists it', () {
+        final plan = _plan(
+          lastCheckin: checkedIn,
+          meals: [_meal('a', DateTime(2026, 10, 4, 12))],
+        );
+        expect(plan.current(session, _now), isNull);
+        expect(plan.palPick(session, _now, online), isNull);
+        expect(_ids(plan.later(session, _now)), ['mood']);
+      });
+
+      test('selecting it makes it current, and not the pick', () {
+        final plan = _plan(
+          rituals: _rituals([_routine('evening', '9:30 PM')]),
+          lastCheckin: checkedIn,
+          meals: [_meal('a', DateTime(2026, 10, 4, 12))],
+        );
+        final selected = session.select('mood');
+        expect(plan.current(selected, afternoon)!.id, 'mood');
+        expect(plan.isPalPick(selected, afternoon, online), isFalse);
+        expect(_ids(plan.later(selected, afternoon)), ['closeOut']);
+      });
+
+      test('deselect clears the pick and leaves settled, history and Undo', () {
+        final plan = _plan(
+          rituals: _rituals([_routine('evening', '9:30 PM')]),
+          lastCheckin: checkedIn,
+          meals: [_meal('a', DateTime(2026, 10, 4, 12))],
+        );
+        final settled = session.settle('meal', done: false, label: 'Meal skipped');
+        final selected = settled.select(moodItemId);
+        expect(plan.current(selected, afternoon)!.id, moodItemId);
+
+        final cleared = selected.deselect();
+        expect(cleared.selected, isNull);
+        expect(cleared.settled, settled.settled);
+        expect(cleared.history, settled.history);
+        expect(cleared.undoLabel, 'Meal skipped');
+        expect(plan.current(cleared, afternoon)!.id, 'closeOut');
+      });
+
+      test('Not today hides it', () {
+        final plan = _plan(lastCheckin: checkedIn);
+        final skipped = session.settle('mood', done: false);
+        expect(_ids(plan.open(skipped, _now)), ['meal']);
+      });
     });
 
     test('a meal logged today removes Log a meal', () {
@@ -678,6 +763,20 @@ void main() {
     expect(clockLabel(7 * 60 + 5), '7:05 AM');
     expect(clockLabel(12 * 60), '12:00 PM');
     expect(clockLabel(21 * 60 + 30), '9:30 PM');
+  });
+
+  group('proposalItem', () {
+    test('carries the proposal it stands for', () {
+      final item = proposalItem(_addRitualProposal);
+      expect(item.kind, PlanKind.proposal);
+      expect(item.proposal, _addRitualProposal);
+    });
+
+    test('a close-out proposal still opens the close-out', () {
+      final item = proposalItem(_closeOutProposal);
+      expect(item.kind, PlanKind.closeOut);
+      expect(item.proposal, _closeOutProposal);
+    });
   });
 
   group('pendingProposals', () {

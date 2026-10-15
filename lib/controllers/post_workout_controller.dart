@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../models/models.dart';
+import '../util/format.dart';
 import 'providers.dart';
 
 part 'post_workout_controller.g.dart';
@@ -36,11 +37,12 @@ class PrHighlight {
 }
 
 /// The first completed PR set of [workout] (name resolved via [catalog]), or
-/// null when the session set no records. Pure, so it is unit-testable.
+/// null when the session set no records. Timed sets are never records. Pure,
+/// so it is unit-testable.
 PrHighlight? buildPrHighlight(Workout workout, List<Exercise> catalog) {
   final nameOf = {for (final e in catalog) e.id: e.name};
   for (final s in workout.sets) {
-    if (s.done && s.isPR) {
+    if (s.done && s.isPR && !s.isTimed) {
       return PrHighlight(
         exercise: nameOf[s.exerciseId] ?? s.exerciseId,
         weightKg: s.weightKg,
@@ -52,15 +54,16 @@ PrHighlight? buildPrHighlight(Workout workout, List<Exercise> catalog) {
 }
 
 /// Aggregates [workout]'s completed-set volume by the primary muscle of each
-/// exercise (resolved via [catalog]), highest volume first. Not-done sets are
-/// ignored — the summary reflects what was actually logged. Sets whose exercise
+/// exercise (resolved via [catalog]), highest volume first. Not-done and timed
+/// sets are ignored — the summary reflects the weight actually logged, so a
+/// timed-only session yields no entries. Sets whose exercise
 /// is absent from the catalog fall back to an "Other" bucket. Pure, so it is
 /// unit-testable.
 List<MuscleVolume> buildMuscleVolumes(Workout workout, List<Exercise> catalog) {
   final muscleOf = {for (final e in catalog) e.id: e.muscle};
   final byMuscle = <String, double>{};
   for (final s in workout.sets) {
-    if (!s.done) continue;
+    if (!s.done || s.isTimed) continue;
     final muscle = muscleOf[s.exerciseId] ?? 'Other';
     byMuscle[muscle] = (byMuscle[muscle] ?? 0) + s.volumeKg;
   }
@@ -73,19 +76,27 @@ List<MuscleVolume> buildMuscleVolumes(Workout workout, List<Exercise> catalog) {
 
 /// Builds the linked move [Entry] for a saved [workout] (SF-5): a timeline entry
 /// of type `move`, `source: manual`, carrying [workoutId] so U10's recent list
-/// and U15's detail resolve back to the session. Empty id → repo assigns a UUID.
-Entry moveEntryForWorkout(Workout workout, String workoutId) => Entry(
-      id: '',
-      timestamp: workout.endedAt ?? workout.startedAt,
-      type: EntryType.move,
-      title: workout.name,
-      detail: '${workout.completedSetCount} '
-          'set${workout.completedSetCount == 1 ? '' : 's'} · '
-          '${workout.totalVolumeKg.round()} kg',
-      duration: workout.duration?.inMinutes,
-      source: EntrySource.manual,
-      workoutId: workoutId,
-    );
+/// and U15's detail resolve back to the session. A timed session reads its
+/// minutes (and km) instead of "N sets · 0 kg"; any logged km is carried as
+/// [Entry.distance]. Empty id → repo assigns a UUID.
+Entry moveEntryForWorkout(Workout workout, String workoutId) {
+  final km = workout.totalKm;
+  return Entry(
+    id: '',
+    timestamp: workout.endedAt ?? workout.startedAt,
+    type: EntryType.move,
+    title: workout.name,
+    detail: workout.isTimedSession
+        ? formatTimed(workout.totalMinutes, km)
+        : '${workout.completedSetCount} '
+            'set${workout.completedSetCount == 1 ? '' : 's'} · '
+            '${workout.totalVolumeKg.round()} kg',
+    duration: workout.countedMinutes,
+    distance: km > 0 ? km : null,
+    source: EntrySource.manual,
+    workoutId: workoutId,
+  );
+}
 
 /// The Pal post-workout note for an *unsaved* [workout]. Separate from
 /// [workoutNoteProvider] (which loads by id from the repo) because the summary

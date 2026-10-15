@@ -148,7 +148,12 @@ void main() {
     final service = build(MockClient((req) async => http.Response(
         jsonEncode({
           'proposals': [
-            {'id': 'add_ritual-0', 'title': 'Add a ritual', 'action': 'add_ritual'},
+            {
+              'id': 'add_ritual-0',
+              'title': 'Add a ritual',
+              'action': 'add_ritual',
+              'ritual': {'routineId': 'evening', 'step': 'Stretch'},
+            },
             {'id': 'close_out-1', 'title': 'Close out', 'action': 'close_out'},
             {'id': 'generic-2', 'title': 'Plain', 'action': null},
           ],
@@ -156,14 +161,12 @@ void main() {
         }),
         200)));
 
-    final [addRitual, closeOut, plain] = (await service.agenda()).proposals;
+    final [addRitual, closeOut] = (await service.agenda()).proposals;
 
     expect(addRitual.addsRitual, isTrue);
     expect(addRitual.navigatesToCloseOut, isFalse);
     expect(closeOut.addsRitual, isFalse);
     expect(closeOut.navigatesToCloseOut, isTrue);
-    expect(plain.addsRitual, isFalse);
-    expect(plain.navigatesToCloseOut, isFalse);
   });
 
   test('parse maps the response into a ParsedEntryDraft (expense negated)', () async {

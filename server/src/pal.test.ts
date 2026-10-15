@@ -30,47 +30,93 @@ describe('Pal.agenda', () => {
     weekSpent: 435, weekBudget: 595, weekMovedKcal: 296, weekRitualsDone: 26, weekRitualGoal: 35,
     moveStreakDays: 11, hourOfDay: 8, weekday: 6,
   }
+  const targets = {
+    rituals: [{ id: 'rt1', name: 'Evening', steps: ['Stretch', 'Read'] }],
+    workouts: [{ id: 'w1', name: 'Push' }, { id: 'w2', name: 'Legs' }],
+    week: [{ weekday: 2, routineId: 'w1' }, { weekday: 3, routineId: null }],
+  }
+  const draws = (...replies: unknown[]): CompletionClient => {
+    const queue = replies.map((r) => JSON.stringify(r))
+    return { complete: vi.fn(async () => queue.shift() ?? ''), completeWithTools: vi.fn() }
+  }
+  const base = { title: 'A title', body: 'A body.', approveLabel: 'Do it', doneLabel: 'Done' }
+  const addRitual = (routineId: string, step: string) => ({ ...base, kind: 'add_ritual', ritual: { routineId, step } })
+  const reschedule = (weekday: number, routineId: string) => ({ ...base, kind: 'reschedule_workout', slot: { weekday, routineId } })
 
-  it('derives icons/approveIcon/action from kind and echoes the streak', async () => {
-    const model = JSON.stringify({
-      proposals: [{
-        kind: 'close_out', colorToken: 'rituals', tag: 'Rituals', title: 'Close out tonight',
-        body: 'A 5-min wind-down closes your ring.', approveLabel: 'Start close-out', doneLabel: 'Close-out queued',
-      }],
-      autopilot: [{ kind: 'bills_watch', colorToken: 'money', title: 'Rent watch', subtitle: 'Alerts if low', enabled: true }],
-    })
-    const res = await new Pal(fakeClient(model)).agenda(ctx)
-
+  it('derives presentation and action from kind and echoes the streak', async () => {
+    const client = draws({ proposals: [{ ...base, kind: 'close_out', title: 'Close out tonight' }], autopilot: [] })
+    const res = await new Pal(client).agenda(ctx, targets)
     expect(res.proposals[0]).toMatchObject({
-      icon: 'moon.stars.fill', approveIcon: 'play.fill', action: 'close_out', colorToken: 'rituals',
+      tag: 'Rituals', colorToken: 'rituals', icon: 'moon.stars.fill', approveIcon: 'play.fill', action: 'close_out',
+      ritual: null, slot: null,
     })
     expect(res.proposals[0].id).toBe('close_out-0')
-    expect(res.autopilot[0].icon).toBe('house.fill')
     expect(res.streakDays).toBe(11)
   })
 
-  it('gives an add_ritual proposal its own action', async () => {
-    const model = JSON.stringify({
-      proposals: [{
-        kind: 'add_ritual', colorToken: 'rituals', tag: 'Rituals', title: 'Add a 2-min wind-down ritual',
-        body: 'A short wind-down could anchor it.', approveLabel: 'Add ritual', doneLabel: 'Added',
-      }],
-      autopilot: [],
+  it('returns a valid add_ritual with its payload', async () => {
+    const res = await new Pal(draws({ proposals: [addRitual('rt1', ' Journal ')], autopilot: [] })).agenda(ctx, targets)
+    expect(res.proposals[0]).toMatchObject({
+      action: 'add_ritual', tag: 'Rituals', colorToken: 'rituals', ritual: { routineId: 'rt1', step: 'Journal' }, slot: null,
     })
-    const res = await new Pal(fakeClient(model)).agenda(ctx)
-    expect(res.proposals[0]).toMatchObject({ icon: 'sparkles', approveIcon: 'plus', action: 'add_ritual' })
   })
 
-  it('coerces an unknown proposal kind to the generic (non-navigating) presentation', async () => {
-    const model = JSON.stringify({
-      proposals: [{
-        kind: 'teleport', colorToken: 'move', tag: 'Workout', title: 'x', body: 'y',
-        approveLabel: 'Do it', doneLabel: 'Done',
-      }],
+  it('returns a valid reschedule_workout with its slot', async () => {
+    const res = await new Pal(draws({ proposals: [reschedule(3, 'w2')], autopilot: [] })).agenda(ctx, targets)
+    expect(res.proposals[0]).toMatchObject({
+      action: 'reschedule_workout', tag: 'Workout', colorToken: 'move', icon: 'figure.run', slot: { weekday: 3, routineId: 'w2' }, ritual: null,
+    })
+  })
+
+  it('drops hold_funds and generic proposals, whatever the model sends', async () => {
+    const client = draws({
+      proposals: [{ ...base, kind: 'hold_funds' }, { ...base, kind: 'generic' }, { ...base, kind: 'teleport' }],
       autopilot: [],
     })
-    const res = await new Pal(fakeClient(model)).agenda(ctx)
-    expect(res.proposals[0]).toMatchObject({ icon: 'sparkles', approveIcon: 'checkmark', action: null })
+    const res = await new Pal(client).agenda(ctx, targets)
+    expect(res.proposals).toEqual([])
+    expect(client.complete).toHaveBeenCalledTimes(1)
+  })
+
+  it.each([
+    ['an unknown routine id', addRitual('nope', 'Journal')],
+    ['a blank step', addRitual('rt1', '   ')],
+    ['a step already present', addRitual('rt1', 'stretch')],
+    ['no ritual payload', { ...base, kind: 'add_ritual' }],
+    ['a reschedule onto the weekday\'s current routine', reschedule(2, 'w1')],
+    ['a reschedule to an unknown routine', reschedule(3, 'nope')],
+    ['a reschedule to a bad weekday', reschedule(8, 'w2')],
+  ])('redraws once and drops add_ritual / reschedule with %s', async (_why, bad) => {
+    const client = draws({ proposals: [bad, { ...base, kind: 'close_out' }], autopilot: [] }, { proposals: [bad, { ...base, kind: 'close_out' }], autopilot: [] })
+    const res = await new Pal(client).agenda(ctx, targets)
+    expect(client.complete).toHaveBeenCalledTimes(2)
+    expect(res.proposals.map((p) => p.action)).toEqual(['close_out'])
+  })
+
+  it('keeps the redraw when it fixes the proposal', async () => {
+    const client = draws(
+      { proposals: [addRitual('nope', 'Journal')], autopilot: [] },
+      { proposals: [addRitual('rt1', 'Journal')], autopilot: [] },
+    )
+    const res = await new Pal(client).agenda(ctx, targets)
+    expect(res.proposals.map((p) => p.ritual)).toEqual([{ routineId: 'rt1', step: 'Journal' }])
+  })
+
+  it('autopilot drops off-list kinds and repeats and keys by kind', async () => {
+    const client = draws({
+      proposals: [],
+      autopilot: [
+        { kind: 'bills_watch', subtitle: 'x' },
+        { kind: 'spend_nudge', subtitle: 'Watching a $85 day' },
+        { kind: 'spend_nudge', subtitle: 'again' },
+        { kind: 'routine_reminders', subtitle: 'Two routines today' },
+      ],
+    })
+    const res = await new Pal(client).agenda(ctx, targets)
+    expect(res.autopilot).toEqual([
+      { id: 'spend_nudge', subtitle: 'Watching a $85 day' },
+      { id: 'routine_reminders', subtitle: 'Two routines today' },
+    ])
   })
 })
 
@@ -720,7 +766,7 @@ describe('agenda no longer fabricates memory', () => {
       complete: async () => JSON.stringify({ proposals: [], autopilot: [] }),
       completeWithTools: async () => ({ content: '', toolCalls: [] }),
     }
-    const res = await new Pal(client).agenda(baseChatCtx(), { facts: [], patterns: [] })
+    const res = await new Pal(client).agenda(baseChatCtx(), { rituals: [], workouts: [], week: [] }, { facts: [], patterns: [] })
     expect('memory' in res).toBe(false)
     expect(res.proposals).toEqual([])
   })
@@ -859,7 +905,7 @@ describe('Pal.agenda amount agreement', () => {
     moveStreakDays: 0, hourOfDay: 20, weekday: 4,
   }
   const proposal = (approveLabel: string, title = 'Cover the $0.15 overage') => ({
-    kind: 'hold_funds', colorToken: 'money', tag: 'Money', title, body: 'Today is over by $0.15.', approveLabel, doneLabel: 'Held',
+    kind: 'close_out', title, body: 'Today is over by $0.15.', approveLabel, doneLabel: 'Held',
   })
   const draws = (...replies: unknown[]): CompletionClient => {
     const queue = replies.map((r) => JSON.stringify(r))
@@ -868,7 +914,7 @@ describe('Pal.agenda amount agreement', () => {
 
   it('keeps a draw whose labels agree without a second call', async () => {
     const client = draws({ proposals: [proposal('Hold $0.15')], autopilot: [] })
-    const res = await new Pal(client).agenda(ctx)
+    const res = await new Pal(client).agenda(ctx, { rituals: [], workouts: [], week: [] })
     expect(res.proposals.map((p) => p.approveLabel)).toEqual(['Hold $0.15'])
     expect(client.complete).toHaveBeenCalledTimes(1)
   })
@@ -878,7 +924,7 @@ describe('Pal.agenda amount agreement', () => {
       { proposals: [proposal('Hold $40')], autopilot: [] },
       { proposals: [proposal('Hold $0.15')], autopilot: [] },
     )
-    const res = await new Pal(client).agenda(ctx)
+    const res = await new Pal(client).agenda(ctx, { rituals: [], workouts: [], week: [] })
     expect(client.complete).toHaveBeenCalledTimes(2)
     expect(res.proposals.map((p) => p.approveLabel)).toEqual(['Hold $0.15'])
   })
@@ -886,10 +932,10 @@ describe('Pal.agenda amount agreement', () => {
   it('drops a proposal still off after the redraw and keeps the rest', async () => {
     const off = { proposals: [proposal('Hold $40'), proposal('Close out', 'Close out tonight')], autopilot: [] }
     const client = draws(off, off)
-    const res = await new Pal(client).agenda(ctx)
+    const res = await new Pal(client).agenda(ctx, { rituals: [], workouts: [], week: [] })
     expect(client.complete).toHaveBeenCalledTimes(2)
     expect(res.proposals.map((p) => p.title)).toEqual(['Close out tonight'])
-    expect(res.proposals[0].id).toBe('hold_funds-0')
+    expect(res.proposals[0].id).toBe('close_out-0')
   })
 })
 

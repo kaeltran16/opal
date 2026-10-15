@@ -238,6 +238,16 @@ describe('prompts', () => {
     expect(p).toContain('Bench')
   })
 
+  it('post-workout prompt for a timed-only session speaks of time and distance, never weight', () => {
+    const p = postWorkoutPrompt({
+      routineName: 'Run', setCount: 1, volumeKg: 0, minutes: 20, km: 3.2, prCount: 0,
+      prExercises: [], lastSessionVolumeKg: null, daysAgoLastSession: null,
+    })
+    expect(p).toContain('20 minutes')
+    expect(p).toContain('3.2 km')
+    expect(p).not.toContain('kg')
+  })
+
   it('routine prompt embeds the goal and lists exercises by id (equipment optional)', () => {
     const p = routinePrompt('build a push day', [
       { id: 'e1', name: 'Bench Press', group: 'Push', equipment: 'Barbell' },
@@ -503,6 +513,24 @@ describe('prompt examples do not anchor output', () => {
     const p = agendaPrompt(thursdayEvening)
     expect(p).not.toContain('Hold $40')
     expect(p).toContain('must be one the title or body states')
+  })
+
+  it('the agenda names its targets by id and offers only the actionable kinds', () => {
+    const p = agendaPrompt(thursdayEvening, undefined, {
+      rituals: [{ id: 'rt-evening', name: 'Evening', steps: ['Stretch'] }],
+      workouts: [{ id: 'w-push', name: 'Push' }],
+      week: [{ weekday: 1, routineId: 'w-push' }, { weekday: 2, routineId: null }],
+    })
+    expect(p).toContain('rt-evening')
+    expect(p).toContain('w-push')
+    expect(p).toContain('Stretch')
+    expect(p).toContain('reschedule_workout')
+    expect(p).toContain('close_out')
+    expect(p).toContain('add_ritual')
+    expect(p).not.toContain('hold_funds')
+    expect(p).not.toContain('generic')
+    expect(p).toContain('spend_nudge')
+    expect(p).toContain('routine_reminders')
   })
 
   it('the composer chips name no example merchant or amount', () => {

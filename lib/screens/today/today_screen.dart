@@ -22,6 +22,7 @@ import '../../theme/theme.dart';
 import '../../util/dates.dart' show clockLabel;
 import '../../widgets/app_icon.dart';
 import '../../widgets/day_scene.dart';
+import '../../widgets/failure_note.dart' show saveFailedCopy;
 import '../../widgets/pal_label.dart';
 import '../../widgets/pal_lead.dart' show PalLeadText;
 import '../../widgets/press_scale.dart';
@@ -68,10 +69,10 @@ const Key todayCardKey = ValueKey('today.card');
 
 /// Acts on [item] as Today's card does: a proposal is approved, anything
 /// else opens where it is done. You's Pal suggests approves through this too.
-void actOnPlanItem(BuildContext context, WidgetRef ref, PlanItem item) {
+Future<void> actOnPlanItem(BuildContext context, WidgetRef ref, PlanItem item) async {
   switch (item.kind) {
     case PlanKind.proposal:
-      ref.read(planSessionControllerProvider.notifier).settle(item.id, done: true);
+      await _orSaveFailed(context, ref.read(planSessionControllerProvider.notifier).approve(item));
     case PlanKind.routine:
       context.pushNamed(AppRoute.routinePlayer.name,
           pathParameters: {'routineId': item.ref!});
@@ -83,6 +84,16 @@ void actOnPlanItem(BuildContext context, WidgetRef ref, PlanItem item) {
       context.pushNamed(AppRoute.palComposer.name);
     case PlanKind.closeOut:
       context.pushNamed(AppRoute.eveningCloseOut.name);
+  }
+}
+
+/// Awaits [write], and says so in a snack bar when it fails.
+Future<void> _orSaveFailed(BuildContext context, Future<void> write) async {
+  try {
+    await write;
+  } catch (_) {
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(saveFailedCopy)));
   }
 }
 
@@ -143,6 +154,17 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
   Widget build(BuildContext context) {
     final c = context.colors;
     final async = ref.watch(todayStateProvider);
+    // a check-in logged anywhere answers the mood item the user picked; closing
+    // the logger without logging keeps it.
+    ref.listen(
+        moodControllerProvider.select((m) => m.value?.lastCheckin?.timestamp),
+        (prev, next) {
+      final newer = next != null && (prev == null || next.isAfter(prev));
+      if (newer &&
+          ref.read(planSessionControllerProvider).selected == moodItemId) {
+        _plan.deselect();
+      }
+    });
 
     return async.when(
       loading: () => Center(
@@ -216,7 +238,8 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
               children: [
                 _Header(
                   date: dateLine(now),
-                  onUndo: session.canUndo ? _plan.undo : null,
+                  undoLabel: session.undoLabel,
+                  onUndo: () => _orSaveFailed(context, _plan.undo()),
                 ),
                 _Lead(
                   label: online ? _palOnline : _palOffline,
@@ -228,7 +251,7 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
                 _ActionCard(
                   item: current,
                   onAct: (item) => actOnPlanItem(context, ref, item),
-                  onSkip: (item) => _plan.settle(item.id, done: false),
+                  onSkip: _plan.skip,
                 ),
                 if (later.isNotEmpty)
                   _Timeline(
@@ -263,37 +286,50 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
   }
 }
 
-/// The date line, and `Undo` while the session can undo.
+/// The date line, and `Undo · <what>` while the session can undo.
 class _Header extends StatelessWidget {
-  const _Header({required this.date, required this.onUndo});
+  const _Header({required this.date, required this.undoLabel, required this.onUndo});
 
   final String date;
-  final VoidCallback? onUndo;
+
+  /// What Undo names, or null when there is nothing to undo.
+  final String? undoLabel;
+  final VoidCallback onUndo;
 
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
+    final undoLabel = this.undoLabel;
     return ConstrainedBox(
       constraints: const BoxConstraints(minHeight: _minTap),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(date,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: AppType.label.copyWith(color: c.ink2, letterSpacing: _dateTracking)),
-          ),
-          if (onUndo != null)
-            PressScale(
-              onTap: onUndo,
-              child: Container(
-                constraints: const BoxConstraints(minHeight: _minTap),
-                padding: const EdgeInsets.symmetric(horizontal: Spacing.md),
-                alignment: Alignment.center,
-                child: Text('Undo', style: AppType.headline.copyWith(color: c.ink)),
-              ),
+      child: LayoutBuilder(
+        builder: (context, box) => Row(
+          children: [
+            Expanded(
+              child: Text(date,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppType.label.copyWith(color: c.ink2, letterSpacing: _dateTracking)),
             ),
-        ],
+            if (undoLabel != null)
+              ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: box.maxWidth * _sideShare),
+                child: PressScale(
+                  onTap: onUndo,
+                  semanticLabel: 'Undo $undoLabel',
+                  child: Container(
+                    constraints: const BoxConstraints(minHeight: _minTap),
+                    padding: const EdgeInsets.symmetric(horizontal: Spacing.md),
+                    alignment: Alignment.center,
+                    child: Text('Undo · $undoLabel',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppType.headline.copyWith(color: c.ink)),
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }

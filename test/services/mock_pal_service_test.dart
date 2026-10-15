@@ -28,24 +28,32 @@ void main() {
     expect(byId['close-out-tonight']!.addsRitual, isFalse);
   });
 
-  test('agenda money copy follows the display currency', () async {
-    final usd = await MockPalService(latency: fast).agenda();
-    final rent = usd.proposals.singleWhere((p) => p.id == 'hold-rent-40');
-    expect(rent.title, 'Set aside \$40 for rent');
-    expect(rent.approveLabel, 'Hold \$40');
+  test('every agenda proposal has a known action and its payload', () async {
+    final proposals = (await MockPalService(latency: fast).agenda()).proposals;
+    expect(proposals, isNotEmpty);
+    for (final p in proposals) {
+      expect(p.navigatesToCloseOut || p.addsRitual || p.reschedulesWorkout, isTrue,
+          reason: p.id);
+      if (p.addsRitual) expect(p.ritual, isNotNull, reason: p.id);
+      if (p.reschedulesWorkout) expect(p.slot, isNotNull, reason: p.id);
+    }
+  });
 
+  test('agenda copy follows the display currency', () async {
     final vnd = await MockPalService(latency: fast, currency: () => Currency.vnd)
         .agenda();
-    final held = formatCurrency(40 * Currency.vnd.budgetScale, Currency.vnd);
-    final rentVnd = vnd.proposals.singleWhere((p) => p.id == 'hold-rent-40');
-    expect(rentVnd.title, 'Set aside $held for rent');
-    expect(rentVnd.approveLabel, 'Hold $held');
-    expect(rentVnd.doneLabel, 'Held $held in your Rent envelope');
     final copy = [
-      rentVnd.title, rentVnd.body, rentVnd.approveLabel, rentVnd.doneLabel,
-      for (final a in vnd.autopilot) ...[a.title, a.subtitle],
+      for (final p in vnd.proposals) ...[p.title, p.body, p.approveLabel, p.doneLabel],
+      ...vnd.autopilotSubtitles.values,
     ];
     expect(copy.where((t) => t.contains('\$')), isEmpty);
+  });
+
+  test('agenda has a subtitle for each automation', () async {
+    final agenda = await MockPalService(latency: fast).agenda();
+    expect(agenda.autopilotSubtitles.keys,
+        unorderedEquals(['spend_nudge', 'routine_reminders']));
+    expect(agenda.autopilotSubtitles.values, everyElement(isNotEmpty));
   });
 
   group('chat logging', () {

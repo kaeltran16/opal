@@ -75,6 +75,14 @@ export interface PostWorkoutContext {
   prExercises: string[]
   lastSessionVolumeKg: number | null
   daysAgoLastSession: number | null
+  minutes?: number | null
+  km?: number | null
+}
+
+export interface AgendaTargets {
+  rituals: Array<{ id: string; name: string; steps: string[] }>
+  workouts: Array<{ id: string; name: string }>
+  week: Array<{ weekday: number; routineId: string | null }>
 }
 
 // DESIGN.md: emphasis comes from size, never bold. every Pal surface renders
@@ -285,11 +293,19 @@ No prose. Output only the JSON object.`
 }
 
 // The Pal Home agenda reuses the chat context (today + week + goals + streak).
-export function agendaPrompt(c: ChatContext, memory?: MemoryDigest): string {
+export function agendaPrompt(c: ChatContext, memory?: MemoryDigest, targets: AgendaTargets = { rituals: [], workouts: [], week: [] }): string {
   const entries = c.todayEntries.length ? c.todayEntries.join('\n') : '(none yet)'
   const name = c.userName || 'the user'
   const mem = memoryBlock(memory)
-  const shape = `{"proposals":[{"kind":"reschedule_workout"|"hold_funds"|"close_out"|"add_ritual"|"generic","colorToken":"money"|"move"|"rituals","tag":string,"title":string,"body":string,"approveLabel":string,"doneLabel":string}],"autopilot":[{"kind":"bills_watch"|"review_draft"|"spend_nudge"|"generic","colorToken":"money"|"move"|"rituals"|"accent","title":string,"subtitle":string,"enabled":boolean}]}`
+  const shape = `{"proposals":[{"kind":"reschedule_workout"|"close_out"|"add_ritual","title":string,"body":string,"approveLabel":string,"doneLabel":string,"ritual":{"routineId":string,"step":string}|null,"slot":{"weekday":number,"routineId":string}|null}],"autopilot":[{"kind":"spend_nudge"|"routine_reminders","subtitle":string}]}`
+  const rituals = targets.rituals.length
+    ? targets.rituals.map((r) => `${r.id}: ${r.name} (steps: ${r.steps.join(', ') || 'none'})`).join('\n')
+    : '(none)'
+  const workouts = targets.workouts.length ? targets.workouts.map((w) => `${w.id}: ${w.name}`).join('\n') : '(none)'
+  const names = new Map(targets.workouts.map((w) => [w.id, w.name] as const))
+  const week = targets.week.length
+    ? targets.week.map((d) => `${WEEKDAYS[d.weekday - 1] ?? d.weekday} (${d.weekday}): ${(d.routineId && names.get(d.routineId)) || 'rest'}`).join('\n')
+    : '(no plan)'
   return `You are Pal, a calm, specific coach in ${PRODUCT_FRAMING}. Build today's agenda for ${name}.
 
 ${mem ? mem + '\n\n' : ''}Today's entries:
@@ -297,9 +313,18 @@ ${entries}
 
 ${dayFacts(c)}
 
+Ritual routines (id: name, steps):
+${rituals}
+
+Workout routines (id: name):
+${workouts}
+
+Weekly plan (weekday number 1 = Monday to 7 = Sunday):
+${week}
+
 Produce two lists:
-- "proposals": up to 4 concrete actions you can take FOR them, each needing one approval. Set "kind" to the matching action (reschedule a workout, hold money aside, close out the day, add a ritual, or generic). "tag" is the pillar label (Workout, Money, or Rituals); "colorToken" is the pillar (move, money, rituals). "approveLabel" is a short verb phrase for the button, two to four words; "doneLabel" is its past-tense confirmation. Keep "body" to one or two specific sentences grounded in the numbers above. An amount in "approveLabel" or "doneLabel" must be one the title or body states, written the same way.
-- "autopilot": up to 3 things you handle quietly in the background, each with an on/off "enabled".
+- "proposals": up to 4 concrete actions you can take FOR them, each needing one approval. "kind" is one of: "reschedule_workout" (move a workout routine into a weekday; set "slot" to the weekday number and a workout routine id from the list, one that is not already that weekday's routine), "close_out" (start tonight's wind-down), or "add_ritual" (add one new step to a ritual routine; set "ritual" to a ritual routine id from the list and a short new "step" that routine does not already have). Set "ritual" or "slot" to null when the kind does not use it. Propose only what the lists above allow. "approveLabel" is a short verb phrase for the button, two to four words; "doneLabel" is its past-tense confirmation. Keep "body" to one or two specific sentences grounded in the numbers above. An amount in "approveLabel" or "doneLabel" must be one the title or body states, written the same way.
+- "autopilot": one "subtitle" per automation, saying what it is watching today, never whether it is on or off. The automations are "spend_nudge" (alerts when today's spending passes the daily budget) and "routine_reminders" (a daily reminder to do the routines).
 
 Calm and specific. No hype words ("amazing", "crushed it"). ${PLAIN_TEXT}
 Return strictly this JSON shape; arrays may be empty but must be present: ${shape}
@@ -375,6 +400,13 @@ export function postWorkoutPrompt(c: PostWorkoutContext): string {
     c.lastSessionVolumeKg !== null && c.daysAgoLastSession !== null
       ? `Their last session of the same routine was ${c.lastSessionVolumeKg}kg, ${c.daysAgoLastSession} days ago.`
       : 'This is their first recorded session of this routine.'
+  const timedOnly = c.volumeKg === 0 && (c.minutes ?? 0) > 0
+  if (timedOnly) {
+    const km = c.km ? `, ${c.km} km` : ''
+    return `User just finished ${c.routineName}: ${c.minutes} minutes${km}. Lifted no weight this session; speak only of time${c.km ? ' and distance' : ''}, never weight.
+
+Write 1-2 sentences on the session and recommend one concrete change next time (a little longer, a steadier pace, or an easier day). Warm, specific, no hype. ${PLAIN_TEXT}`
+  }
   return `User just finished ${c.routineName}: ${c.setCount} sets, ${c.volumeKg}kg total, ${c.prCount} PRs on ${c.prExercises.join(', ') || 'none'}. ${last}
 
 Write 1-2 sentences observing the trend and recommending one concrete change next session (more weight sized to this session, an added set, or a lighter load for form). Warm, specific, no hype. ${PLAIN_TEXT}`

@@ -39,7 +39,7 @@ class LoopDatabase extends _$LoopDatabase {
   LoopDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 11;
+  int get schemaVersion => 12;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -85,6 +85,12 @@ class LoopDatabase extends _$LoopDatabase {
         //
         // v10 -> v11: routine_exercises gains a nullable target_duration_min so
         // a timed set (a plank) keeps its minutes. Existing rows read null.
+        //
+        // v11 -> v12: timed sets. Nullable minutes/km columns on set_logs, a
+        // target_km beside target_duration_min, and an exercises.timed flag
+        // backfilled for cardio and plank. Logged history keeps its weight ×
+        // reps. A timed exercise keeps no PR, so its stored one is cleared
+        // rather than read as "0 kg × 90".
         onUpgrade: (m, from, to) async {
           if (from < 2) {
             await customStatement('DROP TABLE IF EXISTS rituals');
@@ -124,6 +130,18 @@ class LoopDatabase extends _$LoopDatabase {
           }
           if (from < 11) {
             await m.addColumn(routineExercises, routineExercises.targetDurationMin);
+          }
+          if (from < 12) {
+            await m.addColumn(setLogs, setLogs.minutes);
+            await m.addColumn(setLogs, setLogs.distanceKm);
+            await m.addColumn(routineExercises, routineExercises.targetKm);
+            await m.addColumn(exercises, exercises.timed);
+            await customStatement(
+                'UPDATE exercises SET timed = 1 '
+                "WHERE \"group\" = 'Cardio' OR id = 'plank'");
+            await customStatement(
+                'UPDATE exercises SET pr_weight_kg = NULL, pr_reps = NULL '
+                'WHERE timed = 1');
           }
         },
         beforeOpen: (details) async {

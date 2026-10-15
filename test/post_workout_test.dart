@@ -246,6 +246,75 @@ void main() {
     await unmount(tester);
   });
 
+  Workout treadmillWorkout() => Workout(
+        id: 'active',
+        name: 'Treadmill intervals',
+        startedAt: DateTime(2026, 6, 10, 9),
+        endedAt: DateTime(2026, 6, 10, 9, 20),
+        sets: const [
+          SetLog(
+              id: 'a',
+              exerciseId: 'treadmill',
+              weightKg: 0,
+              reps: 0,
+              done: true,
+              minutes: 20,
+              distanceKm: 3.2),
+        ],
+      );
+
+  testWidgets('a timed session leads with minutes and km, not kg or muscles',
+      (tester) async {
+    final w = treadmillWorkout();
+    await pumpSummary(tester, w, overrides: [
+      postWorkoutNoteProvider(w).overrideWith((ref) async => 'Steady.'),
+    ]);
+
+    expect(find.text('20'), findsOneWidget);
+    expect(find.text('min'), findsOneWidget);
+    expect(find.textContaining('3.2 km'), findsWidgets);
+    expect(find.text('kg lifted'), findsNothing);
+    expect(find.text('Muscles worked'), findsNothing);
+    expect(find.textContaining('0 kg'), findsNothing);
+    expect(find.textContaining('0%'), findsNothing);
+    expect(find.text('Ahead'), findsNothing);
+
+    await unmount(tester);
+  });
+
+  testWidgets('a mixed session keeps kg lifted and reads the plank in minutes',
+      (tester) async {
+    final w = Workout(
+      id: 'active',
+      name: 'Push plus core',
+      startedAt: DateTime(2026, 6, 10, 9),
+      endedAt: DateTime(2026, 6, 10, 10),
+      sets: const [
+        SetLog(id: 'a', exerciseId: 'bench', weightKg: 80, reps: 5, done: true),
+        SetLog(
+            id: 'b',
+            exerciseId: 'plank',
+            weightKg: 0,
+            reps: 0,
+            done: true,
+            isPR: true,
+            minutes: 2),
+      ],
+    );
+    await pumpSummary(tester, w, overrides: [
+      postWorkoutNoteProvider(w).overrideWith((ref) async => 'Mixed.'),
+    ]);
+
+    expect(find.text('400'), findsOneWidget);
+    expect(find.text('kg lifted'), findsOneWidget);
+    expect(find.text('2 min'), findsOneWidget);
+    expect(find.text('Muscles worked'), findsOneWidget);
+    expect(find.text('100%'), findsOneWidget); // bench only; the plank is no volume
+    expect(find.text('Ahead'), findsNothing); // a timed set is never a record
+
+    await unmount(tester);
+  });
+
   testWidgets('the note reads muted while Pal is reading and when it fails',
       (tester) async {
     final w = prWorkout();

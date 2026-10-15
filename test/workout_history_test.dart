@@ -252,4 +252,57 @@ void main() {
     final flat = [const HistoryBar(label: 'x', volumeKg: 0)];
     expect(historyTrendPct(flat), isNull);
   });
+
+  // ---------------------------------------------------------------------------
+  // Timed sets (cardio and holds) are never records and add no volume
+  // ---------------------------------------------------------------------------
+  SetLog timed(String ex, int minutes, {double? km, bool pr = false}) => SetLog(
+      id: 't',
+      exerciseId: ex,
+      weightKg: 0,
+      reps: 0,
+      minutes: minutes,
+      distanceKm: km,
+      done: true,
+      isPR: pr);
+
+  test('buildHistoryPrs gives a timed lift no record row', () {
+    final w = workout('w', DateTime(2026, 6, 1),
+        sets: [timed('run', 20, km: 3.2, pr: true)]);
+    expect(buildHistoryPrs([w], catalog), isEmpty);
+  });
+
+  test('best-set and delta lookups skip timed sets', () {
+    final older = workout('w1', DateTime(2026, 5, 1), sets: [
+      set('pullup', 0, 8, pr: true),
+      // stale stored numbers on a timed set must not count as a best
+      timed('pullup', 5).copyWith(weightKg: 40, reps: 30),
+    ]);
+    final newer = workout('w2', DateTime(2026, 6, 1), sets: [
+      set('pullup', 0, 11, pr: true),
+      timed('pullup', 9, pr: true).copyWith(reps: 50),
+    ]);
+
+    final pullup = buildHistoryPrs([newer, older], catalog)
+        .firstWhere((p) => p.exerciseId == 'pullup');
+    expect(pullup.bodyweight, isTrue);
+    expect(pullup.reps, 11);
+    expect(pullup.deltaReps, 3);
+  });
+
+  test('volume tiles and bars count weighted volume only', () {
+    final now = DateTime(2026, 6, 10);
+    final w = workout('a', now, sets: [
+      set('bench', 100, 5),
+      timed('run', 20, km: 3.2).copyWith(weightKg: 10, reps: 10),
+    ]);
+
+    expect(buildHistorySummary([w], prCount: 0).volumeKg, 500);
+    expect(
+        buildVolumeBars(WorkoutHistoryRange.eightWeeks, [w], now).last.volumeKg,
+        500);
+    expect(
+        buildVolumeBars(WorkoutHistoryRange.sixMonths, [w], now).last.volumeKg,
+        500);
+  });
 }

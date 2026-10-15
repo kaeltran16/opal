@@ -118,6 +118,7 @@ class HistorySessionRow {
     required this.minutes,
     required this.volumeKg,
     required this.prCount,
+    this.timedKm,
   });
 
   final String workoutId;
@@ -128,6 +129,12 @@ class HistorySessionRow {
   final int minutes;
   final double volumeKg;
   final int prCount;
+
+  /// Km of a timed session (0 when none was logged); null for any other
+  /// session, whose [minutes] is then its elapsed time.
+  final double? timedKm;
+
+  bool get timed => timedKm != null;
 }
 
 /// The fully-computed History & Trends view model. All derivation lives in the
@@ -268,7 +275,8 @@ List<HistoryPr> buildHistoryPrs(List<Workout> inRange, List<Exercise> catalog) {
   final byExercise = <String, List<({SetLog set, DateTime at})>>{};
   for (final w in inRange) {
     for (final s in w.sets) {
-      if (!s.done) continue;
+      // a timed set is never a record, nor a baseline for one
+      if (!s.done || s.isTimed) continue;
       (byExercise[s.exerciseId] ??= []).add((set: s, at: w.startedAt));
     }
   }
@@ -339,7 +347,8 @@ List<HistorySessionRow> buildHistorySessions(
         workoutId: w.id,
         name: w.name,
         startedAt: w.startedAt,
-        minutes: w.duration?.inMinutes ?? 0,
+        minutes: w.countedMinutes ?? 0,
+        timedKm: w.isTimedSession ? w.totalKm : null,
         volumeKg: w.totalVolumeKg,
         prCount: w.prCount,
         isCardio: w.routineId != null && cardioIds.contains(w.routineId),

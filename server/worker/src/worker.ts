@@ -226,7 +226,7 @@ async function routePal(
     const raw = await request.json().catch(() => null)
     const parsed = agendaBody.safeParse(raw)
     if (!parsed.success) return badRequest(parsed.error, raw)
-    return runPal(pathname, async () => pal.agenda(parsed.data.context, await memory.digest(token)))
+    return runPal(pathname, async () => pal.agenda(parsed.data.context, parsed.data.targets, await memory.digest(token)))
   }
 
   if (pathname === '/v1/routine' && method === 'POST') {

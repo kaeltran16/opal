@@ -84,11 +84,22 @@ export const suggestBody = z.object({ another: z.boolean(), context: suggestCont
 export const postWorkoutContext = z.object({
   routineName: z.string(), setCount: z.number(), volumeKg: z.number(), prCount: z.number(),
   prExercises: z.array(z.string()), lastSessionVolumeKg: z.number().nullable(), daysAgoLastSession: z.number().nullable(),
+  // timed sets: a session of only cardio or holds has no weight to talk about.
+  minutes: z.number().nullable().optional(), km: z.number().nullable().optional(),
 })
 export const postWorkoutBody = z.object({ context: postWorkoutContext })
 
 // The Pal Home agenda reuses the chat context (today + week + goals + streak).
-export const agendaBody = z.object({ context: chatContext })
+// what an approval may act on: the ids the model must pick from.
+export const agendaTargets = z.object({
+  rituals: z.array(z.object({ id: z.string(), name: z.string(), steps: z.array(z.string()) })).default([]),
+  workouts: z.array(z.object({ id: z.string(), name: z.string() })).default([]),
+  week: z.array(z.object({ weekday: z.number(), routineId: z.string().nullable() })).default([]),
+})
+export const agendaBody = z.object({
+  context: chatContext,
+  targets: agendaTargets.default({ rituals: [], workouts: [], week: [] }),
+})
 
 export const suggestionsBody = z.object({
   surface: z.enum(['composer', 'routineGoal']),

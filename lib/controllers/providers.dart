@@ -186,6 +186,7 @@ PalService palService(Ref ref) {
   final workouts = ref.watch(workoutRepositoryProvider);
   final routines = ref.watch(routineRepositoryProvider);
   final ritualRoutines = ref.watch(ritualRepositoryProvider);
+  final weeklyPlan = ref.watch(weeklyPlanRepositoryProvider);
   final settings = ref.watch(settingsRepositoryProvider);
 
   final tokens = TokenProvider(
@@ -380,6 +381,25 @@ PalService palService(Ref ref) {
       );
     },
     resolveRoutineTitle: (id) async => (await routines.getById(id))?.name,
+    agendaTargets: () async {
+      final week = await weeklyPlan.getSchedule();
+      return {
+        'rituals': [
+          for (final r in await ritualRoutines.getAll())
+            {'id': r.id, 'name': r.name, 'steps': [for (final s in r.steps) s.title]},
+        ],
+        'workouts': [
+          for (final r in await routines.getAll()) {'id': r.id, 'name': r.name},
+        ],
+        'week': [
+          for (var day = DateTime.monday; day <= DateTime.sunday; day++)
+            {
+              'weekday': day,
+              'routineId': week.where((a) => a.weekday == day).firstOrNull?.routineId,
+            },
+        ],
+      };
+    },
   );
 
   return HttpPalService(

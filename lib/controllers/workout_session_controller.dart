@@ -236,6 +236,19 @@ class WorkoutSessionController extends _$WorkoutSessionController {
     _emit();
   }
 
+  /// Logs the current set as a timed set (minutes and optional km). A timed
+  /// set is never a PR, so it only fires the light cue.
+  void logCurrentTimedSet({required int minutes, double? distanceKm}) {
+    final s = _session;
+    if (s == null) return;
+    _tenSecondCueFired = false;
+    s.logCurrentTimedSet(minutes: minutes, distanceKm: distanceKm);
+    ref.read(hapticsServiceProvider).light();
+    _syncTimer();
+    _syncLiveActivity();
+    _emit();
+  }
+
   /// Appends another set to the current exercise.
   void addSet() {
     final s = _session;

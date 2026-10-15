@@ -8,6 +8,9 @@ import 'today_logic.dart';
 
 enum PlanKind { proposal, routine, workout, mood, meal, closeOut }
 
+/// The mood item's id: a check-in landing clears its selection by it.
+const String moodItemId = 'mood';
+
 /// When the evening close-out is due, in minutes after midnight.
 const int closeOutMinute = 21 * 60 + 30;
 
@@ -32,6 +35,8 @@ class PlanItem {
     this.done = false,
     this.ref,
     this.area,
+    this.proposal,
+    this.trailing = false,
   });
 
   final String id;
@@ -57,12 +62,50 @@ class PlanItem {
   /// The area a Needs care state can force this item to lead for.
   final DetailTracker? area;
 
+  /// The proposal this item stands for, which approving performs.
+  final PalProposal? proposal;
+
+  /// Stays listed after everything else and never leads unless selected.
+  final bool trailing;
+
   /// The card's when line: "At 9:30 PM" or "Any time", then the detail.
   String get whenLabel {
     final minute = minuteOfDay;
     final when = minute == null ? 'Any time' : 'At ${clockLabel(minute)}';
     return detail == null ? when : '$when · $detail';
   }
+}
+
+/// A real change an approval made, which Undo reverses.
+sealed class PlanChange {
+  const PlanChange();
+}
+
+/// A step added to a ritual routine.
+class AddedRitualStep extends PlanChange {
+  const AddedRitualStep(this.routineId, this.stepId);
+
+  final String routineId;
+  final String stepId;
+}
+
+/// A weekly plan slot set, and the routine it held before (null for rest).
+class SetPlanSlot extends PlanChange {
+  const SetPlanSlot(this.weekday, this.priorRoutineId);
+
+  /// 1=Mon..7=Sun.
+  final int weekday;
+  final String? priorRoutineId;
+}
+
+/// One settled item: [label] is what Undo names, [change] what it reverses.
+/// A skip changes nothing.
+class PlanStep {
+  const PlanStep(this.id, this.label, [this.change]);
+
+  final String id;
+  final String label;
+  final PlanChange? change;
 }
 
 /// What the user did with the plan this session. In [settled], true is done
@@ -75,28 +118,38 @@ class PlanSession {
   });
 
   final Map<String, bool> settled;
-  final List<String> history;
+  final List<PlanStep> history;
   final String? selected;
 
-  PlanSession settle(String id, {required bool done}) => PlanSession(
+  PlanSession settle(String id,
+          {required bool done, String label = '', PlanChange? change}) =>
+      PlanSession(
         settled: {...settled, id: done},
-        history: [...history, id],
+        history: [...history, PlanStep(id, label, change)],
       );
 
   PlanSession undo() {
-    if (history.isEmpty) return this;
-    final last = history.last;
+    final last = lastStep;
+    if (last == null) return this;
     return PlanSession(
-      settled: {...settled}..remove(last),
+      settled: {...settled}..remove(last.id),
       history: history.sublist(0, history.length - 1),
-      selected: last,
+      selected: last.id,
     );
   }
 
   PlanSession select(String id) =>
       PlanSession(settled: settled, history: history, selected: id);
 
+  /// Drops the lead the user picked, keeping what they settled and Undo.
+  PlanSession deselect() => PlanSession(settled: settled, history: history);
+
   bool get canUndo => history.isNotEmpty;
+
+  PlanStep? get lastStep => history.lastOrNull;
+
+  /// What the header's Undo names: "Mood check-in skipped".
+  String? get undoLabel => lastStep?.label;
 }
 
 /// What decides the lead beyond the clock. The default is the clock alone.
@@ -128,7 +181,11 @@ class DayPlan {
       for (final area in rules.care) ?_careLead(area, clock, nowMinute),
       if (rules.palOnline) ...clock.where((i) => i.kind == PlanKind.proposal),
     };
-    return [...lead, ...clock.where((i) => !lead.contains(i))];
+    final ordered = [...lead, ...clock.where((i) => !lead.contains(i))];
+    return [
+      ...ordered.where((i) => !i.trailing),
+      ...ordered.where((i) => i.trailing),
+    ];
   }
 
   List<PlanItem> _clockOrder(PlanSession session, DateTime now) {
@@ -221,7 +278,7 @@ class DayPlan {
   /// The lead Pal's order gives, whatever the user tapped.
   PlanItem? palPick(PlanSession session, DateTime now,
           [LeadRules rules = const LeadRules()]) =>
-      open(session, now, rules).firstOrNull;
+      open(session, now, rules).where((i) => !i.trailing).firstOrNull;
 
   PlanItem? current(PlanSession session, DateTime now,
       [LeadRules rules = const LeadRules()]) {
@@ -229,7 +286,7 @@ class DayPlan {
     for (final i in items) {
       if (i.id == session.selected) return i;
     }
-    return items.firstOrNull;
+    return palPick(session, now, rules);
   }
 
   bool isPalPick(PlanSession session, DateTime now,
@@ -278,6 +335,7 @@ PlanItem proposalItem(PalProposal p) => PlanItem(
       skipLabel: _notNow,
       ref: p.id,
       area: DetailTracker.values.asNameMap()[p.colorToken],
+      proposal: p,
     );
 
 /// Every proposal in [agenda] not yet approved or put off in [session], in
@@ -340,12 +398,12 @@ DayPlan buildDayPlan({
         area: DetailTracker.move,
       ),
     PlanItem(
-      id: 'mood',
+      id: moodItemId,
       kind: PlanKind.mood,
-      title: 'Mood check-in',
+      title: checkedIn ? 'Check in again' : 'Mood check-in',
       icon: 'heart.fill',
       actionLabel: 'Check in',
-      done: checkedIn,
+      trailing: checkedIn,
     ),
     if (!ateToday)
       const PlanItem(
