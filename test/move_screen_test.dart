@@ -8,7 +8,9 @@ import 'package:go_router/go_router.dart';
 import 'package:opal/controllers/providers.dart';
 import 'package:opal/controllers/weekly_plan_controller.dart';
 import 'package:opal/data/db/database.dart';
+import 'package:opal/data/repositories/workout_repository.dart';
 import 'package:opal/data/seed/seeder.dart';
+import 'package:opal/models/models.dart';
 import 'package:opal/router.dart';
 import 'package:opal/services/pal/mock_pal_service.dart';
 import 'package:opal/theme/app_colors.dart';
@@ -75,6 +77,32 @@ Future<void> _scrollTo(WidgetTester tester, Finder finder) =>
     tester.scrollUntilVisible(finder, 200, scrollable: find.byType(Scrollable).first);
 
 void main() {
+  testWidgets('a timed session in Recent reads minutes and km, not tonnes', (tester) async {
+    final started = DateTime.now().subtract(const Duration(hours: 1));
+    await _pumpTab(tester, seed: (db) async {
+      await WorkoutRepository(db).insert(Workout(
+        id: 'timed-run',
+        name: 'Treadmill intervals',
+        startedAt: started,
+        endedAt: started.add(const Duration(minutes: 25)),
+        sets: const [
+          SetLog(
+              id: 'timed-run-1',
+              exerciseId: 'treadmill',
+              weightKg: 0,
+              reps: 0,
+              done: true,
+              minutes: 20,
+              distanceKm: 3.2),
+        ],
+      ));
+    });
+
+    await _scrollTo(tester, find.text('Treadmill intervals'));
+    expect(find.text('20 min · 3.2 km'), findsOneWidget);
+    await flushProviderTimers(tester);
+  });
+
   testWidgets('Workout tab: this week, the lead, recent, tools and other activity', (tester) async {
     final semantics = tester.ensureSemantics();
     await _pumpTab(tester);

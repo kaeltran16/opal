@@ -87,10 +87,7 @@ Entry moveEntryForWorkout(Workout workout, String workoutId) {
     type: EntryType.move,
     title: workout.name,
     detail: workout.isTimedSession
-        ? [
-            '${workout.totalMinutes} min',
-            if (km > 0) '${formatKm(km)} km',
-          ].join(' · ')
+        ? formatTimed(workout.totalMinutes, km)
         : '${workout.completedSetCount} '
             'set${workout.completedSetCount == 1 ? '' : 's'} · '
             '${workout.totalVolumeKg.round()} kg',

@@ -5,6 +5,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../models/models.dart';
 import '../util/dates.dart';
+import '../util/format.dart';
 import 'providers.dart';
 import 'weekly_plan_controller.dart';
 
@@ -26,6 +27,11 @@ class RecentSession {
 
   /// Whole-minute training duration (0 when the session is still open).
   int get durationMinutes => workout.duration?.inMinutes ?? 0;
+
+  /// The detail a timed session reads ("20 min · 3.2 km"); null otherwise.
+  String? get timedDetail => workout.isTimedSession
+      ? formatTimed(workout.totalMinutes, workout.totalKm)
+      : null;
 
   /// Volume in tonnes, one decimal (e.g. "1.2t"). Empty for cardio (no volume).
   double get volumeTonnes => workout.totalVolumeKg / 1000;
