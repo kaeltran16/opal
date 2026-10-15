@@ -52,6 +52,13 @@ void main() {
       expect(f.b!.label, 'Rest days');
       expect(f.b!.value, '\$60');
       expect(f.b!.fraction, 1.0);
+      // Ask Pal carries the numbers, so Pal answers from the evidence shown.
+      expect(
+        f.palNote,
+        'The user is asking about a finding shown on their You page: '
+        '"Money runs lower on workout days." Workout days: \$20. Rest days: \$60. '
+        'Evidence: 10 workout days, 20 rest days. Areas: Money and Move.',
+      );
     });
 
     test('money sides are formatted in the given currency', () {

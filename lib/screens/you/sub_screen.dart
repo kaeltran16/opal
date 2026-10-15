@@ -1,3 +1,4 @@
+import '../shell/loop_shell.dart' show shellBottomInset;
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -6,9 +7,6 @@ import '../../theme/theme.dart';
 import '../../widgets/app_icon.dart';
 import '../../widgets/press_scale.dart';
 
-// kept literal: the shell overlay under the content, tab bar gap 8 + bar 62 +
-// gap 10 + ask bar 52.
-const double kSubScreenShellOverlay = 132;
 // kept literal: where the prototype's content starts, just under the status bar.
 const double _contentTop = 52;
 const double _minTap = 44;
@@ -46,7 +44,7 @@ class SubScreen extends StatelessWidget {
           Spacing.lg,
           math.max(_contentTop, safe.top + Spacing.xs),
           Spacing.lg,
-          kSubScreenShellOverlay + Spacing.xxl + safe.bottom,
+          shellBottomInset(context),
         ),
         children: [
           _BackHeader(label: backLabel),

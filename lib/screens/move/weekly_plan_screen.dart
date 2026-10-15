@@ -16,10 +16,9 @@ import '../../widgets/inset_section.dart';
 import '../../widgets/nav_bar.dart';
 import '../../widgets/pal_lead.dart';
 import '../../widgets/session_row.dart';
+import '../shell/loop_shell.dart' show shellBottomInset;
 import '../workout/session_launcher.dart';
 
-// clears the shell's floating bars under the last row.
-const double _scrollTail = 110;
 const double _sectionGap = Spacing.xl;
 const String _restTitle = 'Rest';
 const String _restDay = 'Rest day';
@@ -67,7 +66,7 @@ class WeeklyPlanScreen extends ConsumerWidget {
         semanticLabel: 'More options',
         onTap: () => _showPlanMenu(context),
       ),
-      padding: const EdgeInsets.only(bottom: _scrollTail),
+      padding: EdgeInsets.only(bottom: shellBottomInset(context)),
       children: [
         if (plan.days.isNotEmpty)
           Padding(

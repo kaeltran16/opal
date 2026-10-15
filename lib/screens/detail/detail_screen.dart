@@ -1,3 +1,4 @@
+import '../shell/loop_shell.dart' show shellBottomInset;
 import 'dart:math' as math;
 
 import 'package:clock/clock.dart';
@@ -26,9 +27,6 @@ import '../../widgets/week_bars.dart';
 import '../nutrition/nutrition_add_sheet.dart';
 import '../today/today_logic.dart' show dateLine;
 
-// kept literal: the shell overlay under the content, tab bar gap 8 + bar 62 +
-// gap 10 + ask bar 52.
-const double _shellOverlay = 132;
 // kept literal: where the prototype's content starts, just under the status bar.
 const double _contentTop = 52;
 const double _minTap = 44;
@@ -78,7 +76,7 @@ class DetailScreen extends ConsumerWidget {
       Spacing.lg,
       math.max(_contentTop, safe.top + Spacing.xs),
       Spacing.lg,
-      _shellOverlay + Spacing.xxl + safe.bottom,
+      shellBottomInset(context),
     );
     final header = _Header(date: dateLine(clock.now()));
     Widget message(String text, TextStyle style) => Padding(
@@ -459,10 +457,7 @@ class _MealRow extends StatelessWidget {
             ),
             const SizedBox(width: _mealGap),
             Expanded(
-              child: Text(meal.name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppType.callout.copyWith(color: c.ink)),
+              child: Text(meal.name, style: AppType.callout.copyWith(color: c.ink)),
             ),
             const SizedBox(width: _mealGap),
             Text(kcal, style: AppType.subhead.copyWith(color: c.ink3, fontFeatures: _tabular)),
@@ -635,10 +630,7 @@ class _EntryRow extends StatelessWidget {
         child: Row(
           children: [
             Expanded(
-              child: Text(entry.title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppType.callout.copyWith(color: c.ink)),
+              child: Text(entry.title, style: AppType.callout.copyWith(color: c.ink)),
             ),
             if (trailing != null) ...[
               const SizedBox(width: Spacing.md),

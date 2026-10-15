@@ -15,8 +15,8 @@ import '../../widgets/nav_bar.dart';
 import '../../widgets/pal_label.dart';
 import '../../widgets/press_scale.dart';
 import '../../widgets/stat_row.dart';
+import '../shell/loop_shell.dart' show shellBottomInset;
 
-const double _scrollTail = 48;
 const double _leadTop = Spacing.xl;
 const double _recordTop = Spacing.md;
 const double _statsTop = Spacing.xxl;
@@ -99,7 +99,7 @@ class _Body extends StatelessWidget {
         semanticLabel: 'Back',
       ),
       trailing: _MoreButton(workoutId: workoutId, name: w.name),
-      padding: const EdgeInsets.only(bottom: _scrollTail),
+      padding: EdgeInsets.only(bottom: shellBottomInset(context)),
       children: [
         _Lead(state: state),
         _Section(

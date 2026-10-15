@@ -434,8 +434,6 @@ class _ImportRowState extends ConsumerState<_ImportRow> {
                   children: [
                     Flexible(
                       child: Text(item.merchant,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
                           style: AppType.callout.copyWith(color: c.ink)),
                     ),
                     if (item.isNew) ...[

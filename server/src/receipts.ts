@@ -2,6 +2,7 @@ import { z } from 'zod'
 import { extractJson, type TextCompleter } from './pal.js'
 import { receiptsBatchPrompt } from './prompts.js'
 import { redactPii } from './redact.js'
+import { SPEND_CATEGORIES } from './product.js'
 
 /**
  * One fetched email, reduced to the fields receipt parsing needs. The native
@@ -128,9 +129,8 @@ function toDate(year: number, monthIndex: number, day: number, h?: string, mi?: 
 /**
  * Best-effort extraction of the transaction date from an email body (#3).
  * Returns the parsed date and whether it carried a time, or null when no
- * unambiguous date is present. Interpreted as UTC — no locale timezone is
- * assumed (unlike the reference impl's hardcoded +07:00), including for the
- * numeric day-first form.
+ * unambiguous date is present. The wall-clock fields are stored as UTC;
+ * resolveReceivedAt shifts them by the device's offset.
  */
 export function extractTxnDate(text: string): { date: Date; hasTime: boolean } | null {
   const df = text.match(DAY_FIRST)
@@ -151,40 +151,33 @@ export function extractTxnDate(text: string): { date: Date; hasTime: boolean } |
 /**
  * The timestamp to stamp on an imported receipt (#3): the transaction date from
  * the body when confidently parsed, else the email's envelope date. A body date
- * without a time keeps the envelope's time-of-day so meal-slot inference (which
- * buckets by hour) stays sensible.
+ * without a time keeps the envelope's local time-of-day so meal-slot inference
+ * (which buckets by hour) stays sensible. Body times are local wall-clock times,
+ * so `utcOffsetMinutes` (the device's offset at the envelope instant) maps them
+ * to UTC; 0 reads them as UTC.
  */
-export function resolveReceivedAt(text: string, envelope: Date): Date {
+export function resolveReceivedAt(text: string, envelope: Date, utcOffsetMinutes = 0): Date {
   const t = extractTxnDate(text)
   if (!t) return envelope
-  if (t.hasTime) return t.date
+  const offsetMs = utcOffsetMinutes * 60_000
+  if (t.hasTime) return new Date(t.date.getTime() - offsetMs)
+  const envelopeLocal = new Date(envelope.getTime() + offsetMs)
   return new Date(Date.UTC(
     t.date.getUTCFullYear(), t.date.getUTCMonth(), t.date.getUTCDate(),
-    envelope.getUTCHours(), envelope.getUTCMinutes(), envelope.getUTCSeconds(),
-  ))
+    envelopeLocal.getUTCHours(), envelopeLocal.getUTCMinutes(), envelopeLocal.getUTCSeconds(),
+  ) - offsetMs)
 }
 
-// the receipt categories the model may assign. Kept identical to the client's
-// canonical `kSpendCategories` (lib/models/spend_category.dart) so an imported
-// receipt's category lines up with a budget envelope and, for 'Food & Drink',
-// feeds the nutrition "expense looks like a meal" prompt. off-list values coerce
-// to null, mirroring routineSchema.tag's catch(); the client treats null fine.
-export const RECEIPT_CATEGORIES = [
-  'Food & Drink',
-  'Groceries',
-  'Bills & Utilities',
-  'Shopping',
-  'Transport',
-  'Entertainment',
-  'Health',
-] as const
-
+// an imported receipt's category is one of SPEND_CATEGORIES, so it lines up
+// with a budget envelope and, for 'Food & Drink', feeds the nutrition "expense
+// looks like a meal" prompt. off-list values coerce to null, mirroring
+// routineSchema.tag's catch(); the client treats null fine.
 const receiptResultSchema = z.object({
   index: z.number(),
   isReceipt: z.boolean(),
   merchant: z.string().nullable(),
   amount: z.number().nullable(),
-  category: z.enum(RECEIPT_CATEGORIES).nullable().catch(null),
+  category: z.enum(SPEND_CATEGORIES).nullable().catch(null),
 })
 
 const receiptsBatchSchema = z.object({ results: z.array(receiptResultSchema) })

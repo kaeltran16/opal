@@ -107,8 +107,9 @@ const _colorByWeekday = <int, String>{
 /// For each weekday (Mon..Sun): an assignment with a resolvable routine yields a
 /// workout day (type/muscles derived from the routine's exercises via
 /// [exercisesById], est from `Routine.estMin`); anything else is a Rest day.
-/// `done` is true when a workout for that routine started within the current
-/// week (Mon 00:00 .. next Mon 00:00).
+/// `done` is true when a workout for that routine started on that day's date:
+/// a routine done on another day does not tick this one, so the plan agrees
+/// with the history every other screen reads.
 WeeklyPlan buildWeeklyPlan({
   required List<WeeklyPlanAssignment> schedule,
   required List<Routine> routines,
@@ -118,19 +119,16 @@ WeeklyPlan buildWeeklyPlan({
 }) {
   final todayMidnight = startOfDay(now);
   final monday = startOfWeek(now);
-  final nextMonday = monday.add(const Duration(days: 7));
 
   final routineById = {for (final r in routines) r.id: r};
   final scheduleByWeekday = {for (final a in schedule) a.weekday: a};
 
-  // Routine ids with a workout started in the current week.
-  final doneRoutineIds = <String>{};
+  // each routine's workout days, so a day is done only by its own session.
+  final doneOn = <String, Set<DateTime>>{};
   for (final w in workouts) {
     final id = w.routineId;
     if (id == null) continue;
-    if (!w.startedAt.isBefore(monday) && w.startedAt.isBefore(nextMonday)) {
-      doneRoutineIds.add(id);
-    }
+    (doneOn[id] ??= {}).add(startOfDay(w.startedAt));
   }
 
   final days = <WeekPlanDay>[];
@@ -164,7 +162,7 @@ WeeklyPlan buildWeeklyPlan({
       est: routine.estMin,
       colorKey: colorKey,
       icon: isCardio ? 'figure.run' : 'dumbbell.fill',
-      done: doneRoutineIds.contains(routine.id),
+      done: doneOn[routine.id]?.contains(startOfDay(date)) ?? false,
       today: isToday,
       muscles: _muscles(routine, exercisesById),
     ));

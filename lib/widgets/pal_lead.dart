@@ -5,6 +5,7 @@ import 'pal_label.dart';
 
 const double _leadGap = Spacing.sm;
 const double _leadMaxWidth = 330;
+// the lines Pal's line may take in the serif before it steps down to body.
 const int _leadMaxLines = 3;
 const double _cardGap = 14;
 const double _sideShare = 0.5;
@@ -29,15 +30,38 @@ class PalLead extends StatelessWidget {
         spacing: _leadGap,
         children: [
           PalLabel(text: label),
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: _leadMaxWidth),
-            child: Text(text,
-                maxLines: _leadMaxLines,
-                overflow: TextOverflow.ellipsis,
-                style: AppType.lead.copyWith(color: muted ? c.ink3 : c.ink)),
-          ),
+          PalLeadText(text, color: muted ? c.ink3 : c.ink),
         ],
       ),
+    );
+  }
+}
+
+/// Pal's line itself: the serif `lead` while it fits three lines, else `body`
+/// at full length. A Pal sentence is never cut short.
+class PalLeadText extends StatelessWidget {
+  const PalLeadText(this.text, {super.key, required this.color, this.maxWidth = _leadMaxWidth});
+
+  final String text;
+  final Color color;
+  final double maxWidth;
+
+  @override
+  Widget build(BuildContext context) {
+    final lead = AppType.lead.copyWith(color: color);
+    return ConstrainedBox(
+      constraints: BoxConstraints(maxWidth: maxWidth),
+      child: LayoutBuilder(builder: (context, box) {
+        final painter = TextPainter(
+          text: TextSpan(text: text, style: lead),
+          maxLines: _leadMaxLines,
+          textDirection: Directionality.of(context),
+          textScaler: MediaQuery.textScalerOf(context),
+        )..layout(maxWidth: box.maxWidth);
+        final fits = !painter.didExceedMaxLines;
+        painter.dispose();
+        return Text(text, style: fits ? lead : AppType.body.copyWith(color: color));
+      }),
     );
   }
 }

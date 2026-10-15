@@ -9,6 +9,7 @@ import '../../services/pal/pal_service.dart';
 import '../../theme/theme.dart';
 import '../../widgets/app_icon.dart';
 import '../../widgets/press_scale.dart';
+import '../shell/loop_shell.dart' show kShellOverlay;
 import 'sub_screen.dart';
 
 const double _minTap = 44;
@@ -39,7 +40,7 @@ class _PalMemoryScreenState extends ConsumerState<PalMemoryScreen> {
       content: Text(message),
       behavior: SnackBarBehavior.floating,
       margin: EdgeInsets.fromLTRB(Spacing.lg, 0, Spacing.lg,
-          kSubScreenShellOverlay + Spacing.sm + bottom),
+          kShellOverlay + Spacing.sm + bottom),
     ));
   }
 

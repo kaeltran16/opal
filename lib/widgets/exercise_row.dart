@@ -11,8 +11,8 @@ const double _rowGap = 14;
 const int _nameMaxLines = 2;
 const List<FontFeature> _tabular = [FontFeature.tabularFigures()];
 
-/// An exercise or routine on a hairline: a line icon, the name over one
-/// detail line, then a value or the caller's [trailing] controls.
+/// An exercise or routine on a hairline: a line icon, the name over its
+/// detail, then a value or the caller's [trailing] controls.
 class ExerciseRow extends StatelessWidget {
   const ExerciseRow({
     super.key,
@@ -57,10 +57,8 @@ class ExerciseRow extends StatelessWidget {
                     maxLines: _nameMaxLines,
                     overflow: TextOverflow.ellipsis,
                     style: AppType.body.copyWith(color: c.ink)),
-                Text(detail,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: AppType.subhead.copyWith(color: c.ink3)),
+                // the detail is what a routine holds; it wraps rather than cut.
+                Text(detail, style: AppType.subhead.copyWith(color: c.ink3)),
               ],
             ),
           ),

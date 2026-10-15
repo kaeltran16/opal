@@ -238,10 +238,11 @@ void main() {
     expect(find.text('Start'), findsNothing);
   });
 
-  testWidgets('the picker skips the settled day and shows the pick', (tester) async {
-    await _pump(tester, doneToday: true, onPicker: true);
+  testWidgets('the picker reads the settled day too, with no second pick', (tester) async {
+    await _pump(tester, doneToday: true, onPicker: true, planned: {4: 'Pull Day A'});
 
-    expect(find.text(_rationale), findsOneWidget);
+    expect(find.text('Push Day A is done. Pull Day A is next, on Friday.'), findsOneWidget);
+    expect(find.text(_rationale), findsNothing);
   });
 
   testWidgets('in progress takes precedence over settled', (tester) async {

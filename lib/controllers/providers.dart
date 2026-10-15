@@ -15,6 +15,7 @@ import '../util/dates.dart';
 import '../util/format.dart' show Currency;
 import '../analysis/correlations.dart';
 import 'correlations_controller.dart';
+import 'weekly_plan_controller.dart';
 
 part 'providers.g.dart';
 
@@ -351,11 +352,15 @@ PalService palService(Ref ref) {
       final candidates = excludeRoutineId == null
           ? all
           : all.where((r) => r.id != excludeRoutineId).toList();
+      final now = clock.now();
+      final planned = (await ref.read(weeklyPlanControllerProvider.future)).today;
       return buildSuggestContext(
         recentWorkouts: recent.take(5).toList(),
-        dayOfWeek: kWeekdays[clock.now().weekday - 1],
+        dayOfWeek: kWeekdays[now.weekday - 1],
         availableRoutines: candidates.isEmpty ? all : candidates,
         exercisesById: {for (final e in catalog) e.id: e},
+        now: now,
+        plannedToday: planned == null ? null : (planned.routine ?? planned.type),
       );
     },
     postWorkout: (workout) async {

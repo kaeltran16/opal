@@ -9,10 +9,14 @@ import 'providers.dart';
 
 part 'pal_composer_controller.g.dart';
 
-/// Message shown when Pal is unreachable and there's nothing to log locally.
-const _palOfflineReply =
-    "Pal couldn't reach the server. You can still log this from the New Entry "
-    'sheet.';
+/// Shown when the request never got an answer (network failure).
+const _palUnreachableReply = "Pal couldn't reach the server.";
+
+/// Shown when the server answered but Pal failed, or the reply took too long.
+const _palFailedReply = "Pal couldn't answer that just now. Try again in a moment.";
+
+/// Appended only when the failed message looks like something to log.
+const _manualEntryHint = ' You can still log this from the New Entry sheet.';
 
 /// Outcome of a composer send, so the screen can react. [offlineFallback] means
 /// Pal was unreachable for a free-text message that looks loggable — the screen
@@ -68,21 +72,26 @@ class PalComposerController extends _$PalComposerController {
   static const _chatTimeout = Duration(seconds: 12);
 
   /// Whether an offline free-text message looks like a quantified log (carries a
-  /// number) — the signal we use to offer the manual New Entry fallback.
-  static bool _looksLoggable(String message) => RegExp(r'\d').hasMatch(message);
+  /// number and is not a question) — the signal we use to offer the manual New
+  /// Entry fallback.
+  static bool _looksLoggable(String message) =>
+      RegExp(r'\d').hasMatch(message) && !message.trimRight().endsWith('?');
 
   @override
-  PalComposerState build({String? seed}) {
+  PalComposerState build({String? seed, String? about}) {
     final trimmedSeed = seed?.trim() ?? '';
     if (trimmedSeed.isEmpty) return const PalComposerState();
 
     // Seed: open expanded with the user's first message and fire its reply.
+    // [about] rides on that message for Pal; the bubble shows the seed alone.
+    final note = about?.trim();
     final userMessage = PalMessage(
       role: PalRole.user,
       text: trimmedSeed,
       timestamp: clock.now(),
+      note: note == null || note.isEmpty ? null : note,
     );
-    Future.microtask(() => _reply(const [], trimmedSeed));
+    Future.microtask(() => _reply(const [], userMessage.modelText));
     return PalComposerState(
       messages: [userMessage],
       isLoading: true,
@@ -160,33 +169,40 @@ class PalComposerController extends _$PalComposerController {
       if (!applied.isEmpty) _undo[index] = applied;
       _appendAssistant(result.reply, actions: result.actions);
       return PalSendResult.completed;
-    } on PalException {
-      return _handleOffline(payload, message);
+    } on PalException catch (e) {
+      final reached = e.statusCode != null;
+      return _handleOffline(payload, message, reached: reached);
     } catch (_) {
-      return _handleOffline(payload, message);
+      // the composer's own timeout: the server may have been reached.
+      return _handleOffline(payload, message, reached: true);
     }
   }
 
-  /// Logs [payload] locally when present (confirming it), else reports offline.
-  /// Always resolves [isLoading] — a local-insert failure falls back to the
-  /// generic offline message rather than re-hanging the composer. For free-text
-  /// [message]s that look loggable, signals [PalSendResult.offlineFallback] so
-  /// the screen can route to the manual New Entry sheet.
+  /// Logs [payload] locally when present (confirming it), else reports the
+  /// failure: [reached] says whether the server answered, so the copy never
+  /// claims it was unreachable when the model failed. Always resolves
+  /// [isLoading] — a local-insert failure falls back to the failure message
+  /// rather than re-hanging the composer. For free-text [message]s that look
+  /// loggable, signals [PalSendResult.offlineFallback] so the screen can route
+  /// to the manual New Entry sheet.
   Future<PalSendResult> _handleOffline(
-      StarterEntry? payload, String message) async {
+    StarterEntry? payload,
+    String message, {
+    required bool reached,
+  }) async {
+    final failure = reached ? _palFailedReply : _palUnreachableReply;
     if (payload != null) {
       try {
         await ref.read(entryRepositoryProvider).insert(_entryFor(payload));
         _appendAssistant(_offlineConfirmation(payload), offline: true);
       } catch (_) {
-        _appendAssistant(_palOfflineReply, offline: true);
+        _appendAssistant(failure, offline: true);
       }
       return PalSendResult.completed;
     }
-    _appendAssistant(_palOfflineReply, offline: true);
-    return _looksLoggable(message)
-        ? PalSendResult.offlineFallback
-        : PalSendResult.completed;
+    final loggable = _looksLoggable(message);
+    _appendAssistant(loggable ? '$failure$_manualEntryHint' : failure, offline: true);
+    return loggable ? PalSendResult.offlineFallback : PalSendResult.completed;
   }
 
   /// Builds a manual [Entry] from a starter [payload], mirroring the New Entry

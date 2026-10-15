@@ -14,11 +14,10 @@ import '../../widgets/nav_bar.dart';
 import '../../widgets/press_scale.dart';
 import '../../widgets/session_row.dart';
 import '../../widgets/stat_row.dart';
+import '../shell/loop_shell.dart' show shellBottomInset;
 import '../shell/tab_header.dart';
 import '../workout/pal_pick_lead.dart';
 
-// the scroll tail clears the shell's floating bars.
-const double _scrollTail = 110;
 const double _leadTop = Spacing.xl;
 const double _sectionGap = Spacing.xxxl;
 const double _stripGap = Spacing.lg;
@@ -75,7 +74,7 @@ class _MoveBody extends StatelessWidget {
         semanticLabel: 'Start a workout',
         onTap: () => context.pushNamed(AppRoute.startWorkout.name),
       ),
-      padding: const EdgeInsets.only(bottom: _scrollTail),
+      padding: EdgeInsets.only(bottom: shellBottomInset(context)),
       children: [
         const Padding(
           padding: EdgeInsets.fromLTRB(Spacing.lg, _leadTop, Spacing.lg, 0),

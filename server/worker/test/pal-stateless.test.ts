@@ -1,5 +1,5 @@
 import { env, applyD1Migrations } from 'cloudflare:test'
-import { beforeEach, describe, it, expect } from 'vitest'
+import { beforeEach, describe, it, expect, vi } from 'vitest'
 import { handle } from '../src/worker'
 import { stubPal } from './support/stub-client'
 import { OpenRouterError } from '../../src/pal'
@@ -85,5 +85,23 @@ describe('stateless pal routes', () => {
     expect((await r502.json() as any).error.code).toBe('upstream')
     const r500 = await post(tok, '/v1/parse', { text: 'x' }, stubPal({ error: new Error('nope') }))
     expect(r500.status).toBe(500)
+  })
+
+  it('logs every Pal failure with its route and reason', async () => {
+    const tok = await token()
+    const logs: string[] = []
+    const spy = vi.spyOn(console, 'error').mockImplementation((line: string) => { logs.push(line) })
+    try {
+      const truncated = new OpenRouterError(502, 'model output truncated (finish_reason=length) at max_tokens=1024')
+      await post(tok, '/v1/suggest-workout', { another: false, context: SUGGEST_CTX }, stubPal({ error: truncated }))
+      // a schema failure names the field, never the model output it quotes.
+      await post(tok, '/v1/suggest-workout', { another: false, context: SUGGEST_CTX }, stubPal({ text: '{"routineId":"secret-out"}' }))
+    } finally {
+      spy.mockRestore()
+    }
+    expect(logs.map((l) => JSON.parse(l))).toEqual([
+      { msg: 'pal request failed', route: '/v1/suggest-workout', status: 502, reason: 'model output truncated (finish_reason=length) at max_tokens=1024' },
+      { msg: 'pal request failed', route: '/v1/suggest-workout', status: 500, reason: 'ZodError: reason invalid_type' },
+    ])
   })
 })

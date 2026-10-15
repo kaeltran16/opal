@@ -5,6 +5,8 @@ import 'package:opal/theme/theme.dart';
 import 'package:opal/widgets/controls.dart';
 import 'package:opal/widgets/pal_lead.dart';
 
+import '../scenario/scenario_harness.dart' show loadScenarioFonts;
+
 final _colors = AppColors.light();
 
 const _line = 'Push today. Your chest has had three days.';
@@ -29,6 +31,9 @@ Future<void> _pump(WidgetTester tester, Widget child, {double scale = 1}) async 
 }
 
 void main() {
+  // the serif-or-body choice measures text, so it needs the real faces.
+  setUpAll(loadScenarioFonts);
+
   testWidgets('the line is ink in the Newsreader serif', (tester) async {
     await _pump(tester, const PalLead(text: _line));
 
@@ -37,6 +42,21 @@ void main() {
     expect(style.fontFamily, AppType.serifFamily);
     expect(AppType.serifFamily, 'Newsreader');
     expect(find.text('Pal'), findsOneWidget);
+  });
+
+  testWidgets('a line past three serif lines drops to body and shows in full', (tester) async {
+    // the walkthrough's post-workout note: 40 words, cut at '...420 kg base...'.
+    const note = 'Nice work: you moved 420 kg more than last week on Pull Day A and '
+        'still set a Barbell Row PR, so the extra volume is landing. Next session, '
+        'add 2.5 kg to your top row set and keep the rest of the 420 kg base.';
+    await _pump(tester, const PalLead(text: note));
+
+    final text = tester.widget<Text>(find.text(note));
+    expect(text.style!.fontFamily, isNot(AppType.serifFamily));
+    expect(text.style!.fontSize, AppType.body.fontSize);
+    expect(text.style!.color, _colors.ink);
+    expect(text.maxLines, isNull);
+    expect(text.overflow, isNot(TextOverflow.ellipsis));
   });
 
   testWidgets('muted paints the line in ink3', (tester) async {

@@ -300,8 +300,6 @@ class _RoutineRow extends StatelessWidget {
                         children: [
                           Text(
                             routine.name,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
                             style: AppType.body.copyWith(color: c.ink),
                           ),
                           const SizedBox(height: Spacing.xxs),
@@ -788,8 +786,6 @@ class _StepRow extends StatelessWidget {
                     Expanded(
                       child: Text(
                         step.title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
                         style: AppType.callout.copyWith(color: c.ink),
                       ),
                     ),
