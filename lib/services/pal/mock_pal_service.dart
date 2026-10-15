@@ -7,9 +7,8 @@ import 'pal_service.dart';
 
 const int _fridayWeekday = 5;
 
-// the autopilot's money amounts in usd; [Currency.budgetScale] scales them.
-const double _coffeeNudgeCap = 15;
-const double _coffeeNudgeSpent = 23;
+// the autopilot's money amount in usd; [Currency.budgetScale] scales it.
+const double _spendLeftToday = 12;
 
 /// On-brand canned [PalService] for Windows preview + tests.
 ///
@@ -509,32 +508,10 @@ class MockPalService implements PalService {
           ritual: (routineId: 'evening', step: 'Two-minute wind-down'),
         ),
       ],
-      autopilot: [
-        const PalAutopilotItem(
-          id: 'rent-watch',
-          colorToken: 'money',
-          icon: 'house.fill',
-          title: 'Rent auto-pay watch',
-          subtitle: 'Alerts if balance dips before Mon',
-          enabled: true,
-        ),
-        const PalAutopilotItem(
-          id: 'weekly-review-draft',
-          colorToken: 'accent',
-          icon: 'chart.bar.fill',
-          title: 'Weekly review draft',
-          subtitle: 'Ready for you Sunday morning',
-          enabled: true,
-        ),
-        PalAutopilotItem(
-          id: 'coffee-nudge',
-          colorToken: 'money',
-          icon: 'cup.and.saucer.fill',
-          title: 'Coffee nudge at ${money(_coffeeNudgeCap)} / wk',
-          subtitle: "You're at ${money(_coffeeNudgeSpent)} — currently paused",
-          enabled: false,
-        ),
-      ],
+      autopilotSubtitles: {
+        'spend_nudge': "Watching today's spend: ${money(_spendLeftToday)} left.",
+        'routine_reminders': 'Your evening routine is still open tonight.',
+      },
     );
   }
 

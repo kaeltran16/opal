@@ -124,5 +124,20 @@ void main() {
       expect(proposals.single.reschedulesWorkout, isTrue);
       expect(proposals.single.slot, (weekday: 5, routineId: 'seed-routine-legs'));
     });
+
+    test('autopilot decodes to subtitles by automation id', () async {
+      final svc = _service({
+        'proposals': const [],
+        'autopilot': [
+          {'id': 'spend_nudge', 'subtitle': 'Watching \$12 left today.'},
+          {'id': 'routine_reminders', 'subtitle': 'Evening routine still open.'},
+          {'id': 'routine_reminders'},
+        ],
+      });
+      expect((await svc.agenda()).autopilotSubtitles, {
+        'spend_nudge': 'Watching \$12 left today.',
+        'routine_reminders': 'Evening routine still open.',
+      });
+    });
   });
 }

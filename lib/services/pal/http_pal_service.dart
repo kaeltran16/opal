@@ -434,17 +434,11 @@ class HttpPalService implements PalService {
         for (final p in mapList('proposals', (p) => p))
           ?_decodeProposal(p),
       ],
-      autopilot: mapList(
-        'autopilot',
-        (a) => PalAutopilotItem(
-          id: a['id'] as String? ?? '',
-          colorToken: a['colorToken'] as String? ?? 'accent',
-          icon: a['icon'] as String? ?? 'sparkles',
-          title: a['title'] as String? ?? '',
-          subtitle: a['subtitle'] as String? ?? '',
-          enabled: a['enabled'] as bool? ?? false,
-        ),
-      ),
+      autopilotSubtitles: {
+        for (final a in mapList('autopilot', (a) => a))
+          if (a case {'id': final String id, 'subtitle': final String subtitle})
+            id: subtitle,
+      },
     );
   }
 

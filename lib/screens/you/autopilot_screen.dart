@@ -4,17 +4,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../controllers/autopilot_controller.dart';
 import '../../controllers/pal_agenda_controller.dart';
-import '../../services/pal/pal_service.dart';
+import '../../controllers/providers.dart';
 import '../../theme/theme.dart';
 import 'sub_screen.dart';
 
 const double _rowMinHeight = 64;
 const double _hairline = 1;
 
-/// What Pal handles quietly, each item with its switch. Pushed from You.
-///
-/// A switch flips [autopilotSwitchesProvider] for this session only: there is
-/// no server endpoint yet, so it cannot stop the task itself.
+/// What Pal handles quietly: every [Automation] with its switch, whether or not
+/// the agenda loaded, since the list is the app's own. Pushed from You.
 class AutopilotScreen extends ConsumerWidget {
   const AutopilotScreen({super.key});
 
@@ -22,7 +20,8 @@ class AutopilotScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final c = context.colors;
     final quiet = AppType.subhead.copyWith(color: c.ink3, height: 20 / 15);
-    final agenda = ref.watch(palAgendaProvider);
+    final agenda = ref.watch(palAgendaProvider).asData?.value;
+    final reminderTime = ref.watch(settingsRepositoryProvider).reminderTime;
 
     return SubScreen(
       eyebrow: 'Pal',
@@ -31,35 +30,29 @@ class AutopilotScreen extends ConsumerWidget {
         const SizedBox(height: Spacing.md),
         Text('What Pal handles quietly. Switch any of it off.', style: quiet),
         const SizedBox(height: Spacing.md + Spacing.sm),
-        ...agenda.when(
-          loading: () => const [],
-          error: (e, _) {
-            debugPrint('autopilot: loading the agenda failed: $e');
-            return [Text("Couldn't load autopilot.", style: quiet)];
-          },
-          data: (a) => a.autopilot.isEmpty
-              ? [Text('Nothing on autopilot yet.', style: quiet)]
-              : [for (final item in a.autopilot) _AutopilotRow(item: item)],
-        ),
+        for (final a in Automation.values)
+          _AutopilotRow(
+            automation: a,
+            subtitle: subtitleFor(a, agenda, reminderTime),
+          ),
       ],
     );
   }
 }
 
-/// One autopilot item under a hairline: its title and subtitle, then its
-/// switch. The whole row takes the tap so the target is more than the track.
+/// One automation under a hairline: its title and subtitle, then its switch.
+/// The whole row takes the tap so the target is more than the track.
 class _AutopilotRow extends ConsumerWidget {
-  const _AutopilotRow({required this.item});
+  const _AutopilotRow({required this.automation, required this.subtitle});
 
-  final PalAutopilotItem item;
+  final Automation automation;
+  final String subtitle;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final c = context.colors;
-    ref.watch(autopilotSwitchesProvider);
-    final switches = ref.read(autopilotSwitchesProvider.notifier);
-    final on = switches.isOn(item);
-    void toggle() => switches.toggle(item);
+    final on = ref.watch(automationsProvider)[automation] ?? false;
+    void toggle() => ref.read(automationsProvider.notifier).set(automation, !on);
 
     return GestureDetector(
       onTap: toggle,
@@ -79,10 +72,10 @@ class _AutopilotRow extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(item.title,
+                    Text(automation.title,
                         style: AppType.callout.copyWith(color: c.ink, height: 22 / 16)),
                     const SizedBox(height: Spacing.xxs),
-                    Text(item.subtitle, style: AppType.subhead.copyWith(color: c.ink3)),
+                    Text(subtitle, style: AppType.subhead.copyWith(color: c.ink3)),
                   ],
                 ),
               ),
@@ -90,7 +83,7 @@ class _AutopilotRow extends ConsumerWidget {
             const SizedBox(width: Spacing.md),
             MergeSemantics(
               child: Semantics(
-                label: item.title,
+                label: automation.title,
                 child: CupertinoSwitch(
                   value: on,
                   onChanged: (_) => toggle(),

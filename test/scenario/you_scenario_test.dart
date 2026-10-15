@@ -39,7 +39,7 @@ const _moodMoveLine = 'Your better days follow a workout.';
 const _caffeine = 'No caffeine after 2 PM';
 const _train = 'Prefers to train before 6 PM';
 const _dinner = 'Dinner out with friends on Fridays';
-const _coffee = 'Coffee nudge at \$15 / wk';
+const _reminders = 'Routine reminders';
 const _noPatterns = 'No patterns right now. Pal looks again as new days come in.';
 const _memoryEmpty = "As we talk, I'll note facts you mention and patterns I learn here. "
     'You can delete anything.';
@@ -81,16 +81,11 @@ class _ThrowingFindings extends PalFindingsController {
   Future<List<PalFinding>> build() async => throw StateError('scenario');
 }
 
-enum _Autopilot { seeded, empty, error }
-
-/// The mock with its own facts, writes that can fail, and an autopilot list
-/// that can be empty or fail.
+/// The mock with its own facts and writes that can fail.
 class _ScenarioPal extends MockPalService {
-  _ScenarioPal({this.failWrites = false, this.autopilot = _Autopilot.seeded})
-      : super(latency: Duration.zero, seed: 0);
+  _ScenarioPal({this.failWrites = false}) : super(latency: Duration.zero, seed: 0);
 
   final bool failWrites;
-  final _Autopilot autopilot;
   final List<PalFact> facts = [
     const PalFact(id: 'f1', text: _caffeine),
     const PalFact(id: 'f2', text: _train),
@@ -117,19 +112,6 @@ class _ScenarioPal extends MockPalService {
     if (failWrites) throw StateError('scenario');
     facts.clear();
     return _digest;
-  }
-
-  @override
-  Future<PalAgenda> agenda() async {
-    switch (autopilot) {
-      case _Autopilot.seeded:
-        return super.agenda();
-      case _Autopilot.empty:
-        final a = await super.agenda();
-        return PalAgenda(proposals: a.proposals, streakDays: a.streakDays);
-      case _Autopilot.error:
-        throw StateError('scenario');
-    }
   }
 }
 
@@ -378,25 +360,26 @@ void main() {
     // you_autopilot
     await _open(tester, 'Autopilot');
     expect(find.byType(AutopilotScreen), findsOneWidget);
-    for (final title in ['Rent auto-pay watch', 'Weekly review draft', _coffee]) {
+    for (final title in ['Spend nudge', _reminders]) {
       expect(find.text(title), findsOneWidget, reason: title);
     }
-    expect(tester.widget<Text>(find.text('Alerts if balance dips before Mon')).style?.fontSize,
+    const remindersLine = 'Your evening routine is still open tonight.';
+    expect(tester.widget<Text>(find.text(remindersLine)).style?.fontSize,
         AppType.subhead.fontSize);
-    expect(tester.widget<CupertinoSwitch>(_switch(_coffee)).value, isFalse);
-    await _tap(tester, _switch(_coffee));
-    expect(tester.widget<CupertinoSwitch>(_switch(_coffee)).value, isTrue);
+    expect(tester.widget<CupertinoSwitch>(_switch(_reminders)).value, isTrue);
+    await _tap(tester, _switch(_reminders));
+    expect(tester.widget<CupertinoSwitch>(_switch(_reminders)).value, isFalse);
     final handle = tester.ensureSemantics();
-    expect(tester.getSemantics(_switch(_coffee)),
-        isSemantics(label: _coffee, hasToggledState: true, isToggled: true));
+    expect(tester.getSemantics(_switch(_reminders)),
+        isSemantics(label: _reminders, hasToggledState: true, isToggled: false));
     handle.dispose();
     await shot(tester, 'you_autopilot_$theme');
 
     // you_autopilot_count
     await _tap(tester, _back(AutopilotScreen));
-    await tester.scrollUntilVisible(find.text('3 on').hitTestable(), 200,
+    await tester.scrollUntilVisible(find.text('1 on').hitTestable(), 200,
         scrollable: _youList());
-    expect(find.bySemanticsLabel('Autopilot, 3 on'), findsOneWidget);
+    expect(find.bySemanticsLabel('Autopilot, 1 on'), findsOneWidget);
     await shot(tester, 'you_autopilot_count_$theme');
   });
 
@@ -453,19 +436,5 @@ void main() {
       expect(find.text(fact), findsOneWidget, reason: fact);
     }
     await shot(tester, 'you_memory_clear_failed_${_theme(dark)}');
-  });
-
-  scenarioTest('you_autopilot_empty', (tester, dark) async {
-    await _boot(tester, dark, pal: _ScenarioPal(autopilot: _Autopilot.empty));
-    await _open(tester, 'Autopilot');
-    expect(find.text('Nothing on autopilot yet.'), findsOneWidget);
-    await shot(tester, 'you_autopilot_empty_${_theme(dark)}');
-  });
-
-  scenarioTest('you_autopilot_error', (tester, dark) async {
-    await _boot(tester, dark, pal: _ScenarioPal(autopilot: _Autopilot.error));
-    await _open(tester, 'Autopilot');
-    expect(find.text("Couldn't load autopilot."), findsOneWidget);
-    await shot(tester, 'you_autopilot_error_${_theme(dark)}');
   });
 }

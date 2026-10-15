@@ -540,41 +540,6 @@ class PalProposal {
       approveLabel, approveIcon, doneLabel, action, ritual, slot);
 }
 
-/// A background task Pal handles automatically, shown in the "On autopilot"
-/// list with a toggle. [enabled] is the server-side default.
-class PalAutopilotItem {
-  const PalAutopilotItem({
-    required this.id,
-    required this.colorToken,
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.enabled,
-  });
-
-  final String id;
-  final String colorToken;
-  final String icon;
-  final String title;
-  final String subtitle;
-  final bool enabled;
-
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is PalAutopilotItem &&
-          other.id == id &&
-          other.colorToken == colorToken &&
-          other.icon == icon &&
-          other.title == title &&
-          other.subtitle == subtitle &&
-          other.enabled == enabled;
-
-  @override
-  int get hashCode =>
-      Object.hash(id, colorToken, icon, title, subtitle, enabled);
-}
-
 /// One durable fact the user told Pal (the `/v1/memory` facts list). Deletable
 /// per item in "What Pal remembers".
 class PalFact {
@@ -604,21 +569,21 @@ class PalMemoryDigest {
 }
 
 /// The Pal Home hub payload (the `/agenda` seam): the proposals to approve, the
-/// autopilot delegation list, and the current workout [streakDays] shown in the
-/// hero. Fields default empty so a partial/older server payload degrades to
+/// model's Autopilot lines keyed by automation id, and the current workout
+/// [streakDays] shown in the hero. Fields default empty so a partial/older server payload degrades to
 /// empty sections rather than an error.
 class PalAgenda {
   const PalAgenda({
     this.proposals = const [],
-    this.autopilot = const [],
+    this.autopilotSubtitles = const {},
     this.streakDays = 0,
   });
 
   final List<PalProposal> proposals;
-  final List<PalAutopilotItem> autopilot;
+  final Map<String, String> autopilotSubtitles;
   final int streakDays;
 
-  bool get isEmpty => proposals.isEmpty && autopilot.isEmpty;
+  bool get isEmpty => proposals.isEmpty && autopilotSubtitles.isEmpty;
 }
 
 /// A structured quick-log payload attached to a concrete suggestion chip. When
@@ -726,7 +691,7 @@ abstract interface class PalService {
   );
 
   /// `/agenda`: the Pal Home hub payload — cross-pillar [PalProposal]s to
-  /// approve, the autopilot delegation list, and the workout streak. Drives the
+  /// approve, the model's Autopilot lines, and the workout streak. Drives the
   /// agentic Pal Home screen.
   Future<PalAgenda> agenda();
 

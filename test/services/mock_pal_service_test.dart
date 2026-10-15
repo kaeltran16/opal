@@ -39,14 +39,21 @@ void main() {
     }
   });
 
-  test('agenda autopilot copy follows the display currency', () async {
+  test('agenda copy follows the display currency', () async {
     final vnd = await MockPalService(latency: fast, currency: () => Currency.vnd)
         .agenda();
     final copy = [
       for (final p in vnd.proposals) ...[p.title, p.body, p.approveLabel, p.doneLabel],
-      for (final a in vnd.autopilot) ...[a.title, a.subtitle],
+      ...vnd.autopilotSubtitles.values,
     ];
     expect(copy.where((t) => t.contains('\$')), isEmpty);
+  });
+
+  test('agenda has a subtitle for each automation', () async {
+    final agenda = await MockPalService(latency: fast).agenda();
+    expect(agenda.autopilotSubtitles.keys,
+        unorderedEquals(['spend_nudge', 'routine_reminders']));
+    expect(agenda.autopilotSubtitles.values, everyElement(isNotEmpty));
   });
 
   group('chat logging', () {
