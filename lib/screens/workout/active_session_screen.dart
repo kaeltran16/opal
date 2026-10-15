@@ -33,6 +33,10 @@ const double _restGap = 12;
 const double _weightStep = 2.5;
 const int _repStep = 1;
 const int _repFloor = 1;
+const int _minuteStep = 1;
+const int _minuteFloor = 1;
+const double _kmStep = 0.1;
+const int _kmTenths = 10;
 // a row's trailing text or action takes at most this share, so its lead keeps the rest.
 const double _trailingShare = 0.5;
 const List<FontFeature> _tabular = [FontFeature.tabularFigures()];
@@ -63,6 +67,9 @@ class _ActiveSessionScreenState extends ConsumerState<ActiveSessionScreen> {
   String? _seededFor;
   double _weight = 0;
   int _reps = _repFloor;
+  int _minutes = _minuteFloor;
+  // 0 means no distance, passed to the engine as null.
+  double _km = 0;
 
   @override
   void initState() {
@@ -83,6 +90,8 @@ class _ActiveSessionScreenState extends ConsumerState<ActiveSessionScreen> {
     _seededFor = set.id;
     _weight = set.weightKg;
     _reps = math.max(_repFloor, set.reps);
+    _minutes = math.max(_minuteFloor, set.minutes ?? _minuteFloor);
+    _km = set.distanceKm ?? 0;
   }
 
   void _stepWeight(double by) =>
@@ -90,6 +99,13 @@ class _ActiveSessionScreenState extends ConsumerState<ActiveSessionScreen> {
 
   void _stepReps(int by) =>
       setState(() => _reps = math.max(_repFloor, _reps + by));
+
+  void _stepMinutes(int by) =>
+      setState(() => _minutes = math.max(_minuteFloor, _minutes + by));
+
+  // rounded to a tenth so repeated steps do not drift.
+  void _stepKm(double by) => setState(
+      () => _km = math.max(0, ((_km + by) * _kmTenths).round() / _kmTenths));
 
   WorkoutSessionController get _controller =>
       ref.read(workoutSessionControllerProvider(widget.routineId).notifier);
@@ -162,6 +178,8 @@ class _ActiveSessionScreenState extends ConsumerState<ActiveSessionScreen> {
             resting: state.isResting,
             weight: _weight,
             reps: _reps,
+            minutes: _minutes,
+            km: _km,
             divided: i > 0,
           ),
         if (!state.isComplete)
@@ -192,19 +210,27 @@ class _ActiveSessionScreenState extends ConsumerState<ActiveSessionScreen> {
     if (state.isResting) {
       return _RestCard(
         remaining: state.restRemaining,
-        next: 'set $setNumber · ${formatWeight(_weight)} kg × $_reps',
+        next: 'set $setNumber · ${set.isTimed ? _timedValue(_minutes, _km) : '${formatWeight(_weight)} kg × $_reps'}',
         onAddTime: _controller.addRestTime,
         onSkip: _controller.skipRest,
       );
     }
     return _EnterCard(
       setLabel: 'Set $setNumber of ${state.currentExerciseSets.length}',
+      timed: set.isTimed,
       pr: exercise?.pr,
       weight: _weight,
       reps: _reps,
+      minutes: _minutes,
+      km: _km,
       onWeight: _stepWeight,
       onReps: _stepReps,
-      onComplete: () => _controller.logCurrentSet(weightKg: _weight, reps: _reps),
+      onMinutes: _stepMinutes,
+      onKm: _stepKm,
+      onComplete: () => set.isTimed
+          ? _controller.logCurrentTimedSet(
+              minutes: _minutes, distanceKm: _km > 0 ? _km : null)
+          : _controller.logCurrentSet(weightKg: _weight, reps: _reps),
     );
   }
 
@@ -223,6 +249,10 @@ class _ActiveSessionScreenState extends ConsumerState<ActiveSessionScreen> {
     context.pushReplacementNamed(AppRoute.postWorkout.name, extra: workout);
   }
 }
+
+/// `20 min`, or `20 min · 3.2 km` when a distance is set.
+String _timedValue(int minutes, double km) =>
+    km > 0 ? '$minutes min · ${formatKm(km)} km' : '$minutes min';
 
 // ─── Header ──────────────────────────────────────────────────────────────────
 
@@ -370,26 +400,37 @@ class _Card extends StatelessWidget {
 class _EnterCard extends StatelessWidget {
   const _EnterCard({
     required this.setLabel,
+    required this.timed,
     required this.pr,
     required this.weight,
     required this.reps,
+    required this.minutes,
+    required this.km,
     required this.onWeight,
     required this.onReps,
+    required this.onMinutes,
+    required this.onKm,
     required this.onComplete,
   });
 
   final String setLabel;
+  final bool timed;
   final ExercisePR? pr;
   final double weight;
   final int reps;
+  final int minutes;
+  final double km;
   final ValueChanged<double> onWeight;
   final ValueChanged<int> onReps;
+  final ValueChanged<int> onMinutes;
+  final ValueChanged<double> onKm;
   final VoidCallback onComplete;
 
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    final pr = this.pr;
+    // a timed set has no best to beat.
+    final pr = timed ? null : this.pr;
     final ahead = pr != null && weight > pr.weightKg;
     return _Card(
       children: [
@@ -415,7 +456,32 @@ class _EnterCard extends StatelessWidget {
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           spacing: Spacing.md,
-          children: [
+          children: timed
+              ? [
+                  Expanded(
+                    child: _Stepper(
+                      label: 'Minutes',
+                      value: '$minutes',
+                      unit: 'min',
+                      lessLabel: 'Fewer minutes',
+                      moreLabel: 'More minutes',
+                      onLess: () => onMinutes(-_minuteStep),
+                      onMore: () => onMinutes(_minuteStep),
+                    ),
+                  ),
+                  Expanded(
+                    child: _Stepper(
+                      label: 'Distance',
+                      value: km > 0 ? formatKm(km) : 'No distance',
+                      unit: km > 0 ? 'km' : null,
+                      lessLabel: 'Fewer distance',
+                      moreLabel: 'More distance',
+                      onLess: () => onKm(-_kmStep),
+                      onMore: () => onKm(_kmStep),
+                    ),
+                  ),
+                ]
+              : [
             Expanded(
               child: _Stepper(
                 label: 'Weight',
@@ -587,6 +653,8 @@ class _SetRow extends StatelessWidget {
     required this.resting,
     required this.weight,
     required this.reps,
+    required this.minutes,
+    required this.km,
     required this.divided,
   });
 
@@ -596,15 +664,22 @@ class _SetRow extends StatelessWidget {
   final bool resting;
   final double weight;
   final int reps;
+  final int minutes;
+  final double km;
   final bool divided;
 
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
     final done = set.done;
-    final value = current && !done
-        ? '${formatWeight(weight)} kg × $reps'
-        : '${formatWeight(set.weightKg)} kg × ${set.reps}';
+    final live = current && !done;
+    final value = set.isTimed
+        ? (live
+            ? _timedValue(minutes, km)
+            : _timedValue(set.minutes!, set.distanceKm ?? 0))
+        : live
+            ? '${formatWeight(weight)} kg × $reps'
+            : '${formatWeight(set.weightKg)} kg × ${set.reps}';
     return Container(
       constraints: const BoxConstraints(minHeight: _rowMinHeight),
       decoration: divided
@@ -700,7 +775,10 @@ class _UpNext extends StatelessWidget {
     final c = context.colors;
     final next = state.nextExercise!;
     final nextId = state.exerciseIds[state.currentExerciseIndex + 1];
-    final count = state.sets.where((s) => s.exerciseId == nextId).length;
+    final nextSets = state.sets.where((s) => s.exerciseId == nextId).toList();
+    final count = nextSets.length;
+    final first = nextSets.firstOrNull;
+    final timedFirst = first != null && first.isTimed ? first : null;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       spacing: Spacing.xs,
@@ -712,7 +790,11 @@ class _UpNext extends StatelessWidget {
           spacing: Spacing.sm,
           children: [
             Expanded(child: Text(next.name, style: AppType.callout.copyWith(color: c.ink))),
-            Text('$count sets', style: AppType.subhead.copyWith(color: c.ink3)),
+            Text(
+                timedFirst == null
+                    ? '$count sets'
+                    : _timedValue(timedFirst.minutes!, timedFirst.distanceKm ?? 0),
+                style: AppType.subhead.copyWith(color: c.ink3)),
           ],
         ),
       ],

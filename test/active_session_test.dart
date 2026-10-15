@@ -16,6 +16,7 @@ import 'package:opal/widgets/press_scale.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 const _routineId = 'seed-routine-push-a';
+const _timedRoutineId = 'seed-routine-treadmill-int';
 
 /// Records haptic calls so the wiring (medium @10s, success @0s) is observable.
 class _SpyHaptics implements HapticsService {
@@ -40,6 +41,7 @@ Future<ProviderContainer> _pump(
   HapticsService haptics, {
   Size size = const Size(800, 2400),
   double textScale = 1,
+  String routineId = _routineId,
 }) async {
   // tall by default so the whole screen lays out without culling.
   tester.view.physicalSize = size;
@@ -86,13 +88,13 @@ Future<ProviderContainer> _pump(
       ),
     ),
   );
-  router.push('/session/$_routineId');
+  router.push('/session/$routineId');
   await tester.pumpAndSettle();
   return container;
 }
 
-ActiveSessionState _session(ProviderContainer container) =>
-    container.read(workoutSessionControllerProvider(_routineId)).requireValue;
+ActiveSessionState _session(ProviderContainer container, [String routineId = _routineId]) =>
+    container.read(workoutSessionControllerProvider(routineId)).requireValue;
 
 Future<void> _tapLabel(WidgetTester tester, String label, {int times = 1}) async {
   for (var i = 0; i < times; i++) {
@@ -105,6 +107,12 @@ Future<void> _tapLabel(WidgetTester tester, String label, {int times = 1}) async
 /// Cancels the controller's periodic rest timer so no timer outlives the test.
 Future<void> _endRest(WidgetTester tester) async {
   await tester.tap(find.text('Skip rest'));
+  await tester.pumpAndSettle();
+}
+
+/// Finishing releases the rest timer the last set started.
+Future<void> _summary(WidgetTester tester) async {
+  await tester.tap(find.text('See your summary'));
   await tester.pumpAndSettle();
 }
 
@@ -139,6 +147,47 @@ void main() {
     expect(find.text('Complete set'), findsOneWidget);
     expect(find.text('Rest'), findsNothing);
     expect(find.bySemanticsLabel(RegExp(r'^Elapsed \d')), findsOneWidget);
+  });
+
+  testWidgets('a timed session steps minutes and distance, not weight and reps',
+      (tester) async {
+    final container = await _pump(tester, db, prefs, haptics, routineId: _timedRoutineId);
+
+    expect(find.text('Minutes'), findsOneWidget);
+    expect(find.text('Distance'), findsOneWidget);
+    expect(find.text('Weight'), findsNothing);
+    expect(find.text('Reps'), findsNothing);
+    expect(find.textContaining('kg'), findsNothing);
+    expect(find.textContaining('Best'), findsNothing);
+
+    await _tapLabel(tester, 'Fewer minutes', times: 9);
+    await _tapLabel(tester, 'Fewer distance', times: 18);
+    expect(find.text('21 min · 3.2 km'), findsOneWidget); // the current row follows the steppers
+    await tester.tap(find.text('Complete set'));
+    await tester.pumpAndSettle();
+
+    final first = _session(container, _timedRoutineId).sets.first;
+    expect(first.done, isTrue);
+    expect(first.minutes, 21);
+    expect(first.distanceKm, 3.2);
+    expect(find.text('21 min · 3.2 km'), findsOneWidget);
+    await _summary(tester);
+  });
+
+  testWidgets('distance at 0 reads No distance and logs null', (tester) async {
+    final container = await _pump(tester, db, prefs, haptics, routineId: _timedRoutineId);
+
+    await _tapLabel(tester, 'Fewer distance', times: 60);
+    expect(find.text('No distance'), findsOneWidget);
+    await _tapLabel(tester, 'Fewer minutes', times: 40);
+    expect(find.text('1 min'), findsNWidgets(2)); // minutes floor at 1: stepper and row
+    await tester.tap(find.text('Complete set'));
+    await tester.pumpAndSettle();
+
+    final first = _session(container, _timedRoutineId).sets.first;
+    expect(first.minutes, 1);
+    expect(first.distanceKm, isNull);
+    await _summary(tester);
   });
 
   testWidgets('More weight then Complete set logs the target plus 2.5 kg',
