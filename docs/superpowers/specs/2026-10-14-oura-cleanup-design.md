@@ -31,7 +31,9 @@ The code was read at `09259a8`, where units, goldens and scenarios all pass.
    `MockPalService`'s `add-wind-down-ritual` proposal carries the same action, and `PalProposal` gains an `addsRitual` getter next to `navigatesToCloseOut`.
    `buildDayPlan` leaves out `addsRitual` proposals whenever the close-out row exists, following the close-out fold from `1f9681e`.
    With no evening routine that has steps, the proposal keeps its own row.
-   No other screen lists proposals (`/pal-home` redirects to You), so the proposal can't be reached while the close-out row shows. (Human's choice over a fold or an always-drop, confirmed after that was found.)
+   The proposal stays reachable on You (chunk 72, the human's call on 2026-10-15, replacing the 2026-10-14 choice to leave it unreachable): You's `Pal suggests` section lists every pending Pal proposal, folded or hidden on Today or not.
+   It reuses Today's handling: approve goes through `actOnPlanItem`, Not now settles the item, and the session Today kept in its widget state moves to the kept-alive `planSessionControllerProvider`, so a proposal settled on either screen is gone from both.
+   The section is open hairline rows with text buttons under a `headline` heading, so it never competes with You's lead finding. It is hidden when there are no pending proposals and when Pal is offline.
    The live Pal follows only once the server is deployed. This run does not deploy.
 6. **The routines error steps settle without a retry loop (chunk 47).** `_pumpUntil` and its 3-minute window leave `routines_onboarding_scenario_test.dart`.
    The manage, player and closeout error steps settle with the harness's normal pump.

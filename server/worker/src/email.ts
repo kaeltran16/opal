@@ -10,6 +10,7 @@ export interface EmailImportDto {
   amount: number // negative = expense (client convention)
   receivedAt: string // ISO 8601
   category: string | null
+  orderRef: string | null // the order number the email states; null when none
 }
 
 // One sanitized receipt candidate. The native client owns IMAP, MIME parsing,
@@ -60,6 +61,7 @@ export async function extractFromCandidates(
       amount: -Math.abs(f.amount), // receipts are expenses
       receivedAt: resolveReceivedAt(c.text, new Date(c.envelopeDate)).toISOString(),
       category: f.category,
+      orderRef: f.orderRef,
     })
   })
   return items

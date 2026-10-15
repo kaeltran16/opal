@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { filterBySender, extractReceipts, isLikelyNonReceipt, extractTxnDate, resolveReceivedAt, type RawEmail } from './receipts.js'
+import { filterBySender, extractReceipts, isLikelyNonReceipt, extractTxnDate, resolveReceivedAt, verifiedOrderRef, type RawEmail } from './receipts.js'
 import type { TextCompleter } from './pal.js'
 
 function email(overrides: Partial<RawEmail> = {}): RawEmail {
@@ -44,7 +44,7 @@ describe('extractReceipts', () => {
   it('returns fields for a receipt', async () => {
     const c = client(oneResult({ isReceipt: true, merchant: 'Amazon', amount: 42.99, category: 'Shopping' }))
     expect(await extractReceipts([email()], c)).toEqual([
-      { merchant: 'Amazon', amount: 42.99, category: 'Shopping' },
+      { merchant: 'Amazon', amount: 42.99, category: 'Shopping', orderRef: null },
     ])
   })
 
@@ -90,21 +90,21 @@ describe('extractReceipts', () => {
       {"index": 5, "isReceipt": true, "merchant": "OutOfRange", "amount": 1, "category": "Shopping"}
     ]}`)
     const out = await extractReceipts([email()], c)
-    expect(out).toEqual([{ merchant: 'Amazon', amount: 42.99, category: 'Shopping' }])
+    expect(out).toEqual([{ merchant: 'Amazon', amount: 42.99, category: 'Shopping', orderRef: null }])
   })
 
   it('coerces an off-list category to null', async () => {
     // 'Travel' is not in the client's kSpendCategories, so it must coerce to null.
     const c = client(oneResult({ isReceipt: true, merchant: 'Amazon', amount: 42.99, category: 'Travel' }))
     expect(await extractReceipts([email()], c)).toEqual([
-      { merchant: 'Amazon', amount: 42.99, category: null },
+      { merchant: 'Amazon', amount: 42.99, category: null, orderRef: null },
     ])
   })
 
   it('keeps a Food & Drink category (feeds the nutrition meal prompt)', async () => {
     const c = client(oneResult({ isReceipt: true, merchant: 'Grab', amount: 8, category: 'Food & Drink' }))
     expect(await extractReceipts([email()], c)).toEqual([
-      { merchant: 'Grab', amount: 8, category: 'Food & Drink' },
+      { merchant: 'Grab', amount: 8, category: 'Food & Drink', orderRef: null },
     ])
   })
 
@@ -137,6 +137,40 @@ describe('extractReceipts', () => {
     expect(seen).not.toContain('cktran16x2@gmail.com')
     expect(seen).not.toContain('4111 1111 1111 1111')
     expect(seen).toContain('$42.99')
+  })
+
+  it('returns the order ref the email states, without its #', async () => {
+    const shopee = email({ subject: 'Don hang #2610ABC da duoc giao', text: 'Tong thanh toan: 459.000 VND' })
+    const c = client(oneResult({ isReceipt: true, merchant: 'Shopee', amount: 459000, category: 'Shopping', orderRef: '#2610ABC' }))
+    expect(await extractReceipts([shopee], c)).toEqual([
+      { merchant: 'Shopee', amount: 459000, category: 'Shopping', orderRef: '2610ABC' },
+    ])
+  })
+
+  it('drops an order ref the email does not state (never invented)', async () => {
+    const c = client(oneResult({ isReceipt: true, merchant: 'Amazon', amount: 42.99, category: 'Shopping', orderRef: 'A-777' }))
+    const [r] = await extractReceipts([email()], c)
+    expect(r?.orderRef).toBeNull()
+  })
+})
+
+describe('verifiedOrderRef', () => {
+  const shown = 'Order #2610ABC delivered. Ref [number].'
+
+  it('reads #2610ABC and 2610ABC as one order, case-insensitively', () => {
+    expect(verifiedOrderRef('#2610ABC', shown)).toBe('2610ABC')
+    expect(verifiedOrderRef(' 2610abc ', shown)).toBe('2610abc')
+  })
+
+  it('is null when absent, empty, digitless or a redaction placeholder', () => {
+    expect(verifiedOrderRef(null, shown)).toBeNull()
+    expect(verifiedOrderRef(undefined, shown)).toBeNull()
+    expect(verifiedOrderRef('#', shown)).toBeNull()
+    expect(verifiedOrderRef('[number]', shown)).toBeNull()
+  })
+
+  it('is null when the ref is not in the email', () => {
+    expect(verifiedOrderRef('9999XYZ', shown)).toBeNull()
   })
 })
 

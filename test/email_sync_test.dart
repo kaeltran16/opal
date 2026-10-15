@@ -29,11 +29,11 @@ class _NoHaptics implements HapticsService {
   Future<void> success() async {}
 }
 
-/// Returns a fixed import list on every [syncNow] so the dedup-on-re-sync path
-/// is exercised. Other members are inert.
+/// Returns [items] on every [syncNow] so the dedup-on-re-sync path is
+/// exercised; a test swaps [items] between syncs. Other members are inert.
 class _StubSyncService implements EmailSyncService {
-  _StubSyncService(this._items);
-  final List<EmailImportItem> _items;
+  _StubSyncService(this.items);
+  List<EmailImportItem> items;
   final _controller = StreamController<SyncStatus>.broadcast();
 
   @override
@@ -53,7 +53,7 @@ class _StubSyncService implements EmailSyncService {
   @override
   Future<void> updateSenderFilters(List<String> f) async {}
   @override
-  Future<List<EmailImportItem>> syncNow() async => _items;
+  Future<List<EmailImportItem>> syncNow() async => items;
   @override
   Future<void> disconnect() async {}
   @override
@@ -388,6 +388,84 @@ void main() {
       expect(all, hasLength(2));
     },
   );
+
+  // --- Container: imports dedupe by merchant + order number across syncs -----
+  group('Dashboard syncNow dedupes an order across its emails', () {
+    late LoopDatabase db;
+    late _StubSyncService service;
+    late ProviderContainer container;
+
+    EmailImportItem shopee(String id, {String? orderRef, int day = 11}) =>
+        EmailImportItem(
+          id: id,
+          merchant: 'Shopee',
+          amount: -459000,
+          receivedAt: DateTime(2026, 10, day, 9),
+          category: 'Shopping',
+          orderRef: orderRef,
+        );
+
+    Future<List<Entry>> syncWith(List<EmailImportItem> items) async {
+      service.items = items;
+      await container.read(emailDashboardControllerProvider.notifier).syncNow();
+      return EntryRepository(db).getAll();
+    }
+
+    setUp(() async {
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+      db = LoopDatabase.forTesting(NativeDatabase.memory());
+      service = _StubSyncService(const []);
+      container = ProviderContainer(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          loopDatabaseProvider.overrideWithValue(db),
+          emailSyncServiceProvider.overrideWithValue(service),
+          hapticsServiceProvider.overrideWithValue(_NoHaptics()),
+        ],
+      );
+      // pin the autoDispose controller so it survives the awaits below
+      container.listen(emailDashboardControllerProvider, (_, _) {});
+    });
+
+    tearDown(() async {
+      container.dispose();
+      await db.close();
+    });
+
+    test('a confirmation then a delivered notice in separate syncs import once',
+        () async {
+      await syncWith([shopee('confirm', orderRef: '2610ABC')]);
+      // the delivered notice arrives days later, under its own message id.
+      final all = await syncWith([shopee('delivered', orderRef: '2610abc', day: 14)]);
+
+      expect(all, hasLength(1));
+      expect(all.single.title, 'Shopee');
+      expect(all.single.sourceRef, 'order:shopee:2610abc');
+    });
+
+    test('two different orders at the same merchant and amount both import',
+        () async {
+      final all = await syncWith([
+        shopee('first', orderRef: '2610ABC'),
+        shopee('second', orderRef: '2610XYZ'),
+      ]);
+
+      expect(all, hasLength(2));
+    });
+
+    test('an email with no order number dedupes by its message id, as before',
+        () async {
+      await syncWith([shopee('plain')]);
+      var all = await syncWith([shopee('plain')]);
+      expect(all, hasLength(1));
+      expect(all.single.sourceRef, 'plain');
+
+      // same merchant and amount, no order number: a separate purchase.
+      all = await syncWith([shopee('other')]);
+      expect(all, hasLength(2));
+    });
+  });
 
   // --- Container: editing the allowlist persists without a reconnect --------
   test('Dashboard setSenderFilters updates the account live (no reconnect)', () async {
