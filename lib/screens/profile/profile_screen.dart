@@ -11,6 +11,7 @@ import '../../controllers/email_sync_controller.dart';
 import '../../controllers/pal_agenda_controller.dart';
 import '../../controllers/pal_findings_controller.dart';
 import '../../controllers/pal_memory_controller.dart';
+import '../../controllers/plan_session_controller.dart';
 import '../../controllers/profile_controller.dart';
 import '../../controllers/providers.dart';
 import '../../router.dart';
@@ -21,6 +22,8 @@ import '../../widgets/app_icon.dart';
 import '../../widgets/nav_bar.dart';
 import '../../widgets/pal_label.dart';
 import '../../widgets/press_scale.dart';
+import '../today/day_plan.dart' show PlanItem, pendingProposals;
+import '../today/today_screen.dart' show actOnPlanItem;
 import '../you/autopilot_screen.dart';
 import '../you/pal_memory_screen.dart';
 import '../you/sub_screen.dart' show kSubScreenShellOverlay;
@@ -36,8 +39,9 @@ const double _learningMaxWidth = 320;
 // the 21st day is named by weekday while it falls within the coming week.
 const int _weekdayHorizon = 6;
 
-/// The You tab: a header line, Pal's findings (a lead, then Also seen), the
-/// Pal group opening What Pal remembers and Autopilot, then Settings.
+/// The You tab: a header line, Pal's findings (a lead, then Also seen), Pal's
+/// pending proposals, the Pal group opening What Pal remembers and Autopilot,
+/// then Settings.
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
 
@@ -68,6 +72,7 @@ class ProfileScreen extends ConsumerWidget {
       children: [
         _Gutter(children: [
           _Findings(stats: stats),
+          const _Suggestions(),
           const SizedBox(height: Spacing.xxl + Spacing.md),
           const _Heading('Pal'),
           const SizedBox(height: Spacing.md),
@@ -535,6 +540,116 @@ class _Learning extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Pal suggests: every proposal still pending, so none is out of reach while
+/// Today folds or hides one. Rows and text buttons only, so it stays below
+/// the finding that leads You. Nothing shows with no proposals or with Pal
+/// offline.
+class _Suggestions extends ConsumerWidget {
+  const _Suggestions();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final agenda = ref.watch(palAgendaProvider);
+    final value = agenda.value;
+    // a failed refresh keeps the old proposals, but Pal reads offline.
+    if (agenda.hasError || value == null) return const SizedBox.shrink();
+    final items = pendingProposals(value, ref.watch(planSessionControllerProvider));
+    if (items.isEmpty) return const SizedBox.shrink();
+    final plan = ref.read(planSessionControllerProvider.notifier);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const SizedBox(height: Spacing.xxl + Spacing.md),
+        const _Heading('Pal suggests'),
+        const SizedBox(height: Spacing.md),
+        for (final item in items)
+          _SuggestionRow(
+            item: item,
+            onApprove: () => actOnPlanItem(context, ref, item),
+            onSkip: () => plan.settle(item.id, done: false),
+          ),
+      ],
+    );
+  }
+}
+
+/// One proposal: its title, Pal's sentence, then approve and Not now.
+class _SuggestionRow extends StatelessWidget {
+  const _SuggestionRow({required this.item, required this.onApprove, required this.onSkip});
+  final PlanItem item;
+  final VoidCallback onApprove, onSkip;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    final said = item.said;
+    return Container(
+      decoration: BoxDecoration(
+        border: Border(top: BorderSide(color: c.hair, width: _hairline)),
+      ),
+      padding: const EdgeInsets.only(top: Spacing.md + Spacing.xxs),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(item.title, style: AppType.callout.copyWith(color: c.ink, height: 22 / 16)),
+          if (said != null && said.isNotEmpty) ...[
+            const SizedBox(height: Spacing.xs),
+            Text(said, style: AppType.subhead.copyWith(color: c.ink2, height: 20 / 15)),
+          ],
+          Wrap(
+            spacing: Spacing.xl,
+            children: [
+              _TextButton(
+                label: item.actionLabel,
+                semanticLabel: '${item.actionLabel}: ${item.title}',
+                color: c.ink,
+                onTap: onApprove,
+              ),
+              _TextButton(
+                label: item.skipLabel,
+                semanticLabel: '${item.skipLabel}: ${item.title}',
+                color: c.ink2,
+                onTap: onSkip,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// A 44 tall text button in `headline`, flush with the text above it.
+class _TextButton extends StatelessWidget {
+  const _TextButton({
+    required this.label,
+    required this.semanticLabel,
+    required this.color,
+    required this.onTap,
+  });
+  final String label, semanticLabel;
+  final Color color;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+        // its own node, so the row's text does not merge into its label.
+        container: true,
+        child: PressScale(
+          onTap: onTap,
+          semanticLabel: semanticLabel,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: _minTap),
+            child: Align(
+              widthFactor: 1,
+              alignment: AlignmentDirectional.centerStart,
+              child: Text(label, style: AppType.headline.copyWith(color: color)),
+            ),
+          ),
+        ),
+      );
 }
 
 /// A hairline row: [title], an optional [value], then a chevron.

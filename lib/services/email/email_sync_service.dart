@@ -15,6 +15,7 @@ class EmailImportItem {
     required this.amount,
     required this.receivedAt,
     this.category,
+    this.orderRef,
     this.isNew = true,
   });
 
@@ -27,8 +28,22 @@ class EmailImportItem {
   final DateTime receivedAt;
   final String? category;
 
+  /// The order number the email states (`2610ABC`), or null when it states
+  /// none. An order confirmation and its delivered notice share it.
+  final String? orderRef;
+
   /// Drives the "NEW" badge fade on the dashboard.
   final bool isNew;
+
+  /// What makes two imports the same purchase, stored as the entry's
+  /// `sourceRef`: the merchant and order number when the email states one,
+  /// so a later email about the same order matches across syncs; else the
+  /// message id.
+  String get dedupRef {
+    final order = orderRef;
+    if (order == null) return id;
+    return 'order:${merchant.trim().toLowerCase()}:${order.toLowerCase()}';
+  }
 
   /// Materialise this import as a money [Entry] (`source: email`).
   Entry toEntry() => Entry(
@@ -39,7 +54,7 @@ class EmailImportItem {
         amount: amount,
         category: category,
         source: EntrySource.email,
-        sourceRef: id,
+        sourceRef: dedupRef,
       );
 
   @override
@@ -51,11 +66,12 @@ class EmailImportItem {
           other.amount == amount &&
           other.receivedAt == receivedAt &&
           other.category == category &&
+          other.orderRef == orderRef &&
           other.isNew == isNew;
 
   @override
   int get hashCode =>
-      Object.hash(id, merchant, amount, receivedAt, category, isNew);
+      Object.hash(id, merchant, amount, receivedAt, category, orderRef, isNew);
 }
 
 /// IMAP receipt-import service.

@@ -10,6 +10,7 @@ import '../../analysis/area_state.dart';
 import '../../controllers/mood_controller.dart';
 import '../../controllers/nutrition_controller.dart';
 import '../../controllers/pal_agenda_controller.dart';
+import '../../controllers/plan_session_controller.dart';
 import '../../controllers/rituals_controller.dart';
 import '../../controllers/today_brief_controller.dart';
 import '../../controllers/today_controller.dart';
@@ -66,6 +67,26 @@ const Key todayRailKey = ValueKey('today.rail');
 /// The action card, always shown once the day has loaded.
 const Key todayCardKey = ValueKey('today.card');
 
+/// Acts on [item] as Today's card does: a proposal is approved, anything
+/// else opens where it is done. You's Pal suggests approves through this too.
+void actOnPlanItem(BuildContext context, WidgetRef ref, PlanItem item) {
+  switch (item.kind) {
+    case PlanKind.proposal:
+      ref.read(planSessionControllerProvider.notifier).settle(item.id, done: true);
+    case PlanKind.routine:
+      context.pushNamed(AppRoute.routinePlayer.name,
+          pathParameters: {'routineId': item.ref!});
+    case PlanKind.workout:
+      context.goNamed(AppRoute.startWorkout.name);
+    case PlanKind.mood:
+      showMoodLogger(context);
+    case PlanKind.meal:
+      context.pushNamed(AppRoute.palComposer.name);
+    case PlanKind.closeOut:
+      context.pushNamed(AppRoute.eveningCloseOut.name);
+  }
+}
+
 /// Today: the scene, the date line, Pal's lead, one action card and a short
 /// timeline of what is still open. Every number comes from local providers;
 /// Pal only supplies the headline and its proposals.
@@ -79,7 +100,6 @@ class TodayScreen extends ConsumerStatefulWidget {
 class _TodayScreenState extends ConsumerState<TodayScreen> {
   late final AppLifecycleListener _lifecycle;
   Timer? _minuteTick;
-  PlanSession _session = const PlanSession();
   // once opened, the rest of the day stays listed while the screen lives.
   bool _allLater = false;
 
@@ -113,26 +133,7 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
     await ref.read(todayBriefProvider.notifier).refresh();
   }
 
-  void _settle(PlanItem item, {required bool done}) =>
-      setState(() => _session = _session.settle(item.id, done: done));
-
-  void _act(PlanItem item) {
-    switch (item.kind) {
-      case PlanKind.proposal:
-        _settle(item, done: true);
-      case PlanKind.routine:
-        context.pushNamed(AppRoute.routinePlayer.name,
-            pathParameters: {'routineId': item.ref!});
-      case PlanKind.workout:
-        context.goNamed(AppRoute.startWorkout.name);
-      case PlanKind.mood:
-        showMoodLogger(context);
-      case PlanKind.meal:
-        context.pushNamed(AppRoute.palComposer.name);
-      case PlanKind.closeOut:
-        context.pushNamed(AppRoute.eveningCloseOut.name);
-    }
-  }
+  PlanSessionController get _plan => ref.read(planSessionControllerProvider.notifier);
 
   void _askWhy(PlanItem item) => context.pushNamed(AppRoute.palComposer.name,
       queryParameters: {'seed': 'Why ${item.title} first?', 'from': '/today'});
@@ -162,6 +163,7 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
     final now = clock.now();
     final agenda = ref.watch(palAgendaProvider);
     final headline = ref.watch(todayBriefProvider).value;
+    final session = ref.watch(planSessionControllerProvider);
     final plan = buildDayPlan(
       agenda: agenda.value ?? const PalAgenda(),
       rituals: ref.watch(ritualsControllerProvider).value,
@@ -177,9 +179,9 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
       palOnline: online,
       care: careAreas(today.glance, now),
     );
-    final current = plan.current(_session, now, rules);
-    final palsLead = online && plan.isPalPick(_session, now, rules);
-    final later = plan.later(_session, now, rules);
+    final current = plan.current(session, now, rules);
+    final palsLead = online && plan.isPalPick(session, now, rules);
+    final later = plan.later(session, now, rules);
     final hidden = _allLater ? 0 : math.max(0, later.length - _laterShown);
     final shown = hidden > 0 ? later.take(_laterShown) : later;
     final safe = MediaQuery.paddingOf(context);
@@ -213,9 +215,7 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
               children: [
                 _Header(
                   date: dateLine(now),
-                  onUndo: _session.canUndo
-                      ? () => setState(() => _session = _session.undo())
-                      : null,
+                  onUndo: session.canUndo ? _plan.undo : null,
                 ),
                 _Lead(
                   label: online ? _palOnline : _palOffline,
@@ -224,8 +224,8 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
                 ),
                 _ActionCard(
                   item: current,
-                  onAct: _act,
-                  onSkip: (item) => _settle(item, done: false),
+                  onAct: (item) => actOnPlanItem(context, ref, item),
+                  onSkip: (item) => _plan.settle(item.id, done: false),
                 ),
                 if (later.isNotEmpty)
                   _Timeline(
@@ -233,7 +233,7 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
                       for (final item in shown)
                         _PlanRow(
                           item: item,
-                          onTap: () => setState(() => _session = _session.select(item.id)),
+                          onTap: () => _plan.select(item.id),
                         ),
                       if (hidden > 0)
                         _MoreRow(

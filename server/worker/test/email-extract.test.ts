@@ -36,7 +36,7 @@ describe('POST /v1/email/extract', () => {
     const body = await res.json() as any
     expect(body.items).toEqual([{
       id: 'msg-1', merchant: 'Cafe', amount: -5,
-      receivedAt: '2026-01-06T11:27:00.000Z', category: 'Food & Drink',
+      receivedAt: '2026-01-06T11:27:00.000Z', category: 'Food & Drink', orderRef: null,
     }])
   })
 

@@ -258,6 +258,7 @@ class NativeEmailSyncService implements EmailSyncService {
         amount: (json['amount']! as num).toDouble(),
         receivedAt: DateTime.parse(json['receivedAt']! as String),
         category: json['category'] as String?,
+        orderRef: json['orderRef'] as String?,
       );
 
   // Bearer-authed POST with one 401 retry (re-register), mirroring HttpPalService.

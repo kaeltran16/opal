@@ -14,6 +14,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:opal/analysis/area_state.dart';
 import 'package:opal/app.dart';
+import 'package:opal/controllers/plan_session_controller.dart';
 import 'package:opal/controllers/providers.dart';
 import 'package:opal/controllers/recap_controller.dart';
 import 'package:opal/controllers/rituals_controller.dart';
@@ -84,6 +85,9 @@ const _dragMoves = 6;
 const _dragStep = Offset(0, -40);
 const _dragPause = Duration(milliseconds: 50);
 const double _scrollStep = 200;
+
+/// Where a shot puts a You section's heading: just under the collapsed title.
+const double _sectionTop = 0.15;
 
 const _stretch = RitualRoutine(
   id: 'stretch',
@@ -237,6 +241,11 @@ Future<void> _showAllLater(WidgetTester tester) async {
 /// Scrolls Today back to its top, so a shot frames the lead.
 Future<void> _todayToTop(WidgetTester tester) async {
   await tester.drag(find.byType(TodayScreen), const Offset(0, 600));
+  await tester.pumpAndSettle();
+}
+
+Future<void> _toTab(WidgetTester tester, String tab) async {
+  await tester.tap(find.descendant(of: find.byType(GlassTabBar), matching: find.text(tab)));
   await tester.pumpAndSettle();
 }
 
@@ -488,6 +497,73 @@ void main() {
     expect(_onToday(find.text(proposal.body)), findsOneWidget);
     await _todayToTop(tester);
     await shot(tester, 'closeout_one_row_${_theme(dark)}');
+  });
+
+  // --- every pending proposal is reachable from You ---
+
+  scenarioTest('you_pal_suggests', (tester, dark) async {
+    final pal = TodayPal();
+    await bootToday(tester, dark: dark, pal: pal);
+    final agenda = await tester.runAsync(pal.agenda);
+    final addRitual = agenda!.proposals.singleWhere((p) => p.addsRitual);
+    final rent = agenda.proposals.singleWhere((p) => p.id == 'hold-rent-40');
+    final closeOut = agenda.proposals.singleWhere((p) => p.navigatesToCloseOut);
+    await _showAllLater(tester);
+
+    // beside the close-out row, today leaves the add-ritual proposal out.
+    expect(_closeOutRows, findsOneWidget);
+    expect(_onToday(find.text(addRitual.title)), findsNothing);
+    expect(_onToday(find.text(rent.title)), findsOneWidget);
+
+    await _toTab(tester, 'You');
+    final approve = _onYou(find.bySemanticsLabel('${addRitual.approveLabel}: ${addRitual.title}'));
+    final heading = _onYou(find.text('Pal suggests'));
+    await _settle(tester, approve);
+    expect(heading, findsOneWidget);
+    for (final p in agenda.proposals) {
+      expect(_onYou(find.text(p.title)), findsOneWidget, reason: p.id);
+    }
+    // frame the section from its heading for the shot.
+    await Scrollable.ensureVisible(tester.element(heading), alignment: _sectionTop);
+    await tester.pumpAndSettle();
+    await shot(tester, 'you_pal_suggests_${_theme(dark)}');
+
+    // approved from You through today's handling, so it is settled for both.
+    await _tap(tester, approve);
+    expect(_onYou(find.text(addRitual.title)), findsNothing);
+    expect(_container(tester).read(planSessionControllerProvider).settled,
+        containsPair('proposal:${addRitual.id}', true));
+    await Scrollable.ensureVisible(tester.element(heading), alignment: _sectionTop);
+    await tester.pumpAndSettle();
+    await shot(tester, 'you_pal_suggests_approved_${_theme(dark)}');
+
+    // put off from You, it leaves today's timeline too.
+    await _tap(tester, _onYou(find.bySemanticsLabel('Not now: ${rent.title}')));
+    expect(_onYou(find.text(rent.title)), findsNothing);
+    await _toTab(tester, 'Today');
+    await _showAllLater(tester);
+    expect(_onToday(find.text(rent.title)), findsNothing);
+
+    // the close-out proposal opens the close-out, as today's row does.
+    await _toTab(tester, 'You');
+    await _tap(tester,
+        _onYou(find.bySemanticsLabel('${closeOut.approveLabel}: ${closeOut.title}')));
+    expect(find.byType(EveningCloseOutScreen), findsOneWidget);
+  });
+
+  scenarioTest('you_pal_suggests_none', (tester, dark) async {
+    await bootToday(tester, dark: dark, pal: TodayPal(proposals: const []));
+    await _toTab(tester, 'You');
+    expect(_onYou(find.text('Pal suggests')), findsNothing);
+    await shot(tester, 'you_pal_suggests_none_${_theme(dark)}');
+  });
+
+  scenarioTest('you_pal_suggests_offline', (tester, dark) async {
+    await bootToday(tester, dark: dark, pal: TodayPal(offline: true));
+    await _toTab(tester, 'You');
+    expect(_onYou(find.text('Pal suggests')), findsNothing);
+    expect(_onYou(find.text('Add a 2-min wind-down ritual')), findsNothing);
+    await shot(tester, 'you_pal_suggests_offline_${_theme(dark)}');
   });
 
   scenarioTest('closeout_care_lead', at: _night, (tester, dark) async {
