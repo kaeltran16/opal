@@ -153,5 +153,6 @@ RoutineExercise _slotFrom(GeneratedExerciseDraft ex, int order) {
     targetSets: ex.sets.isEmpty ? 3 : ex.sets.length,
     targetReps: first?.reps,
     targetWeightKg: first?.weightKg,
+    targetMinutes: first?.durationMinutes,
   );
 }

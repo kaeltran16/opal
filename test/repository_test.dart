@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opal/data/db/database.dart';
@@ -338,6 +339,73 @@ void main() {
       // Loaded sorted by stored position.
       expect(loaded.exercises.map((e) => e.id), ['re1', 're2']);
       expect(loaded.exercises.first.exerciseId, 'bench');
+    });
+  });
+
+  group('timed sets round-trip', () {
+    test('minutes, km, targets and the timed flag survive save and load',
+        () async {
+      await db.into(db.exercises).insert(ExercisesCompanion.insert(
+          id: 'treadmill',
+          name: 'Treadmill Run',
+          group: 'Cardio',
+          muscle: 'Cardio',
+          icon: 'x',
+          timed: const Value(true)));
+      await db.into(db.exercises).insert(ExercisesCompanion.insert(
+          id: 'bench', name: 'Bench', group: 'Push', muscle: 'Chest', icon: 'x'));
+
+      final routines = RoutineRepository(db);
+      expect((await routines.getExerciseById('treadmill'))!.timed, isTrue);
+      expect((await routines.getExerciseById('bench'))!.timed, isFalse);
+
+      await routines.insert(const Routine(
+        id: 'r-tm',
+        name: 'Treadmill Intervals',
+        tag: RoutineTag.cardio,
+        exercises: [
+          RoutineExercise(
+            id: 're-tm',
+            exerciseId: 'treadmill',
+            order: 0,
+            targetSets: 1,
+            targetMinutes: 20,
+            targetKm: 3,
+          ),
+          RoutineExercise(id: 're-bench', exerciseId: 'bench', order: 1),
+        ],
+      ));
+      final slots = (await routines.getById('r-tm'))!.exercises;
+      expect(slots.first.targetMinutes, 20);
+      expect(slots.first.targetKm, 3);
+      expect(slots.last.targetMinutes, isNull);
+      expect(slots.last.targetKm, isNull);
+
+      final workouts = WorkoutRepository(db);
+      await workouts.insert(Workout(
+        id: 'w-tm',
+        name: 'Treadmill Intervals',
+        startedAt: DateTime(2026, 10, 15, 7),
+        sets: const [
+          SetLog(
+            id: 's-tm',
+            exerciseId: 'treadmill',
+            weightKg: 0,
+            reps: 0,
+            minutes: 20,
+            distanceKm: 3.2,
+            done: true,
+          ),
+          SetLog(
+              id: 's-b', exerciseId: 'bench', weightKg: 60, reps: 5, done: true),
+        ],
+      ));
+      final sets = (await workouts.getById('w-tm'))!.sets;
+      expect(sets.first.minutes, 20);
+      expect(sets.first.distanceKm, 3.2);
+      expect(sets.first.isTimed, isTrue);
+      expect(sets.last.minutes, isNull);
+      expect(sets.last.distanceKm, isNull);
     });
   });
 

@@ -2,6 +2,7 @@ import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opal/data/db/database.dart';
 import 'package:opal/data/repositories/repositories.dart';
+import 'package:opal/data/seed/seeder.dart';
 import 'package:opal/models/models.dart';
 
 /// Guards the v5->v6 re-base of the daily move goal from minutes to kcal.
@@ -26,6 +27,8 @@ void main() {
           'daily_move_minutes INTEGER NOT NULL DEFAULT 60, '
           'daily_ritual_target INTEGER NOT NULL DEFAULT 5)');
       raw.execute("INSERT INTO goals (id) VALUES ('goals')");
+      // later steps (v11) alter these, as they exist in any real v5 DB
+      _createWorkoutTables(raw);
       raw.execute('PRAGMA user_version = 5');
     }));
     addTearDown(db.close);
@@ -53,5 +56,90 @@ void main() {
     // The renamed column persists and reads back through the mapper.
     await repo.upsert(const Goals(dailyMoveKcal: 750));
     expect((await repo.get()).dailyMoveKcal, 750);
+  });
+
+  group('v10->v11 timed sets', _timedSetsMigration);
+}
+
+/// Stands up the pre-v11 shape of the tables schema v11 alters, with a bench
+/// and plank PR, a treadmill row and two old logged sets, stamped
+/// user_version 10.
+void _v10Schema(dynamic raw) {
+  _createWorkoutTables(raw);
+  raw.execute('INSERT INTO exercises VALUES '
+      "('bench', 'Bench', 'Push', 'Chest', 'x', NULL, 92.5, 5), "
+      "('plank', 'Plank', 'Core', 'Core', 'x', NULL, 0, 90), "
+      "('treadmill', 'Treadmill Run', 'Cardio', 'Cardio', 'x', NULL, NULL, NULL)");
+  raw.execute("INSERT INTO workouts VALUES ('w1', NULL, 'Push', 1780000000, NULL)");
+  raw.execute('INSERT INTO set_logs VALUES '
+      "('s1', 'w1', 'bench', 80, 5, 1, 0, 0), "
+      "('s2', 'w1', 'plank', 0, 60, 1, 0, 1)");
+  raw.execute('PRAGMA user_version = 10');
+}
+
+/// The pre-v11 exercises, workouts, set_logs and routine_exercises tables.
+void _createWorkoutTables(dynamic raw) {
+  raw.execute('CREATE TABLE exercises (id TEXT NOT NULL PRIMARY KEY, '
+      'name TEXT NOT NULL, "group" TEXT NOT NULL, muscle TEXT NOT NULL, '
+      'icon TEXT NOT NULL, equipment TEXT NULL, pr_weight_kg REAL NULL, '
+      'pr_reps INTEGER NULL)');
+  raw.execute('CREATE TABLE workouts (id TEXT NOT NULL PRIMARY KEY, '
+      'routine_id TEXT NULL, name TEXT NOT NULL, started_at INTEGER NOT NULL, '
+      'ended_at INTEGER NULL)');
+  raw.execute('CREATE TABLE set_logs (id TEXT NOT NULL PRIMARY KEY, '
+      'workout_id TEXT NOT NULL, exercise_id TEXT NOT NULL, '
+      'weight_kg REAL NOT NULL, reps INTEGER NOT NULL, '
+      'done INTEGER NOT NULL DEFAULT 0, is_p_r INTEGER NOT NULL DEFAULT 0, '
+      'position INTEGER NOT NULL DEFAULT 0)');
+  raw.execute('CREATE TABLE routine_exercises (id TEXT NOT NULL PRIMARY KEY, '
+      'routine_id TEXT NOT NULL, exercise_id TEXT NOT NULL, '
+      'position INTEGER NOT NULL, target_sets INTEGER NOT NULL DEFAULT 3, '
+      'target_reps INTEGER NULL, target_weight_kg REAL NULL)');
+}
+
+void _timedSetsMigration() {
+  test('flags cardio and plank as timed and clears their PRs',
+      () async {
+    final db = LoopDatabase.forTesting(NativeDatabase.memory(setup: _v10Schema));
+    addTearDown(db.close);
+    final repo = RoutineRepository(db);
+
+    final treadmill = await repo.getExerciseById('treadmill');
+    final plank = await repo.getExerciseById('plank');
+    final bench = await repo.getExerciseById('bench');
+    expect(treadmill!.timed, isTrue);
+    expect(plank!.timed, isTrue);
+    expect(bench!.timed, isFalse);
+
+    // a timed exercise keeps no stored PR, so nothing reads "0 kg × 90"
+    expect(plank.pr, isNull);
+    expect(bench.pr, const ExercisePR(weightKg: 92.5, reps: 5));
+  });
+
+  test('keeps old logged sets as weight × reps', () async {
+    final db = LoopDatabase.forTesting(NativeDatabase.memory(setup: _v10Schema));
+    addTearDown(db.close);
+
+    final w = await WorkoutRepository(db).getById('w1');
+    expect(w!.sets.every((s) => s.minutes == null && s.distanceKm == null),
+        isTrue);
+    final plank = w.sets.firstWhere((s) => s.exerciseId == 'plank');
+    expect(plank.reps, 60);
+    expect(plank.isTimed, isFalse);
+  });
+
+  test('a freshly seeded demo database has no plank PR', () async {
+    final db = LoopDatabase.forTesting(NativeDatabase.memory());
+    addTearDown(db.close);
+    await Seeder(db).seedIfNeeded();
+
+    final plank = await RoutineRepository(db).getExerciseById('plank');
+    expect(plank!.timed, isTrue);
+    expect(plank.pr, isNull);
+    final treadmill = await RoutineRepository(db).getExerciseById('treadmill');
+    expect(treadmill!.timed, isTrue);
+    final bench = await RoutineRepository(db).getExerciseById('bench');
+    expect(bench!.timed, isFalse);
+    expect(bench.pr, isNotNull);
   });
 }

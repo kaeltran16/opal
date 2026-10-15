@@ -2,6 +2,10 @@
 String formatWeight(double v) =>
     v == v.roundToDouble() ? v.toStringAsFixed(0) : v.toString();
 
+/// Renders a distance to one decimal without a trailing ".0" (3.0 -> "3",
+/// 3.24 -> "3.2").
+String formatKm(double km) => formatWeight(double.parse(km.toStringAsFixed(1)));
+
 /// A display currency. Amounts are stored as raw numbers in the user's chosen
 /// currency — switching currency changes formatting only, never stored values
 /// (there is no FX conversion). [budgetScale] scales the budget editor's presets

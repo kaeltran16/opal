@@ -11,6 +11,8 @@ class SetLog {
     required this.reps,
     this.done = false,
     this.isPR = false,
+    this.minutes,
+    this.distanceKm,
   });
 
   /// Caller-supplied id (never self-generated).
@@ -30,8 +32,18 @@ class SetLog {
   /// Whether this set is a personal record (set by the controller on save).
   final bool isPR;
 
-  /// Volume contribution of this set: weight × reps.
-  double get volumeKg => weightKg * reps;
+  /// Whole minutes of a timed set (cardio or a hold); null on a weighted set.
+  /// A timed set stores 0 in [weightKg] and [reps].
+  final int? minutes;
+
+  /// Optional distance of a timed set; null when none was logged.
+  final double? distanceKm;
+
+  bool get isTimed => minutes != null;
+
+  /// Volume contribution of this set: weight × reps, and 0 for a timed set
+  /// whatever its stored numbers.
+  double get volumeKg => isTimed ? 0 : weightKg * reps;
 
   SetLog copyWith({
     String? id,
@@ -40,6 +52,8 @@ class SetLog {
     int? reps,
     bool? done,
     bool? isPR,
+    int? minutes,
+    double? distanceKm,
   }) {
     return SetLog(
       id: id ?? this.id,
@@ -48,6 +62,8 @@ class SetLog {
       reps: reps ?? this.reps,
       done: done ?? this.done,
       isPR: isPR ?? this.isPR,
+      minutes: minutes ?? this.minutes,
+      distanceKm: distanceKm ?? this.distanceKm,
     );
   }
 
@@ -60,11 +76,13 @@ class SetLog {
           other.weightKg == weightKg &&
           other.reps == reps &&
           other.done == done &&
-          other.isPR == isPR;
+          other.isPR == isPR &&
+          other.minutes == minutes &&
+          other.distanceKm == distanceKm;
 
   @override
   int get hashCode =>
-      Object.hash(id, exerciseId, weightKg, reps, done, isPR);
+      Object.hash(id, exerciseId, weightKg, reps, done, isPR, minutes, distanceKm);
 
   @override
   String toString() =>

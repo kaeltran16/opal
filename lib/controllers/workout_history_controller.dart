@@ -268,7 +268,8 @@ List<HistoryPr> buildHistoryPrs(List<Workout> inRange, List<Exercise> catalog) {
   final byExercise = <String, List<({SetLog set, DateTime at})>>{};
   for (final w in inRange) {
     for (final s in w.sets) {
-      if (!s.done) continue;
+      // a timed set is never a record, nor a baseline for one
+      if (!s.done || s.isTimed) continue;
       (byExercise[s.exerciseId] ??= []).add((set: s, at: w.startedAt));
     }
   }
