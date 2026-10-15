@@ -13,6 +13,8 @@ import 'package:opal/models/models.dart';
 import 'package:opal/services/pal/pal_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../support/failing_stream.dart';
+
 // with a breakdown (a comparison) and without one (no bars).
 const _corrWithBars = Correlation(
   a: Dimension.money,
@@ -86,7 +88,7 @@ class _FakeNutritionController extends NutritionController {
 
 class _FailingNutritionController extends NutritionController {
   @override
-  Stream<NutritionState> build() => Stream.error(Exception('db locked'));
+  Stream<NutritionState> build() => failingStream(Exception('db locked'));
 }
 
 ProviderContainer _container(
@@ -109,7 +111,7 @@ ProviderContainer _container(
             : const [_corrWithBars, _corrNoBars],
       ),
       spendPatternsProvider.overrideWith(
-        (_) => failingDbSources ? Stream.error(dbError) : Stream.value(_spend),
+        (_) => failingDbSources ? failingStream(dbError) : Stream.value(_spend),
       ),
       nutritionControllerProvider.overrideWith(
         failingDbSources

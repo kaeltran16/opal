@@ -259,6 +259,20 @@ void main() {
       expect(find.byType(FailureNote), findsNothing);
       expect(_inSheet(find.text(r'$12,500')), findsOneWidget);
     });
+
+    testWidgets('a digit rejected at the max still clears the note', (tester) async {
+      final fake = await _pump(tester);
+      fake.fail = true;
+      await _openCap(tester);
+      await _delete(tester, 3);
+      await _type(tester, '100000');
+      await _label(tester, 'Save');
+      expect(find.byType(FailureNote), findsOneWidget);
+
+      await _type(tester, '1');
+      expect(find.byType(FailureNote), findsNothing);
+      expect(_inSheet(find.text(r'$100,000')), findsOneWidget);
+    });
   });
 
   group('adding', () {

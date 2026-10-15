@@ -25,7 +25,8 @@ const List<FontFeature> _tabular = [FontFeature.tabularFigures()];
 /// Budgets' envelope editor: each envelope's cap (tap to edit, drag to
 /// reorder), New envelope, and the suggested caps to apply. Every write goes
 /// through [budgetEnvelopesControllerProvider]; a failed list write shows a
-/// [FailureNote] under the summary until the next write lands.
+/// [FailureNote] under the summary until the next write lands or a sheet's
+/// draft is edited.
 class EnvelopeEditorScreen extends ConsumerStatefulWidget {
   const EnvelopeEditorScreen({super.key});
 
@@ -64,6 +65,10 @@ class _EnvelopeEditorScreenState extends ConsumerState<EnvelopeEditorScreen> {
       () => ref.read(budgetEnvelopesControllerProvider.notifier).reorder(oldIndex, newIndex),
       'reordering',
     );
+  }
+
+  void _clearListNote() {
+    if (_listFailed) setState(() => _listFailed = false);
   }
 
   void _apply(BudgetRecommendation rec) => _write(
@@ -156,13 +161,13 @@ class _EnvelopeEditorScreenState extends ConsumerState<EnvelopeEditorScreen> {
                 index: i,
                 envelope: envelope,
                 cap: formatCurrency(envelope.cap, currency),
-                onTap: () => showEnvelopeCapSheet(context, ref, envelope),
+                onTap: () => showEnvelopeCapSheet(context, ref, envelope, onEdit: _clearListNote),
               );
             },
           ),
         _HairTop(
           child: PressScale(
-            onTap: () => showNewEnvelopeSheet(context, ref),
+            onTap: () => showNewEnvelopeSheet(context, ref, onEdit: _clearListNote),
             semanticLabel: 'New envelope',
             child: ConstrainedBox(
               constraints: const BoxConstraints(minHeight: _rowHeight),
