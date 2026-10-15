@@ -21,11 +21,11 @@ class ComposerTurn extends StatelessWidget {
 
   final PalMessage message;
 
-  /// Reverses this turn's auto-applied actions, keeping the turn.
-  final VoidCallback? onUndo;
+  /// Reverses one of this turn's auto-applied actions (by index), keeping the row.
+  final ValueChanged<int>? onUndo;
 
-  /// Reverses and removes a logged turn and refills the input to fix it.
-  final VoidCallback? onEdit;
+  /// Reverses and removes one logged action (by index) and refills the input.
+  final ValueChanged<int>? onEdit;
 
   @override
   Widget build(BuildContext context) {
@@ -41,29 +41,33 @@ class ComposerTurn extends StatelessWidget {
       children: [
         if (hasReply)
           Text(m.text, style: AppType.body.copyWith(color: m.offline ? c.ink3 : c.ink)),
-        for (final action in m.actions)
-          switch (action) {
-            LogEntryAction() =>
-              _LogTurn(action: action, undone: m.undone, onUndo: onUndo, onEdit: onEdit),
-            LogMealAction() => _ActedLine(
-                text: '${action.name} · ${action.cal.lo}–${action.cal.hi} kcal, '
-                    '${action.confidence.label}',
-                undone: m.undone,
-                onUndo: onUndo,
-                onEdit: onEdit,
-              ),
-            SetGoalAction() =>
-              _GoalLine(action: action, undone: m.undone, onUndo: onUndo),
-            CreateRoutineAction() => _ActedLine(
-                text: 'Saved a routine: ${action.name ?? action.goal}.',
-                undone: m.undone,
-                onUndo: onUndo,
-              ),
-          },
+        for (var a = 0; a < m.actions.length; a++)
+          _actionRow(m.actions[a], m.isUndone(a), _bind(onUndo, a), _bind(onEdit, a)),
       ],
     );
   }
 }
+
+VoidCallback? _bind(ValueChanged<int>? f, int a) => f == null ? null : () => f(a);
+
+Widget _actionRow(PalAction action, bool undone, VoidCallback? onUndo, VoidCallback? onEdit) =>
+    switch (action) {
+      LogEntryAction() =>
+        _LogTurn(action: action, undone: undone, onUndo: onUndo, onEdit: onEdit),
+      LogMealAction() => _ActedLine(
+          text: '${mealName(action.name)} · ${action.cal.lo}–${action.cal.hi} kcal, '
+              '${action.confidence.label}',
+          undone: undone,
+          onUndo: onUndo,
+          onEdit: onEdit,
+        ),
+      SetGoalAction() => _GoalLine(action: action, undone: undone, onUndo: onUndo),
+      CreateRoutineAction() => _ActedLine(
+          text: 'Saved a routine: ${action.name ?? action.goal}.',
+          undone: undone,
+          onUndo: onUndo,
+        ),
+    };
 
 /// Shown while Pal is thinking.
 class ComposerThinking extends StatelessWidget {
@@ -94,7 +98,10 @@ class _LogTurn extends ConsumerWidget {
     final currency = ref.watch(appSettingsControllerProvider).currency;
     final today = ref.watch(todayStateProvider).asData?.value;
     final detail = switch (action.type) {
-      EntryType.money => formatCurrency(action.amount ?? 0, currency, withSign: true),
+      // a word joiner keeps the minus on the amount's line ("−$6.50", never
+      // "−" then "$6.50").
+      EntryType.money => formatCurrency(action.amount ?? 0, currency, withSign: true)
+          .replaceFirst('−', '−\u2060'),
       EntryType.move =>
         action.durationMinutes != null ? '${action.durationMinutes} min' : null,
       EntryType.rituals => null,

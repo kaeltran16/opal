@@ -183,8 +183,11 @@ class HttpPalService implements PalService {
         wire.add({'role': 'user', 'text': m.modelText});
         continue;
       }
-      final done = m.actions.map(_describeAction).join('; ');
-      final note = done.isEmpty ? '' : (m.undone ? '(Pal did: $done. The user undid it.)' : '(Pal did: $done.)');
+      final done = [
+        for (var a = 0; a < m.actions.length; a++)
+          '${_describeAction(m.actions[a])}${m.isUndone(a) ? ', which the user undid' : ''}',
+      ].join('; ');
+      final note = done.isEmpty ? '' : '(Pal did: $done.)';
       wire.add({'role': 'assistant', 'text': [m.text, note].where((s) => s.isNotEmpty).join(' ')});
     }
     return wire;
@@ -388,6 +391,7 @@ class HttpPalService implements PalService {
                 'id': e.id,
                 'name': e.name,
                 'group': e.group,
+                'muscle': e.muscle,
                 'equipment': e.equipment,
               })
           .toList(),

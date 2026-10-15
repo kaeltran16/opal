@@ -1101,7 +1101,7 @@ class ExerciseRow extends DataClass implements Insertable<ExerciseRow> {
   /// `ExercisePR.reps` — null when the exercise has no PR.
   final int? prReps;
 
-  /// `Exercise.timed` — logged in minutes, not weight × reps (v11).
+  /// `Exercise.timed` — logged in minutes, not weight × reps (v12).
   final bool timed;
   const ExerciseRow({
     required this.id,
@@ -2073,12 +2073,12 @@ class $RoutineExercisesTable extends RoutineExercises
     type: DriftSqlType.double,
     requiredDuringInsert: false,
   );
-  static const VerificationMeta _targetMinutesMeta = const VerificationMeta(
-    'targetMinutes',
+  static const VerificationMeta _targetDurationMinMeta = const VerificationMeta(
+    'targetDurationMin',
   );
   @override
-  late final GeneratedColumn<int> targetMinutes = GeneratedColumn<int>(
-    'target_minutes',
+  late final GeneratedColumn<int> targetDurationMin = GeneratedColumn<int>(
+    'target_duration_min',
     aliasedName,
     true,
     type: DriftSqlType.int,
@@ -2104,7 +2104,7 @@ class $RoutineExercisesTable extends RoutineExercises
     targetSets,
     targetReps,
     targetWeightKg,
-    targetMinutes,
+    targetDurationMin,
     targetKm,
   ];
   @override
@@ -2169,12 +2169,12 @@ class $RoutineExercisesTable extends RoutineExercises
         ),
       );
     }
-    if (data.containsKey('target_minutes')) {
+    if (data.containsKey('target_duration_min')) {
       context.handle(
-        _targetMinutesMeta,
-        targetMinutes.isAcceptableOrUnknown(
-          data['target_minutes']!,
-          _targetMinutesMeta,
+        _targetDurationMinMeta,
+        targetDurationMin.isAcceptableOrUnknown(
+          data['target_duration_min']!,
+          _targetDurationMinMeta,
         ),
       );
     }
@@ -2221,9 +2221,9 @@ class $RoutineExercisesTable extends RoutineExercises
         DriftSqlType.double,
         data['${effectivePrefix}target_weight_kg'],
       ),
-      targetMinutes: attachedDatabase.typeMapping.read(
+      targetDurationMin: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
-        data['${effectivePrefix}target_minutes'],
+        data['${effectivePrefix}target_duration_min'],
       ),
       targetKm: attachedDatabase.typeMapping.read(
         DriftSqlType.double,
@@ -2250,8 +2250,9 @@ class RoutineExerciseRow extends DataClass
   final int? targetReps;
   final double? targetWeightKg;
 
-  /// Timed-slot targets (v11); null on a weighted slot.
-  final int? targetMinutes;
+  /// Planned minutes per set for a timed set (v11), and its distance (v12);
+  /// null on a weighted slot.
+  final int? targetDurationMin;
   final double? targetKm;
   const RoutineExerciseRow({
     required this.id,
@@ -2261,7 +2262,7 @@ class RoutineExerciseRow extends DataClass
     required this.targetSets,
     this.targetReps,
     this.targetWeightKg,
-    this.targetMinutes,
+    this.targetDurationMin,
     this.targetKm,
   });
   @override
@@ -2278,8 +2279,8 @@ class RoutineExerciseRow extends DataClass
     if (!nullToAbsent || targetWeightKg != null) {
       map['target_weight_kg'] = Variable<double>(targetWeightKg);
     }
-    if (!nullToAbsent || targetMinutes != null) {
-      map['target_minutes'] = Variable<int>(targetMinutes);
+    if (!nullToAbsent || targetDurationMin != null) {
+      map['target_duration_min'] = Variable<int>(targetDurationMin);
     }
     if (!nullToAbsent || targetKm != null) {
       map['target_km'] = Variable<double>(targetKm);
@@ -2300,9 +2301,9 @@ class RoutineExerciseRow extends DataClass
       targetWeightKg: targetWeightKg == null && nullToAbsent
           ? const Value.absent()
           : Value(targetWeightKg),
-      targetMinutes: targetMinutes == null && nullToAbsent
+      targetDurationMin: targetDurationMin == null && nullToAbsent
           ? const Value.absent()
-          : Value(targetMinutes),
+          : Value(targetDurationMin),
       targetKm: targetKm == null && nullToAbsent
           ? const Value.absent()
           : Value(targetKm),
@@ -2322,7 +2323,7 @@ class RoutineExerciseRow extends DataClass
       targetSets: serializer.fromJson<int>(json['targetSets']),
       targetReps: serializer.fromJson<int?>(json['targetReps']),
       targetWeightKg: serializer.fromJson<double?>(json['targetWeightKg']),
-      targetMinutes: serializer.fromJson<int?>(json['targetMinutes']),
+      targetDurationMin: serializer.fromJson<int?>(json['targetDurationMin']),
       targetKm: serializer.fromJson<double?>(json['targetKm']),
     );
   }
@@ -2337,7 +2338,7 @@ class RoutineExerciseRow extends DataClass
       'targetSets': serializer.toJson<int>(targetSets),
       'targetReps': serializer.toJson<int?>(targetReps),
       'targetWeightKg': serializer.toJson<double?>(targetWeightKg),
-      'targetMinutes': serializer.toJson<int?>(targetMinutes),
+      'targetDurationMin': serializer.toJson<int?>(targetDurationMin),
       'targetKm': serializer.toJson<double?>(targetKm),
     };
   }
@@ -2350,7 +2351,7 @@ class RoutineExerciseRow extends DataClass
     int? targetSets,
     Value<int?> targetReps = const Value.absent(),
     Value<double?> targetWeightKg = const Value.absent(),
-    Value<int?> targetMinutes = const Value.absent(),
+    Value<int?> targetDurationMin = const Value.absent(),
     Value<double?> targetKm = const Value.absent(),
   }) => RoutineExerciseRow(
     id: id ?? this.id,
@@ -2362,9 +2363,9 @@ class RoutineExerciseRow extends DataClass
     targetWeightKg: targetWeightKg.present
         ? targetWeightKg.value
         : this.targetWeightKg,
-    targetMinutes: targetMinutes.present
-        ? targetMinutes.value
-        : this.targetMinutes,
+    targetDurationMin: targetDurationMin.present
+        ? targetDurationMin.value
+        : this.targetDurationMin,
     targetKm: targetKm.present ? targetKm.value : this.targetKm,
   );
   RoutineExerciseRow copyWithCompanion(RoutineExercisesCompanion data) {
@@ -2384,9 +2385,9 @@ class RoutineExerciseRow extends DataClass
       targetWeightKg: data.targetWeightKg.present
           ? data.targetWeightKg.value
           : this.targetWeightKg,
-      targetMinutes: data.targetMinutes.present
-          ? data.targetMinutes.value
-          : this.targetMinutes,
+      targetDurationMin: data.targetDurationMin.present
+          ? data.targetDurationMin.value
+          : this.targetDurationMin,
       targetKm: data.targetKm.present ? data.targetKm.value : this.targetKm,
     );
   }
@@ -2401,7 +2402,7 @@ class RoutineExerciseRow extends DataClass
           ..write('targetSets: $targetSets, ')
           ..write('targetReps: $targetReps, ')
           ..write('targetWeightKg: $targetWeightKg, ')
-          ..write('targetMinutes: $targetMinutes, ')
+          ..write('targetDurationMin: $targetDurationMin, ')
           ..write('targetKm: $targetKm')
           ..write(')'))
         .toString();
@@ -2416,7 +2417,7 @@ class RoutineExerciseRow extends DataClass
     targetSets,
     targetReps,
     targetWeightKg,
-    targetMinutes,
+    targetDurationMin,
     targetKm,
   );
   @override
@@ -2430,7 +2431,7 @@ class RoutineExerciseRow extends DataClass
           other.targetSets == this.targetSets &&
           other.targetReps == this.targetReps &&
           other.targetWeightKg == this.targetWeightKg &&
-          other.targetMinutes == this.targetMinutes &&
+          other.targetDurationMin == this.targetDurationMin &&
           other.targetKm == this.targetKm);
 }
 
@@ -2442,7 +2443,7 @@ class RoutineExercisesCompanion extends UpdateCompanion<RoutineExerciseRow> {
   final Value<int> targetSets;
   final Value<int?> targetReps;
   final Value<double?> targetWeightKg;
-  final Value<int?> targetMinutes;
+  final Value<int?> targetDurationMin;
   final Value<double?> targetKm;
   final Value<int> rowid;
   const RoutineExercisesCompanion({
@@ -2453,7 +2454,7 @@ class RoutineExercisesCompanion extends UpdateCompanion<RoutineExerciseRow> {
     this.targetSets = const Value.absent(),
     this.targetReps = const Value.absent(),
     this.targetWeightKg = const Value.absent(),
-    this.targetMinutes = const Value.absent(),
+    this.targetDurationMin = const Value.absent(),
     this.targetKm = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -2465,7 +2466,7 @@ class RoutineExercisesCompanion extends UpdateCompanion<RoutineExerciseRow> {
     this.targetSets = const Value.absent(),
     this.targetReps = const Value.absent(),
     this.targetWeightKg = const Value.absent(),
-    this.targetMinutes = const Value.absent(),
+    this.targetDurationMin = const Value.absent(),
     this.targetKm = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
@@ -2480,7 +2481,7 @@ class RoutineExercisesCompanion extends UpdateCompanion<RoutineExerciseRow> {
     Expression<int>? targetSets,
     Expression<int>? targetReps,
     Expression<double>? targetWeightKg,
-    Expression<int>? targetMinutes,
+    Expression<int>? targetDurationMin,
     Expression<double>? targetKm,
     Expression<int>? rowid,
   }) {
@@ -2492,7 +2493,7 @@ class RoutineExercisesCompanion extends UpdateCompanion<RoutineExerciseRow> {
       if (targetSets != null) 'target_sets': targetSets,
       if (targetReps != null) 'target_reps': targetReps,
       if (targetWeightKg != null) 'target_weight_kg': targetWeightKg,
-      if (targetMinutes != null) 'target_minutes': targetMinutes,
+      if (targetDurationMin != null) 'target_duration_min': targetDurationMin,
       if (targetKm != null) 'target_km': targetKm,
       if (rowid != null) 'rowid': rowid,
     });
@@ -2506,7 +2507,7 @@ class RoutineExercisesCompanion extends UpdateCompanion<RoutineExerciseRow> {
     Value<int>? targetSets,
     Value<int?>? targetReps,
     Value<double?>? targetWeightKg,
-    Value<int?>? targetMinutes,
+    Value<int?>? targetDurationMin,
     Value<double?>? targetKm,
     Value<int>? rowid,
   }) {
@@ -2518,7 +2519,7 @@ class RoutineExercisesCompanion extends UpdateCompanion<RoutineExerciseRow> {
       targetSets: targetSets ?? this.targetSets,
       targetReps: targetReps ?? this.targetReps,
       targetWeightKg: targetWeightKg ?? this.targetWeightKg,
-      targetMinutes: targetMinutes ?? this.targetMinutes,
+      targetDurationMin: targetDurationMin ?? this.targetDurationMin,
       targetKm: targetKm ?? this.targetKm,
       rowid: rowid ?? this.rowid,
     );
@@ -2548,8 +2549,8 @@ class RoutineExercisesCompanion extends UpdateCompanion<RoutineExerciseRow> {
     if (targetWeightKg.present) {
       map['target_weight_kg'] = Variable<double>(targetWeightKg.value);
     }
-    if (targetMinutes.present) {
-      map['target_minutes'] = Variable<int>(targetMinutes.value);
+    if (targetDurationMin.present) {
+      map['target_duration_min'] = Variable<int>(targetDurationMin.value);
     }
     if (targetKm.present) {
       map['target_km'] = Variable<double>(targetKm.value);
@@ -2570,7 +2571,7 @@ class RoutineExercisesCompanion extends UpdateCompanion<RoutineExerciseRow> {
           ..write('targetSets: $targetSets, ')
           ..write('targetReps: $targetReps, ')
           ..write('targetWeightKg: $targetWeightKg, ')
-          ..write('targetMinutes: $targetMinutes, ')
+          ..write('targetDurationMin: $targetDurationMin, ')
           ..write('targetKm: $targetKm, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -3218,7 +3219,7 @@ class SetLogRow extends DataClass implements Insertable<SetLogRow> {
   /// Preserves insertion order within a workout.
   final int position;
 
-  /// `SetLog.minutes` / `SetLog.distanceKm` (v11); null on a weighted set.
+  /// `SetLog.minutes` / `SetLog.distanceKm` (v12); null on a weighted set.
   final int? minutes;
   final double? distanceKm;
   const SetLogRow({
@@ -9602,7 +9603,7 @@ typedef $$RoutineExercisesTableCreateCompanionBuilder =
       Value<int> targetSets,
       Value<int?> targetReps,
       Value<double?> targetWeightKg,
-      Value<int?> targetMinutes,
+      Value<int?> targetDurationMin,
       Value<double?> targetKm,
       Value<int> rowid,
     });
@@ -9615,7 +9616,7 @@ typedef $$RoutineExercisesTableUpdateCompanionBuilder =
       Value<int> targetSets,
       Value<int?> targetReps,
       Value<double?> targetWeightKg,
-      Value<int?> targetMinutes,
+      Value<int?> targetDurationMin,
       Value<double?> targetKm,
       Value<int> rowid,
     });
@@ -9664,8 +9665,8 @@ class $$RoutineExercisesTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<int> get targetMinutes => $composableBuilder(
-    column: $table.targetMinutes,
+  ColumnFilters<int> get targetDurationMin => $composableBuilder(
+    column: $table.targetDurationMin,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -9719,8 +9720,8 @@ class $$RoutineExercisesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<int> get targetMinutes => $composableBuilder(
-    column: $table.targetMinutes,
+  ColumnOrderings<int> get targetDurationMin => $composableBuilder(
+    column: $table.targetDurationMin,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -9768,8 +9769,8 @@ class $$RoutineExercisesTableAnnotationComposer
     builder: (column) => column,
   );
 
-  GeneratedColumn<int> get targetMinutes => $composableBuilder(
-    column: $table.targetMinutes,
+  GeneratedColumn<int> get targetDurationMin => $composableBuilder(
+    column: $table.targetDurationMin,
     builder: (column) => column,
   );
 
@@ -9821,7 +9822,7 @@ class $$RoutineExercisesTableTableManager
                 Value<int> targetSets = const Value.absent(),
                 Value<int?> targetReps = const Value.absent(),
                 Value<double?> targetWeightKg = const Value.absent(),
-                Value<int?> targetMinutes = const Value.absent(),
+                Value<int?> targetDurationMin = const Value.absent(),
                 Value<double?> targetKm = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => RoutineExercisesCompanion(
@@ -9832,7 +9833,7 @@ class $$RoutineExercisesTableTableManager
                 targetSets: targetSets,
                 targetReps: targetReps,
                 targetWeightKg: targetWeightKg,
-                targetMinutes: targetMinutes,
+                targetDurationMin: targetDurationMin,
                 targetKm: targetKm,
                 rowid: rowid,
               ),
@@ -9845,7 +9846,7 @@ class $$RoutineExercisesTableTableManager
                 Value<int> targetSets = const Value.absent(),
                 Value<int?> targetReps = const Value.absent(),
                 Value<double?> targetWeightKg = const Value.absent(),
-                Value<int?> targetMinutes = const Value.absent(),
+                Value<int?> targetDurationMin = const Value.absent(),
                 Value<double?> targetKm = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => RoutineExercisesCompanion.insert(
@@ -9856,7 +9857,7 @@ class $$RoutineExercisesTableTableManager
                 targetSets: targetSets,
                 targetReps: targetReps,
                 targetWeightKg: targetWeightKg,
-                targetMinutes: targetMinutes,
+                targetDurationMin: targetDurationMin,
                 targetKm: targetKm,
                 rowid: rowid,
               ),

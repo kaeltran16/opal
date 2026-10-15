@@ -94,12 +94,12 @@ void main() {
         ),
       ]);
 
-      expect(applied.entryIds, hasLength(1));
+      expect(applied.single.entryId, isNotNull);
       final stored = await EntryRepository(db).getAll();
       expect(stored.where((e) => e.title == 'Coffee'), hasLength(1));
     });
 
-    test('applies a goal change and captures the prior goals snapshot', () async {
+    test('applies a goal change and captures the value it replaced', () async {
       final db = LoopDatabase.forTesting(NativeDatabase.memory());
       addTearDown(db.close);
       final goals = GoalsRepository(db);
@@ -111,8 +111,9 @@ void main() {
       ]);
 
       expect((await goals.get()).dailyBudget, 60);
-      // prior snapshot is what undo would restore.
-      expect(applied.priorGoals?.dailyBudget, 100);
+      // the prior value is what undo would restore.
+      expect(applied.single.priorGoal,
+          const SetGoalAction(target: GoalTarget.dailyBudget, value: 100));
     });
 
     test('creates a routine via the PalService draft and reports its id',
@@ -128,14 +129,13 @@ void main() {
       ]);
 
       expect(pal.generateCalls, 1);
-      expect(applied.routineIds, hasLength(1));
-      final routine = await RoutineRepository(db).getById(applied.routineIds.single);
+      final routine = await RoutineRepository(db).getById(applied.single.routineId!);
       expect(routine?.name, 'My Push'); // name override wins over draft name
     });
   });
 
   group('routineFromDraft — timed sets', () {
-    test('a draft plank set with a duration saves a slot with targetMinutes',
+    test('a draft plank set with a duration saves and reads back a slot with targetDurationMin',
         () async {
       final db = LoopDatabase.forTesting(NativeDatabase.memory());
       addTearDown(db.close);
@@ -159,7 +159,7 @@ void main() {
 
       final slot = (await repo.getById(id))!.exercises.single;
       expect(slot.targetSets, 2);
-      expect(slot.targetMinutes, 1);
+      expect(slot.targetDurationMin, 1);
       expect(slot.targetReps, isNull);
       expect(slot.targetWeightKg, isNull);
     });
@@ -177,7 +177,7 @@ void main() {
           confidence: NutritionConfidence.med, slot: 'Lunch'),
       ]);
 
-      expect(applied.mealIds, hasLength(1));
+
       final repo = NutritionRepository(db);
       final after = await repo.getMealsInRange(
           DateTime(2000), DateTime(2100));
@@ -185,9 +185,68 @@ void main() {
       expect(after.single.cal, const IntRange(520, 820));
       expect(after.single.source, NutritionSource.manual);
 
-      // reverse (mirrors the controller's undo) clears it
-      await repo.deleteById(applied.mealIds.single);
+      // reverse (the controller's undo) clears it
+      await reversePalAction(ref, applied.single);
       expect(await repo.getMealsInRange(DateTime(2000), DateTime(2100)), isEmpty);
+    });
+  });
+
+  group('routineFromDraft', () {
+    test("keeps Pal's time estimate and a timed set's minutes", () {
+      final routine = routineFromDraft(const GeneratedRoutineDraft(
+        name: 'Quick core',
+        tag: RoutineTag.full,
+        estimatedMinutes: 20,
+        exercises: [
+          GeneratedExerciseDraft(exerciseId: 'plank', sets: [
+            GeneratedSetDraft(durationMinutes: 1),
+            GeneratedSetDraft(durationMinutes: 1),
+          ]),
+        ],
+      ));
+
+      expect(routine.estMin, 20);
+      final slot = routine.exercises.single;
+      expect(slot.targetSets, 2);
+      expect(slot.targetReps, isNull);
+      expect(slot.targetDurationMin, 1);
+    });
+  });
+
+  group('reversePalAction', () {
+    test('reverses one action of a turn and leaves the others', () async {
+      final db = LoopDatabase.forTesting(NativeDatabase.memory());
+      addTearDown(db.close);
+      final ref = refWith(db, _FakePal());
+
+      final applied = await applyPalActions(ref, [
+        const LogEntryAction(type: EntryType.money, title: 'Matcha latte', amount: -6.5),
+        const LogMealAction(
+            name: 'Matcha latte', cal: IntRange(120, 200), confidence: NutritionConfidence.med),
+      ]);
+      await reversePalAction(ref, applied[1]);
+
+      expect((await EntryRepository(db).getAll()).map((e) => e.title), ['Matcha latte']);
+      expect(await NutritionRepository(db).getMealsInRange(DateTime(2000), DateTime(2100)),
+          isEmpty);
+    });
+
+    test('a goal undo restores only its own goal', () async {
+      final db = LoopDatabase.forTesting(NativeDatabase.memory());
+      addTearDown(db.close);
+      final goals = GoalsRepository(db);
+      await goals.upsert(const Goals(dailyBudget: 100, dailyMoveKcal: 500));
+      final ref = refWith(db, _FakePal());
+
+      final applied = await applyPalActions(ref, [
+        const SetGoalAction(target: GoalTarget.dailyBudget, value: 60),
+        const SetGoalAction(target: GoalTarget.dailyMoveKcal, value: 300),
+      ]);
+      await reversePalAction(ref, applied[0]);
+
+      final after = await goals.get();
+      expect(after.dailyBudget, 100);
+      expect(after.dailyMoveKcal, 300);
     });
   });
 

@@ -151,7 +151,7 @@ extension RoutineExerciseRowMapper on RoutineExerciseRow {
         targetSets: targetSets,
         targetReps: targetReps,
         targetWeightKg: targetWeightKg,
-        targetMinutes: targetMinutes,
+        targetDurationMin: targetDurationMin,
         targetKm: targetKm,
       );
 }
@@ -166,7 +166,7 @@ extension RoutineExerciseModelMapper on RoutineExercise {
         targetSets: Value(targetSets),
         targetReps: Value(targetReps),
         targetWeightKg: Value(targetWeightKg),
-        targetMinutes: Value(targetMinutes),
+        targetDurationMin: Value(targetDurationMin),
         targetKm: Value(targetKm),
       );
 }

@@ -5,7 +5,7 @@ import 'package:opal/data/repositories/repositories.dart';
 import 'package:opal/data/seed/seeder.dart';
 import 'package:opal/models/models.dart';
 
-import 'support/pre_v11_workout_tables.dart';
+import 'support/legacy_schema.dart';
 
 /// Guards the v5->v6 re-base of the daily move goal from minutes to kcal.
 ///
@@ -29,8 +29,8 @@ void main() {
           'daily_move_minutes INTEGER NOT NULL DEFAULT 60, '
           'daily_ritual_target INTEGER NOT NULL DEFAULT 5)');
       raw.execute("INSERT INTO goals (id) VALUES ('goals')");
-      // later steps (v11) alter these, as they exist in any real v5 DB
-      createPreV11WorkoutTables(raw);
+      // later steps (v11, v12) alter these, as they exist in any real v5 DB
+      createV10WorkoutTables(raw);
       raw.execute('PRAGMA user_version = 5');
     }));
     addTearDown(db.close);
@@ -47,6 +47,21 @@ void main() {
     expect(row.read<int>('daily_move_kcal'), 500);
   });
 
+  test('v10->v11 migration adds a nullable target_duration_min to routine slots', () async {
+    final db = LoopDatabase.forTesting(NativeDatabase.memory(setup: (raw) {
+      createV10WorkoutTables(raw);
+      raw.execute("INSERT INTO routine_exercises (id, routine_id, exercise_id, position) "
+          "VALUES ('s1', 'r1', 'plank', 0)");
+      raw.execute('PRAGMA user_version = 10');
+    }));
+    addTearDown(db.close);
+
+    final row = await db
+        .customSelect('SELECT target_duration_min FROM routine_exercises')
+        .getSingle();
+    expect(row.read<int?>('target_duration_min'), isNull);
+  });
+
   test('fresh DB exposes the kcal move goal with a 500 default', () async {
     final db = LoopDatabase.forTesting(NativeDatabase.memory());
     addTearDown(db.close);
@@ -60,14 +75,14 @@ void main() {
     expect((await repo.get()).dailyMoveKcal, 750);
   });
 
-  group('v10->v11 timed sets', _timedSetsMigration);
+  group('v10->v12 timed sets', _timedSetsMigration);
 }
 
-/// Stands up the pre-v11 shape of the tables schema v11 alters, with a bench
+/// Stands up the v10 shape of the tables schemas v11 and v12 alter, with a bench
 /// and plank PR, a treadmill row and two old logged sets, stamped
 /// user_version 10.
 void _v10Schema(dynamic raw) {
-  createPreV11WorkoutTables(raw);
+  createV10WorkoutTables(raw);
   raw.execute('INSERT INTO exercises VALUES '
       "('bench', 'Bench', 'Push', 'Chest', 'x', NULL, 92.5, 5), "
       "('plank', 'Plank', 'Core', 'Core', 'x', NULL, 0, 90), "

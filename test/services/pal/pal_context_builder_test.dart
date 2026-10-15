@@ -74,4 +74,13 @@ void main() {
     expect(strength.containsKey('km'), isTrue);
     expect(strength['km'], isNull);
   });
+
+  test('formatEntryLine writes the time on the app 12-hour clock', () {
+    final line = formatEntryLine(
+      Entry(id: '1', timestamp: DateTime(2026, 6, 20, 22, 37), type: EntryType.rituals,
+          title: 'Read', source: EntrySource.manual),
+      Currency.usd,
+    );
+    expect(line, '10:37 PM Read (rituals)');
+  });
 }

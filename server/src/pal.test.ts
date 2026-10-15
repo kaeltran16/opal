@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import {
   Pal, OpenRouterClient, OpenRouterError, extractJson, toolCallsToActions, toolCallsToMemoryOps, parseSchema, synthReply,
-  insightsSchema, nutritionEstimateSchema, memoryPatternsSchema, plainText, moneyAmounts, labelsAgree,
+  insightsSchema, nutritionEstimateSchema, memoryPatternsSchema, plainText, moneyAmounts, labelsAgree, thinksAloud, deniesRecent, overclaims,
   CHAT_TOOLS, type CompletionClient, type CompletionResult, type ToolCall, type ChatMessage,
 } from './pal.js'
 import { SPEND_CATEGORIES } from './product.js'
@@ -137,6 +137,18 @@ describe('Pal JSON routes', () => {
     const client = replies('not json', 'still not json', '{"routineId": "r1", "reason": "x"}')
     await expect(new Pal(client).suggestWorkout(false, SUGGEST_CTX)).rejects.toThrow()
     expect(client.complete).toHaveBeenCalledTimes(2)
+  })
+
+  it('redraws a reason that says trained muscles went untrained, then falls back', async () => {
+    const ctx = {
+      ...SUGGEST_CTX,
+      recentWorkouts: [{ routineName: 'Leg Day', date: 'Yesterday', muscles: 'Quads, Back', groups: 'Legs, Pull' }],
+      plannedToday: 'Legs',
+    }
+    const wrong = '{"routineId": "r1", "reason": "Your recent workouts have not hit your legs."}'
+    const right = '{"routineId": "r1", "reason": "Push is fresh after yesterday on legs."}'
+    expect(await new Pal(replies(wrong, right)).suggestWorkout(false, ctx)).toEqual({ routineId: 'r1', reason: 'Push is fresh after yesterday on legs.' })
+    expect(await new Pal(replies(wrong, wrong)).suggestWorkout(false, ctx)).toEqual({ routineId: 'r1', reason: 'It is the one your plan has for today.' })
   })
 
   it('does not redraw on an upstream error', async () => {
@@ -432,7 +444,42 @@ describe('nutritionEstimateSchema', () => {
   })
 })
 
+describe('deniesRecent', () => {
+  const recent = [{ routineName: 'Leg Day', date: 'Yesterday', muscles: 'Quads, Back', groups: 'Legs, Pull' }]
+
+  it('flags a negation naming a trained muscle or group', () => {
+    expect(deniesRecent("Your recent workouts haven't hit your legs.", recent)).toBe(true)
+    expect(deniesRecent('No back work lately, so pull it is.', recent)).toBe(true)
+  })
+
+  it('leaves alone a reason that agrees with the workouts', () => {
+    expect(deniesRecent('Legs were yesterday, so upper body is fresh.', recent)).toBe(false)
+    expect(deniesRecent('You have not trained chest this week.', recent)).toBe(false)
+  })
+})
+
+describe('thinksAloud', () => {
+  it('flags a reply that recounts or corrects itself', () => {
+    expect(thinksAloud('Six steps today: read, stretch... that is five, plus... let me recount: Five steps.')).toBe(true)
+    expect(thinksAloud('Three left. Wait, you finished Midday, so two.')).toBe(true)
+    expect(thinksAloud('Five steps: read, stretch, tea, journal, lights out.')).toBe(false)
+    expect(thinksAloud("Wait until payday before the next big buy.")).toBe(false)
+    expect(thinksAloud('Actually, you are under budget by $4.')).toBe(false)
+  })
+})
+
 describe('Pal', () => {
+  it('chat draws once more when the reply shows its working', async () => {
+    const replies = ['Six steps... let me recount: five steps.', 'Five steps: read, stretch, tea, journal, lights out.']
+    const client: CompletionClient = {
+      complete: vi.fn(),
+      completeWithTools: vi.fn(async () => ({ content: replies.shift() ?? '', toolCalls: [] })),
+    }
+    const result = await new Pal(client).chat([], 'how many routine steps today?', baseChatCtx())
+    expect(result.reply).toBe('Five steps: read, stretch, tea, journal, lights out.')
+    expect(client.completeWithTools).toHaveBeenCalledTimes(2)
+  })
+
   it('chat returns the model text with no actions when no tool is called', async () => {
     const client = fakeToolClient({ content: 'You spent the most on Friday.', toolCalls: [] })
     const pal = new Pal(client)
@@ -595,6 +642,33 @@ describe('Pal', () => {
     expect(result).toEqual(draft)
   })
 
+  it('generateRoutine drops a rationale naming work the chosen exercises skip', async () => {
+    const catalog = [
+      { id: 'press', name: 'DB Press', group: 'Push', muscle: 'Chest', equipment: 'Dumbbell' },
+      { id: 'row', name: 'Row', group: 'Pull', muscle: 'Back', equipment: 'Dumbbell' },
+      { id: 'plank', name: 'Plank', group: 'Core', muscle: 'Abs', equipment: null },
+    ]
+    const draft = (rationale: string) => JSON.stringify({
+      name: 'Quick', tag: 'upper', rationale,
+      exercises: [{ exerciseId: 'press', sets: [{ reps: 8 }] }, { exerciseId: 'plank', sets: [{ duration: 1 }] }],
+    })
+    const over = await new Pal(fakeClient(draft('Hits your chest, back and core.'))).generateRoutine('quick', catalog)
+    expect(over.rationale).toBeNull()
+    const fair = await new Pal(fakeClient(draft('Presses for chest, a plank for core.'))).generateRoutine('quick', catalog)
+    expect(fair.rationale).toBe('Presses for chest, a plank for core.')
+  })
+
+  it('overclaims reads the catalog groups and muscles, plural or not', () => {
+    const catalog = [
+      { id: 'squat', name: 'Squat', group: 'Legs', muscle: 'Quads', equipment: null },
+      { id: 'curl', name: 'Curl', group: 'Pull', muscle: 'Biceps', equipment: null },
+    ]
+    const routine = (rationale: string) => ({ rationale, exercises: [{ exerciseId: 'curl', sets: [] }] })
+    expect(overclaims(routine('Pull work for your biceps.'), catalog)).toBe(false)
+    expect(overclaims(routine('Curls, then your leg work.'), catalog)).toBe(true)
+    expect(overclaims({ rationale: null, exercises: [] }, catalog)).toBe(false)
+  })
+
   it('generateRoutine drops exercises whose id is not in the catalog', async () => {
     const draft = {
       name: 'Full', tag: 'full',
@@ -747,11 +821,27 @@ describe('Pal.suggestions', () => {
       ],
     })
     const pal = new Pal(fakeClient(raw))
-    const out = await pal.suggestions('composer', baseChatCtx() as never)
+    const ctx = { ...baseChatCtx(), todayEntries: ['8:10 AM Coffee (money, −$5)'] }
+    const out = await pal.suggestions('composer', ctx as never)
     expect(out.suggestions).toHaveLength(2)
     expect(out.suggestions[0].icon).toBe('dollarsign.circle.fill') // derived from kind
     expect(out.suggestions[0].entry?.amount).toBe(-5)
     expect(out.suggestions[1].entry).toBeNull()
+  })
+
+  it('drops a log chip whose amount no entry today states', async () => {
+    const raw = JSON.stringify({
+      suggestions: [
+        { kind: 'log_money', colorToken: 'money', label: 'Late snack $6.50',
+          entry: { type: 'money', title: 'Late snack', amount: -6.5, category: 'Food & Drink', minutes: null } },
+        { kind: 'log_money', colorToken: 'money', label: 'Another coffee, $5',
+          entry: { type: 'money', title: 'Coffee', amount: -5, category: 'Food & Drink', minutes: null } },
+        { kind: 'ask', colorToken: 'accent', label: 'How am I pacing?' },
+      ],
+    })
+    const ctx = { ...baseChatCtx(), todayEntries: ['8:10 AM Coffee (money, −$5)', '12:30 PM Lunch (money, −$14.20)'] }
+    const out = await new Pal(fakeClient(raw)).suggestions('composer', ctx as never)
+    expect(out.suggestions.map((s) => s.label)).toEqual(['Another coffee, $5', 'How am I pacing?'])
   })
 
   it('coerces unknown kind/colorToken to safe defaults', async () => {

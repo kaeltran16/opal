@@ -1,21 +1,20 @@
 import 'package:clock/clock.dart';
 
 import '../../models/models.dart';
-import '../../util/dates.dart' show relativeDateLabel, startOfDay, startOfWeek;
+import '../../util/dates.dart' show clockTime, relativeDateLabel, startOfDay, startOfWeek;
 import '../../util/format.dart';
 import 'pal_service.dart' show InsightRange, ReviewRange;
 
-/// Formats one timeline entry as the handoff's `HH:MM Title (type, detail)`.
+/// Formats one timeline entry as `9:37 PM Title (type, detail)`, in the app's
+/// 12-hour clock so Pal quotes times the way the screens show them.
 String formatEntryLine(Entry e, Currency currency) {
-  final hh = e.timestamp.hour.toString().padLeft(2, '0');
-  final mm = e.timestamp.minute.toString().padLeft(2, '0');
   final detail = switch (e.type) {
     EntryType.money =>
       e.amount == null ? '' : formatCurrency(e.amount!, currency, withSign: true),
     EntryType.move => e.duration == null ? '' : '${e.duration}min',
     EntryType.rituals => '',
   };
-  return '$hh:$mm ${e.title} (${e.type.wire}${detail.isEmpty ? '' : ', $detail'})';
+  return '${clockTime(e.timestamp)} ${e.title} (${e.type.wire}${detail.isEmpty ? '' : ', $detail'})';
 }
 
 double _spent(Iterable<Entry> entries) {
@@ -253,6 +252,13 @@ Map<String, Object?> buildSuggestContext({
               'date': relativeDateLabel(w.startedAt, now),
               'muscles': w.sets
                   .map((s) => _muscleLabel(exercisesById[s.exerciseId], s.exerciseId))
+                  .toSet()
+                  .join(', '),
+              // groups beside muscles, so the server can check a "you haven't
+              // hit your legs" reason against what was trained.
+              'groups': w.sets
+                  .map((s) => exercisesById[s.exerciseId]?.group ?? '')
+                  .where((g) => g.isNotEmpty)
                   .toSet()
                   .join(', '),
             })

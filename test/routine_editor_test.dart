@@ -320,7 +320,7 @@ void main() {
           .draft
           .exercises
           .single;
-      expect(slot.targetMinutes, 20);
+      expect(slot.targetDurationMin, 20);
       expect(slot.targetKm, 3);
     });
 

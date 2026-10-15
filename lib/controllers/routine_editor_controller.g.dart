@@ -68,7 +68,7 @@ final class RoutineEditorControllerProvider
 }
 
 String _$routineEditorControllerHash() =>
-    r'ab59d523c0aa09a628cfbaf643eb314c65f9ce17';
+    r'a41192548c05c7b393dbbebd1b7ee8d56e0a6955';
 
 /// Drives the Routine Editor (U21b). Loads an existing routine by [routineId]
 /// (or a blank draft when null) plus the catalog, then mutates the draft in

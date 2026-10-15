@@ -72,7 +72,8 @@ export const insightsBody = z.object({ context: insightsContext })
 export const memoryRefreshBody = z.object({ context: insightsContext })
 
 export const suggestContext = z.object({
-  recentWorkouts: z.array(z.object({ routineName: z.string(), date: z.string(), muscles: z.string() })),
+  // groups: the exercises' groups (Push, Pull, Legs, Core), beside their primary muscles.
+  recentWorkouts: z.array(z.object({ routineName: z.string(), date: z.string(), muscles: z.string(), groups: z.string().optional() })),
   dayOfWeek: z.string(),
   availableRoutines: z.array(z.object({ id: z.string(), name: z.string() })),
   // the weekly plan's routine for today, 'Rest' on a rest day.
@@ -112,6 +113,8 @@ export const routineBody = z.object({
     id: z.string(),
     name: z.string(),
     group: z.string(),
+    // the primary muscle; older clients send none.
+    muscle: z.string().nullable().optional(),
     equipment: z.string().nullable(),
   })),
 })

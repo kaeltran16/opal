@@ -95,7 +95,7 @@ class RoutineEditorController extends _$RoutineEditorController {
               exerciseId: exerciseId,
               order: draft.exercises.length,
               targetSets: _timedDefaultSets,
-              targetMinutes: kDefaultTimedMinutes,
+              targetDurationMin: kDefaultTimedMinutes,
             )
           : RoutineExercise(
               id: const Uuid().v4(),
@@ -150,7 +150,7 @@ class RoutineEditorController extends _$RoutineEditorController {
             exerciseId: e.exerciseId,
             order: e.order,
             targetSets: sets,
-            targetMinutes: minutes,
+            targetDurationMin: minutes,
             targetKm: km,
           )
         else

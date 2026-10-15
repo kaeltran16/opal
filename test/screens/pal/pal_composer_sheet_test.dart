@@ -9,6 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:opal/controllers/pal_suggestions_controller.dart';
 import 'package:opal/controllers/providers.dart';
+import 'package:opal/controllers/weekly_plan_controller.dart';
 import 'package:opal/data/db/database.dart';
 import 'package:opal/models/models.dart' hide Provider;
 import 'package:opal/screens/pal/pal_composer_screen.dart';
@@ -55,6 +56,7 @@ Future<GoRouter> _open(
   _Pal? pal,
   List<PalSuggestion> suggestions = const [],
   double textScale = 1,
+  bool trainedToday = false,
 }) async {
   SharedPreferences.setMockInitialValues({});
   final prefs = await SharedPreferences.getInstance();
@@ -74,6 +76,10 @@ Future<GoRouter> _open(
       sharedPreferencesProvider.overrideWithValue(prefs),
       palServiceProvider.overrideWithValue(pal ?? _Pal()),
       palSuggestionsProvider(SuggestionSurface.composer).overrideWith((ref) async => suggestions),
+      weeklyPlanControllerProvider.overrideWith((ref) => Stream.value(WeeklyPlan(days: [
+            WeekPlanDay(day: 'Thu', date: 15, type: 'Legs', routine: 'Leg Day', colorKey: 'move',
+                icon: 'dumbbell.fill', trained: trainedToday, today: true),
+          ]))),
     ],
     child: MaterialApp.router(
       routerConfig: router,
@@ -138,6 +144,18 @@ void main() {
 
     expect(find.byType(PalComposerSheet), findsNothing);
     expect(find.text(_startWorkout), findsOneWidget);
+
+    await flushProviderTimers(tester);
+  });
+
+  testWidgets('once a workout is done today the first pill offers no second session',
+      (tester) async {
+    await _open(tester,
+        trainedToday: true,
+        pal: _Pal(pick: () async => const WorkoutSuggestion(title: 'Push Day A', rationale: 'Fresh')));
+
+    expect(_inSheet(find.text('Start Push Day A')), findsNothing);
+    expect(_inSheet(find.text('Start a workout')), findsOneWidget);
 
     await flushProviderTimers(tester);
   });

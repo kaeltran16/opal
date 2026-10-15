@@ -19,6 +19,7 @@ import '../../controllers/weekly_plan_controller.dart';
 import '../../router.dart';
 import '../../services/pal/pal_service.dart' show PalAgenda;
 import '../../theme/theme.dart';
+import '../../util/dates.dart' show clockLabel;
 import '../../widgets/app_icon.dart';
 import '../../widgets/day_scene.dart';
 import '../../widgets/failure_note.dart' show saveFailedCopy;

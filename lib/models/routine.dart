@@ -27,7 +27,7 @@ class RoutineExercise {
     this.targetSets = 3,
     this.targetReps,
     this.targetWeightKg,
-    this.targetMinutes,
+    this.targetDurationMin,
     this.targetKm,
   });
 
@@ -50,7 +50,7 @@ class RoutineExercise {
 
   /// Planned whole minutes per set of a timed exercise. Null falls back to
   /// [kDefaultTimedMinutes] when a session seeds it.
-  final int? targetMinutes;
+  final int? targetDurationMin;
 
   /// Planned distance per set of a timed exercise. Nullable.
   final double? targetKm;
@@ -62,7 +62,7 @@ class RoutineExercise {
     int? targetSets,
     int? targetReps,
     double? targetWeightKg,
-    int? targetMinutes,
+    int? targetDurationMin,
     double? targetKm,
   }) {
     return RoutineExercise(
@@ -72,7 +72,7 @@ class RoutineExercise {
       targetSets: targetSets ?? this.targetSets,
       targetReps: targetReps ?? this.targetReps,
       targetWeightKg: targetWeightKg ?? this.targetWeightKg,
-      targetMinutes: targetMinutes ?? this.targetMinutes,
+      targetDurationMin: targetDurationMin ?? this.targetDurationMin,
       targetKm: targetKm ?? this.targetKm,
     );
   }
@@ -87,7 +87,7 @@ class RoutineExercise {
           other.targetSets == targetSets &&
           other.targetReps == targetReps &&
           other.targetWeightKg == targetWeightKg &&
-          other.targetMinutes == targetMinutes &&
+          other.targetDurationMin == targetDurationMin &&
           other.targetKm == targetKm;
 
   @override
@@ -98,7 +98,7 @@ class RoutineExercise {
         targetSets,
         targetReps,
         targetWeightKg,
-        targetMinutes,
+        targetDurationMin,
         targetKm,
       );
 

@@ -135,7 +135,7 @@ void main() {
           _state([meal], linked: {_expense.id: _expense})),
     );
 
-    expect(find.text('Lunch · 12:30'), findsOneWidget);
+    expect(find.text('Lunch · 12:30 PM'), findsOneWidget);
     expect(find.text('Chicken burrito bowl'), findsOneWidget);
     expect(find.bySemanticsLabel('Back to Nutrition'), findsOneWidget);
 

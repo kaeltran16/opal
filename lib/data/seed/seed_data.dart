@@ -793,7 +793,7 @@ class SeedData {
               exerciseId: 'treadmill',
               order: 0,
               targetSets: 1,
-              targetMinutes: 30,
+              targetDurationMin: 30,
               targetKm: 5,
             ),
           ],

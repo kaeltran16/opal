@@ -4,13 +4,15 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../analysis/area.dart';
 import '../analysis/area_state.dart';
+import '../analysis/correlations.dart' show kShortNightMinutes;
 import '../models/models.dart';
-import '../screens/today/day_plan.dart' show clockLabel;
+import '../screens/today/today_logic.dart' show routineMinute;
 import '../util/dates.dart';
 import '../util/format.dart';
 import '../util/mood_scale.dart';
 import 'providers.dart';
 import 'rituals_controller.dart';
+import 'sleep_controller.dart' show deriveSleepState;
 import 'spending_controller.dart';
 import 'today_controller.dart';
 import 'weekly_plan_controller.dart';
@@ -82,8 +84,8 @@ class RoutineRow {
   final String semanticLabel;
 }
 
-/// The area page view model for one [Area]. Sleep has none: it has no data
-/// source yet.
+/// The area page view model for one [Area]. Sleep has one only when nights
+/// are stored ([buildSleepDetail]).
 @immutable
 class AreaDetail {
   const AreaDetail({
@@ -251,6 +253,67 @@ AreaDetail buildMoodDetail(List<MoodCheckin> checkins, DateTime now) {
   );
 }
 
+/// The Sleep page from the stored [nights] (ascending), the same nights Pal's
+/// findings read. Null when none are stored: no sleep source is connected.
+AreaDetail? buildSleepDetail(List<SleepNight> nights, DateTime now) {
+  if (nights.isEmpty) return null;
+  final sleep = deriveSleepState(nights);
+  final usual = hm(sleep.usualMinutes);
+  final byDay = {for (final n in nights) n.countsToward: n};
+  final last = byDay[startOfDay(now)];
+  final week = _weekBars(
+    now: now,
+    valueOf: (day) => byDay[day]?.asleepMinutes.toDouble(),
+    isOff: (v) => v < kShortNightMinutes,
+    // last night is over, so today's bar is judged like the rest.
+    judgesToday: true,
+  );
+  final short = week.where((b) => b.off).length;
+
+  final String palLine;
+  if (last == null) {
+    palLine = 'No night synced for last night yet. Your usual is $usual.';
+  } else if (last.asleepMinutes < kShortNightMinutes) {
+    palLine = 'A short night, under your usual $usual.';
+  } else if (last.wakes > 2) {
+    palLine = '${last.wakes} wake-ups. Your usual is $usual.';
+  } else {
+    palLine = 'Your usual is $usual.';
+  }
+
+  double share(int part, int whole) => whole > 0 ? (part / whole).clamp(0.0, 1.0) : 0;
+  return AreaDetail(
+    area: Area.sleep,
+    hero: last == null ? '—' : hm(last.asleepMinutes),
+    unit: last == null ? 'No night synced yet' : 'asleep last night',
+    state: null,
+    palLine: palLine,
+    contributors: [
+      if (last != null) ...[
+        Contributor(
+          label: 'In bed',
+          value: hm(last.inBedMinutes),
+          fraction: share(last.asleepMinutes, last.inBedMinutes),
+        ),
+        Contributor(
+          label: 'Deep',
+          value: hm(last.deepMinutes),
+          fraction: share(last.deepMinutes, last.asleepMinutes),
+        ),
+        Contributor(
+          label: 'REM',
+          value: hm(last.remMinutes),
+          fraction: share(last.remMinutes, last.asleepMinutes),
+        ),
+      ],
+    ],
+    week: week,
+    goal: 0,
+    goalLabel: '',
+    weekNote: short == 0 ? 'No short nights' : '$short short ${short == 1 ? 'night' : 'nights'}',
+  );
+}
+
 /// The items of [items] on [day]'s calendar date, oldest first.
 List<T> _onDay<T>(
   List<T> items,
@@ -336,7 +399,7 @@ AreaDetail _move(DetailData data, WeekPlanDay? workout, DateTime now) {
   } else {
     final lead =
         hasGoal ? '${goal - kcal} kcal to go.' : '$kcal kcal burned today.';
-    palLine = planned != null && !planned.done
+    palLine = planned != null && !planned.settled
         ? '$lead $plannedName is planned today.'
         : lead;
   }
@@ -365,10 +428,12 @@ AreaDetail _move(DetailData data, WeekPlanDay? workout, DateTime now) {
           label: plannedName!,
           value: planned.done
               ? 'Done'
-              : planned.est == null
-                  ? 'Planned'
-                  : '${planned.est} min planned',
-          fraction: planned.done ? 1 : 0,
+              : planned.settled
+                  ? 'Another workout done today'
+                  : planned.est == null
+                      ? 'Planned'
+                      : '${planned.est} min planned',
+          fraction: planned.settled ? 1 : 0,
         ),
     ],
     week: week,
@@ -390,7 +455,7 @@ AreaDetail _routines(
   // complete, so the stored fallback target does not apply here.
   final total = trackedRoutines(routines).length;
   final done = total == 0 ? 0 : data.total.round();
-  final next = rituals?.upNext;
+  final next = rituals?.upNextAt(now);
 
   final String palLine;
   if (routines.isEmpty) {
@@ -401,7 +466,7 @@ AreaDetail _routines(
     palLine = 'All $total done.';
   } else {
     final lead = '${total - done} left.';
-    palLine = next == null ? lead : '$lead ${next.name} is at ${next.time}.';
+    palLine = next == null ? lead : '$lead ${_nextLine(next, now)}';
   }
 
   final week = _weekBars(
@@ -459,6 +524,14 @@ RoutineRow _routineRow(RitualRoutine r, bool done) {
   );
 }
 
+/// "Evening is at 9:00 PM." ahead of its time, "was due at" once it has passed.
+String _nextLine(RitualRoutine r, DateTime now) {
+  final m = routineMinute(r.time);
+  if (m == null) return '${r.name} is next.';
+  final passed = m <= now.hour * 60 + now.minute;
+  return '${r.name} ${passed ? 'was due' : 'is'} at ${r.time}.';
+}
+
 Contributor _nextContributor(RitualRoutine r) => Contributor(
       label: r.time.isEmpty ? r.name : '${r.name}, ${r.time}',
       value: _steps(r),
@@ -505,8 +578,24 @@ String _weekNote(List<WeekBar> week, String offNoun) {
   return '$offDays ${offDays == 1 ? 'day' : 'days'} $offNoun';
 }
 
-/// Streams the [AreaDetail] for [area]. Sleep has no data source, so its page
-/// does not watch this provider.
+/// Nights read for the Sleep page: enough for the 14-night usual and the week.
+const int _sleepWindowDays = 30;
+
+/// Streams the Sleep page, null while no nights are stored. A night counts
+/// toward the day after it, so the window starts a day early.
+@riverpod
+Stream<AreaDetail?> sleepDetail(Ref ref) {
+  final now = clock.now();
+  final from = DateTime(now.year, now.month, now.day - _sleepWindowDays - 1);
+  final tomorrow = DateTime(now.year, now.month, now.day + 1);
+  return ref
+      .watch(sleepRepositoryProvider)
+      .watchNightsInRange(from, tomorrow)
+      .map((nights) => buildSleepDetail(nights, clock.now()));
+}
+
+/// Streams the [AreaDetail] for [area]. Sleep reads [sleepDetailProvider]
+/// instead, which is empty while no nights are stored.
 @riverpod
 Stream<AreaDetail> areaDetail(Ref ref, Area area) {
   final now = clock.now();
@@ -522,7 +611,7 @@ Stream<AreaDetail> areaDetail(Ref ref, Area area) {
         .watch(moodRepositoryProvider)
         .watchCheckinsInRange(monday, tomorrow)
         .map((checkins) => buildMoodDetail(checkins, clock.now())),
-    Area.sleep => Stream.error(UnsupportedError('Sleep has no area detail')),
+    Area.sleep => Stream.error(UnsupportedError('Sleep reads sleepDetailProvider')),
   };
 }
 

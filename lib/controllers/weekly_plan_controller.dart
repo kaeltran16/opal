@@ -65,6 +65,11 @@ class WeekPlanDay {
   final List<String> muscles;
 
   bool get isRest => type == 'Rest';
+
+  /// The day's workout needs nothing more: one session a day, so any finished
+  /// workout settles it, planned routine or not. Today, the Move area and the
+  /// Workout tab's Pal line all read this one rule.
+  bool get settled => done || trained;
 }
 
 /// The full week's derived schedule + its summary counts. All math lives here so

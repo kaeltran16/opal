@@ -342,7 +342,7 @@ void main() {
           exerciseId: 'treadmill',
           order: 0,
           targetSets: 2,
-          targetMinutes: 20,
+          targetDurationMin: 20,
           targetKm: 3,
         ),
       ]);
@@ -408,7 +408,7 @@ void main() {
           exerciseId: 'treadmill',
           order: 0,
           targetSets: 1,
-          targetMinutes: 20,
+          targetDurationMin: 20,
           targetKm: 3,
         ),
       ]);

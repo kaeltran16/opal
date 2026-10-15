@@ -41,7 +41,7 @@ void main() {
     await tester.runAsync(() => (db.update(db.routineExercises)
           ..where((r) => r.id.equals(_treadmillSlot)))
         .write(const RoutineExercisesCompanion(
-          targetMinutes: Value(_startMinutes),
+          targetDurationMin: Value(_startMinutes),
           targetKm: Value(null),
         )));
 

@@ -70,7 +70,10 @@ class PalPickLead extends ConsumerWidget {
     if (today >= 0) {
       for (var i = today + 1; i < days.length; i++) {
         final routine = days[i].routine;
-        if (routine != null) return '$name is done. $routine is next, on ${kWeekdays[i]}.';
+        // the routine just done is no news as "next".
+        if (routine != null && routine != name) {
+          return '$name is done. $routine is next, on ${kWeekdays[i]}.';
+        }
       }
     }
     return '$name is done.';

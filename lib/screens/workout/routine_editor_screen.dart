@@ -365,11 +365,13 @@ class _ExerciseSlotRow extends StatelessWidget {
 
   String get _targets {
     if (exercise?.timed ?? false) {
-      final base = '${slot.targetSets} × ${slot.targetMinutes ?? kDefaultTimedMinutes} min';
+      final base = '${slot.targetSets} × ${slot.targetDurationMin ?? kDefaultTimedMinutes} min';
       final km = slot.targetKm;
       return km != null && km > 0 ? '$base · ${formatKm(km)} km' : base;
     }
-    final reps = '${slot.targetSets} × ${slot.targetReps ?? '—'}';
+    final minutes = slot.targetDurationMin;
+    final each = slot.targetReps?.toString() ?? (minutes != null ? '$minutes min' : '—');
+    final reps = '${slot.targetSets} × $each';
     final w = slot.targetWeightKg;
     return w != null && w > 0 ? '$reps · ${formatWeight(w)} kg' : reps;
   }
@@ -630,7 +632,7 @@ class _TimedTargetsSheet extends StatefulWidget {
 
 class _TimedTargetsSheetState extends State<_TimedTargetsSheet> {
   late int _sets = widget.slot.targetSets;
-  late int _minutes = widget.slot.targetMinutes ?? kDefaultTimedMinutes;
+  late int _minutes = widget.slot.targetDurationMin ?? kDefaultTimedMinutes;
   late double _km = widget.slot.targetKm ?? _minKm;
 
   // steps in tenths so repeated adds never drift off one decimal.

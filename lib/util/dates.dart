@@ -71,3 +71,15 @@ String relativeDateLabel(DateTime startedAt, DateTime now) {
   if (days == 1) return 'Yesterday';
   return '${days}d ago';
 }
+
+/// "9:00 PM" for minutes after midnight: the app's one clock format, used on
+/// screen and in what Pal reads so its replies quote times the way the app does.
+String clockLabel(int minuteOfDay) {
+  final hour = minuteOfDay ~/ 60 % 24;
+  final hour12 = hour % 12 == 0 ? 12 : hour % 12;
+  final minute = (minuteOfDay % 60).toString().padLeft(2, '0');
+  return '$hour12:$minute ${hour < 12 ? 'AM' : 'PM'}';
+}
+
+/// [clockLabel] for the time of day of [t].
+String clockTime(DateTime t) => clockLabel(t.hour * 60 + t.minute);

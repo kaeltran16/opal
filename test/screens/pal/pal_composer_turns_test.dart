@@ -60,6 +60,41 @@ Future<void> _pumpLoggedRitual(WidgetTester tester, TodayState today) async {
 }
 
 void main() {
+  testWidgets('an expense keeps its minus on the amount and a meal reads in the app case',
+      (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
+    await tester.pumpWidget(ProviderScope(
+      overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
+        todayStateProvider.overrideWith((_) => Stream.value(TodayState(entries: const [], goals: const Goals()))),
+      ],
+      child: MaterialApp(
+        theme: ThemeData(extensions: [AppColors.light()]),
+        home: Scaffold(
+          body: ComposerTurn(
+            message: PalMessage(
+              role: PalRole.assistant,
+              text: '',
+              timestamp: _now,
+              actions: const [
+                LogEntryAction(type: EntryType.money, title: 'Matcha latte', amount: -6.5),
+                LogMealAction(
+                    name: 'matcha latte', cal: IntRange(120, 200), confidence: NutritionConfidence.med),
+              ],
+            ),
+          ),
+        ),
+      ),
+    ));
+    await tester.pumpAndSettle();
+
+    // a word joiner after the minus: no line break between it and the amount.
+    expect(find.text('Logged Matcha latte \u00b7 \u2212\u2060\$6.50.'), findsOneWidget);
+    expect(find.textContaining('Matcha latte \u00b7 120'), findsOneWidget);
+    expect(find.textContaining('matcha latte'), findsNothing);
+  });
+
   testWidgets('the Rituals today turn with no routines reads the no-routines line',
       (tester) async {
     // the logged step counts as a legacy step, against a stored target of 5.

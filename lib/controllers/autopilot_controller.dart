@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart' show TimeOfDay;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-import '../screens/today/day_plan.dart' show clockLabel;
 import '../services/notifications/notification_service.dart';
 import '../services/pal/pal_service.dart';
+import '../util/dates.dart' show clockLabel;
 import 'providers.dart';
 
 part 'autopilot_controller.g.dart';

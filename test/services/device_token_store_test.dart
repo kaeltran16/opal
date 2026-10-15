@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opal/services/pal/device_token_store.dart';
 
@@ -47,6 +49,43 @@ void main() {
     final after = await store.token();
 
     expect(after, 'tok2');
+    expect(registerCalls, 2);
+  });
+
+  test('concurrent token() calls share one in-flight register', () async {
+    var registerCalls = 0;
+    final gate = Completer<String>();
+    final store = DeviceTokenStore(
+      secure: _FakeSecureStore(),
+      deviceId: 'd',
+      register: (_) {
+        registerCalls++;
+        return gate.future;
+      },
+    );
+
+    final a = store.token();
+    final b = store.token();
+    gate.complete('tok');
+
+    expect(await Future.wait([a, b]), ['tok', 'tok']);
+    expect(registerCalls, 1);
+  });
+
+  test('a failed register is not cached; the next call retries', () async {
+    var registerCalls = 0;
+    final store = DeviceTokenStore(
+      secure: _FakeSecureStore(),
+      deviceId: 'd',
+      register: (_) async {
+        registerCalls++;
+        if (registerCalls == 1) throw StateError('500');
+        return 'tok';
+      },
+    );
+
+    await expectLater(store.token(), throwsStateError);
+    expect(await store.token(), 'tok');
     expect(registerCalls, 2);
   });
 }

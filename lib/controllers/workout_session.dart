@@ -302,7 +302,7 @@ class WorkoutSession {
           exerciseId: re.exerciseId,
           weightKg: timed ? 0 : re.targetWeightKg ?? 0,
           reps: timed ? 0 : re.targetReps ?? 0,
-          minutes: timed ? re.targetMinutes ?? kDefaultTimedMinutes : null,
+          minutes: timed ? re.targetDurationMin ?? kDefaultTimedMinutes : null,
           distanceKm: timed ? re.targetKm : null,
         ));
       }

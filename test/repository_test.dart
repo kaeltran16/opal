@@ -369,16 +369,16 @@ void main() {
             exerciseId: 'treadmill',
             order: 0,
             targetSets: 1,
-            targetMinutes: 20,
+            targetDurationMin: 20,
             targetKm: 3,
           ),
           RoutineExercise(id: 're-bench', exerciseId: 'bench', order: 1),
         ],
       ));
       final slots = (await routines.getById('r-tm'))!.exercises;
-      expect(slots.first.targetMinutes, 20);
+      expect(slots.first.targetDurationMin, 20);
       expect(slots.first.targetKm, 3);
-      expect(slots.last.targetMinutes, isNull);
+      expect(slots.last.targetDurationMin, isNull);
       expect(slots.last.targetKm, isNull);
 
       final workouts = WorkoutRepository(db);

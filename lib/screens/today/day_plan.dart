@@ -14,9 +14,6 @@ const String moodItemId = 'mood';
 /// When the evening close-out is due, in minutes after midnight.
 const int closeOutMinute = 21 * 60 + 30;
 
-/// How long a passed timed item keeps leading. Past this it is missed: it
-/// stays open but goes to the end, so a 7 AM routine does not lead all evening.
-const int overdueLeadMinutes = 4 * 60;
 const String _overdueLeadSpan = 'four hours';
 
 const String _notToday = 'Not today';
@@ -316,14 +313,6 @@ class DayPlan {
   }
 }
 
-/// "9:00 PM" for minutes after midnight.
-String clockLabel(int minuteOfDay) {
-  final hour = minuteOfDay ~/ 60 % 24;
-  final hour12 = hour % 12 == 0 ? 12 : hour % 12;
-  final minute = (minuteOfDay % 60).toString().padLeft(2, '0');
-  return '$hour12:$minute ${hour < 12 ? 'AM' : 'PM'}';
-}
-
 // List.sort is not stable, so ties keep their build order by index.
 List<PlanItem> _byMinute(Iterable<PlanItem> items) {
   final indexed = items.indexed.toList()
@@ -405,7 +394,7 @@ DayPlan buildDayPlan({
         icon: workout.icon,
         detail: workout.est == null ? null : '${workout.est} min',
         actionLabel: _start,
-        done: workout.done,
+        done: workout.settled,
         area: DetailTracker.move,
       ),
     PlanItem(

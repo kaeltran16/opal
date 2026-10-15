@@ -345,8 +345,7 @@ Map<Dimension, DailySeries> buildDailyVectors(
   // same-day pairing yields the "last night -> today" relationship. Sparse.
   final sleep = <int, double>{};
   for (final n in nights) {
-    final attributed = DateTime(n.night.year, n.night.month, n.night.day)
-        .add(const Duration(days: 1));
+    final attributed = n.countsToward;
     if (!inWindow(attributed)) continue;
     sleep[_dayOrd(attributed)] = n.asleepMinutes.toDouble();
   }

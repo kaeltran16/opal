@@ -6,69 +6,85 @@ import '../services/services.dart';
 import 'nutrition_controller.dart';
 import 'providers.dart';
 
-/// What a chat turn's auto-applied actions need in order to be reversed: the ids
-/// of entries and routines it created, and the goals snapshot from before it
-/// changed them.
-class AppliedActions {
-  const AppliedActions({
-    this.entryIds = const [],
-    this.routineIds = const [],
-    this.mealIds = const [],
-    this.priorGoals,
-  });
+/// What one auto-applied action needs in order to be reversed: the id of the
+/// entry, routine or meal it created, or for a goal change the goal action that
+/// puts back the value it replaced. One per action, so a turn that did several
+/// things can undo each on its own.
+class AppliedAction {
+  const AppliedAction({this.entryId, this.routineId, this.mealId, this.priorGoal});
 
-  final List<String> entryIds;
-  final List<String> routineIds;
-  final List<String> mealIds;
-  final Goals? priorGoals;
-
-  bool get isEmpty =>
-      entryIds.isEmpty && routineIds.isEmpty && mealIds.isEmpty && priorGoals == null;
+  final String? entryId;
+  final String? routineId;
+  final String? mealId;
+  final SetGoalAction? priorGoal;
 }
 
 /// Applies the mutations Pal returned from a chat turn — logging entries,
-/// changing goals, and building routines — and returns the data needed to undo
-/// them. Shared by every chat surface so "log it" / "build me a routine" behave
-/// identically wherever the user types.
+/// changing goals, and building routines — and returns one [AppliedAction] per
+/// action, in order, to undo them. Shared by every chat surface so "log it" /
+/// "build me a routine" behave identically wherever the user types.
 ///
 /// Routine creation follows "AI decides, then call the API": the model only
 /// emits the goal, and the client calls [PalService.generateRoutine] with its
 /// local exercise catalog before persisting — so the catalog never rides along
 /// on every /chat request.
-Future<AppliedActions> applyPalActions(Ref ref, List<PalAction> actions) async {
-  final entries = ref.read(entryRepositoryProvider);
-  final goalsRepo = ref.read(goalsRepositoryProvider);
-  final entryIds = <String>[];
-  final routineIds = <String>[];
-  final mealIds = <String>[];
-  Goals? working;
-  Goals? priorGoals;
-
+Future<List<AppliedAction>> applyPalActions(Ref ref, List<PalAction> actions) async {
+  final applied = <AppliedAction>[];
   try {
     for (final action in actions) {
-      switch (action) {
-        case LogEntryAction():
-          entryIds.add(await entries.insert(_entryFor(action)));
-        case SetGoalAction():
-          working ??= await goalsRepo.get();
-          priorGoals ??= working;
-          working = _applyGoal(working, action);
-          await goalsRepo.upsert(working);
-        case CreateRoutineAction():
-          final catalog = ref.read(exercisesProvider).asData?.value ?? const [];
-          final draft =
-              await ref.read(palServiceProvider).generateRoutine(action.goal, catalog);
-          final id = await ref
+      applied.add(await _apply(ref, action));
+    }
+  } catch (_) {
+    // partial application leaves orphaned, un-undoable mutations — roll back
+    // what already landed, newest first so goal values unwind in order.
+    for (final a in applied.reversed) {
+      await reversePalAction(ref, a);
+    }
+    rethrow;
+  }
+  return applied;
+}
+
+/// Reverses one applied action: deletes what it created, or puts back the goal
+/// value it replaced (only that goal, so other changes since are kept).
+Future<void> reversePalAction(Ref ref, AppliedAction a) async {
+  if (a.entryId != null) await ref.read(entryRepositoryProvider).deleteById(a.entryId!);
+  if (a.routineId != null) {
+    await ref.read(routineRepositoryProvider).deleteById(a.routineId!);
+  }
+  if (a.mealId != null) await ref.read(nutritionRepositoryProvider).deleteById(a.mealId!);
+  if (a.priorGoal != null) {
+    final goals = ref.read(goalsRepositoryProvider);
+    await goals.upsert(_applyGoal(await goals.get(), a.priorGoal!));
+  }
+}
+
+Future<AppliedAction> _apply(Ref ref, PalAction action) async {
+  switch (action) {
+    case LogEntryAction():
+      return AppliedAction(
+          entryId: await ref.read(entryRepositoryProvider).insert(_entryFor(action)));
+    case SetGoalAction():
+      final goals = ref.read(goalsRepositoryProvider);
+      final before = await goals.get();
+      await goals.upsert(_applyGoal(before, action));
+      return AppliedAction(
+          priorGoal: SetGoalAction(target: action.target, value: _goalValue(before, action.target)));
+    case CreateRoutineAction():
+      final catalog = ref.read(exercisesProvider).asData?.value ?? const [];
+      final draft = await ref.read(palServiceProvider).generateRoutine(action.goal, catalog);
+      return AppliedAction(
+          routineId: await ref
               .read(routineRepositoryProvider)
-              .insert(routineFromDraft(draft, name: action.name));
-          routineIds.add(id);
-        case LogMealAction():
-          final est = MealEstimate(
-              name: action.name, cal: action.cal, confidence: action.confidence);
-          final slot = (action.slot != null && action.slot!.trim().isNotEmpty)
-              ? action.slot!.trim()
-              : NutritionController.slotForHour(clock.now().hour);
-          mealIds.add(await ref.read(nutritionRepositoryProvider).insert(
+              .insert(routineFromDraft(draft, name: action.name)));
+    case LogMealAction():
+      final est =
+          MealEstimate(name: action.name, cal: action.cal, confidence: action.confidence);
+      final slot = (action.slot != null && action.slot!.trim().isNotEmpty)
+          ? action.slot!.trim()
+          : NutritionController.slotForHour(clock.now().hour);
+      return AppliedAction(
+          mealId: await ref.read(nutritionRepositoryProvider).insert(
                 NutritionMeal(
                   id: '',
                   timestamp: clock.now(),
@@ -81,31 +97,7 @@ Future<AppliedActions> applyPalActions(Ref ref, List<PalAction> actions) async {
                   macros: est.macros,
                 ),
               ));
-      }
-    }
-  } catch (_) {
-    // partial application leaves orphaned, un-undoable mutations — roll back
-    // what already landed (same reversal the undo path uses), then rethrow.
-    for (final id in entryIds) {
-      await entries.deleteById(id);
-    }
-    final routines = ref.read(routineRepositoryProvider);
-    for (final id in routineIds) {
-      await routines.deleteById(id);
-    }
-    final meals = ref.read(nutritionRepositoryProvider);
-    for (final id in mealIds) {
-      await meals.deleteById(id);
-    }
-    if (priorGoals != null) await goalsRepo.upsert(priorGoals);
-    rethrow;
   }
-  return AppliedActions(
-    entryIds: entryIds,
-    routineIds: routineIds,
-    mealIds: mealIds,
-    priorGoals: priorGoals,
-  );
 }
 
 Entry _entryFor(LogEntryAction a) => Entry(
@@ -127,9 +119,16 @@ Goals _applyGoal(Goals g, SetGoalAction a) => switch (a.target) {
       GoalTarget.dailyRitualTarget => g.copyWith(dailyRitualTarget: a.value.round()),
     };
 
+num _goalValue(Goals g, GoalTarget t) => switch (t) {
+      GoalTarget.dailyBudget => g.dailyBudget,
+      GoalTarget.dailyMoveKcal => g.dailyMoveKcal,
+      GoalTarget.dailyRitualTarget => g.dailyRitualTarget,
+    };
+
 /// Folds a generated draft into a persistable [Routine]. Each slot takes its set
-/// count from the generated sets and its targets from the first set (the editor
-/// stores one target per slot). Empty ids let the repo mint UUIDs. An optional
+/// count from the generated sets and its targets, set minutes included, from
+/// the first set (the editor stores one target per slot); the routine keeps
+/// Pal's time estimate. Empty ids let the repo mint UUIDs. An optional
 /// [name] override lets the chat caller name the routine.
 Routine routineFromDraft(GeneratedRoutineDraft draft, {String? name}) {
   final exercises = <RoutineExercise>[
@@ -141,6 +140,7 @@ Routine routineFromDraft(GeneratedRoutineDraft draft, {String? name}) {
     name: (name == null || name.trim().isEmpty) ? draft.name : name.trim(),
     tag: draft.tag,
     exercises: exercises,
+    estMin: draft.estimatedMinutes,
   );
 }
 
@@ -153,6 +153,6 @@ RoutineExercise _slotFrom(GeneratedExerciseDraft ex, int order) {
     targetSets: ex.sets.isEmpty ? 3 : ex.sets.length,
     targetReps: first?.reps,
     targetWeightKg: first?.weightKg,
-    targetMinutes: first?.durationMinutes,
+    targetDurationMin: first?.durationMinutes,
   );
 }
