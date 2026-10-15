@@ -12,6 +12,7 @@ import '../../widgets/app_icon.dart';
 import '../../widgets/failure_note.dart';
 import '../../widgets/press_scale.dart';
 import '../you/sub_screen.dart';
+import 'budgets_screen.dart' show kSuggestedCapsFooter, spendTrendWord;
 import 'envelope_sheets.dart';
 
 const double _tapTarget = 44;
@@ -281,17 +282,11 @@ class _Suggestions extends ConsumerWidget {
   final Currency currency;
   final ValueChanged<BudgetRecommendation> onUse;
 
-  static String _trendWord(SpendTrend trend) => switch (trend) {
-        SpendTrend.increasing => 'trending up',
-        SpendTrend.decreasing => 'trending down',
-        SpendTrend.stable => 'steady',
-      };
-
   String _why(BudgetRecommendation rec) {
     final average = '${formatCurrency(rec.monthlyAverage, currency)}/mo';
     final current = rec.currentCap;
     if (current == null) return 'No envelope yet · $average';
-    return '$average · ${_trendWord(rec.trend)} · now ${formatCurrency(current, currency)}';
+    return '$average · ${spendTrendWord(rec.trend)} · now ${formatCurrency(current, currency)}';
   }
 
   @override
@@ -315,7 +310,7 @@ class _Suggestions extends ConsumerWidget {
         const SizedBox(height: Spacing.xs),
         for (final rec in recs) _suggestion(context, rec),
         const SizedBox(height: Spacing.sm),
-        Text('From your spending over the last 3 months.',
+        Text(kSuggestedCapsFooter,
             style: AppType.subhead.copyWith(color: c.ink3)),
       ],
     );

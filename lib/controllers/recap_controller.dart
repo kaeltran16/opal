@@ -15,7 +15,7 @@ import 'weekly_review_controller.dart' show weekStartFor;
 part 'recap_controller.g.dart';
 
 /// One tinted stat tile in the Recap summary: a label, a big value, the
-/// `of <target>` sub line, and a type accent. Same shape as `WeekStat`.
+/// `of <target>` sub line, and a type accent.
 @immutable
 class RecapStat {
   const RecapStat({
