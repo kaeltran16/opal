@@ -289,6 +289,51 @@ void main() {
       expect(find.text('5 × 4 · 110 kg'), findsOneWidget);
     });
 
+    testWidgets('a timed slot reads minutes and saves minutes and km', (tester) async {
+      await _pumpEditor(tester, db);
+      await _addExercise(tester, 'plank', 'Plank');
+      expect(find.text('1 × 1 min'), findsOneWidget);
+
+      await tester.tap(find.bySemanticsLabel('Edit targets for Plank'));
+      await tester.pumpAndSettle();
+      expect(find.bySemanticsLabel('Reps, 8'), findsNothing);
+      expect(find.bySemanticsLabel('Distance, No distance'), findsOneWidget);
+
+      for (var i = 0; i < 19; i++) {
+        await tester.tap(_navButton('Increase Minutes'));
+      }
+      for (var i = 0; i < 30; i++) {
+        await tester.tap(_navButton('Increase Distance'));
+      }
+      await tester.pumpAndSettle();
+      expect(find.bySemanticsLabel('Minutes, 20 min'), findsOneWidget);
+      expect(find.bySemanticsLabel('Distance, 3 km'), findsOneWidget);
+
+      await tester.tap(find.widgetWithText(PillButton, 'Done'));
+      await tester.pumpAndSettle();
+      expect(find.text('1 × 20 min · 3 km'), findsOneWidget);
+
+      final container = ProviderScope.containerOf(tester.element(find.byType(RoutineEditorScreen)));
+      final slot = container
+          .read(routineEditorControllerProvider(null))
+          .requireValue
+          .draft
+          .exercises
+          .single;
+      expect(slot.targetMinutes, 20);
+      expect(slot.targetKm, 3);
+    });
+
+    testWidgets('a bench slot still reads reps and weight', (tester) async {
+      await _pumpEditor(tester, db);
+      await _addExercise(tester, 'bench', 'Barbell Bench Press');
+      expect(find.text('3 × —'), findsOneWidget);
+      await tester.tap(find.bySemanticsLabel('Edit targets for Barbell Bench Press'));
+      await tester.pumpAndSettle();
+      expect(find.bySemanticsLabel('Reps, 8'), findsOneWidget);
+      expect(find.bySemanticsLabel('Minutes, 1 min'), findsNothing);
+    });
+
     testWidgets('the toggles are app switches that flip the draft', (tester) async {
       await _pumpEditor(tester, db);
       AppSwitch toggle(String label) => tester.widget<AppSwitch>(

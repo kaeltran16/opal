@@ -7,6 +7,8 @@ import 'providers.dart';
 
 part 'routine_editor_controller.g.dart';
 
+const int _timedDefaultSets = 1;
+
 /// Rewrites each slot's [RoutineExercise.order] to match its list position, so
 /// persistence stores the visual order after adds/removes/reorders. Pure.
 List<RoutineExercise> reindex(List<RoutineExercise> exercises) => [
@@ -84,13 +86,22 @@ class RoutineEditorController extends _$RoutineEditorController {
   /// repository stores a non-empty slot id as given.
   void addExercise(String exerciseId) {
     final draft = _state.draft;
+    final timed = _state.exerciseFor(exerciseId)?.timed ?? false;
     final next = [
       ...draft.exercises,
-      RoutineExercise(
-        id: const Uuid().v4(),
-        exerciseId: exerciseId,
-        order: draft.exercises.length,
-      ),
+      timed
+          ? RoutineExercise(
+              id: const Uuid().v4(),
+              exerciseId: exerciseId,
+              order: draft.exercises.length,
+              targetSets: _timedDefaultSets,
+              targetMinutes: kDefaultTimedMinutes,
+            )
+          : RoutineExercise(
+              id: const Uuid().v4(),
+              exerciseId: exerciseId,
+              order: draft.exercises.length,
+            ),
     ];
     _setDraft(draft.copyWith(exercises: reindex(next)));
   }
@@ -115,6 +126,32 @@ class RoutineEditorController extends _$RoutineEditorController {
             targetSets: sets,
             targetReps: reps,
             targetWeightKg: weight,
+          )
+        else
+          e,
+    ];
+    _setDraft(draft.copyWith(exercises: next));
+  }
+
+  /// Sets a timed slot's targets. Built directly rather than via copyWith so a
+  /// null [km] clears the distance.
+  void updateTimedTargets(
+    String slotId, {
+    required int sets,
+    required int minutes,
+    double? km,
+  }) {
+    final draft = _state.draft;
+    final next = [
+      for (final e in draft.exercises)
+        if (e.id == slotId)
+          RoutineExercise(
+            id: e.id,
+            exerciseId: e.exerciseId,
+            order: e.order,
+            targetSets: sets,
+            targetMinutes: minutes,
+            targetKm: km,
           )
         else
           e,
