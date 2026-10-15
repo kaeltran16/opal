@@ -256,7 +256,9 @@ void main() {
     addTearDown(tester.view.reset);
     await _pump(tester, Stream.value(_data([_envelope('Dining', cap: 100, spent: 40)])));
 
-    expect(find.text('Adjust caps anytime. Pal nudges you before an envelope runs dry.'),
+    expect(
+        find.text('Envelopes set aside \$100 of the \$3,000 month budget. '
+            'Adjust caps anytime. Pal nudges you before an envelope runs dry.'),
         findsOneWidget);
   });
 

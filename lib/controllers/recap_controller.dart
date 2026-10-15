@@ -131,8 +131,8 @@ class RecapData {
         ),
         RecapStat(
           label: 'Moved',
-          value: '$moveKcal',
-          sub: 'of $moveTarget kcal',
+          value: _grouped(moveKcal),
+          sub: 'of ${_grouped(moveTarget)} kcal',
           colorToken: 'move',
         ),
         RecapStat(
@@ -145,6 +145,9 @@ class RecapData {
         ),
       ];
 }
+
+/// Counts and kcal grouped as Areas and Nutrition print them ("1,217").
+String _grouped(num n) => groupThousands('${n.round()}', ',');
 
 /// Number of calendar days in the period containing [now] for [range]:
 /// day → 1, week → 7, month → days in the current month.

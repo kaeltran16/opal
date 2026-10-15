@@ -122,6 +122,10 @@ class _KeyState extends State<_Key> {
     return Semantics(
       button: true,
       label: _isDelete ? 'delete' : widget.token,
+      // the key's own text would read again after the label ("1 1"); the
+      // exclusion drops the detector's tap too, so the node carries its own.
+      excludeSemantics: true,
+      onTap: _tap,
       child: GestureDetector(
         onTap: _tap,
         onTapDown: (_) => _set(true),

@@ -38,16 +38,18 @@ class NutritionRepository {
     return (await q.get()).map((r) => r.toModel()).toList();
   }
 
+  // every meal is written here, so its name is put in the app's case here once.
   Future<String> insert(NutritionMeal meal) async {
     final id = meal.id.isEmpty ? _uuid.v4() : meal.id;
     await _db
         .into(_db.nutritionMeals)
-        .insert(meal.copyWith(id: id).toCompanion());
+        .insert(meal.copyWith(id: id, name: mealName(meal.name)).toCompanion());
     return id;
   }
 
-  Future<void> upsert(NutritionMeal meal) =>
-      _db.into(_db.nutritionMeals).insertOnConflictUpdate(meal.toCompanion());
+  Future<void> upsert(NutritionMeal meal) => _db
+      .into(_db.nutritionMeals)
+      .insertOnConflictUpdate(meal.copyWith(name: mealName(meal.name)).toCompanion());
 
   Future<void> deleteById(String id) =>
       (_db.delete(_db.nutritionMeals)..where((t) => t.id.equals(id))).go();

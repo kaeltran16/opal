@@ -4,6 +4,7 @@ import 'package:opal/controllers/spending_controller.dart' show DetailTracker;
 import 'package:opal/controllers/weekly_plan_controller.dart';
 import 'package:opal/models/models.dart';
 import 'package:opal/screens/today/day_plan.dart';
+import 'package:opal/util/dates.dart' show clockLabel;
 import 'package:opal/services/pal/pal_service.dart' show PalAgenda, PalProposal;
 
 // 8:30 AM: a 7:00 AM routine is overdue but not yet missed, a 9:00 PM one is
@@ -78,7 +79,8 @@ RitualsState _rituals(List<RitualRoutine> routines,
         {Map<String, Set<int>> progress = const {}}) =>
     RitualsState(routines: routines, progress: progress);
 
-WeekPlanDay _workout({bool rest = false, bool done = false}) => WeekPlanDay(
+WeekPlanDay _workout({bool rest = false, bool done = false, bool trained = false}) =>
+    WeekPlanDay(
       day: 'Sun',
       date: 4,
       type: rest ? 'Rest' : 'Push',
@@ -87,6 +89,7 @@ WeekPlanDay _workout({bool rest = false, bool done = false}) => WeekPlanDay(
       colorKey: rest ? 'rest' : 'move',
       icon: rest ? 'moon.stars.fill' : 'dumbbell.fill',
       done: done,
+      trained: trained,
       today: true,
     );
 
@@ -499,6 +502,11 @@ void main() {
 
     test('a finished workout is done', () {
       final plan = _plan(workout: _workout(done: true));
+      expect(_ids(plan.open(session, _now)), isNot(contains('workout')));
+    });
+
+    test('another routine finished today settles the planned slot too', () {
+      final plan = _plan(workout: _workout(trained: true));
       expect(_ids(plan.open(session, _now)), isNot(contains('workout')));
     });
 

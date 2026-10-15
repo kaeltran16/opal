@@ -63,8 +63,9 @@ class PalComposerState {
 /// Owns the Pal-composer conversation and the [PalService.chat] round-trip.
 @riverpod
 class PalComposerController extends _$PalComposerController {
-  /// Reversal data per assistant message index (only for turns that mutated).
-  final Map<int, AppliedActions> _undo = {};
+  /// Reversal data per assistant message index (only for turns that mutated),
+  /// one per action; null once that action has been reversed.
+  final Map<int, List<AppliedAction?>> _undo = {};
 
   /// Interactive chat round-trips bail out well before the service's 30s cap so
   /// a slow / unreachable backend can't lock the composer; on a miss we degrade
@@ -166,7 +167,7 @@ class PalComposerController extends _$PalComposerController {
       // apply any logging / goal / routine changes the reply carried, same as Ask-Pal
       final applied = await applyPalActions(ref, result.actions);
       final index = state.messages.length; // index the assistant message will occupy
-      if (!applied.isEmpty) _undo[index] = applied;
+      if (applied.isNotEmpty) _undo[index] = List<AppliedAction?>.of(applied);
       _appendAssistant(result.reply, actions: result.actions);
       return PalSendResult.completed;
     } on PalException catch (e) {
@@ -250,33 +251,61 @@ class PalComposerController extends _$PalComposerController {
     );
   }
 
-  /// Reverses the actions applied by the assistant message at [index]: deletes
-  /// the entries/routines it created and restores the prior goals. Marks the
-  /// message [PalMessage.undone] so the UI can reflect it.
-  Future<void> undo(int index) async {
-    final rec = _undo.remove(index);
+  /// Reverses one [action] of the assistant message at [index]: deletes what it
+  /// created or restores the goal it changed, and marks just that action undone
+  /// so the turn's other rows stay as they are.
+  Future<void> undo(int index, int action) async {
+    final rec = _take(index, action);
     if (rec == null) return;
-    await _reverse(rec);
+    await reversePalAction(ref, rec);
 
-    if (index >= 0 && index < state.messages.length) {
-      final messages = [...state.messages];
-      messages[index] = messages[index].copyWith(undone: true);
-      state = state.copyWith(messages: messages);
-    }
+    final messages = [...state.messages];
+    final m = messages[index];
+    messages[index] = m.copyWith(undone: {...m.undone, action});
+    state = state.copyWith(messages: messages);
   }
 
-  /// Edits a logged turn: reverses the assistant message at [index]'s mutation,
-  /// removes that turn (its user line + this assistant card) from the transcript,
-  /// and returns the original user text so the composer can refill it for a fix.
-  /// Returns '' when there's nothing to recover. Unlike [undo] (which keeps the
-  /// card and flags it undone), Edit takes the entry off-screen entirely.
-  Future<String> editLog(int index) async {
-    final rec = _undo.remove(index);
-    if (rec != null) await _reverse(rec);
-
+  /// Edits one logged [action] of the assistant message at [index]: reverses it,
+  /// takes it off-screen, and returns text for the composer to refill for a fix.
+  /// A turn that did only this removes the whole turn (its user line too) and
+  /// refills what the user typed; in a turn that did several things only this
+  /// row goes, and the refill describes it alone so a resend logs nothing twice.
+  /// Returns '' when there's nothing to recover.
+  Future<String> editLog(int index, int action) async {
     final messages = state.messages;
     if (index < 0 || index >= messages.length) return '';
+    final m = messages[index];
+    if (action < 0 || action >= m.actions.length) return '';
+    final rec = _take(index, action);
+    if (rec != null) await reversePalAction(ref, rec);
 
+    if (m.actions.length > 1) {
+      final records = _undo[index];
+      if (records != null) records.removeAt(action);
+      final next = [...messages];
+      next[index] = m.copyWith(
+        actions: [...m.actions]..removeAt(action),
+        undone: {for (final u in m.undone) if (u != action) u > action ? u - 1 : u},
+      );
+      state = state.copyWith(messages: next);
+      return _describeForRefill(m.actions[action]);
+    }
+    return _removeTurn(index);
+  }
+
+  /// Takes the reversal record for [action] of message [index], once.
+  AppliedAction? _take(int index, int action) {
+    final records = _undo[index];
+    if (records == null || action < 0 || action >= records.length) return null;
+    final rec = records[action];
+    records[action] = null;
+    return rec;
+  }
+
+  /// Removes the turn ending at assistant message [index] (and the user line
+  /// before it) and returns that user text.
+  String _removeTurn(int index) {
+    final messages = state.messages;
     // The turn spans the preceding user message (if any) and this assistant one.
     var start = index, count = 1;
     var refill = '';
@@ -289,7 +318,7 @@ class PalComposerController extends _$PalComposerController {
     final next = [...messages]..removeRange(start, start + count);
     // Splicing shifts every later message down by [count]; re-key the undo map
     // so the surviving turns' reversal data still points at the right index.
-    final rebuilt = <int, AppliedActions>{};
+    final rebuilt = <int, List<AppliedAction?>>{};
     _undo.forEach((k, v) {
       if (k < start) {
         rebuilt[k] = v;
@@ -305,24 +334,17 @@ class PalComposerController extends _$PalComposerController {
     return refill;
   }
 
-  /// Reverses one turn's auto-applied mutations: deletes the entries/routines it
-  /// created and restores the goals snapshot it changed. Shared by [undo] and
-  /// [editLog].
-  Future<void> _reverse(AppliedActions rec) async {
-    final entries = ref.read(entryRepositoryProvider);
-    for (final id in rec.entryIds) {
-      await entries.deleteById(id);
-    }
-    final routines = ref.read(routineRepositoryProvider);
-    for (final id in rec.routineIds) {
-      await routines.deleteById(id);
-    }
-    final meals = ref.read(nutritionRepositoryProvider);
-    for (final id in rec.mealIds) {
-      await meals.deleteById(id);
-    }
-    if (rec.priorGoals != null) {
-      await ref.read(goalsRepositoryProvider).upsert(rec.priorGoals!);
-    }
+  /// One logged action as the user might retype it, for an Edit refill.
+  String _describeForRefill(PalAction action) {
+    final currency = ref.read(appSettingsControllerProvider).currency;
+    return switch (action) {
+      LogEntryAction(type: EntryType.money, :final amount?) =>
+        '${action.title} ${formatCurrency(amount, currency, withSign: true)}',
+      LogEntryAction(type: EntryType.move, :final durationMinutes?) =>
+        '${action.title} $durationMinutes min',
+      LogEntryAction() => action.title,
+      LogMealAction() => action.name,
+      SetGoalAction() || CreateRoutineAction() => '',
+    };
   }
 }

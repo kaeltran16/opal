@@ -4,6 +4,8 @@ import 'package:opal/data/db/database.dart';
 import 'package:opal/data/repositories/repositories.dart';
 import 'package:opal/models/models.dart';
 
+import 'support/legacy_schema.dart';
+
 /// Guards the v5->v6 re-base of the daily move goal from minutes to kcal.
 ///
 /// The first test exercises the real Drift `onUpgrade(5->6)` SQL: it stands up a
@@ -26,6 +28,8 @@ void main() {
           'daily_move_minutes INTEGER NOT NULL DEFAULT 60, '
           'daily_ritual_target INTEGER NOT NULL DEFAULT 5)');
       raw.execute("INSERT INTO goals (id) VALUES ('goals')");
+      // a later step (v11) alters this table, which every real v5 DB has.
+      raw.execute(v10RoutineExercises);
       raw.execute('PRAGMA user_version = 5');
     }));
     addTearDown(db.close);
@@ -40,6 +44,21 @@ void main() {
     final row =
         await db.customSelect('SELECT daily_move_kcal FROM goals').getSingle();
     expect(row.read<int>('daily_move_kcal'), 500);
+  });
+
+  test('v10->v11 migration adds a nullable target_duration_min to routine slots', () async {
+    final db = LoopDatabase.forTesting(NativeDatabase.memory(setup: (raw) {
+      raw.execute(v10RoutineExercises);
+      raw.execute("INSERT INTO routine_exercises (id, routine_id, exercise_id, position) "
+          "VALUES ('s1', 'r1', 'plank', 0)");
+      raw.execute('PRAGMA user_version = 10');
+    }));
+    addTearDown(db.close);
+
+    final row = await db
+        .customSelect('SELECT target_duration_min FROM routine_exercises')
+        .getSingle();
+    expect(row.read<int?>('target_duration_min'), isNull);
   });
 
   test('fresh DB exposes the kcal move goal with a 500 default', () async {

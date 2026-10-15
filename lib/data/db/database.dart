@@ -39,7 +39,7 @@ class LoopDatabase extends _$LoopDatabase {
   LoopDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 10;
+  int get schemaVersion => 11;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -82,6 +82,9 @@ class LoopDatabase extends _$LoopDatabase {
         // v8 -> v9: new sleep_nights + mood_checkins tables back the Sleep &
         // Mood dimensions. Brand-new tables; creating them leaves existing data
         // untouched; the seeder (marker bump) populates demo nights/check-ins.
+        //
+        // v10 -> v11: routine_exercises gains a nullable target_duration_min so
+        // a timed set (a plank) keeps its minutes. Existing rows read null.
         onUpgrade: (m, from, to) async {
           if (from < 2) {
             await customStatement('DROP TABLE IF EXISTS rituals');
@@ -118,6 +121,9 @@ class LoopDatabase extends _$LoopDatabase {
           }
           if (from < 10) {
             await m.createTable(savedFoods);
+          }
+          if (from < 11) {
+            await m.addColumn(routineExercises, routineExercises.targetDurationMin);
           }
         },
         beforeOpen: (details) async {

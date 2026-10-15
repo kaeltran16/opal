@@ -38,6 +38,24 @@ BudgetRecommendation _only(List<BudgetRecommendation> recs) {
 }
 
 void main() {
+  test('offers no cap below what the category has spent this month', () {
+    final history = [
+      _expense('Food & Drink', 2000000, _mar),
+      _expense('Food & Drink', 2000000, _apr),
+      _expense('Food & Drink', 2000000, _may),
+    ];
+    List<BudgetRecommendation> withThisMonth(double spent) => buildBudgetRecommendations(
+          [...history, _expense('Food & Drink', spent, DateTime(2026, 6, 12))],
+          envelopes: const [],
+          roundTo: _roundTo,
+          now: _now,
+        );
+
+    // the suggestion is 2,300,000; 2,400,000 spent by the 20th already passes it.
+    expect(withThisMonth(2400000), isEmpty);
+    expect(_only(withThisMonth(1000000)).suggestedCap, 2300000);
+  });
+
   test('suggests the 3-month average plus a 15% buffer for stable spend', () {
     final entries = [
       _expense('Food & Drink', 2000000, _mar),

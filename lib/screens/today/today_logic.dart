@@ -24,11 +24,13 @@ class GlanceNumbers {
 String dateLine(DateTime now) {
   final weekday = kWeekdaysShort[now.weekday - 1];
   final month = kMonthsShort[now.month - 1];
-  final hour12 = now.hour % 12 == 0 ? 12 : now.hour % 12;
-  final minute = now.minute.toString().padLeft(2, '0');
-  return '${'$weekday ${now.day} $month'.toUpperCase()} · '
-      '$hour12:$minute ${now.hour < 12 ? 'AM' : 'PM'}';
+  return '${'$weekday ${now.day} $month'.toUpperCase()} · ${clockTime(now)}';
 }
+
+/// How long a passed timed item keeps leading. Past this it is missed: it
+/// stays open but goes to the end, so a 7 AM routine does not lead all evening.
+/// Today's plan and the Routines area both order by it.
+const int overdueLeadMinutes = 4 * 60;
 
 /// When the evening routines are due, used when no routine is left or its
 /// time doesn't parse.

@@ -4,6 +4,7 @@ import 'package:drift/native.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:opal/controllers/pal_agenda_controller.dart';
 import 'package:opal/controllers/providers.dart';
 import 'package:opal/controllers/rituals_controller.dart';
 import 'package:opal/controllers/today_controller.dart';
@@ -23,6 +24,19 @@ class _SpyHaptics implements HapticsService {
   void medium() {}
   @override
   void success() {}
+}
+
+/// A [PalService] that counts agenda fetches; nothing else is used.
+class _CountingPal implements PalService {
+  int agendaCalls = 0;
+  @override
+  Future<PalAgenda> agenda() async {
+    agendaCalls++;
+    return const PalAgenda();
+  }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
 /// A two-step morning routine for the toggle/complete tests.
@@ -103,7 +117,7 @@ void main() {
     expect(state.doneCount('morning'), 0);
     expect(state.doneSteps, 0);
     expect(state.totalSteps, 2);
-    expect(state.upNext?.id, 'morning');
+    expect(state.upNextAt(DateTime(2026, 10, 1, 6))?.id, 'morning');
     expect((await entries.getAll()).where((x) => x.type == EntryType.rituals),
         isEmpty);
 
@@ -152,11 +166,11 @@ void main() {
     final state = await container.read(ritualsControllerProvider.future);
     final routine = state.routines.firstWhere((r) => r.id == 'morning');
 
-    // complete both steps → routine is complete, upNext clears.
+    // complete both steps → routine is complete, nothing is up next.
     await notifier.completeStep(routine, 0);
     await notifier.completeStep(routine, 1);
     var s = await _waitFor(container, (s) => s.isComplete(routine));
-    expect(s.upNext, isNull);
+    expect(s.upNextAt(DateTime(2026, 10, 1, 6)), isNull);
 
     // completing an already-done step is a no-op (no duplicate entry).
     await notifier.completeStep(routine, 0);
@@ -218,6 +232,38 @@ void main() {
 
     // the streak computed from those persisted entries is a real 2-day run.
     expect(ritualStreakDays(await entries.getAll(), now: now), 2);
+  });
+
+  test("finishing a routine refreshes Pal's agenda; a step short of it does not", () async {
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
+    final db = LoopDatabase.forTesting(NativeDatabase.memory());
+    addTearDown(db.close);
+    await RitualRepository(db).upsertRoutine(_morning);
+
+    final pal = _CountingPal();
+    final container = ProviderContainer(overrides: [
+      sharedPreferencesProvider.overrideWithValue(prefs),
+      loopDatabaseProvider.overrideWithValue(db),
+      hapticsServiceProvider.overrideWithValue(_SpyHaptics()),
+      palServiceProvider.overrideWithValue(pal),
+    ]);
+    addTearDown(container.dispose);
+    container.listen(ritualsControllerProvider, (_, _) {});
+    container.listen(palAgendaProvider, (_, _) {});
+    await container.read(palAgendaProvider.future);
+    expect(pal.agendaCalls, 1);
+
+    final notifier = container.read(ritualsControllerProvider.notifier);
+    await container.read(ritualsControllerProvider.future);
+    await notifier.completeStep(_morning, 0);
+    await _waitFor(container, (s) => s.doneCount('morning') == 1);
+    await container.read(palAgendaProvider.future);
+    expect(pal.agendaCalls, 1);
+
+    await notifier.completeStep(_morning, 1);
+    await container.read(palAgendaProvider.future);
+    expect(pal.agendaCalls, 2);
   });
 
   test('a routine-only edit re-emits even with no entry change', () async {

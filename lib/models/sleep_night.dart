@@ -1,7 +1,8 @@
 import 'enums.dart';
 
-/// One night's sleep, synced read-only from Apple Health. Attributed to [night]
-/// = the calendar date the user woke on. Stage minutes sum to ≈[inBedMinutes].
+/// One night's sleep, synced read-only from Apple Health. [night] is the
+/// calendar date the session began; it counts toward the next day, see
+/// [countsToward]. Stage minutes sum to ≈[inBedMinutes].
 class SleepNight {
   const SleepNight({
     required this.id,
@@ -21,6 +22,11 @@ class SleepNight {
 
   final String id;
   final DateTime night;
+
+  /// The day this night counts toward: the day after [night], the one the
+  /// user woke into. Last night is the one that counts toward today. The
+  /// Sleep area and the findings both read it.
+  DateTime get countsToward => DateTime(night.year, night.month, night.day + 1);
   final int asleepMinutes;
   final int inBedMinutes;
 

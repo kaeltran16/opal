@@ -1,3 +1,4 @@
+import '../util/dates.dart';
 import 'enums.dart';
 
 /// An inclusive integer estimate range (e.g. a calorie or gram spread).
@@ -97,6 +98,14 @@ String normalizeFoodKey(String description) => description
     .trim();
 
 /// A logged meal/drink. Everything is an AI estimate (ranges + confidence).
+/// A meal name as the app shows it: first letter capitalised, the rest as
+/// given ("matcha latte" -> "Matcha latte"). The model and the user both write
+/// names in whatever case, and the rest of the app writes sentence case.
+String mealName(String name) {
+  final t = name.trim();
+  return t.isEmpty ? t : '${t[0].toUpperCase()}${t.substring(1)}';
+}
+
 class NutritionMeal {
   const NutritionMeal({
     required this.id,
@@ -132,10 +141,8 @@ class NutritionMeal {
   /// FK to the originating expense [Entry.id] when [source] is takeout.
   final String? linkedEntryId;
 
-  /// Display clock time, e.g. "07:50".
-  String get time =>
-      '${timestamp.hour.toString().padLeft(2, '0')}:'
-      '${timestamp.minute.toString().padLeft(2, '0')}';
+  /// Display clock time, e.g. "7:50 AM".
+  String get time => clockTime(timestamp);
 
   NutritionMeal copyWith({
     String? id,

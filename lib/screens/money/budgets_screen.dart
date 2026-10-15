@@ -170,7 +170,14 @@ class _Body extends ConsumerWidget {
           title: 'Roll unused into next month',
           value: 'On',
         ),
-        const _Footer('Adjust caps anytime. Pal nudges you before an envelope runs dry.'),
+        _Footer([
+          // the hero reads the month budget (daily x days); the caps are a part
+          // of it, so say how much, or the two totals read as rivals.
+          if (data.envelopeCaps > 0)
+            'Envelopes set aside ${formatCurrency(data.envelopeCaps, currency)} of the '
+                '${formatCurrency(data.totalCap, currency)} month budget.',
+          'Adjust caps anytime. Pal nudges you before an envelope runs dry.',
+        ].join(' ')),
       ],
     );
   }

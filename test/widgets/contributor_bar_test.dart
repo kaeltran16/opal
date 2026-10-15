@@ -31,6 +31,14 @@ void main() {
     expect(tester.widget<FractionallySizedBox>(_bar).widthFactor, 0.5);
   });
 
+  testWidgets('the value is an amount in regular weight, never bold', (tester) async {
+    await _pump(tester, fraction: 0.5);
+
+    final style = tester.widget<Text>(find.text(_value)).style!;
+    expect(style.fontWeight, FontWeight.w400);
+    expect(style.fontSize, AppType.subhead.fontSize);
+  });
+
   testWidgets('off colours the value and the bar', (tester) async {
     await _pump(tester, fraction: 0.5, off: true);
 

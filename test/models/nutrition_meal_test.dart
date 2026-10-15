@@ -29,4 +29,21 @@ void main() {
     );
     expect(meal.copyWith(name: 'Oats & berries').tags, ['fiber-rich']);
   });
+
+  test('time reads on the app 12-hour clock', () {
+    final meal = NutritionMeal(
+      id: 'm1', timestamp: DateTime(2026, 6, 21, 19, 10), slot: 'Dinner',
+      name: 'Pho', source: NutritionSource.home, icon: 'leaf.fill',
+      confidence: NutritionConfidence.high, cal: const IntRange(290, 400),
+      macros: macrosFromCal(const IntRange(290, 400)),
+    );
+    expect(meal.time, '7:10 PM');
+  });
+
+  test('mealName capitalises the first letter and keeps the rest', () {
+    expect(mealName('matcha latte'), 'Matcha latte');
+    expect(mealName('  double oat milk latte '), 'Double oat milk latte');
+    expect(mealName('Double Oat Milk Latte'), 'Double Oat Milk Latte');
+    expect(mealName(''), '');
+  });
 }

@@ -110,7 +110,9 @@ RecommendationConfidence _confidenceFor(int txnCount) {
 /// buffer from the trend (most-recent completed month vs that average), and
 /// rounds up to [roundTo]. Categories are matched to [envelopes] via
 /// [normalizeCategory] to attach the current cap and prefer the envelope's
-/// display name. Sorted by suggested cap, highest first.
+/// display name. A category whose spend this month already passes its
+/// suggested cap gets none, as Room to trim does: a cap it is already over is
+/// no advice. Sorted by suggested cap, highest first.
 List<BudgetRecommendation> buildBudgetRecommendations(
   List<Entry> entries, {
   required List<BudgetEnvelope> envelopes,
@@ -128,12 +130,17 @@ List<BudgetRecommendation> buildBudgetRecommendations(
   };
 
   final byCategory = <String, _CategoryAccumulator>{};
+  final thisMonth = <String, double>{};
   for (final entry in entries) {
     if (!entry.isExpense) continue;
     final key = normalizeCategory(entry.category);
     if (key.isEmpty) continue;
     final entryOrdinal = entry.timestamp.year * 12 + entry.timestamp.month;
     final monthsBack = currentMonthOrdinal - entryOrdinal;
+    if (monthsBack == 0) {
+      thisMonth[key] = (thisMonth[key] ?? 0) + entry.amount!.abs();
+      continue;
+    }
     if (monthsBack < 1 || monthsBack > _windowMonths) continue;
 
     final acc = byCategory.putIfAbsent(
@@ -156,6 +163,7 @@ List<BudgetRecommendation> buildBudgetRecommendations(
     final raw = average * (1 + buffer);
     final suggested =
         roundTo > 0 ? (raw / roundTo).ceil() * roundTo : raw;
+    if ((thisMonth[key] ?? 0) > suggested) return;
     final percentChange =
         average == 0 ? 0.0 : ((recentMonth - average) / average) * 100;
 
@@ -176,7 +184,8 @@ List<BudgetRecommendation> buildBudgetRecommendations(
 }
 
 /// Streams suggested caps for the current month, recomputed whenever the last
-/// three months' entries change. Also re-emits when an envelope changes.
+/// three months' or this month's entries change. Also re-emits when an
+/// envelope changes.
 @riverpod
 Stream<List<BudgetRecommendation>> budgetRecommendations(Ref ref) async* {
   final entriesRepo = ref.watch(entryRepositoryProvider);
@@ -184,7 +193,8 @@ Stream<List<BudgetRecommendation>> budgetRecommendations(Ref ref) async* {
 
   final now = clock.now();
   final windowStart = DateTime(now.year, now.month - _windowMonths);
-  final windowEnd = DateTime(now.year, now.month);
+  // through this month, whose spend so far vetoes a cap it already passes.
+  final windowEnd = DateTime(now.year, now.month + 1);
   final roundTo = kBudgetRoundingBaseUnit * currency.budgetScale;
 
   // watched before the loop so an envelope write re-runs this provider.

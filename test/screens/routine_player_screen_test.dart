@@ -9,6 +9,7 @@ import 'package:opal/screens/rituals/routine_player_screen.dart';
 
 import '../support/flush_provider_timers.dart';
 import '../support/golden_harness.dart' show appRouter;
+import '../support/semantics_stops.dart';
 import '../support/today_fixture.dart';
 
 final _morning = Clock.fixed(DateTime(2026, 9, 28, 9, 30));
@@ -65,6 +66,15 @@ void main() {
     expect(find.text('Step 2 of 5'), findsOneWidget);
     expect(find.text('1 of 5 done'), findsOneWidget);
     expect(find.bySemanticsLabel('1 of 5 done'), findsWidgets);
+  });
+
+  _playerTest('a screen reader reads the progress once', (tester) async {
+    final handle = tester.ensureSemantics();
+    await _open(tester);
+
+    final stops = semanticsStops(tester, find.byType(RoutinePlayerScreen));
+    expect(stops.where((s) => s.contains('0 of 5 done')), hasLength(1));
+    handle.dispose();
   });
 
   _playerTest('the step glyph draws as a line', (tester) async {

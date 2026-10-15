@@ -4,6 +4,8 @@ import 'package:clock/clock.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../models/models.dart';
+import '../screens/today/today_logic.dart' show overdueLeadMinutes, routineMinute;
+import 'pal_agenda_controller.dart';
 import 'providers.dart';
 
 part 'rituals_controller.g.dart';
@@ -60,13 +62,27 @@ class RitualsState {
   /// The routine the evening close-out works through, or null without one.
   RitualRoutine? get evening => routines.where((r) => r.id == eveningRoutineId).firstOrNull;
 
-  /// The first routine with an incomplete step — the up-next hero target.
-  /// Null when everything is done.
-  RitualRoutine? get upNext {
-    for (final r in routines) {
-      if (doneCount(r.id) < r.steps.length) return r;
+  /// The open routine to point at [now], by the rule Today leads with: the
+  /// earliest one due within the last [overdueLeadMinutes] or still to come,
+  /// untimed after timed; a missed one only when nothing else is open. Null
+  /// when everything is done.
+  RitualRoutine? upNextAt(DateTime now) {
+    final nowMinute = now.hour * 60 + now.minute;
+    final open = routines.where((r) => doneCount(r.id) < r.steps.length).toList();
+    bool missed(RitualRoutine r) {
+      final m = routineMinute(r.time);
+      return m != null && nowMinute - m > overdueLeadMinutes;
     }
-    return null;
+
+    final live = open.where((r) => !missed(r)).toList();
+    // timed by the clock, untimed last; index keeps ties in build order.
+    int key(RitualRoutine r) => routineMinute(r.time) ?? 24 * 60;
+    final ordered = live.indexed.toList()
+      ..sort((a, b) {
+        final byTime = key(a.$2).compareTo(key(b.$2));
+        return byTime != 0 ? byTime : a.$1.compareTo(b.$1);
+      });
+    return [for (final (_, r) in ordered) r, ...open.where(missed)].firstOrNull;
   }
 
   /// Index of the first incomplete step in [r] (or `steps.length` if complete).
@@ -148,6 +164,7 @@ class RitualsController extends _$RitualsController {
   }
 
   Future<void> _logStep(RitualRoutine routine, RitualStep step) async {
+    final finishes = (state.value?.doneCount(routine.id) ?? 0) + 1 >= routine.steps.length;
     await ref.read(entryRepositoryProvider).insert(
           Entry(
             id: '',
@@ -160,5 +177,7 @@ class RitualsController extends _$RitualsController {
           ),
         );
     ref.read(hapticsServiceProvider).light();
+    // Pal's agenda counts finished routines; a stale one keeps saying "0 of 3".
+    if (finishes) ref.invalidate(palAgendaProvider);
   }
 }

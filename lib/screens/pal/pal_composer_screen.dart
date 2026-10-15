@@ -7,6 +7,7 @@ import '../../controllers/pal_composer_controller.dart';
 import '../../controllers/pal_suggestions_controller.dart';
 import '../../controllers/providers.dart';
 import '../../controllers/start_workout_controller.dart';
+import '../../controllers/weekly_plan_controller.dart';
 import '../../models/models.dart';
 import '../../services/pal/coffee_starter.dart';
 import '../../services/services.dart';
@@ -130,8 +131,8 @@ class _PalComposerSheetState extends ConsumerState<PalComposerSheet> {
 
   /// Reverses a logged turn, drops it, and puts its text back in the input,
   /// focused with the caret at the end, to fix.
-  Future<void> _editLog(int index) async {
-    final text = await _controller.editLog(index);
+  Future<void> _editLog(int index, int action) async {
+    final text = await _controller.editLog(index, action);
     _inputCtrl.value = TextEditingValue(
       text: text,
       selection: TextSelection.collapsed(offset: text.length),
@@ -201,7 +202,7 @@ class _PalComposerSheetState extends ConsumerState<PalComposerSheet> {
                         controller: _scrollCtrl,
                         messages: state.messages,
                         isLoading: state.isLoading,
-                        onUndo: (i) => _controller.undo(i),
+                        onUndo: _controller.undo,
                         onEdit: _editLog,
                       ),
                     )
@@ -333,7 +334,10 @@ class _IdleBody extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final c = context.colors;
     final currency = ref.watch(appSettingsControllerProvider.select((s) => s.currency));
-    final pick = ref.watch(palPickControllerProvider).asData?.value;
+    // once today's workout is settled, Pal's pick would be a second session.
+    final settled =
+        ref.watch(weeklyPlanControllerProvider).value?.today?.settled ?? false;
+    final pick = settled ? null : ref.watch(palPickControllerProvider).asData?.value;
     final suggestions = ref.watch(palSuggestionsProvider(SuggestionSurface.composer));
     // the static list is the offline or empty answer. loading gets its own
     // skeleton: the two look alike, so a pending fetch used to read as Pal's.
@@ -455,8 +459,8 @@ class _Conversation extends StatelessWidget {
   final ScrollController controller;
   final List<PalMessage> messages;
   final bool isLoading;
-  final void Function(int index) onUndo;
-  final void Function(int index) onEdit;
+  final void Function(int index, int action) onUndo;
+  final void Function(int index, int action) onEdit;
 
   @override
   Widget build(BuildContext context) {
@@ -470,8 +474,8 @@ class _Conversation extends StatelessWidget {
         if (i == messages.length) return const ComposerThinking();
         return ComposerTurn(
           message: messages[i],
-          onUndo: () => onUndo(i),
-          onEdit: () => onEdit(i),
+          onUndo: (a) => onUndo(i, a),
+          onEdit: (a) => onEdit(i, a),
         );
       },
     );
