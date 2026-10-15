@@ -3,7 +3,7 @@ import { beforeEach, describe, it, expect } from 'vitest'
 import worker from '../src/worker'
 
 const call = (path: string, init?: RequestInit) =>
-  worker.fetch(new Request(`https://x${path}`, init), env as any, {} as any)
+  worker.fetch(new Request(`https://x${path}`, init), env as any)
 
 async function token(): Promise<string> {
   const res = await call('/v1/register', {

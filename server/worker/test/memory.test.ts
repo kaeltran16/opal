@@ -4,7 +4,7 @@ import worker from '../src/worker'
 import { D1MemoryStore } from '../src/stores/memory'
 
 const call = (path: string, init?: RequestInit) =>
-  worker.fetch(new Request(`https://x${path}`, init), env as any, {} as any)
+  worker.fetch(new Request(`https://x${path}`, init), env as any)
 
 async function token(deviceId = 'd1'): Promise<string> {
   const res = await call('/v1/register', {

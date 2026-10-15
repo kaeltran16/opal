@@ -1,9 +1,9 @@
-import { env, createExecutionContext, waitOnExecutionContext } from 'cloudflare:test'
+import { env } from 'cloudflare:test'
 import { describe, it, expect } from 'vitest'
 import worker from '../src/worker'
 
 const call = (path: string, init?: RequestInit) =>
-  worker.fetch(new Request(`https://x${path}`, init), env as any, createExecutionContext())
+  worker.fetch(new Request(`https://x${path}`, init), env as any)
 
 describe('healthz + baseline', () => {
   it('returns ok', async () => {

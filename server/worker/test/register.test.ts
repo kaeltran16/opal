@@ -3,7 +3,7 @@ import { beforeEach, describe, it, expect } from 'vitest'
 import worker from '../src/worker'
 
 const call = (path: string, init?: RequestInit) =>
-  worker.fetch(new Request(`https://x${path}`, init), env as any, {} as any)
+  worker.fetch(new Request(`https://x${path}`, init), env as any)
 
 const register = (body: unknown) =>
   call('/v1/register', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
