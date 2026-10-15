@@ -153,6 +153,17 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
   Widget build(BuildContext context) {
     final c = context.colors;
     final async = ref.watch(todayStateProvider);
+    // a check-in logged anywhere answers the mood item the user picked; closing
+    // the logger without logging keeps it.
+    ref.listen(
+        moodControllerProvider.select((m) => m.value?.lastCheckin?.timestamp),
+        (prev, next) {
+      final newer = next != null && (prev == null || next.isAfter(prev));
+      if (newer &&
+          ref.read(planSessionControllerProvider).selected == moodItemId) {
+        _plan.deselect();
+      }
+    });
 
     return async.when(
       loading: () => Center(

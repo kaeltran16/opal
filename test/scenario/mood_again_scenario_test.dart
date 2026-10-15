@@ -41,6 +41,24 @@ void main() {
     await shot(tester, 'mood_again_card_${_theme(dark)}');
   });
 
+  scenarioTest('mood after checking in again', (tester, dark) async {
+    await bootToday(tester, dark: dark, day: _checkedIn);
+
+    await tester.tap(_row());
+    await tester.pumpAndSettle();
+    await tester.tap(_onToday(find.text('Check in')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.bySemanticsLabel('Log mood'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.descendant(of: find.byKey(todayCardKey), matching: find.text(_again)),
+      findsNothing,
+    );
+    expect(_row(), findsOneWidget);
+    await shot(tester, 'mood_after_checking_in_again_${_theme(dark)}');
+  });
+
   scenarioTest('mood only check in again left', (tester, dark) async {
     await bootToday(tester, dark: dark, day: _onlyAgain);
 

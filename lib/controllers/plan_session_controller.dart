@@ -59,6 +59,8 @@ class PlanSessionController extends _$PlanSessionController {
 
   void select(String id) => state = state.select(id);
 
+  void deselect() => state = state.deselect();
+
   Future<(String, PlanChange)> _addStep(String routineId, String title) async {
     final repo = ref.read(ritualRepositoryProvider);
     final routine = await _ritual(routineId);

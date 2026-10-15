@@ -8,6 +8,9 @@ import 'today_logic.dart';
 
 enum PlanKind { proposal, routine, workout, mood, meal, closeOut }
 
+/// The mood item's id: a check-in landing clears its selection by it.
+const String moodItemId = 'mood';
+
 /// When the evening close-out is due, in minutes after midnight.
 const int closeOutMinute = 21 * 60 + 30;
 
@@ -140,6 +143,9 @@ class PlanSession {
 
   PlanSession select(String id) =>
       PlanSession(settled: settled, history: history, selected: id);
+
+  /// Drops the lead the user picked, keeping what they settled and Undo.
+  PlanSession deselect() => PlanSession(settled: settled, history: history);
 
   bool get canUndo => history.isNotEmpty;
 
@@ -403,7 +409,7 @@ DayPlan buildDayPlan({
         area: DetailTracker.move,
       ),
     PlanItem(
-      id: 'mood',
+      id: moodItemId,
       kind: PlanKind.mood,
       title: checkedIn ? 'Check in again' : 'Mood check-in',
       icon: 'heart.fill',

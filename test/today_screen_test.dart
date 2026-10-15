@@ -6,6 +6,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:opal/controllers/providers.dart';
 import 'package:opal/controllers/rituals_controller.dart';
 import 'package:opal/controllers/today_controller.dart';
 import 'package:opal/data/seed/seed_data.dart';
@@ -13,7 +14,8 @@ import 'package:opal/screens/pal/pal_composer_screen.dart';
 import 'package:opal/screens/reflect/evening_close_out_screen.dart';
 import 'package:opal/screens/rituals/routine_player_screen.dart';
 import 'package:opal/screens/today/today_screen.dart';
-import 'package:opal/models/models.dart' show RitualRoutine, RitualTone;
+import 'package:opal/models/models.dart'
+    show EntrySource, MoodCheckin, RitualRoutine, RitualStep, RitualTone;
 import 'package:opal/screens/workout/start_workout_screen.dart';
 import 'package:opal/services/pal/pal_service.dart';
 import 'package:opal/theme/theme.dart';
@@ -396,6 +398,60 @@ void main() {
 
     await _tap(tester, find.text('Check in'));
     expect(find.byType(BottomSheet), findsOneWidget);
+  });
+
+  group('after Check in again is picked', () {
+    // checked in, fed and no workout, with the close-out upcoming at 9:30 PM.
+    final closeOutDay = TodayDay(
+      routines: [
+        _emptyEvening.copyWith(
+            steps: const [RitualStep(id: 'wind', title: _step, note: '', icon: 'sparkles')]),
+      ],
+      workout: false,
+      mood: true,
+      meal: true,
+    );
+
+    Future<void> pick(WidgetTester tester) async {
+      await _boot(tester, day: closeOutDay);
+      expect(_card('Close-out'), findsOneWidget);
+      await _tap(tester, _row('Check in again', 'any time'));
+      expect(_card('Check in again'), findsOneWidget);
+    }
+
+    _todayTest('logging a check-in hands the lead back to the clock', (tester) async {
+      await pick(tester);
+
+      await _tap(tester, find.text('Check in'));
+      await _tap(tester, find.bySemanticsLabel('Log mood'));
+
+      expect(_card('Close-out'), findsOneWidget);
+      expect(_row('Check in again', 'any time'), findsOneWidget);
+    });
+
+    _todayTest('closing the logger without logging keeps it leading', (tester) async {
+      await pick(tester);
+
+      await _tap(tester, find.text('Check in'));
+      await _tap(tester, find.text('Cancel'));
+
+      expect(_card('Check in again'), findsOneWidget);
+    });
+
+    _todayTest('a check-in logged elsewhere hands the lead back', (tester) async {
+      await pick(tester);
+
+      final container = ProviderScope.containerOf(tester.element(find.byType(TodayScreen)));
+      await tester.runAsync(() => container.read(moodRepositoryProvider).insert(MoodCheckin(
+            id: '',
+            timestamp: clock.now(),
+            pleasantness: 0.4,
+            source: EntrySource.manual,
+          )));
+      await tester.pumpAndSettle();
+
+      expect(_card('Close-out'), findsOneWidget);
+    });
   });
 
   _todayTest('tapping a row makes it the lead and hides Why', (tester) async {

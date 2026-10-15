@@ -681,6 +681,24 @@ void main() {
         expect(_ids(plan.later(selected, afternoon)), ['closeOut']);
       });
 
+      test('deselect clears the pick and leaves settled, history and Undo', () {
+        final plan = _plan(
+          rituals: _rituals([_routine('evening', '9:30 PM')]),
+          lastCheckin: checkedIn,
+          meals: [_meal('a', DateTime(2026, 10, 4, 12))],
+        );
+        final settled = session.settle('meal', done: false, label: 'Meal skipped');
+        final selected = settled.select(moodItemId);
+        expect(plan.current(selected, afternoon)!.id, moodItemId);
+
+        final cleared = selected.deselect();
+        expect(cleared.selected, isNull);
+        expect(cleared.settled, settled.settled);
+        expect(cleared.history, settled.history);
+        expect(cleared.undoLabel, 'Meal skipped');
+        expect(plan.current(cleared, afternoon)!.id, 'closeOut');
+      });
+
       test('Not today hides it', () {
         final plan = _plan(lastCheckin: checkedIn);
         final skipped = session.settle('mood', done: false);
