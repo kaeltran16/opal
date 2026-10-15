@@ -91,7 +91,7 @@ Entry moveEntryForWorkout(Workout workout, String workoutId) {
         : '${workout.completedSetCount} '
             'set${workout.completedSetCount == 1 ? '' : 's'} · '
             '${workout.totalVolumeKg.round()} kg',
-    duration: workout.duration?.inMinutes,
+    duration: workout.countedMinutes,
     distance: km > 0 ? km : null,
     source: EntrySource.manual,
     workoutId: workoutId,

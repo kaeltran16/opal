@@ -347,7 +347,7 @@ List<HistorySessionRow> buildHistorySessions(
         workoutId: w.id,
         name: w.name,
         startedAt: w.startedAt,
-        minutes: w.isTimedSession ? w.totalMinutes : w.duration?.inMinutes ?? 0,
+        minutes: w.countedMinutes ?? 0,
         timedKm: w.isTimedSession ? w.totalKm : null,
         volumeKg: w.totalVolumeKg,
         prCount: w.prCount,

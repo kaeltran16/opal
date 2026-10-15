@@ -69,6 +69,10 @@ class Workout {
     return done.isNotEmpty && done.every((s) => s.isTimed);
   }
 
+  /// Minutes the session counts for: a timed session counts the minutes it
+  /// logged, a weighted session the time it took.
+  int? get countedMinutes => isTimedSession ? totalMinutes : duration?.inMinutes;
+
   /// Count of completed sets.
   int get completedSetCount => sets.where((s) => s.done).length;
 

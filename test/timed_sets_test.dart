@@ -80,6 +80,32 @@ void main() {
     expect(w.prCount, 1);
   });
 
+  Workout ran(List<SetLog> sets, int minutes, {bool ended = true}) => Workout(
+        id: 'w1',
+        name: 'Session',
+        startedAt: DateTime(2026, 10, 15, 7),
+        endedAt: ended ? DateTime(2026, 10, 15, 7, minutes) : null,
+        sets: sets,
+      );
+
+  test('countedMinutes is logged minutes for a timed session, elapsed otherwise',
+      () {
+    expect(ran([timed('treadmill', 25, km: 5.2)], 1).countedMinutes, 25);
+    expect(ran([weighted('bench', 100, 5)], 52).countedMinutes, 52);
+    expect(
+        ran([weighted('bench', 100, 5), timed('plank', 2)], 40).countedMinutes,
+        40);
+    expect(ran([weighted('bench', 100, 5)], 0, ended: false).countedMinutes,
+        isNull);
+  });
+
+  test('moveEntryForWorkout records logged minutes for a timed session', () {
+    final timedOnly = ran([timed('treadmill', 25, km: 5.2)], 1);
+    expect(moveEntryForWorkout(timedOnly, 'id').duration, 25);
+    final mixed = ran([weighted('bench', 100, 5), timed('plank', 2)], 40);
+    expect(moveEntryForWorkout(mixed, 'id').duration, 40);
+  });
+
   test('an empty session is not a timed session', () {
     final w = workout([timed('treadmill', 20, done: false)]);
     expect(w.isTimedSession, isFalse);
