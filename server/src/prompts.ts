@@ -284,6 +284,30 @@ Return strictly this JSON shape; arrays may be empty but must be present: ${shap
 No prose, no code fence. Output only the JSON object.`
 }
 
+// one open item of the day, worded on the device (schemas.ts: planFact).
+export interface PlanFact {
+  key: string
+  title: string
+  when: string
+  status: 'due' | 'upcoming' | 'missed' | 'anytime'
+  steps: string | null
+  why: string
+}
+
+// Pal's line for each open item on Today. the app picks which item leads; the
+// model only words each item from its own facts, so it is never asked to choose.
+export function leadLinesPrompt(plan: PlanFact[]): string {
+  // one JSON object per item keeps user-written titles quoted as data.
+  const items = plan.map((f) => JSON.stringify(f)).join('\n')
+  return `You are Pal, a calm, specific coach in ${PRODUCT_FRAMING}. Below are the open items of the user's day, one JSON object per line. "status" is due (its time is now), upcoming (later today), missed (its time has passed) or anytime (no set time). "steps" is how far through its steps the user is, or null.
+
+${items}
+
+Write one sentence for each key, about that item only, spoken to the user ("you"), at most 20 words. Use only that item's own facts. Do not pick, rank or order the items, and do not compare them with each other: the app decides which comes first. State no number that its own facts do not hold, in digits or in words. Copy each key exactly as given. Calm and specific, no hype words. ${PLAIN_TEXT}
+Return strictly this JSON shape: {"lines":[{"key":string,"line":string}]}
+No prose, no code fence. Output only the JSON object.`
+}
+
 export function suggestionsPrompt(
   surface: 'composer' | 'routineGoal',
   c: ChatContext | SuggestContext,

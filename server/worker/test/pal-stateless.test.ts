@@ -2,7 +2,7 @@ import { env, applyD1Migrations } from 'cloudflare:test'
 import { beforeEach, describe, it, expect, vi } from 'vitest'
 import { handle } from '../src/worker'
 import { stubPal } from './support/stub-client'
-import { OpenRouterError } from '../../src/pal'
+import { OpenRouterError, Pal, type CompletionClient } from '../../src/pal'
 
 // minimal schema-valid fixtures (schemas.ts: chatContext / suggestContext / postWorkoutContext).
 const CHAT_CTX = {
@@ -18,6 +18,31 @@ const SUGGEST_CTX = {
 const POST_WORKOUT_CTX = {
   routineName: 'Push', setCount: 12, volumeKg: 4000, prCount: 1, prExercises: ['bench'],
   lastSessionVolumeKg: 3800, daysAgoLastSession: 3,
+}
+
+const PLAN = [
+  { key: 'legs|due|', title: 'Legs', when: '6:00 PM', status: 'due', steps: null, why: 'Planned for today.' },
+]
+const AGENDA = JSON.stringify({
+  proposals: [{ kind: 'generic', colorToken: 'move', tag: 'Workout', title: 'Stretch', body: 'A short stretch.', approveLabel: 'Add it', doneLabel: 'Added' }],
+  autopilot: [],
+})
+
+// answers the agenda prompt with AGENDA and any other prompt (the line call)
+// with `lines`, or throws `linesError`; records every prompt it was sent.
+function agendaClient(opts: { lines?: string; linesError?: Error }): CompletionClient & { prompts: string[] } {
+  const prompts: string[] = []
+  return {
+    prompts,
+    async complete(messages) {
+      const prompt = messages[0].content
+      prompts.push(prompt)
+      if (prompt.includes("Build today's agenda")) return AGENDA
+      if (opts.linesError) throw opts.linesError
+      return opts.lines ?? '{"lines":[]}'
+    },
+    async completeWithTools() { throw new Error('unused') },
+  }
 }
 
 async function token(): Promise<string> {
@@ -103,5 +128,42 @@ describe('stateless pal routes', () => {
       { msg: 'pal request failed', route: '/v1/suggest-workout', status: 502, reason: 'model output truncated (finish_reason=length) at max_tokens=1024' },
       { msg: 'pal request failed', route: '/v1/suggest-workout', status: 500, reason: 'ZodError: reason invalid_type' },
     ])
+  })
+
+  it('POST /v1/agenda with a plan returns the lines beside the proposals', async () => {
+    const tok = await token()
+    const client = agendaClient({ lines: JSON.stringify({ lines: [{ key: 'legs|due|', line: 'Legs are on the plan now.' }] }) })
+    const res = await post(tok, '/v1/agenda', { context: CHAT_CTX, plan: PLAN }, new Pal(client))
+    expect(res.status).toBe(200)
+    const body = await res.json() as any
+    expect(body.proposals.map((p: any) => p.title)).toEqual(['Stretch'])
+    expect(body.lines).toEqual([{ key: 'legs|due|', line: 'Legs are on the plan now.' }])
+  })
+
+  it('POST /v1/agenda without a plan returns no lines and never sends the line prompt', async () => {
+    const tok = await token()
+    const client = agendaClient({})
+    const res = await post(tok, '/v1/agenda', { context: CHAT_CTX }, new Pal(client))
+    expect(res.status).toBe(200)
+    expect((await res.json() as any).lines).toEqual([])
+    expect(client.prompts).toHaveLength(1)
+    expect(client.prompts[0]).toContain("Build today's agenda")
+  })
+
+  it('POST /v1/agenda keeps the proposals and logs the failure when the line call throws', async () => {
+    const tok = await token()
+    const logs: string[] = []
+    const spy = vi.spyOn(console, 'warn').mockImplementation((line: string) => { logs.push(line) })
+    let res: Response
+    try {
+      res = await post(tok, '/v1/agenda', { context: CHAT_CTX, plan: PLAN }, new Pal(agendaClient({ linesError: new OpenRouterError(502, 'boom') })))
+    } finally {
+      spy.mockRestore()
+    }
+    expect(res.status).toBe(200)
+    const body = await res.json() as any
+    expect(body.proposals.map((p: any) => p.title)).toEqual(['Stretch'])
+    expect(body.lines).toEqual([])
+    expect(logs.map((l) => JSON.parse(l))).toEqual([{ msg: 'agenda lines failed', route: '/v1/agenda', reason: 'boom' }])
   })
 })

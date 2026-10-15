@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { chatSystemPrompt, reviewPrompt, insightsPrompt, parsePrompt, suggestPrompt, postWorkoutPrompt, routinePrompt, receiptsBatchPrompt, memoryBlock, agendaPrompt, memoryPatternsPrompt, nutritionEstimatePrompt, suggestionsPrompt, dayFacts, budgetState, PLAIN_TEXT } from './prompts.js'
+import { chatSystemPrompt, reviewPrompt, insightsPrompt, parsePrompt, suggestPrompt, postWorkoutPrompt, routinePrompt, receiptsBatchPrompt, memoryBlock, agendaPrompt, memoryPatternsPrompt, nutritionEstimatePrompt, suggestionsPrompt, dayFacts, budgetState, leadLinesPrompt, PLAIN_TEXT, type PlanFact } from './prompts.js'
 import { SPEND_CATEGORIES } from './product.js'
 import { insightsContext } from './schemas.js'
 
@@ -497,5 +497,38 @@ describe('prompt examples do not anchor output', () => {
   it('the post-workout note names no example weight', () => {
     const p = postWorkoutPrompt({ routineName: 'Legs', setCount: 3, volumeKg: 900, prCount: 0, prExercises: [], lastSessionVolumeKg: null, daysAgoLastSession: null })
     expect(p).not.toContain('2.5kg')
+  })
+})
+
+describe('leadLinesPrompt', () => {
+  const plan: PlanFact[] = [
+    { key: 'r1|due|2 of 4 steps', title: 'Morning', when: '7:00 AM', status: 'due', steps: '2 of 4 steps', why: 'It anchors the day.' },
+    { key: 'w1|upcoming|', title: 'Legs', when: '6:00 PM', status: 'upcoming', steps: null, why: 'Planned for today.' },
+  ]
+
+  it('lists each item by key with its facts', () => {
+    const p = leadLinesPrompt(plan)
+    for (const f of plan) {
+      expect(p).toContain(f.key)
+      expect(p).toContain(f.title)
+      expect(p).toContain(f.when)
+      expect(p).toContain(f.status)
+      expect(p).toContain(f.why)
+    }
+    expect(p).toContain('2 of 4 steps')
+  })
+
+  it('asks for one short plain sentence per key about that item only', () => {
+    const p = leadLinesPrompt(plan)
+    expect(p).toContain(PLAIN_TEXT)
+    expect(p).toContain('one sentence for each key')
+    expect(p).toContain('at most 20 words')
+    expect(p).toContain('{"lines":[{"key":string,"line":string}]}')
+  })
+
+  it('leaves the choosing and the numbers to the app', () => {
+    const p = leadLinesPrompt(plan)
+    expect(p).toContain('Do not pick, rank or order the items')
+    expect(p).toContain('State no number that its own facts do not hold')
   })
 })

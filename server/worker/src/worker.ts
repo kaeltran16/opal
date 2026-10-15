@@ -226,7 +226,18 @@ async function routePal(
     const raw = await request.json().catch(() => null)
     const parsed = agendaBody.safeParse(raw)
     if (!parsed.success) return badRequest(parsed.error, raw)
-    return runPal(pathname, async () => pal.agenda(parsed.data.context, await memory.digest(token)))
+    const { context, plan } = parsed.data
+    return runPal(pathname, async () => {
+      // the lines are a separate call so a failed line never costs the proposals.
+      const [agenda, lines] = await Promise.all([
+        memory.digest(token).then((digest) => pal.agenda(context, digest)),
+        pal.leadLines(plan).catch((err) => {
+          console.warn(JSON.stringify({ msg: 'agenda lines failed', route: pathname, reason: failureReason(err) }))
+          return []
+        }),
+      ])
+      return { ...agenda, lines }
+    })
   }
 
   if (pathname === '/v1/routine' && method === 'POST') {

@@ -1,10 +1,11 @@
 import { describe, it, expect, vi } from 'vitest'
 import {
   Pal, OpenRouterClient, OpenRouterError, extractJson, toolCallsToActions, toolCallsToMemoryOps, parseSchema, synthReply,
-  insightsSchema, nutritionEstimateSchema, memoryPatternsSchema, plainText, moneyAmounts, labelsAgree,
+  insightsSchema, nutritionEstimateSchema, memoryPatternsSchema, plainText, moneyAmounts, labelsAgree, lineAgrees,
   CHAT_TOOLS, type CompletionClient, type CompletionResult, type ToolCall, type ChatMessage,
 } from './pal.js'
 import { SPEND_CATEGORIES } from './product.js'
+import { leadLinesPrompt, type PlanFact } from './prompts.js'
 
 // Most methods only need complete(); chat() uses completeWithTools().
 function fakeClient(reply: string): CompletionClient {
@@ -830,5 +831,88 @@ describe('Pal surfaces return plain text', () => {
     expect(parsed.headline).toBe('Over by $11.15 today')
     expect(parsed.suggestion).toBe('Skip the Lyft')
     expect(parsed.wins[0].title).toBe('Streak')
+  })
+})
+
+describe('lineAgrees', () => {
+  const fact: PlanFact = { key: 'k', title: 'Close out', when: '9:30 PM', status: 'upcoming', steps: '2 of 4 steps', why: 'Ends the day.' }
+
+  it('keeps a line whose numbers its facts hold, in digits or words', () => {
+    expect(lineAgrees('Two steps left before bed.', fact)).toBe(true)
+    expect(lineAgrees('You are 2 of 4 steps in.', fact)).toBe(true)
+    expect(lineAgrees('Wind down at 9:30 tonight.', fact)).toBe(true)
+    expect(lineAgrees('Close the day calmly.', fact)).toBe(true)
+  })
+
+  it('drops a line stating a number its facts do not hold', () => {
+    expect(lineAgrees('Three steps left before bed.', fact)).toBe(false)
+    expect(lineAgrees('Only 3 steps to go.', fact)).toBe(false)
+    expect(lineAgrees('Wind down at 10:30 tonight.', fact)).toBe(false)
+    expect(lineAgrees('Twenty minutes is enough.', fact)).toBe(false)
+  })
+
+  it('reads number words only as whole words', () => {
+    expect(lineAgrees('Someone often needs this.', fact)).toBe(true)
+    expect(lineAgrees('No one else will.', { ...fact, steps: null })).toBe(false)
+  })
+
+  it('reads number words in the facts too', () => {
+    expect(lineAgrees('3 steps and you are done.', { ...fact, steps: 'Three steps' })).toBe(true)
+  })
+})
+
+describe('Pal.leadLines', () => {
+  const plan: PlanFact[] = [
+    { key: 'close|upcoming|2 of 4 steps', title: 'Close out', when: '9:30 PM', status: 'upcoming', steps: '2 of 4 steps', why: 'Ends the day.' },
+    { key: 'legs|due|', title: 'Legs', when: '6:00 PM', status: 'due', steps: null, why: 'Planned for today.' },
+  ]
+  const lines = (...entries: Array<{ key: string; line: string }>) => fakeClient(JSON.stringify({ lines: entries }))
+
+  it('returns the lines keyed by request key', async () => {
+    const res = await new Pal(lines(
+      { key: 'close|upcoming|2 of 4 steps', line: 'Two steps left to close the day.' },
+      { key: 'legs|due|', line: 'Legs are on the plan now.' },
+    )).leadLines(plan)
+    expect(res).toEqual([
+      { key: 'close|upcoming|2 of 4 steps', line: 'Two steps left to close the day.' },
+      { key: 'legs|due|', line: 'Legs are on the plan now.' },
+    ])
+  })
+
+  it('drops unknown keys and repeats', async () => {
+    const res = await new Pal(lines(
+      { key: 'legs|due|', line: 'Legs are on the plan now.' },
+      { key: 'made-up', line: 'Something else.' },
+      { key: 'legs|due|', line: 'A second take on legs.' },
+    )).leadLines(plan)
+    expect(res).toEqual([{ key: 'legs|due|', line: 'Legs are on the plan now.' }])
+  })
+
+  it('strips markup from a line', async () => {
+    const res = await new Pal(lines({ key: 'legs|due|', line: '**Legs** are on the plan now.' })).leadLines(plan)
+    expect(res).toEqual([{ key: 'legs|due|', line: 'Legs are on the plan now.' }])
+  })
+
+  it('drops a line stating a number its facts do not hold', async () => {
+    const res = await new Pal(lines(
+      { key: 'close|upcoming|2 of 4 steps', line: 'Three steps left to close the day.' },
+      { key: 'legs|due|', line: 'Legs at 6:00 keeps the week on plan.' },
+    )).leadLines(plan)
+    expect(res).toEqual([{ key: 'legs|due|', line: 'Legs at 6:00 keeps the week on plan.' }])
+  })
+
+  it('makes no model call for an empty plan', async () => {
+    const client = fakeClient('{}')
+    expect(await new Pal(client).leadLines([])).toEqual([])
+    expect(client.complete).not.toHaveBeenCalled()
+  })
+
+  it('asks at temperature 0 for JSON', async () => {
+    const client = lines()
+    await new Pal(client).leadLines(plan)
+    expect(client.complete).toHaveBeenCalledWith(
+      [{ role: 'user', content: leadLinesPrompt(plan) }],
+      expect.objectContaining({ json: true, temperature: 0 }),
+    )
   })
 })
