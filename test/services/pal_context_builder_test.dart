@@ -291,6 +291,8 @@ void main() {
     final muscles = (ctx['recentWorkouts'] as List).single as Map;
     final labels = (muscles['muscles'] as String).split(', ').toSet();
     expect(labels, {'Chest', 'Legs', 'mystery'});
+    // the groups ride beside the muscles; an unknown exercise adds none.
+    expect(muscles['groups'], 'Push, Legs');
   });
 
   test('buildSuggestContext sends relative days and the planned routine, never a date', () {

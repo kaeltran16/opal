@@ -174,6 +174,57 @@ export function plainText(s: string): string {
     .replace(/^#{1,6}\s+/gm, '')
 }
 
+// a reply that shows its working: reasoning is off, so the model sometimes
+// counts, doubts and corrects itself in the words the user reads.
+const THINKING_ALOUD = /\blet me (re-?count|count again|re-?check|check again|think)\b|\bre-?counting\b|\bscratch that\b|(^|[.!?]\s+)(wait|hmm|oops)[,.!]/i
+
+export function thinksAloud(reply: string): boolean {
+  return THINKING_ALOUD.test(reply)
+}
+
+// a muscle or group named after a negation in the same clause ("haven't hit
+// your legs"), checked against what the listed workouts trained.
+const DENIAL = /\b(?:haven'?t|hasn'?t|have not|has not|not|no|missed|skipped|neglected|without)\b([^.;:!?]*)/gi
+
+export function deniesRecent(reason: string, recent: SuggestContext['recentWorkouts']): boolean {
+  const stems = new Set(
+    recent
+      .flatMap((w) => `${w.muscles},${w.groups ?? ''}`.split(','))
+      .map((t) => t.trim().toLowerCase().replace(/s$/, ''))
+      .filter((t) => t.length > 0),
+  )
+  for (const [, clause] of reason.matchAll(DENIAL)) {
+    const words = clause.toLowerCase().match(/[a-z]+/g) ?? []
+    if (words.some((w) => stems.has(w.replace(/s$/, '')))) return true
+  }
+  return false
+}
+
+// the catalog's own group and muscle words are the vocabulary: a rationale that
+// names one the chosen exercises do not carry claims work the routine skips.
+export function overclaims(routine: Pick<GeneratedRoutine, 'rationale' | 'exercises'>, catalog: RoutineExercise[]): boolean {
+  const text = routine.rationale?.toLowerCase()
+  if (!text) return false
+  const termsOf = (e: RoutineExercise) => [e.group, e.muscle ?? ''].map((t) => t.trim().toLowerCase()).filter((t) => t.length > 0)
+  const chosenIds = new Set(routine.exercises.map((e) => e.exerciseId))
+  const trained = new Set(catalog.filter((e) => chosenIds.has(e.id)).flatMap(termsOf))
+  const vocabulary = new Set(catalog.flatMap(termsOf))
+  const stem = (t: string) => t.replace(/s$/, '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  return [...vocabulary].some((t) => !trained.has(t) && new RegExp(`\\b${stem(t)}s?\\b`).test(text))
+}
+
+// the money amounts today's entry lines state, in the user's currency.
+function statedAmounts(ctx: ChatContext): number[] {
+  return ctx.todayEntries.flatMap((line) => moneyAmounts(line, ctx.currency))
+}
+
+function fallbackReason(routineId: string, ctx: SuggestContext): string {
+  const name = ctx.availableRoutines.find((r) => r.id === routineId)?.name
+  return name !== undefined && name === ctx.plannedToday
+    ? 'It is the one your plan has for today.'
+    : 'It balances what you have trained lately.'
+}
+
 // a model-written string the app shows as Pal's words.
 const prose = z.string().transform(plainText)
 
@@ -579,7 +630,10 @@ export class Pal {
       ...recent.map((m) => ({ role: m.role, content: m.text })),
       { role: 'user', content: message },
     ]
-    const res = await this.client.completeWithTools(messages, CHAT_TOOLS)
+    let res = await this.client.completeWithTools(messages, CHAT_TOOLS)
+    // nothing is applied until the client gets the result, so a reply that
+    // shows its working is drawn once more, tools and all.
+    if (thinksAloud(res.content)) res = await this.client.completeWithTools(messages, CHAT_TOOLS)
     const actions = toolCallsToActions(res.toolCalls)
     const memoryOps = toolCallsToMemoryOps(res.toolCalls)
     const reply = plainText(res.content) || synthReply(actions)
@@ -613,7 +667,13 @@ export class Pal {
 
   async suggestWorkout(another: boolean, ctx: SuggestContext): Promise<Suggestion> {
     const nudge = another ? '\n\nPick a DIFFERENT routine than you would normally default to.' : ''
-    return this.completeJson(suggestPrompt(ctx) + nudge, {}, (j) => suggestSchema.parse(j))
+    const draw = () => this.completeJson(suggestPrompt(ctx) + nudge, {}, (j) => suggestSchema.parse(j))
+    let pick = await draw()
+    // a reason that says trained muscles went untrained is redrawn once; still
+    // wrong, the pick stands with a reason that claims nothing.
+    if (deniesRecent(pick.reason, ctx.recentWorkouts)) pick = await draw()
+    if (deniesRecent(pick.reason, ctx.recentWorkouts)) pick = { ...pick, reason: fallbackReason(pick.routineId, ctx) }
+    return pick
   }
 
   async agenda(ctx: ChatContext, memory?: MemoryDigest): Promise<AgendaResult> {
@@ -669,8 +729,14 @@ export class Pal {
 
   async suggestions(surface: 'composer' | 'routineGoal', ctx: ChatContext | SuggestContext): Promise<SuggestionsResult> {
     const parsed = await this.completeJson(suggestionsPrompt(surface, ctx), { maxTokens: INSIGHTS_MAX_TOKENS, temperature: 0 }, (j) => suggestionsModelSchema.parse(j))
+    // a one-tap log with an amount today's entries never state ("Late snack
+    // $6.50") would log a number the model made up, so that chip is dropped.
+    const stated = surface === 'composer' ? statedAmounts(ctx as ChatContext) : null
+    const grounded = (s: (typeof parsed.suggestions)[number]) =>
+      stated === null || s.entry?.type !== 'money' || s.entry.amount == null ||
+      stated.some((a) => Math.abs(a - Math.abs(s.entry!.amount!)) < 0.005)
     return {
-      suggestions: parsed.suggestions.map((s) => ({
+      suggestions: parsed.suggestions.filter(grounded).map((s) => ({
         label: s.label,
         icon: SUGGESTION_ICON[s.kind],
         colorToken: s.colorToken,
@@ -692,7 +758,10 @@ export class Pal {
     const known = new Set(exercises.map((e) => e.id))
     const draw = async (): Promise<GeneratedRoutine> => {
       const parsed = await this.completeJson(routinePrompt(goal, exercises, memory), { maxTokens: ROUTINE_MAX_TOKENS }, (j) => routineSchema.parse(j))
-      return { ...parsed, exercises: parsed.exercises.filter((e) => known.has(e.exerciseId)) }
+      const routine = { ...parsed, exercises: parsed.exercises.filter((e) => known.has(e.exerciseId)) }
+      // a rationale naming a group or muscle no chosen exercise trains is dropped:
+      // the routine stands on its own and the screen shows it without one.
+      return overclaims(routine, exercises) ? { ...routine, rationale: null } : routine
     }
     let routine = await draw()
     // if the model picked only invented ids, one retry usually lands on the catalog.

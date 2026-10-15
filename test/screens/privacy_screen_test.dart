@@ -44,11 +44,23 @@ void main() {
     expect(find.text('Pal memory'), findsOneWidget);
     expect(
       find.text(
-        'Facts you mention and patterns Pal learns, '
-        'stored to personalize replies. Clear anytime in Pal.',
+        'Facts you mention and patterns Pal finds in your timeline, '
+        "kept on Pal's server to personalize replies. Clear anytime in Pal.",
       ),
       findsOneWidget,
     );
+  });
+
+  testWidgets('says Pal sends the timeline on its own and only email is opt-in',
+      (tester) async {
+    await _pumpPrivacy(tester);
+
+    expect(find.textContaining('Pal gets your timeline'), findsOneWidget);
+    // the closing note sits below the fold of the lazily built list.
+    await tester.scrollUntilVisible(find.textContaining('Email sync is opt-in'), 100);
+    expect(find.textContaining('Email sync is opt-in. Pal is part of the app'), findsOneWidget);
+    expect(find.textContaining('Both are opt-in'), findsNothing);
+    expect(find.textContaining('Text you send to Pal is processed'), findsNothing);
   });
 
   testWidgets('title reads Data and privacy', (tester) async {

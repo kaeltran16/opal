@@ -59,6 +59,9 @@ class BudgetsData {
   /// summed per-envelope caps (which stay on each [EnvelopeSpend.cap] row).
   double get totalCap => monthlyBudget;
 
+  /// The envelopes' caps summed: how much of [totalCap] they set aside.
+  double get envelopeCaps => envelopes.fold<double>(0, (s, e) => s + e.cap);
+
   /// Summed month-to-date spend across all envelopes.
   double get totalSpent =>
       envelopes.fold<double>(0, (s, e) => s + e.spent);

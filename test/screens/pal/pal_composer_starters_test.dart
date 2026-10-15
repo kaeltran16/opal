@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:opal/controllers/pal_suggestions_controller.dart';
 import 'package:opal/controllers/providers.dart';
+import 'package:opal/controllers/weekly_plan_controller.dart';
 import 'package:opal/data/db/database.dart';
 import 'package:opal/data/repositories/entry_repository.dart';
 import 'package:opal/data/repositories/settings_repository.dart';
@@ -47,6 +48,8 @@ Future<Widget> _app(
       sharedPreferencesProvider.overrideWithValue(prefs),
       if (db != null) loopDatabaseProvider.overrideWithValue(db),
       palServiceProvider.overrideWithValue(_NoPickPal()),
+      // the workout pill reads today's plan; with no database it would never load.
+      weeklyPlanControllerProvider.overrideWith((ref) => Stream.value(const WeeklyPlan(days: []))),
       palSuggestionsProvider(SuggestionSurface.composer)
           .overrideWith((ref) async => suggestions()),
     ],

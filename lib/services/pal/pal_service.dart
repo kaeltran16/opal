@@ -26,14 +26,14 @@ enum PalRole { user, assistant }
 /// A single chat message (mirrors the handoff's chat bubble model).
 ///
 /// An assistant turn may have applied [actions] (auto-applied mutations the user
-/// can reverse); [undone] flips true once they have been reversed.
+/// can reverse one by one); [undone] holds the indexes of those reversed.
 class PalMessage {
   const PalMessage({
     required this.role,
     required this.text,
     required this.timestamp,
     this.actions = const [],
-    this.undone = false,
+    this.undone = const {},
     this.offline = false,
     this.note,
   });
@@ -53,8 +53,10 @@ class PalMessage {
   /// Mutations this turn applied (empty for user messages and plain replies).
   final List<PalAction> actions;
 
-  /// True once [actions] have been reversed via undo.
-  final bool undone;
+  /// Indexes into [actions] the user has reversed via undo.
+  final Set<int> undone;
+
+  bool isUndone(int action) => undone.contains(action);
 
   /// True for a reply written because Pal was unreachable, not by Pal.
   final bool offline;
@@ -64,7 +66,7 @@ class PalMessage {
     String? text,
     DateTime? timestamp,
     List<PalAction>? actions,
-    bool? undone,
+    Set<int>? undone,
     bool? offline,
   }) =>
       PalMessage(
@@ -84,14 +86,16 @@ class PalMessage {
           other.role == role &&
           other.text == text &&
           other.timestamp == timestamp &&
-          other.undone == undone &&
+          other.undone.length == undone.length &&
+          other.undone.containsAll(undone) &&
           other.offline == offline &&
           other.note == note &&
           _listEquals(other.actions, actions);
 
   @override
   int get hashCode =>
-      Object.hash(role, text, timestamp, undone, offline, note, Object.hashAll(actions));
+      Object.hash(role, text, timestamp, Object.hashAllUnordered(undone), offline, note,
+          Object.hashAll(actions));
 }
 
 bool _listEquals<T>(List<T> a, List<T> b) {

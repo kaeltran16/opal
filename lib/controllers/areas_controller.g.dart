@@ -130,6 +130,45 @@ final class _RecentCheckinsProvider
 
 String _$_recentCheckinsHash() => r'543fb5151ef48b7e8a1b013da9be97c5cb5568d7';
 
+@ProviderFor(_recentNights)
+const _recentNightsProvider = _RecentNightsProvider._();
+
+final class _RecentNightsProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<List<SleepNight>>,
+          List<SleepNight>,
+          Stream<List<SleepNight>>
+        >
+    with $FutureModifier<List<SleepNight>>, $StreamProvider<List<SleepNight>> {
+  const _RecentNightsProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'_recentNightsProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$_recentNightsHash();
+
+  @$internal
+  @override
+  $StreamProviderElement<List<SleepNight>> $createElement(
+    $ProviderPointer pointer,
+  ) => $StreamProviderElement(pointer);
+
+  @override
+  Stream<List<SleepNight>> create(Ref ref) {
+    return _recentNights(ref);
+  }
+}
+
+String _$_recentNightsHash() => r'080e405c318f832bfc11a78215630ead49d6d320';
+
 /// Streams the Areas tab view model. Watching each source's `.future`
 /// rebuilds this provider when today's numbers, entries, meals or check-ins
 /// change.
@@ -178,4 +217,4 @@ final class AreasSummaryProvider
   }
 }
 
-String _$areasSummaryHash() => r'974496a344f0c4bc6dbb744af6c5cabb29d0d739';
+String _$areasSummaryHash() => r'7bf68a285c573dad5732eed154699e915e059683';

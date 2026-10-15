@@ -231,6 +231,18 @@ void main() {
     expect(find.text('Pick another'), findsNothing);
   });
 
+  testWidgets('settled skips a next slot that is the routine just done', (tester) async {
+    await _pump(tester, doneToday: true, planned: {4: 'Push Day A', 5: 'Pull Day A'});
+
+    expect(find.text('Push Day A is done. Pull Day A is next, on Saturday.'), findsOneWidget);
+  });
+
+  testWidgets('settled with only the same routine later ends after is done.', (tester) async {
+    await _pump(tester, doneToday: true, planned: {4: 'Push Day A'});
+
+    expect(find.text('Push Day A is done.'), findsOneWidget);
+  });
+
   testWidgets('settled with nothing planned later ends after is done.', (tester) async {
     await _pump(tester, doneToday: true, planned: {0: 'Legs'});
 

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { chatSystemPrompt, reviewPrompt, insightsPrompt, parsePrompt, suggestPrompt, postWorkoutPrompt, routinePrompt, receiptsBatchPrompt, memoryBlock, agendaPrompt, memoryPatternsPrompt, nutritionEstimatePrompt, suggestionsPrompt, dayFacts, budgetState, leadLinesPrompt, PLAIN_TEXT, type PlanFact } from './prompts.js'
+import { chatSystemPrompt, reviewPrompt, insightsPrompt, parsePrompt, suggestPrompt, postWorkoutPrompt, routinePrompt, receiptsBatchPrompt, memoryBlock, agendaPrompt, memoryPatternsPrompt, nutritionEstimatePrompt, suggestionsPrompt, dayFacts, budgetState, entryCounts, leadLinesPrompt, ANSWER_ONLY, PLAIN_TEXT, type PlanFact } from './prompts.js'
 import { SPEND_CATEGORIES } from './product.js'
 import { insightsContext } from './schemas.js'
 
@@ -201,6 +201,21 @@ describe('prompts', () => {
     expect(p).toContain('Wednesday')
     expect(p).toContain('Push A')
     expect(p).toContain('routineId')
+  })
+
+  it('routine prompt lists each exercise muscle and asks the rationale to claim only those', () => {
+    const p = routinePrompt('arms', [{ id: 'curl', name: 'Bicep Curl', group: 'Pull', muscle: 'Biceps', equipment: 'Dumbbell' }])
+    expect(p).toContain('curl: Bicep Curl (Pull, Biceps, Dumbbell)')
+    expect(p).toContain('name only groups and muscles that the exercises you chose train')
+  })
+
+  it('suggest prompt lists groups and frames the pick as the next session after training today', () => {
+    const base = { dayOfWeek: 'Thursday', availableRoutines: [{ id: 'r1', name: 'Legs' }] }
+    const today = suggestPrompt({ ...base, recentWorkouts: [{ routineName: 'Push Day A', date: 'Today', muscles: 'Chest', groups: 'Push' }] })
+    expect(today).toContain('Push Day A')
+    expect(today).toContain('Chest (Push)')
+    expect(today).toContain('already trained today')
+    expect(suggestPrompt({ ...base, recentWorkouts: [{ routineName: 'Leg Day', date: 'Yesterday', muscles: 'Quads' }] })).not.toContain('already trained today')
   })
 
   it('suggest prompt names the planned routine and asks for a short line with no dates', () => {
@@ -530,5 +545,20 @@ describe('leadLinesPrompt', () => {
     const p = leadLinesPrompt(plan)
     expect(p).toContain('Do not pick, rank or order the items')
     expect(p).toContain('State no number that its own facts do not hold')
+  })
+})
+
+describe('chat counts', () => {
+  const entries = ['10:37 PM Read (rituals)', '10:38 PM Stretch (rituals)', '9:02 AM Coffee (money, −$5)', '7:00 AM Run (move, 30min)']
+
+  it('states how many entries of each kind the day holds', () => {
+    expect(entryCounts(entries)).toBe('4 in all: 2 routine steps, 1 money entry, 1 movement')
+    expect(entryCounts(entries.slice(0, 1))).toBe('1 in all: 1 routine step')
+  })
+
+  it('puts the counts on the entries heading and asks for the final answer only', () => {
+    const p = chatSystemPrompt({ ...thursdayEvening, todayEntries: entries })
+    expect(p).toContain(`(${entryCounts(entries)}):`)
+    expect(p).toContain(ANSWER_ONLY)
   })
 })

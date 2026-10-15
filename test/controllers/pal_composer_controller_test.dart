@@ -299,10 +299,10 @@ void main() {
       expect(await EntryRepository(db).getAll(), hasLength(1));
 
       final idx = container.read(palComposerControllerProvider()).messages.length - 1;
-      await notifier.undo(idx);
+      await notifier.undo(idx, 0);
 
       expect(await EntryRepository(db).getAll(), isEmpty);
-      expect(container.read(palComposerControllerProvider()).messages[idx].undone, isTrue);
+      expect(container.read(palComposerControllerProvider()).messages[idx].isUndone(0), isTrue);
     });
 
     test('set_daily_budget applies; undo restores the prior value', () async {
@@ -320,7 +320,7 @@ void main() {
       expect((await goals.get()).dailyBudget, 60);
 
       final idx = container.read(palComposerControllerProvider()).messages.length - 1;
-      await notifier.undo(idx);
+      await notifier.undo(idx, 0);
       expect((await goals.get()).dailyBudget, 85);
     });
 
@@ -332,9 +332,62 @@ void main() {
 
       await notifier.send('how am I doing?');
       final idx = container.read(palComposerControllerProvider()).messages.length - 1;
-      await notifier.undo(idx);
+      await notifier.undo(idx, 0);
 
-      expect(container.read(palComposerControllerProvider()).messages[idx].undone, isFalse);
+      expect(container.read(palComposerControllerProvider()).messages[idx].undone, isEmpty);
+    });
+  });
+
+  group('multi-action turn', () {
+    const twoActions = [
+      LogEntryAction(type: EntryType.money, title: 'Matcha latte', amount: -6.5),
+      LogMealAction(
+          name: 'Matcha latte', cal: IntRange(120, 200), confidence: NutritionConfidence.med),
+    ];
+    Future<List<NutritionMeal>> meals(LoopDatabase db) =>
+        NutritionRepository(db).getMealsInRange(DateTime(2000), DateTime(2100));
+
+    test('undo on one row reverses only that action', () async {
+      final db = LoopDatabase.forTesting(NativeDatabase.memory());
+      addTearDown(db.close);
+      final container = containerWith(db, _FakePal(reply: '', actions: twoActions));
+      final notifier = container.read(palComposerControllerProvider().notifier);
+
+      await notifier.send('matcha latte at blue bottle 6.50');
+      final idx = container.read(palComposerControllerProvider()).messages.length - 1;
+      await notifier.undo(idx, 1);
+      await notifier.undo(idx, 1); // a second tap on the same row does nothing more
+
+      expect(await EntryRepository(db).getAll(), hasLength(1));
+      expect(await meals(db), isEmpty);
+      final m = container.read(palComposerControllerProvider()).messages[idx];
+      expect(m.isUndone(0), isFalse);
+      expect(m.isUndone(1), isTrue);
+
+      await notifier.undo(idx, 0);
+      expect(await EntryRepository(db).getAll(), isEmpty);
+    });
+
+    test('edit on one row removes only that row and refills it alone', () async {
+      final db = LoopDatabase.forTesting(NativeDatabase.memory());
+      addTearDown(db.close);
+      final container = containerWith(db, _FakePal(reply: '', actions: twoActions));
+      final notifier = container.read(palComposerControllerProvider().notifier);
+
+      await notifier.send('matcha latte at blue bottle 6.50');
+      final idx = container.read(palComposerControllerProvider()).messages.length - 1;
+      final text = await notifier.editLog(idx, 0);
+
+      expect(text, 'Matcha latte −\$6.50');
+      expect(await EntryRepository(db).getAll(), isEmpty);
+      expect(await meals(db), hasLength(1));
+      final msgs = container.read(palComposerControllerProvider()).messages;
+      expect(msgs, hasLength(2)); // the turn stays, with the meal row
+      expect(msgs.last.actions, [twoActions[1]]);
+
+      // the meal's reversal data moved with it to index 0.
+      await notifier.undo(idx, 0);
+      expect(await meals(db), isEmpty);
     });
   });
 
@@ -357,7 +410,7 @@ void main() {
       // the assistant turn is the last message; undo it
       final assistantIndex =
           container.read(palComposerControllerProvider()).messages.length - 1;
-      await notifier.undo(assistantIndex);
+      await notifier.undo(assistantIndex, 0);
       expect(await repo.getMealsInRange(DateTime(2000), DateTime(2100)), isEmpty);
     });
   });
@@ -382,7 +435,7 @@ void main() {
       expect(msgs.last.actions.whereType<LogEntryAction>(), hasLength(1));
       final idx = msgs.length - 1;
 
-      final text = await notifier.editLog(idx);
+      final text = await notifier.editLog(idx, 0);
 
       expect(text, 'coffee \$25');
       expect(await EntryRepository(db).getAll(), isEmpty);
@@ -405,15 +458,15 @@ void main() {
       expect(await EntryRepository(db).getAll(), hasLength(2));
 
       // edit the first turn (user@0, assistant@1): one entry reversed, one left.
-      await notifier.editLog(1);
+      await notifier.editLog(1, 0);
       expect(await EntryRepository(db).getAll(), hasLength(1));
 
       // the surviving turn shifted to index 1 — its undo data must follow it.
       final msgs = container.read(palComposerControllerProvider()).messages;
       expect(msgs, hasLength(2));
-      await notifier.undo(1);
+      await notifier.undo(1, 0);
       expect(await EntryRepository(db).getAll(), isEmpty);
-      expect(container.read(palComposerControllerProvider()).messages[1].undone, isTrue);
+      expect(container.read(palComposerControllerProvider()).messages[1].isUndone(0), isTrue);
     });
   });
 }

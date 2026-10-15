@@ -24,6 +24,7 @@ class RoutineExercise {
     this.targetSets = 3,
     this.targetReps,
     this.targetWeightKg,
+    this.targetDurationMin,
   });
 
   /// Caller-supplied id (never self-generated).
@@ -43,6 +44,9 @@ class RoutineExercise {
   /// Planned working weight in kg. Nullable.
   final double? targetWeightKg;
 
+  /// Planned minutes per set for a timed set (a plank). Nullable.
+  final int? targetDurationMin;
+
   RoutineExercise copyWith({
     String? id,
     String? exerciseId,
@@ -50,6 +54,7 @@ class RoutineExercise {
     int? targetSets,
     int? targetReps,
     double? targetWeightKg,
+    int? targetDurationMin,
   }) {
     return RoutineExercise(
       id: id ?? this.id,
@@ -58,6 +63,7 @@ class RoutineExercise {
       targetSets: targetSets ?? this.targetSets,
       targetReps: targetReps ?? this.targetReps,
       targetWeightKg: targetWeightKg ?? this.targetWeightKg,
+      targetDurationMin: targetDurationMin ?? this.targetDurationMin,
     );
   }
 
@@ -70,7 +76,8 @@ class RoutineExercise {
           other.order == order &&
           other.targetSets == targetSets &&
           other.targetReps == targetReps &&
-          other.targetWeightKg == targetWeightKg;
+          other.targetWeightKg == targetWeightKg &&
+          other.targetDurationMin == targetDurationMin;
 
   @override
   int get hashCode => Object.hash(
@@ -80,6 +87,7 @@ class RoutineExercise {
         targetSets,
         targetReps,
         targetWeightKg,
+        targetDurationMin,
       );
 
   @override

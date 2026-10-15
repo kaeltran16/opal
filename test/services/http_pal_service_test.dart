@@ -80,7 +80,8 @@ void main() {
       PalMessage(role: PalRole.user, text: 'am I going to blow my budget?', timestamp: t),
       PalMessage(role: PalRole.assistant, text: "Pal couldn't answer that just now.", timestamp: t, offline: true),
       PalMessage(role: PalRole.user, text: 'coffee 4', timestamp: t),
-      PalMessage(role: PalRole.assistant, text: 'Logged.', timestamp: t, undone: true, actions: const [
+      PalMessage(role: PalRole.assistant, text: 'Logged.', timestamp: t, undone: const {1}, actions: const [
+        LogEntryAction(type: EntryType.money, title: 'Tea', amount: -3),
         LogEntryAction(type: EntryType.money, title: 'Coffee', amount: -4),
       ]),
     ], 'am I going to blow my budget?');
@@ -89,7 +90,7 @@ void main() {
       {'role': 'user', 'text': 'dinner at Tartine 32 dollars'},
       {'role': 'assistant', 'text': '(Pal did: logged expense "Dinner at Tartine" 32 in Food & Drink.)'},
       {'role': 'user', 'text': 'coffee 4'},
-      {'role': 'assistant', 'text': 'Logged. (Pal did: logged expense "Coffee" 4. The user undid it.)'},
+      {'role': 'assistant', 'text': 'Logged. (Pal did: logged expense "Tea" 3; logged expense "Coffee" 4, which the user undid.)'},
     ]);
   });
 

@@ -62,7 +62,7 @@ final class PalComposerControllerProvider
 }
 
 String _$palComposerControllerHash() =>
-    r'f9456a0c98e599e93df2b2667d0f6a62b0bedbe4';
+    r'5783c797f5a7083101962160a6fc30a9206a52fe';
 
 /// Owns the Pal-composer conversation and the [PalService.chat] round-trip.
 

@@ -6,6 +6,8 @@ import 'package:opal/widgets/app_icon.dart';
 import 'package:opal/widgets/glass_surface.dart';
 import 'package:opal/widgets/glass_tab_bar.dart';
 
+import '../support/semantics_stops.dart';
+
 const _tabs = [
   GlassTab('today', 'Today', 'house.fill'),
   GlassTab('move', 'Workout', 'figure.run'),
@@ -77,6 +79,17 @@ void main() {
       tester.getSemantics(find.bySemanticsLabel('Nutrition')),
       isSemantics(label: 'Nutrition', isButton: true, isSelected: false),
     );
+    handle.dispose();
+  });
+
+  testWidgets('a screen reader stops once per tab, never on a blank button', (tester) async {
+    final handle = tester.ensureSemantics();
+    await tester.pumpWidget(_app(_bar()));
+    await tester.pump();
+
+    expect(semanticsStops(tester, find.byType(GlassTabBar)), ['Today', 'Workout', 'Nutrition', 'You']);
+    expect(tester.getSemantics(find.bySemanticsLabel('Workout')),
+        isSemantics(label: 'Workout', isButton: true, hasTapAction: true));
     handle.dispose();
   });
 

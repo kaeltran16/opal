@@ -80,12 +80,14 @@ AreasSummary _build({
   List<Entry> entries = const [],
   List<NutritionMeal> meals = const [],
   List<MoodCheckin> checkins = const [],
+  List<SleepNight> nights = const [],
   DateTime? now,
 }) => buildAreasSummary(
   today: today ?? _numbers(),
   entries: entries,
   meals: meals,
   checkins: checkins,
+  nights: nights,
   currency: Currency.usd,
   now: now ?? _now,
 );
@@ -394,6 +396,32 @@ void main() {
       expect(mood.progress, isNull);
       expect(mood.usual, isNull);
       expect(mood.semanticLabel, 'Mood: No check-in yet today. Open Mood');
+    });
+
+    test('sleep reads last night from the stored nights', () {
+      SleepNight night(int daysBefore, int asleep) => SleepNight(
+            id: 'n$daysBefore',
+            night: DateTime(_now.year, _now.month, _now.day - daysBefore),
+            asleepMinutes: asleep,
+            inBedMinutes: asleep + 20,
+            bedtime: '23:00',
+            wake: '7:00',
+            deepMinutes: 60,
+            remMinutes: 90,
+            coreMinutes: 250,
+            awakeMinutes: 20,
+            wakes: 1,
+            source: EntrySource.health,
+          );
+
+      // the night that began yesterday counts toward today.
+      final last = _build(nights: [night(2, 400), night(1, 432)]).of(Area.sleep);
+      expect(last.number, '7h 12m');
+      expect(last.unit, 'asleep last night');
+
+      final stale = _build(nights: [night(3, 400)]).of(Area.sleep);
+      expect(stale.number, isNull);
+      expect(stale.unit, 'No night synced for last night');
     });
 
     test('sleep has no data yet', () {

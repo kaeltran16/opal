@@ -37,7 +37,19 @@ class DeviceTokenStore {
   final String deviceId;
   final Future<String> Function(String deviceId) register;
 
-  Future<String> token() async {
+  // first launch fires several Pal calls at once; they must share one register.
+  Future<String>? _inFlight;
+
+  Future<String> token() {
+    final pending = _inFlight;
+    if (pending != null) return pending;
+    final next = _readOrRegister();
+    _inFlight = next;
+    next.whenComplete(() => _inFlight = null).ignore();
+    return next;
+  }
+
+  Future<String> _readOrRegister() async {
     final cached = await secure.read(_key);
     if (cached != null && cached.isNotEmpty) return cached;
     final fresh = await register(deviceId);

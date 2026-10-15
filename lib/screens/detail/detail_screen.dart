@@ -45,7 +45,7 @@ const double _trailingMaxWidth = 160;
 const double _hairline = 1;
 const double _listRowHeight = 48;
 const double _listRowLineHeight = 22 / 16;
-const double _mealTimeWidth = 34;
+const double _mealTimeWidth = 56; // fits "12:00 PM" in caption
 const double _mealGap = 10;
 const double _mealDisc = 28;
 const double _mealIcon = 18;
@@ -98,7 +98,16 @@ class DetailScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: c.bg,
       body: area == Area.sleep
-          ? _SleepBody(padding: padding, header: header)
+          ? ref.watch(sleepDetailProvider).when(
+                loading: () => message('…', AppType.body),
+                error: (e, _) {
+                  debugPrint('detail load failed (${area.title}): $e');
+                  return message("Couldn't load ${area.title}.", AppType.subhead);
+                },
+                data: (detail) => detail == null
+                    ? _SleepBody(padding: padding, header: header)
+                    : _AreaBody(detail: detail, padding: padding, header: header),
+              )
           : ref.watch(areaDetailProvider(area)).when(
                 // the routines page rebuilds on every step toggle; keep the last
                 // value on screen instead of flashing the loading state.

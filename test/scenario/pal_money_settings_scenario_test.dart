@@ -415,10 +415,11 @@ void main() {
     await shot(tester, 'composer_chip_fallback_$theme');
     await _close(tester);
 
-    // composer_start_pick
+    // composer_start_pick: the seed day already has a workout, so the first
+    // pill offers no second session; it still opens Start workout.
     await _tab(tester, 'Workout');
     await _ask(tester);
-    final pick = _inSheet(find.textContaining(RegExp(r'^Start (?!a workout$)')));
+    final pick = _inSheet(find.text('Start a workout'));
     expect(pick, findsOneWidget);
     await _tap(tester, pick);
     expect(_sheet, findsNothing);
@@ -431,7 +432,8 @@ void main() {
     await _ask(tester);
 
     expect(find.byKey(const Key('starter-skeleton')), findsOneWidget);
-    expect(_inSheet(find.text('Start a workout')), findsNothing);
+    // the workout pill stands while the starters load (the seed day already
+    // has a workout, so it offers no second session).
     expect(_inSheet(find.textContaining(RegExp(r'^Start '))), findsOneWidget);
     expect(_inSheet(find.text('Verve coffee, \$5')), findsNothing);
     await shot(tester, 'composer_starters_loading_${_theme(dark)}');
@@ -508,7 +510,7 @@ void main() {
     await _send(tester, _logAsk);
     expect(_inSheet(find.text('Based on')), findsOneWidget);
     expect(_inSheet(find.text('Spending today')), findsOneWidget);
-    final logged = 'Logged Coffee · ${formatCurrency(-5, Currency.usd, withSign: true)}.';
+    final logged = 'Logged Coffee · −\u2060${formatCurrency(5, Currency.usd)}.';
     expect(_inSheet(find.text(logged)), findsOneWidget);
     expect(_inSheet(find.bySemanticsLabel('Undo')), findsOneWidget);
     expect(_inSheet(find.bySemanticsLabel('Edit')), findsOneWidget);
@@ -683,7 +685,8 @@ void main() {
     await _tap(tester, _inBottomSheet(find.text('Save')));
     expect(find.byType(BottomSheet), findsNothing);
     final meals = _container(tester).read(areaDetailProvider(Area.nutrition)).requireValue.meals;
-    expect(meals.where((m) => m.name == 'pho' && m.slot == 'Dinner'), hasLength(1));
+    // stored in the app case, whatever case was typed.
+    expect(meals.where((m) => m.name == 'Pho' && m.slot == 'Dinner'), hasLength(1));
     await shot(tester, 'add_meal_saved_$theme');
   });
 
