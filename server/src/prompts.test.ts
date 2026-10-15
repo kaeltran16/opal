@@ -22,6 +22,15 @@ describe('prompts', () => {
     expect(p).toContain('Never say "amazing" or "great job"')
   })
 
+  it('chat system prompt says its totals already include what the conversation logged', () => {
+    const p = chatSystemPrompt({
+      userName: 'Kael', todayEntries: [], dailyBudget: 60, moveGoalKcal: 400, ritualGoal: 5,
+      spentToday: 0, movedTodayKcal: 0, ritualsDoneToday: 0, weekSpent: 0, weekBudget: 420,
+      weekMovedKcal: 0, weekRitualsDone: 0, weekRitualGoal: 35, moveStreakDays: 0, hourOfDay: 8, weekday: 6,
+    })
+    expect(p).toContain('anything logged earlier in this conversation ("Pal did: ...") is already in them')
+  })
+
   it('chat system prompt tells Pal it can take logging/goal actions via tools', () => {
     const p = chatSystemPrompt({
       userName: 'Kael', todayEntries: [], dailyBudget: 60, moveGoalKcal: 400, ritualGoal: 5,

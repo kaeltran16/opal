@@ -10,6 +10,7 @@ import 'package:opal/controllers/insights_controller.dart';
 import 'package:opal/controllers/providers.dart';
 import 'package:opal/controllers/recap_controller.dart';
 import 'package:opal/models/models.dart' hide Provider;
+import 'package:opal/router.dart';
 import 'package:opal/screens/recap/recap_screen.dart';
 import 'package:opal/services/pal/pal_service.dart';
 import 'package:opal/theme/theme.dart';
@@ -51,7 +52,8 @@ Future<void> _pump(
     GoRoute(path: '/recap', builder: (_, _) => const RecapScreen()),
     GoRoute(path: '/you', builder: (_, _) => const Text('YOU PAGE')),
     GoRoute(
-      path: '/pal-composer',
+      path: AppRoute.palComposer.path,
+      name: AppRoute.palComposer.name,
       builder: (_, state) => Text('COMPOSER ${state.uri.queryParameters['seed']}'),
     ),
   ]);
@@ -178,6 +180,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('COMPOSER Tell me more about this recap'), findsOneWidget);
+    // opened over the Recap, so closing the composer lands back on it.
+    expect(find.byType(RecapScreen, skipOffstage: false), findsOneWidget);
   });
 
   testWidgets('shows the reviewing notice while Pal loads', (tester) async {
