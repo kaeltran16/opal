@@ -15,6 +15,7 @@ import 'package:opal/theme/app_colors.dart';
 import 'package:opal/widgets/pal_lead.dart';
 
 import 'support/flush_provider_timers.dart';
+import 'support/semantics_blocks.dart';
 
 // a wednesday, so today is weekday 3.
 final _wednesday = Clock.fixed(DateTime(2026, 10, 14, 10));
@@ -151,6 +152,24 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 400)); // sheet open anim
     expect(find.text('Assign routine'), findsOneWidget);
+  });
+
+  _planTest('a screen reader reaches today\'s heading, its button and Schedule on their own',
+      (tester) async {
+    final semantics = tester.ensureSemantics();
+    final db = await _db();
+    addTearDown(db.close);
+    await WeeklyPlanRepository(db).upsert(DateTime.wednesday, 'r1');
+    await _pump(tester, db);
+    await _settleStream(tester);
+
+    expectOwnSemanticsNodes(tester, [
+      'Push A',
+      'Start workout',
+      'Schedule',
+      'Tap a day to set or change its routine.',
+    ]);
+    semantics.dispose();
   });
 
   _planTest('Start workout on today opens the session through the launcher',

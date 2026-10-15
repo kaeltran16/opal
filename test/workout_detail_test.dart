@@ -15,6 +15,8 @@ import 'package:opal/models/models.dart';
 import 'package:opal/screens/workout/workout_detail_screen.dart';
 import 'package:opal/theme/app_colors.dart';
 
+import 'support/semantics_blocks.dart';
+
 void main() {
   // ---------------------------------------------------------------------------
   // Pure math — 8-week bucketing and per-exercise grouping.
@@ -123,6 +125,25 @@ void main() {
       expect(tester.widget<Text>(find.text('New best')).style?.color,
           AppColors.light().thrivingInk);
 
+      await _unmount(tester);
+    });
+
+    testWidgets('a screen reader reaches each heading and set row on its own',
+        (tester) async {
+      final semantics = tester.ensureSemantics();
+      await _pumpDetail(tester, db);
+      await tester.scrollUntilVisible(find.text('85 kg × 5'), 200,
+          scrollable: find.byType(Scrollable).first);
+
+      expectOwnSemanticsNodes(tester, [
+        'Volume over 8 weeks',
+        'Exercises',
+        'Barbell Bench Press',
+        '80 kg × 5',
+        '85 kg × 5',
+      ]);
+
+      semantics.dispose();
       await _unmount(tester);
     });
 

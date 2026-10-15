@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { chatSystemPrompt, reviewPrompt, insightsPrompt, parsePrompt, suggestPrompt, postWorkoutPrompt, routinePrompt, receiptsBatchPrompt, memoryBlock, agendaPrompt, memoryPatternsPrompt, nutritionEstimatePrompt } from './prompts.js'
 import { SPEND_CATEGORIES } from './product.js'
+import { insightsContext } from './schemas.js'
 
 describe('prompts', () => {
   it('chat system prompt substitutes user data', () => {
@@ -151,6 +152,22 @@ describe('prompts', () => {
     expect(p).toContain('08:00 Coffee')
     expect(p).toContain('Range is "week"')
     expect(p).toContain('colorToken')
+  })
+
+  it('insights prompt leaves days still ahead out of the weekday spend', () => {
+    // a Thursday: Fri-Sun have not happened, so they are neither spend nor no-spend
+    const ctx = {
+      range: 'week' as const, spent: 30, budget: 420, moveKcal: 0, moveTargetKcal: 2100,
+      ritualsKept: 0, ritualsTarget: 0, activeDays: 0, streakDays: 0,
+      topCategory: 'Food', topCategoryPct: 100, spendByWeekday: [10, 20, 0, 0, null, null, null],
+      daysElapsed: 4, entries: [],
+    }
+    expect(insightsContext.safeParse(ctx).success).toBe(true)
+    for (const p of [insightsPrompt(ctx), memoryPatternsPrompt(ctx, { facts: [], patterns: [] })]) {
+      expect(p).toContain('Mon $10, Tue $20, Wed $0, Thu $0.')
+      expect(p).not.toContain('Fri')
+      expect(p).toContain('day 4 of the week so far')
+    }
   })
 
   it('insights prompt for a day range fills only the headline', () => {

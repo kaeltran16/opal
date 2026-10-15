@@ -58,37 +58,57 @@ class PostWorkoutScreen extends ConsumerWidget {
     final saveState = ref.watch(postWorkoutControllerProvider);
     final pr = buildPrHighlight(w, catalog);
 
-    return Scaffold(
-      backgroundColor: c.bg,
-      body: ListView(
-        padding: EdgeInsets.fromLTRB(
-          Spacing.lg,
-          math.max(_contentTop, safe.top + Spacing.xs),
-          Spacing.lg,
-          _contentBottom + safe.bottom,
-        ),
-        children: [
-          _Header(name: w.name, onClose: () => context.go(_moveRoute)),
-          const SizedBox(height: _leadTop),
-          _Note(workout: w),
-          const SizedBox(height: _volumeTop),
-          _Volume(volumeKg: w.totalVolumeKg),
-          if (pr != null) ...[
-            const SizedBox(height: Spacing.md),
-            _NewBest(pr: pr),
-          ],
-          const SizedBox(height: Spacing.xxl),
-          _Stats(workout: w),
-          _MusclesSection(muscles: buildMuscleVolumes(w, catalog)),
-          _ExercisesSection(groups: buildExerciseGroups(w, catalog)),
-          const SizedBox(height: Spacing.xxxl),
-          _Actions(
-            saving: saveState == SaveState.saving,
-            onSave: () => _save(context, ref, w),
+    // closing saves, as on iOS: the session is gone once this route is.
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _close(context, ref, w, saveState);
+      },
+      child: Scaffold(
+        backgroundColor: c.bg,
+        body: ListView(
+          padding: EdgeInsets.fromLTRB(
+            Spacing.lg,
+            math.max(_contentTop, safe.top + Spacing.xs),
+            Spacing.lg,
+            _contentBottom + safe.bottom,
           ),
-        ],
+          children: [
+            _Header(name: w.name, onClose: () => _close(context, ref, w, saveState)),
+            const SizedBox(height: _leadTop),
+            _Note(workout: w),
+            const SizedBox(height: _volumeTop),
+            _Volume(volumeKg: w.totalVolumeKg),
+            if (pr != null) ...[
+              const SizedBox(height: Spacing.md),
+              _NewBest(pr: pr),
+            ],
+            const SizedBox(height: Spacing.xxl),
+            _Stats(workout: w),
+            _MusclesSection(muscles: buildMuscleVolumes(w, catalog)),
+            _ExercisesSection(groups: buildExerciseGroups(w, catalog)),
+            const SizedBox(height: Spacing.xxxl),
+            _Actions(
+              saving: saveState == SaveState.saving,
+              onSave: () => _save(context, ref, w),
+            ),
+          ],
+        ),
       ),
     );
+  }
+
+  /// Leaves for the Move tab, saving first unless a save already ran or is
+  /// running (that one navigates when it lands).
+  void _close(BuildContext context, WidgetRef ref, Workout w, SaveState saveState) {
+    switch (saveState) {
+      case SaveState.idle:
+        _save(context, ref, w);
+      case SaveState.saving:
+        break;
+      case SaveState.saved:
+        context.go(_moveRoute);
+    }
   }
 
   Future<void> _save(BuildContext context, WidgetRef ref, Workout w) async {

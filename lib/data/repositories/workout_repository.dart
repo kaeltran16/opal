@@ -69,7 +69,11 @@ class WorkoutRepository {
     return workoutId;
   }
 
-  /// Deletes a workout and (via cascade) its sets.
-  Future<void> deleteById(String id) =>
-      (_db.delete(_db.workouts)..where((t) => t.id.equals(id))).go();
+  /// Deletes a workout, (via cascade) its sets, and the move entry saved with
+  /// it. entries.workoutId has no foreign key, so the entry goes here: left
+  /// behind it would still count the session's kcal everywhere.
+  Future<void> deleteById(String id) => _db.transaction(() async {
+        await (_db.delete(_db.entries)..where((t) => t.workoutId.equals(id))).go();
+        await (_db.delete(_db.workouts)..where((t) => t.id.equals(id))).go();
+      });
 }

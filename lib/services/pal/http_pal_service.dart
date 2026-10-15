@@ -353,11 +353,14 @@ class HttpPalService implements PalService {
     );
   }
 
+  /// Cached by the session's start, which a finished workout keeps when saved,
+  /// so its summary and its Workout detail share one note. Whole seconds since
+  /// epoch: the stored start comes back without the live one's fraction.
   @override
   Future<String> postWorkoutNote(Workout workout) async {
-    final json = await _post('/v1/post-workout-note', {
-      'context': await context.postWorkout(workout),
-    });
+    final json = await _cachedPost(
+        'post-workout-note', '/v1/post-workout-note', await context.postWorkout(workout),
+        cacheKey: '${workout.startedAt.millisecondsSinceEpoch ~/ Duration.millisecondsPerSecond}');
     try {
       return json['note'] as String? ?? '';
     } catch (e) {

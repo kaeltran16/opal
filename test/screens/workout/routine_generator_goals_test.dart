@@ -12,6 +12,8 @@ import 'package:opal/services/pal/pal_service.dart';
 import 'package:opal/theme/app_colors.dart';
 import 'package:opal/widgets/controls.dart';
 
+import '../../support/semantics_blocks.dart';
+
 const _bench = Exercise(
   id: 'bench',
   name: 'Bench press',
@@ -153,5 +155,28 @@ void main() {
     expect(find.text('3 × 8'), findsOneWidget);
     expect(_pill(tester, 'Save routine').primary, isTrue);
     expect(_pill(tester, 'Try again').primary, isFalse);
+  });
+
+  testWidgets('a screen reader reaches the result title, Exercises and each row on its own',
+      (tester) async {
+    final semantics = tester.ensureSemantics();
+    final gen = _FixedGenerator(const RoutineGeneratorResult(
+      draft: GeneratedRoutineDraft(
+        name: 'Generated Push',
+        tag: RoutineTag.upper,
+        estimatedMinutes: 40,
+        rationale: 'Chest first, while you are fresh.',
+        exercises: [
+          GeneratedExerciseDraft(exerciseId: 'bench', sets: [GeneratedSetDraft(reps: 8, weightKg: 50)]),
+        ],
+      ),
+      catalog: [_bench],
+    ));
+    await _pump(tester, generator: () => gen);
+
+    expect(tester.getSemantics(find.text('Generated Push')).label, 'Generated Push');
+    expectOwnSemanticsNodes(tester,
+        ['Generated Push', 'Upper · 1 exercise · ~40 min', 'Exercises', 'Bench press', 'Try again']);
+    semantics.dispose();
   });
 }

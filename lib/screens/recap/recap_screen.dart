@@ -127,6 +127,7 @@ class _Heading extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Semantics(
+        container: true,
         header: true,
         child: Text(text, style: AppType.headline.copyWith(color: context.colors.ink)),
       );
@@ -188,29 +189,32 @@ class _WinRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    return Container(
-      constraints: const BoxConstraints(minHeight: _rowMinHeight),
-      padding: const EdgeInsets.symmetric(vertical: Spacing.md),
-      decoration: BoxDecoration(
-        border: Border(top: BorderSide(color: c.hair, width: _hairline)),
-      ),
-      child: Row(
-        children: [
-          AppIcon(icon, size: _rowIcon, color: c.ink2),
-          const SizedBox(width: Spacing.md),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: AppType.callout.copyWith(color: c.ink)),
-                if (sub.isNotEmpty) ...[
-                  const SizedBox(height: Spacing.xxs),
-                  Text(sub, style: AppType.subhead.copyWith(color: c.ink3)),
+    return Semantics(
+      container: true,
+      child: Container(
+        constraints: const BoxConstraints(minHeight: _rowMinHeight),
+        padding: const EdgeInsets.symmetric(vertical: Spacing.md),
+        decoration: BoxDecoration(
+          border: Border(top: BorderSide(color: c.hair, width: _hairline)),
+        ),
+        child: Row(
+          children: [
+            AppIcon(icon, size: _rowIcon, color: c.ink2),
+            const SizedBox(width: Spacing.md),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: AppType.callout.copyWith(color: c.ink)),
+                  if (sub.isNotEmpty) ...[
+                    const SizedBox(height: Spacing.xxs),
+                    Text(sub, style: AppType.subhead.copyWith(color: c.ink3)),
+                  ],
                 ],
-              ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -228,9 +232,17 @@ class _OneThing extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const PalLabel(text: 'One thing to try'),
+        // the label, the suggestion and the pill are each their own stop
+        Semantics(
+          container: true,
+          header: true,
+          child: const PalLabel(text: 'One thing to try'),
+        ),
         const SizedBox(height: Spacing.sm),
-        Text(text, style: AppType.body.copyWith(color: c.ink)),
+        Semantics(
+          container: true,
+          child: Text(text, style: AppType.body.copyWith(color: c.ink)),
+        ),
         const SizedBox(height: Spacing.lg),
         _SecondaryPill(
           label: 'Ask Pal more',
@@ -251,20 +263,24 @@ class _SecondaryPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    return PressScale(
-      onTap: onTap,
-      semanticLabel: label,
-      child: Container(
-        constraints: const BoxConstraints(minHeight: _pillHeight),
-        padding: const EdgeInsets.symmetric(horizontal: Spacing.xl, vertical: Spacing.sm),
-        decoration: BoxDecoration(
-          color: c.surface2,
-          borderRadius: BorderRadius.circular(Radii.pill),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [Text(label, style: AppType.headline.copyWith(color: c.ink))],
+    // its own stop: a lone button folds into the text beside it otherwise
+    return Semantics(
+      container: true,
+      child: PressScale(
+        onTap: onTap,
+        semanticLabel: label,
+        child: Container(
+          constraints: const BoxConstraints(minHeight: _pillHeight),
+          padding: const EdgeInsets.symmetric(horizontal: Spacing.xl, vertical: Spacing.sm),
+          decoration: BoxDecoration(
+            color: c.surface2,
+            borderRadius: BorderRadius.circular(Radii.pill),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [Text(label, style: AppType.headline.copyWith(color: c.ink))],
+          ),
         ),
       ),
     );

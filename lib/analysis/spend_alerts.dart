@@ -260,8 +260,10 @@ List<UnbudgetedCategory> detectUnbudgetedCategories(
 /// Capped envelopes averaging below [kUnderspendCeiling] of their cap over the
 /// last [kSavingsWindowMonths] completed months, biggest saving first.
 ///
-/// Completed months only: measuring a still-open month against a full-month cap
-/// would call every envelope underspent on the 2nd.
+/// Completed months only for the average: measuring a still-open month against
+/// a full-month cap would call every envelope underspent on the 2nd. The open
+/// month still vetoes: an envelope whose spend this month already passes the
+/// suggested cap (over budget included) has no room to trim.
 List<SavingsOpportunity> detectSavingsOpportunities(
   List<Entry> entries, {
   required List<BudgetEnvelope> envelopes,
@@ -273,13 +275,15 @@ List<SavingsOpportunity> detectSavingsOpportunities(
 
   final thisMonthOrdinal = _monthOrdinal(now);
   final totals = <String, double>{};
+  final thisMonth = <String, double>{};
   for (final e in entries) {
     if (!e.isExpense) continue;
     final monthsBack = thisMonthOrdinal - _monthOrdinal(e.timestamp);
-    if (monthsBack < 1 || monthsBack > kSavingsWindowMonths) continue;
+    if (monthsBack < 0 || monthsBack > kSavingsWindowMonths) continue;
     final key = normalizeCategory(e.category);
     if (key.isEmpty) continue;
-    totals[key] = (totals[key] ?? 0) + e.amount!.abs();
+    final bucket = monthsBack == 0 ? thisMonth : totals;
+    bucket[key] = (bucket[key] ?? 0) + e.amount!.abs();
   }
 
   final out = <SavingsOpportunity>[];
@@ -293,6 +297,7 @@ List<SavingsOpportunity> detectSavingsOpportunities(
 
     final suggested = _suggestCap(average, roundTo);
     if (suggested >= env.cap) continue;
+    if ((thisMonth[normalizeCategory(env.category)] ?? 0) > suggested) continue;
 
     out.add(SavingsOpportunity(
       category: env.category,

@@ -191,7 +191,7 @@ void main() {
     expect(_onAreas(find.text(money.unit)), findsOneWidget);
     expect(_onAreas(find.text(AreaState.watch.word)), findsOneWidget);
     expect(_onAreas(find.text(s.of(Area.nutrition).number!)), findsOneWidget);
-    expect(_onAreas(find.text('kcal eaten so far')), findsOneWidget);
+    expect(_onAreas(find.text('kcal eaten today')), findsOneWidget);
     expect(_onAreas(find.text('No sleep data yet')), findsOneWidget);
     expect(_onAreas(find.text(s.of(Area.mood).number!)), findsOneWidget);
     expect(_onAreas(find.text('at 9:15 AM')), findsOneWidget);

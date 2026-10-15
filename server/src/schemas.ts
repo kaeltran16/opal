@@ -59,7 +59,9 @@ export const insightsContext = z.object({
   ritualsKept: z.number(), ritualsTarget: z.number(),
   activeDays: z.number(), streakDays: z.number(),
   topCategory: z.string(), topCategoryPct: z.number(),
-  spendByWeekday: z.array(z.number()), entries: z.array(z.string()),
+  // null marks a weekday the period has not reached yet
+  spendByWeekday: z.array(z.number().nullable()), daysElapsed: z.number().int().min(0).optional(),
+  entries: z.array(z.string()),
   correlation: z.object({ summary: z.string() }).optional(),
   currency: currencyDescriptor.optional(),
 })

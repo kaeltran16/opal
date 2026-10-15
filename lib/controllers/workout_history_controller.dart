@@ -35,7 +35,8 @@ const Map<String, String> _groupToken = {
 // ─── Sub-view-models ─────────────────────────────────────────────────────────
 
 /// The four headline tiles: total volume (kg), session count, training minutes,
-/// and PR count over the range.
+/// and the number of lifts with a personal record in the range (the rows of
+/// [buildHistoryPrs], so the tile and the list never disagree).
 @immutable
 class HistorySummary {
   const HistorySummary({
@@ -152,7 +153,9 @@ class WorkoutHistoryState {
   /// Recent-half vs prior-half volume change, percent. Null without a baseline.
   final int? trendPct;
   final List<HistoryGroupSlice> balance;
-  final String balanceNudge;
+
+  /// Pal's line on [balance]; null when the split gives it nothing to say.
+  final String? balanceNudge;
   final List<HistoryPr> prs;
   final List<HistorySessionRow> sessions;
   final String headline;
@@ -178,21 +181,20 @@ List<Workout> workoutsInRange(
 
 // ─── Summary ─────────────────────────────────────────────────────────────────
 
-/// Folds the range's workouts into the four headline tiles.
-HistorySummary buildHistorySummary(List<Workout> inRange) {
+/// Folds the range's workouts into the four headline tiles. [prCount] is the
+/// length of the range's [buildHistoryPrs].
+HistorySummary buildHistorySummary(List<Workout> inRange, {required int prCount}) {
   var volume = 0.0;
   var minutes = 0;
-  var prs = 0;
   for (final w in inRange) {
     volume += w.totalVolumeKg;
     minutes += w.duration?.inMinutes ?? 0;
-    prs += w.prCount;
   }
   return HistorySummary(
     volumeKg: volume,
     sessionCount: inRange.length,
     totalMinutes: minutes,
-    prCount: prs,
+    prCount: prCount,
   );
 }
 
@@ -227,26 +229,40 @@ List<HistoryGroupSlice> buildGroupBalance(
   ];
 }
 
-/// Pal's one-line read on the balance: flags a neglected pull, else encourages.
-String _balanceNudge(List<HistoryGroupSlice> balance) {
-  if (balance.isEmpty) {
-    return 'Log a few sessions and Pal will read your training balance here.';
+const _majorGroups = ['Push', 'Pull', 'Legs'];
+
+// below this share of sets a major group reads as neglected
+const _thinGroupPct = 20;
+
+/// Pal's one-line read on the balance, from the split itself: a major group
+/// the range has no sets for, else the thinnest one under [_thinGroupPct],
+/// else that push, pull and legs are all covered. Null without strength sets.
+String? _balanceNudge(List<HistoryGroupSlice> balance) {
+  final pct = {for (final b in balance) b.label: b.pct};
+  final present = _majorGroups.where(pct.containsKey).toList();
+  if (present.isEmpty) return null;
+  final missing = [for (final g in _majorGroups) if (!pct.containsKey(g)) g.toLowerCase()];
+  if (missing.isNotEmpty) {
+    return 'No ${missing.join(' or ')} sets in this range. '
+        'A ${missing.first} day would even things out.';
   }
-  final pulls = balance.where((b) => b.label == 'Pull').toList();
-  final pull = pulls.isEmpty ? null : pulls.first;
-  if (pull != null && pull.pct < 20) {
-    return "Pull is only ${pull.pct}% of your sets — you've been skipping it. "
-        'Prioritize a pull day to even things out.';
+  final thinnest = present.reduce((a, b) => pct[b]! < pct[a]! ? b : a);
+  if (pct[thinnest]! < _thinGroupPct) {
+    return "$thinnest is only ${pct[thinnest]}% of your sets — you've been skipping it. "
+        'Prioritize a ${thinnest.toLowerCase()} day to even things out.';
   }
-  return 'Nicely balanced across push, pull and legs. Keep the cardio coming.';
+  return 'Push, pull and legs each get a fair share of your sets.';
 }
 
 // ─── Personal records ────────────────────────────────────────────────────────
 
-/// The best logged set per lift over the range, newest achievement first.
-/// Weighted lifts rank by volume (weight × reps); bodyweight lifts (zero weight)
-/// rank by reps. [HistoryPr.deltaKg]/[HistoryPr.deltaReps] capture the gain over
-/// the previous best when an earlier set exists.
+/// The range's personal records, one row per lift, newest achievement first. A
+/// record is a set flagged [SetLog.isPR]: it beat the lift's running best when
+/// it was logged, the definition the session, its summary and Workout detail
+/// share. A lift with no flagged set in the range has no row. Each row shows
+/// the lift's best flagged set: weighted lifts rank by volume (weight × reps),
+/// bodyweight lifts (zero weight) by reps. [HistoryPr.deltaKg]/
+/// [HistoryPr.deltaReps] capture the gain over the best earlier set in range.
 List<HistoryPr> buildHistoryPrs(List<Workout> inRange, List<Exercise> catalog) {
   final cat = {for (final e in catalog) e.id: e};
   final byExercise = <String, List<({SetLog set, DateTime at})>>{};
@@ -259,11 +275,13 @@ List<HistoryPr> buildHistoryPrs(List<Workout> inRange, List<Exercise> catalog) {
 
   final prs = <HistoryPr>[];
   byExercise.forEach((id, entries) {
+    final records = [for (final e in entries) if (e.set.isPR) e];
+    if (records.isEmpty) return;
     final hasWeight = entries.any((e) => e.set.weightKg > 0);
     double metric(SetLog s) => hasWeight ? s.volumeKg : s.reps.toDouble();
 
-    var best = entries.first;
-    for (final e in entries.skip(1)) {
+    var best = records.first;
+    for (final e in records.skip(1)) {
       final cmp = metric(e.set).compareTo(metric(best.set));
       if (cmp > 0 || (cmp == 0 && e.at.isAfter(best.at))) best = e;
     }
@@ -406,7 +424,8 @@ WorkoutHistoryState buildWorkoutHistory(
   DateTime now,
 ) {
   final inRange = workoutsInRange(all, range, now);
-  final summary = buildHistorySummary(inRange);
+  final prs = buildHistoryPrs(inRange, catalog);
+  final summary = buildHistorySummary(inRange, prCount: prs.length);
   final bars = buildVolumeBars(range, inRange, now);
   final balance = buildGroupBalance(inRange, catalog);
   return WorkoutHistoryState(
@@ -416,7 +435,7 @@ WorkoutHistoryState buildWorkoutHistory(
     trendPct: historyTrendPct(bars),
     balance: balance,
     balanceNudge: _balanceNudge(balance),
-    prs: buildHistoryPrs(inRange, catalog),
+    prs: prs,
     sessions: buildHistorySessions(inRange, routines),
     headline: _headline(range, summary),
   );

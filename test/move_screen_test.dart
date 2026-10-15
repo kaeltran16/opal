@@ -15,6 +15,7 @@ import 'package:opal/theme/app_colors.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'support/flush_provider_timers.dart';
+import 'support/semantics_blocks.dart';
 
 /// Boots the app on the Workout tab over the full seed: the "Push Day A"
 /// workout (1 PR), the "Run · Mission loop" move entry, and the 5-day plan.
@@ -103,6 +104,18 @@ void main() {
     expect(find.bySemanticsLabel('Open Pal'), findsNothing);
     expect(find.bySemanticsLabel('Back'), findsNothing);
     expect(find.bySemanticsLabel('More options'), findsNothing);
+
+    semantics.dispose();
+    await flushProviderTimers(tester);
+  });
+
+  testWidgets('a screen reader reaches Other activity and each of its rows on its own',
+      (tester) async {
+    final semantics = tester.ensureSemantics();
+    await _pumpTab(tester);
+    await _scrollTo(tester, find.text('Run · first log'));
+
+    expectOwnSemanticsNodes(tester, ['Other activity', 'Run · Mission loop', 'Run · first log']);
 
     semantics.dispose();
     await flushProviderTimers(tester);

@@ -60,13 +60,13 @@ void main() {
   // ---------------------------------------------------------------------------
   // Summary tiles
   // ---------------------------------------------------------------------------
-  test('buildHistorySummary aggregates volume, sessions, minutes, PRs', () {
+  test('buildHistorySummary aggregates volume, sessions, minutes', () {
     final a = workout('a', DateTime(2026, 6, 1),
-        minutes: 50, sets: [set('bench', 100, 5, pr: true)]); // 500kg, 1 PR
+        minutes: 50, sets: [set('bench', 100, 5, pr: true)]); // 500kg
     final b = workout('b', DateTime(2026, 6, 3),
-        minutes: 40, sets: [set('row', 80, 10)]); // 800kg, 0 PR
+        minutes: 40, sets: [set('row', 80, 10)]); // 800kg
 
-    final s = buildHistorySummary([a, b]);
+    final s = buildHistorySummary([a, b], prCount: 1);
 
     expect(s.volumeKg, 1300);
     expect(s.sessionCount, 2);
@@ -103,12 +103,12 @@ void main() {
   // ---------------------------------------------------------------------------
   test('buildHistoryPrs picks the heaviest set per lift, newest first', () {
     final older = workout('w1', DateTime(2026, 5, 1), sets: [
-      set('bench', 80, 5),
-      set('bench', 85, 5),
+      set('bench', 80, 5, pr: true),
+      set('bench', 85, 5, pr: true),
     ]);
     final newer = workout('w2', DateTime(2026, 6, 1), sets: [
-      set('bench', 90, 5), // bench PR
-      set('row', 100, 5), // row PR
+      set('bench', 90, 5, pr: true), // bench PR
+      set('row', 100, 5, pr: true), // row PR
     ]);
 
     final prs = buildHistoryPrs([newer, older], catalog);
@@ -125,14 +125,68 @@ void main() {
 
   test('buildHistoryPrs ranks bodyweight lifts by reps', () {
     final w = workout('w', DateTime(2026, 6, 1), sets: [
-      set('pullup', 0, 8),
-      set('pullup', 0, 11),
+      set('pullup', 0, 8, pr: true),
+      set('pullup', 0, 11, pr: true),
     ]);
 
     final prs = buildHistoryPrs([w], catalog);
     final pullup = prs.firstWhere((p) => p.exerciseId == 'pullup');
     expect(pullup.bodyweight, isTrue);
     expect(pullup.reps, 11);
+  });
+
+  test('the PRs tile and Personal records count the same records', () {
+    // a record is a set flagged when it beat the lift's running best; the
+    // heaviest row set below never beat one, so it is no record.
+    final now = DateTime(2026, 6, 10);
+    final w = workout('w', DateTime(2026, 6, 8), sets: [
+      set('bench', 90, 5, pr: true),
+      set('bench', 92.5, 5, pr: true),
+      set('row', 120, 5),
+    ]);
+
+    final s = buildWorkoutHistory(
+        WorkoutHistoryRange.eightWeeks, [w], catalog, const [], now);
+
+    expect(s.prs.map((p) => p.exerciseId), ['bench']);
+    expect(s.prs.single.weightKg, 92.5);
+    expect(s.summary.prCount, s.prs.length);
+  });
+
+  // ---------------------------------------------------------------------------
+  // Balance line
+  // ---------------------------------------------------------------------------
+  String? nudgeFor(List<SetLog> sets) => buildWorkoutHistory(
+          WorkoutHistoryRange.eightWeeks,
+          [workout('w', DateTime(2026, 6, 8), sets: sets)],
+          catalog,
+          const [],
+          DateTime(2026, 6, 10))
+      .balanceNudge;
+
+  test('the balance line names a major group the split is missing', () {
+    final nudge = nudgeFor([set('row', 80, 5), set('squat', 100, 5)]);
+    expect(nudge, isNot(contains('balanced')));
+    expect(nudge, contains('push'));
+  });
+
+  test('the balance line flags the thinnest major group', () {
+    final nudge = nudgeFor([
+      for (var i = 0; i < 5; i++) set('bench', 80, 5),
+      for (var i = 0; i < 4; i++) set('squat', 100, 5),
+      set('row', 80, 5),
+    ]);
+    expect(nudge, contains('Pull is only 10%'));
+  });
+
+  test('the balance line only claims balance the split shows', () {
+    final nudge = nudgeFor([set('bench', 80, 5), set('row', 80, 5), set('squat', 100, 5)]);
+    expect(nudge!.toLowerCase(), contains('push, pull and legs'));
+    expect(nudge, isNot(contains('cardio')));
+  });
+
+  test('no balance line without strength sets', () {
+    expect(nudgeFor([set('run', 0, 1)]), isNull);
   });
 
   // ---------------------------------------------------------------------------

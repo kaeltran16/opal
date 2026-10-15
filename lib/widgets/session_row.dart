@@ -86,6 +86,10 @@ class SessionRow extends StatelessWidget {
     if (onTap == null) {
       return Semantics(container: true, label: label, excludeSemantics: true, child: row);
     }
-    return PressScale(onTap: onTap, semanticLabel: label, pressedScale: 1, child: row);
+    // its own stop: a lone row folds into the heading above it otherwise
+    return Semantics(
+      container: true,
+      child: PressScale(onTap: onTap, semanticLabel: label, pressedScale: 1, child: row),
+    );
   }
 }

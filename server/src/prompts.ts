@@ -49,7 +49,10 @@ export interface InsightsContext {
   streakDays: number
   topCategory: string
   topCategoryPct: number
-  spendByWeekday: number[]
+  // null marks a weekday the period has not reached yet
+  spendByWeekday: (number | null)[]
+  // days of the period up to and including today
+  daysElapsed?: number
   entries: string[]
   // a single verified cross-dimension relationship, computed on-device; the
   // model only rephrases it. absent when nothing cleared the client's bar.
@@ -124,9 +127,19 @@ export function reviewPrompt(c: ReviewContext, memory?: MemoryDigest): string {
 Data: ${money(c.spent, c.currency)} spent${deltaPhrase(c.spentDeltaPct)}, ${c.kcalMoved}kcal moved${deltaPhrase(c.movedDeltaPct)}, ${c.activeDays} active days, ${c.ritualsKept}/${c.ritualsTarget} rituals kept (${c.ritualsPct}%). Current ${c.streakDays}-day move streak. Top category: ${c.topCategory} ${c.topCategoryPct}%.`
 }
 
-export function insightsPrompt(c: InsightsContext, memory?: MemoryDigest): string {
+// the aggregates both insights and memory prompts ground on. a weekday still
+// ahead is left out, so the model never reads it as a no-spend day.
+function insightsData(c: InsightsContext): string {
   const weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-  const byDay = weekdays.map((d, i) => `${d} ${money(c.spendByWeekday[i] ?? 0, c.currency)}`).join(', ')
+  const byDay = weekdays
+    .flatMap((d, i) => (c.spendByWeekday[i] === null ? [] : [`${d} ${money(c.spendByWeekday[i] ?? 0, c.currency)}`]))
+    .join(', ')
+  const soFar = c.daysElapsed === undefined || c.range === 'day' ? '' : ` (day ${c.daysElapsed} of the ${c.range} so far)`
+  return `Data${soFar}: ${money(c.spent, c.currency)} of ${money(c.budget, c.currency)} budget, ${c.moveKcal} of ${c.moveTargetKcal} move kcal, ${c.ritualsKept}/${c.ritualsTarget} rituals kept, ${c.activeDays} active days, ${c.streakDays}-day move streak. Top category: ${c.topCategory} ${c.topCategoryPct}%.
+Spend by weekday: ${byDay || '(no days yet)'}.`
+}
+
+export function insightsPrompt(c: InsightsContext, memory?: MemoryDigest): string {
   const entries = c.entries.length ? c.entries.join('\n') : '(none)'
   const mem = memoryBlock(memory)
   const shape = `{"headline": string|null, "lede": string|null, "suggestion": string|null, "correlationNarration": string|null, "wins": [{"colorToken": "money"|"move"|"rituals"|"nutrition", "title": string, "sub": string}], "patterns": [{"colorToken": "money"|"move"|"rituals"|"nutrition", "title": string, "detail": string}]}`
@@ -143,8 +156,7 @@ export function insightsPrompt(c: InsightsContext, memory?: MemoryDigest): strin
 
   return `${mem ? mem + '\n\n' : ''}Reflect on this ${c.range}'s tracking data. Be specific and observational. Avoid hype words like "amazing", "crushed it", or "great job".
 
-Data: ${money(c.spent, c.currency)} of ${money(c.budget, c.currency)} budget, ${c.moveKcal} of ${c.moveTargetKcal} move kcal, ${c.ritualsKept}/${c.ritualsTarget} rituals kept, ${c.activeDays} active days, ${c.streakDays}-day move streak. Top category: ${c.topCategory} ${c.topCategoryPct}%.
-Spend by weekday: ${byDay}.
+${insightsData(c)}
 Entries:
 ${entries}
 
@@ -328,8 +340,6 @@ Return strictly this JSON, no prose:
 // patterns are handed in as prior knowledge to REVISE, not to restate fresh, so
 // the model doesn't echo the same observations every refresh.
 export function memoryPatternsPrompt(c: InsightsContext, digest: MemoryDigest): string {
-  const weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-  const byDay = weekdays.map((d, i) => `${d} ${money(c.spendByWeekday[i] ?? 0, c.currency)}`).join(', ')
   const entries = c.entries.length ? c.entries.join('\n') : '(none)'
   const prior = memoryBlock(digest) || '(nothing learned yet)'
   const shape = `{"patterns":[{"colorToken":"money"|"move"|"rituals","title":string,"detail":string}]}`
@@ -339,8 +349,7 @@ ${prior}
 
 Revise that set against the latest data below. Keep what still holds, drop what no longer does, add at most a few genuinely new ones. Return at most 5 patterns total. Ground every pattern in the data; do not invent numbers you cannot derive.
 
-Data: ${money(c.spent, c.currency)} of ${money(c.budget, c.currency)} budget, ${c.moveKcal} of ${c.moveTargetKcal} move kcal, ${c.ritualsKept}/${c.ritualsTarget} rituals kept, ${c.activeDays} active days, ${c.streakDays}-day move streak. Top category: ${c.topCategory} ${c.topCategoryPct}%.
-Spend by weekday: ${byDay}.
+${insightsData(c)}
 Entries:
 ${entries}
 

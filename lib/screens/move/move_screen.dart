@@ -220,19 +220,23 @@ class _Recent extends StatelessWidget {
       children: [
         _Heading(
           text: 'Recent',
-          trailing: PressScale(
-            onTap: () => context.pushNamed(AppRoute.workoutHistory.name),
-            semanticLabel: 'See all',
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(minHeight: _minTap, minWidth: _minTap),
-              child: Align(
-                alignment: AlignmentDirectional.centerEnd,
-                widthFactor: 1,
-                child: Text(
-                  'See all',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppType.headline.copyWith(color: c.ink2),
+          // its own stop, apart from the session row below
+          trailing: Semantics(
+            container: true,
+            child: PressScale(
+              onTap: () => context.pushNamed(AppRoute.workoutHistory.name),
+              semanticLabel: 'See all',
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(minHeight: _minTap, minWidth: _minTap),
+                child: Align(
+                  alignment: AlignmentDirectional.centerEnd,
+                  widthFactor: 1,
+                  child: Text(
+                    'See all',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppType.headline.copyWith(color: c.ink2),
+                  ),
                 ),
               ),
             ),

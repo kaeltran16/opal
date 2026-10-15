@@ -94,21 +94,21 @@ final class RecapDataFamily extends $Family
 
 /// Re-derives Pal's learned patterns from the data the recap already surfaces.
 /// Read once when the Recap opens (the client-chosen cadence). Best-effort: a
-/// model hiccup is swallowed so memory never blocks the recap.
+/// failure is logged, never rethrown, so memory never blocks the recap.
 
 @ProviderFor(recapMemoryRefresh)
 const recapMemoryRefreshProvider = RecapMemoryRefreshProvider._();
 
 /// Re-derives Pal's learned patterns from the data the recap already surfaces.
 /// Read once when the Recap opens (the client-chosen cadence). Best-effort: a
-/// model hiccup is swallowed so memory never blocks the recap.
+/// failure is logged, never rethrown, so memory never blocks the recap.
 
 final class RecapMemoryRefreshProvider
     extends $FunctionalProvider<AsyncValue<void>, void, FutureOr<void>>
     with $FutureModifier<void>, $FutureProvider<void> {
   /// Re-derives Pal's learned patterns from the data the recap already surfaces.
   /// Read once when the Recap opens (the client-chosen cadence). Best-effort: a
-  /// model hiccup is swallowed so memory never blocks the recap.
+  /// failure is logged, never rethrown, so memory never blocks the recap.
   const RecapMemoryRefreshProvider._()
     : super(
         from: null,
@@ -135,4 +135,4 @@ final class RecapMemoryRefreshProvider
 }
 
 String _$recapMemoryRefreshHash() =>
-    r'c966636811ae4d23a488bbd01abf7c966d23c6fb';
+    r'5b44e73294e6e45aa2a0b0128b6ebbe902f3c980';

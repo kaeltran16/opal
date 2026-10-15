@@ -1,7 +1,7 @@
 import 'package:clock/clock.dart';
 
 import '../../models/models.dart';
-import '../../util/dates.dart' show relativeDateLabel, startOfWeek;
+import '../../util/dates.dart' show relativeDateLabel, startOfDay, startOfWeek;
 import '../../util/format.dart';
 import 'pal_service.dart' show InsightRange, ReviewRange;
 
@@ -155,8 +155,11 @@ String _insightRangeWire(InsightRange range) => switch (range) {
 
 /// Builds the structured aggregate map for an `/insights` request over the
 /// window's [entries]. `spendByWeekday` is Monday→Sunday so the model can spot
-/// day-of-week patterns; `topCategory`/`topCategoryPct` and the totals give it
-/// grounded numbers. [streakDays] is the current move streak (computed upstream).
+/// day-of-week patterns; a weekday the period has not reached by [now] is null,
+/// so a day still ahead never reads as a no-spend day. `daysElapsed` counts the
+/// period's days up to and including today. `topCategory`/`topCategoryPct` and
+/// the totals give it grounded numbers. [streakDays] is the current move streak
+/// (computed upstream).
 Map<String, Object?> buildInsightsContext({
   required InsightRange range,
   required List<Entry> entries,
@@ -167,7 +170,17 @@ Map<String, Object?> buildInsightsContext({
   DateTime? periodStart,
   String? correlationSummary,
   Currency currency = Currency.usd,
+  DateTime? now,
 }) {
+  final today = startOfDay(now ?? clock.now());
+  var daysElapsed = periodStart == null ? periodDays : 0;
+  final reachedWeekdays = periodStart == null ? {1, 2, 3, 4, 5, 6, 7} : <int>{};
+  for (var i = 0; periodStart != null && i < periodDays; i++) {
+    final day = DateTime(periodStart.year, periodStart.month, periodStart.day + i);
+    if (day.isAfter(today)) break;
+    daysElapsed++;
+    reachedWeekdays.add(day.weekday);
+  }
   final spendByWeekday = List<double>.filled(7, 0);
   final activeMoveDays = <int>{};
   final byCat = <String, double>{};
@@ -212,7 +225,10 @@ Map<String, Object?> buildInsightsContext({
     'streakDays': streakDays,
     'topCategory': topCategory,
     'topCategoryPct': spent == 0 ? 0 : ((topVal / spent) * 100).round(),
-    'spendByWeekday': spendByWeekday,
+    'spendByWeekday': [
+      for (var i = 0; i < 7; i++) reachedWeekdays.contains(i + 1) ? spendByWeekday[i] : null,
+    ],
+    'daysElapsed': daysElapsed,
     'entries': entries.take(_maxInsightEntries).map((e) => formatEntryLine(e, currency)).toList(),
     if (correlationSummary != null) 'correlation': {'summary': correlationSummary},
     'currency': currency.toWire(),

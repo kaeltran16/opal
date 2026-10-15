@@ -1,4 +1,6 @@
 import '../controllers/spending_controller.dart';
+import '../models/models.dart';
+import '../util/dates.dart';
 
 /// The six areas Opal tracks, in display order. The single source for each
 /// area's title, glyph and whether it has a state rule.
@@ -45,3 +47,10 @@ enum Area {
   /// The tracker behind the area page's entries; null for areas without one.
   final DetailTracker? tracker;
 }
+
+/// Calories eaten on [day]'s calendar date: every meal logged for that date,
+/// whatever its time of day, since a logged meal is an eaten one. The one
+/// count the Areas card and the Nutrition page both read.
+double kcalEatenOn(Iterable<NutritionMeal> meals, DateTime day) => meals
+    .where((m) => startOfDay(m.timestamp) == startOfDay(day))
+    .fold<double>(0, (s, m) => s + m.cal.mid);
