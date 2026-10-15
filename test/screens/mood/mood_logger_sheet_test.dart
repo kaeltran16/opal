@@ -19,11 +19,11 @@ import '../../support/flush_provider_timers.dart';
 /// does not resolve under flutter_test (other controller tests override it too).
 class _NoHaptics implements HapticsService {
   @override
-  Future<void> light() async {}
+  void light() {}
   @override
-  Future<void> medium() async {}
+  void medium() {}
   @override
-  Future<void> success() async {}
+  void success() {}
 }
 
 /// Wraps a button that opens the sheet. We use a full ProviderScope +

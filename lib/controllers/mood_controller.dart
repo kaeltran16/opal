@@ -158,6 +158,6 @@ class MoodController extends _$MoodController {
           tag: tag,
           source: EntrySource.manual,
         ));
-    await haptics.light();
+    haptics.light();
   }
 }

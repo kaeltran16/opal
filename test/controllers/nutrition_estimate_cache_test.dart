@@ -27,11 +27,11 @@ class _CountingPal extends MockPalService {
 
 class _NoHaptics implements HapticsService {
   @override
-  Future<void> light() async {}
+  void light() {}
   @override
-  Future<void> medium() async {}
+  void medium() {}
   @override
-  Future<void> success() async {}
+  void success() {}
 }
 
 void main() {

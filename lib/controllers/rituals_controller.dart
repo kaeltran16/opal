@@ -159,6 +159,6 @@ class RitualsController extends _$RitualsController {
             source: EntrySource.manual,
           ),
         );
-    await ref.read(hapticsServiceProvider).light();
+    ref.read(hapticsServiceProvider).light();
   }
 }

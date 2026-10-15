@@ -84,28 +84,37 @@ class _Body extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const SizedBox(height: Spacing.xxl),
-        FittedBox(
-          fit: BoxFit.scaleDown,
-          alignment: AlignmentDirectional.centerStart,
-          child: Text(formatCurrency(left.abs(), currency),
-              maxLines: 1, style: AppType.display.copyWith(color: c.ink)),
-        ),
-        Wrap(
-          spacing: Spacing.md,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: [
-            Text(left < 0 ? 'over this month' : 'left this month',
-                style: AppType.subhead.copyWith(color: c.ink2)),
-            if (_isOff(state))
-              Text(state.word, style: AppType.label.copyWith(color: c.wordInkFor(state))),
-          ],
-        ),
-        const SizedBox(height: Spacing.xs),
-        Text(
-          '${formatCurrency(data.totalSpent, currency)} of '
-          '${formatCurrency(data.totalCap, currency)} · '
-          '$daysLeft ${daysLeft == 1 ? 'day' : 'days'} left',
-          style: AppType.subhead.copyWith(color: c.ink3, fontFeatures: _tabular),
+        // the hero is one stop for a screen reader; loose text would otherwise
+        // fold into the scroll view's node with every footer below.
+        MergeSemantics(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: AlignmentDirectional.centerStart,
+                child: Text(formatCurrency(left.abs(), currency),
+                    maxLines: 1, style: AppType.display.copyWith(color: c.ink)),
+              ),
+              Wrap(
+                spacing: Spacing.md,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  Text(left < 0 ? 'over this month' : 'left this month',
+                      style: AppType.subhead.copyWith(color: c.ink2)),
+                  if (_isOff(state))
+                    Text(state.word, style: AppType.label.copyWith(color: c.wordInkFor(state))),
+                ],
+              ),
+              const SizedBox(height: Spacing.xs),
+              Text(
+                '${formatCurrency(data.totalSpent, currency)} of '
+                '${formatCurrency(data.totalCap, currency)} · '
+                '$daysLeft ${daysLeft == 1 ? 'day' : 'days'} left',
+                style: AppType.subhead.copyWith(color: c.ink3, fontFeatures: _tabular),
+              ),
+            ],
+          ),
         ),
         const SizedBox(height: Spacing.xxxl),
         Row(
@@ -446,7 +455,9 @@ class _Footer extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(top: Spacing.sm),
-      child: Text(text, style: AppType.subhead.copyWith(color: context.colors.ink3)),
+      child: MergeSemantics(
+        child: Text(text, style: AppType.subhead.copyWith(color: context.colors.ink3)),
+      ),
     );
   }
 }

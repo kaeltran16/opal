@@ -102,24 +102,20 @@ class MoveState {
       recentSessions.fold(0, (sum, s) => sum + s.workout.prCount);
 }
 
-/// Builds the Mon→Sun hero week-strip from this week's completed [workouts].
-/// A day reads "done" when at least one workout was completed on it; "today"
-/// follows [now]. Pure so it is unit-testable.
+/// Builds the Mon→Sun hero week-strip from [workoutsThisWeek]: a day reads
+/// "done" when at least one workout was completed on it; "today" follows [now].
+/// Pure so it is unit-testable.
 List<WeekDay> buildWeekDays(List<Workout> workouts, DateTime now) {
   final today = startOfDay(now);
   final monday = startOfWeek(now);
-  final doneDays = <int>{
-    for (final w in workouts)
-      if (w.isComplete)
-        DateTime(w.startedAt.year, w.startedAt.month, w.startedAt.day)
-            .difference(monday)
-            .inDays,
+  final trainedOn = {
+    for (final w in workoutsThisWeek(workouts, now)) startOfDay(w.startedAt),
   };
   return [
     for (var i = 0; i < 7; i++)
       WeekDay(
         letter: kWeekdayLetters[i],
-        done: doneDays.contains(i),
+        done: trainedOn.contains(startOfDay(monday.add(Duration(days: i)))),
         today: monday.add(Duration(days: i)) == today,
       ),
   ];
@@ -172,14 +168,8 @@ Stream<MoveState> moveState(Ref ref) async* {
                 today)
         .fold<int>(0, (sum, e) => sum + (e.calories ?? 0));
 
-    // this-week aggregates (Mon 00:00 → now) drive the hero ring/strip/stats.
-    final monday = startOfWeek(now);
-    final weekWorkouts = workouts
-        .where((w) =>
-            w.isComplete &&
-            !w.startedAt.isBefore(monday) &&
-            w.startedAt.isBefore(monday.add(const Duration(days: 7))))
-        .toList();
+    // this-week aggregates drive the hero ring/strip/stats.
+    final weekWorkouts = workoutsThisWeek(workouts, now);
 
     yield MoveState(
       moveKcal: moveKcal,

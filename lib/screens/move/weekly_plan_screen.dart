@@ -54,7 +54,7 @@ class WeeklyPlanScreen extends ConsumerWidget {
       eyebrow: _weekOfLabel(),
       title: 'Your plan',
       subtitle:
-          '${plan.doneCount} of ${plan.totalCount} done · ${plan.totalMinutes} min planned',
+          '${plan.workoutCount} of ${plan.totalCount} done · ${plan.totalMinutes} min planned',
       leading: NavAction(
         icon: 'chevron.left',
         label: 'Workout',
@@ -78,7 +78,7 @@ class WeeklyPlanScreen extends ConsumerWidget {
                 for (final (i, d) in plan.days.indexed)
                   DayMark(
                       letter: d.day[0],
-                      done: d.done,
+                      done: d.trained,
                       today: d.today,
                       name: kWeekdays[i]),
               ],
@@ -142,7 +142,7 @@ String _detail(WeekPlanDay day) {
 
 /// Factual progress line from the plan's own counts.
 String _progressSummary(WeeklyPlan plan) {
-  final done = plan.doneCount;
+  final done = plan.workoutCount;
   final total = plan.totalCount;
   final remaining = total - done;
   if (total == 0) return 'No workouts scheduled this week yet.';

@@ -18,11 +18,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 class _SpyHaptics implements HapticsService {
   int lightCount = 0;
   @override
-  Future<void> light() async => lightCount++;
+  void light() => lightCount++;
   @override
-  Future<void> medium() async {}
+  void medium() {}
   @override
-  Future<void> success() async {}
+  void success() {}
 }
 
 /// A two-step morning routine for the toggle/complete tests.

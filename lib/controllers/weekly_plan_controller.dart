@@ -25,6 +25,7 @@ class WeekPlanDay {
     required this.colorKey,
     required this.icon,
     this.done = false,
+    this.trained = false,
     this.today = false,
     this.muscles = const [],
   });
@@ -50,8 +51,12 @@ class WeekPlanDay {
   /// SF Symbol for the type icon tile.
   final String icon;
 
-  /// Completed workout (or rested) for the day.
+  /// The day's planned routine was completed on this date.
   final bool done;
+
+  /// Any workout was completed on this date, planned or not: what the day
+  /// strip marks, as on the Workout tab.
+  final bool trained;
 
   /// The current day — drives the spotlight + schedule row accent.
   final bool today;
@@ -66,12 +71,13 @@ class WeekPlanDay {
 /// the screen is dumb (mirrors [MonthlyStats]).
 @immutable
 class WeeklyPlan {
-  const WeeklyPlan({required this.days});
+  const WeeklyPlan({required this.days, this.workoutCount = 0});
 
   final List<WeekPlanDay> days;
 
-  /// Completed non-rest workouts.
-  int get doneCount => days.where((d) => d.done && !d.isRest).length;
+  /// Workouts completed this week, planned or not: the count the Workout tab's
+  /// hero reads against [totalCount].
+  final int workoutCount;
 
   /// Total scheduled non-rest workouts.
   int get totalCount => days.where((d) => !d.isRest).length;
@@ -108,8 +114,9 @@ const _colorByWeekday = <int, String>{
 /// workout day (type/muscles derived from the routine's exercises via
 /// [exercisesById], est from `Routine.estMin`); anything else is a Rest day.
 /// `done` is true when a workout for that routine started on that day's date:
-/// a routine done on another day does not tick this one, so the plan agrees
-/// with the history every other screen reads.
+/// a routine done on another day does not tick this one. `trained` and
+/// `workoutCount` read [workoutsThisWeek], as the Workout tab does, so both
+/// screens tell the same week.
 WeeklyPlan buildWeeklyPlan({
   required List<WeeklyPlanAssignment> schedule,
   required List<Routine> routines,
@@ -123,18 +130,19 @@ WeeklyPlan buildWeeklyPlan({
   final routineById = {for (final r in routines) r.id: r};
   final scheduleByWeekday = {for (final a in schedule) a.weekday: a};
 
-  // each routine's workout days, so a day is done only by its own session.
-  final doneOn = <String, Set<DateTime>>{};
-  for (final w in workouts) {
-    final id = w.routineId;
-    if (id == null) continue;
-    (doneOn[id] ??= {}).add(startOfDay(w.startedAt));
-  }
+  final thisWeek = workoutsThisWeek(workouts, now);
+  final trainedOn = {for (final w in thisWeek) startOfDay(w.startedAt)};
+  // a planned day is done only by its own routine's session on that date.
+  final doneOn = {
+    for (final w in thisWeek)
+      if (w.routineId != null) (w.routineId, startOfDay(w.startedAt)),
+  };
 
   final days = <WeekPlanDay>[];
   for (var offset = 0; offset < 7; offset++) {
     final date = monday.add(Duration(days: offset));
     final isToday = date == todayMidnight;
+    final trained = trainedOn.contains(startOfDay(date));
     final weekday = offset + 1; // 1=Mon..7=Sun
     final colorKey = _colorByWeekday[weekday]!;
 
@@ -148,6 +156,7 @@ WeeklyPlan buildWeeklyPlan({
         type: 'Rest',
         colorKey: 'rest',
         icon: 'moon.stars.fill',
+        trained: trained,
         today: isToday,
       ));
       continue;
@@ -162,13 +171,29 @@ WeeklyPlan buildWeeklyPlan({
       est: routine.estMin,
       colorKey: colorKey,
       icon: isCardio ? 'figure.run' : 'dumbbell.fill',
-      done: doneOn[routine.id]?.contains(startOfDay(date)) ?? false,
+      done: doneOn.contains((routine.id, startOfDay(date))),
+      trained: trained,
       today: isToday,
       muscles: _muscles(routine, exercisesById),
     ));
   }
 
-  return WeeklyPlan(days: days);
+  return WeeklyPlan(days: days, workoutCount: thisWeek.length);
+}
+
+/// The completed workouts started in [now]'s week (Mon 00:00 to next Mon
+/// 00:00): the one reading of "this week" the Workout tab and the Weekly plan
+/// both count and mark.
+List<Workout> workoutsThisWeek(List<Workout> workouts, DateTime now) {
+  final monday = startOfWeek(now);
+  final nextMonday = monday.add(const Duration(days: 7));
+  return [
+    for (final w in workouts)
+      if (w.isComplete &&
+          !w.startedAt.isBefore(monday) &&
+          w.startedAt.isBefore(nextMonday))
+        w,
+  ];
 }
 
 /// Short type label derived from the routine's exercises: the most common

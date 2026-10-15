@@ -23,11 +23,11 @@ class _SpyHaptics implements HapticsService {
   int mediumCount = 0;
   int successCount = 0;
   @override
-  Future<void> light() async => lightCount++;
+  void light() => lightCount++;
   @override
-  Future<void> medium() async => mediumCount++;
+  void medium() => mediumCount++;
   @override
-  Future<void> success() async => successCount++;
+  void success() => successCount++;
 }
 
 /// Mounts [ActiveSessionScreen] pushed over a stub home inside a minimal

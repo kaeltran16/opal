@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/services.dart';
 
 import 'haptics_service.dart';
@@ -11,11 +13,11 @@ class PlatformHapticsService implements HapticsService {
   const PlatformHapticsService();
 
   @override
-  Future<void> light() => HapticFeedback.lightImpact();
+  void light() => unawaited(HapticFeedback.lightImpact());
 
   @override
-  Future<void> medium() => HapticFeedback.mediumImpact();
+  void medium() => unawaited(HapticFeedback.mediumImpact());
 
   @override
-  Future<void> success() => HapticFeedback.heavyImpact();
+  void success() => unawaited(HapticFeedback.heavyImpact());
 }

@@ -57,6 +57,7 @@ Future<void> _pump(
   Stream<BudgetsData> data, {
   Currency currency = Currency.usd,
   BudgetAdvisories advisories = const BudgetAdvisories(unbudgeted: [], savings: []),
+  List<BudgetRecommendation> recommendations = const [],
   double textScale = 1,
 }) async {
   SharedPreferences.setMockInitialValues({'settings.currency': currency.code});
@@ -66,7 +67,7 @@ Future<void> _pump(
       overrides: [
         sharedPreferencesProvider.overrideWithValue(prefs),
         budgetsDataProvider.overrideWith((ref) => data),
-        budgetRecommendationsProvider.overrideWith((ref) => Stream.value(const [])),
+        budgetRecommendationsProvider.overrideWith((ref) => Stream.value(recommendations)),
         budgetAdvisoriesProvider.overrideWith((ref) => Stream.value(advisories)),
         budgetEnvelopesControllerProvider.overrideWith(_NoEnvelopes.new),
       ],
@@ -257,5 +258,60 @@ void main() {
 
     expect(find.text('Adjust caps anytime. Pal nudges you before an envelope runs dry.'),
         findsOneWidget);
+  });
+
+  testWidgets('a screen reader reaches each block of the body on its own', (tester) async {
+    tester.view.physicalSize = const Size(400, 2400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final handle = tester.ensureSemantics();
+    await _pump(
+      tester,
+      Stream.value(_data([
+        _envelope('Dining', cap: 100, spent: 40),
+        _envelope('Transport', cap: 200, spent: 20),
+      ])),
+      recommendations: const [
+        BudgetRecommendation(
+          category: 'Dining',
+          suggestedCap: 150,
+          currentCap: 100,
+          monthlyAverage: 120,
+          trend: SpendTrend.increasing,
+          percentChange: 0.2,
+          confidence: RecommendationConfidence.high,
+          bufferFraction: 0.25,
+        ),
+      ],
+    );
+    await tester.pump();
+
+    // each block's own text, which no other block's node may carry.
+    const blocks = {
+      'hero': 'left this month',
+      'dining': 'Dining',
+      'transport': 'Transport',
+      'options': 'Budget options',
+      'suggested': 'trending up',
+      'suggested footer': 'From your spending over the last 3 months.',
+      'adjust': 'Adjust caps anytime. Pal nudges you before an envelope runs dry.',
+    };
+    String labelOf(String text) {
+      final finder = text == 'Budget options'
+          ? find.bySemanticsLabel(text)
+          : find.textContaining(text).first;
+      return tester.getSemantics(finder).label;
+    }
+
+    for (final MapEntry(key: name, value: text) in blocks.entries) {
+      final label = labelOf(text);
+      expect(label, contains(text), reason: name);
+      for (final other in blocks.entries.where((e) => e.key != name)) {
+        // Dining also names its suggested cap, a row of its own.
+        if (name == 'suggested' && other.key == 'dining') continue;
+        expect(label, isNot(contains(other.value)), reason: '$name carries ${other.key}');
+      }
+    }
+    handle.dispose();
   });
 }

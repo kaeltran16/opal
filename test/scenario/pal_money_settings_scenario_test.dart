@@ -66,7 +66,6 @@ const _mealAsk = 'had a burrito bowl';
 const _goalAsk = 'set my daily budget to 90';
 const _loggableOffline = 'taxi 12';
 const _goalBudget = 90;
-const _writeTurn = Duration(milliseconds: 300);
 const double _scrollStep = 200;
 
 final _replies = <String, PalChatResult>{
@@ -241,17 +240,6 @@ Future<void> _tap(WidgetTester tester, Finder finder) async {
   await tester.ensureVisible(finder);
   await tester.pumpAndSettle();
   await tester.tap(finder);
-  await tester.pumpAndSettle();
-}
-
-/// Taps [finder] for a meal save that then closes the sheet. The save awaits
-/// a haptic, a platform-channel call the test engine answers only on a real
-/// async turn, which the test's fake-async zone never takes.
-Future<void> _tapToWrite(WidgetTester tester, Finder finder) async {
-  await tester.ensureVisible(finder);
-  await tester.pumpAndSettle();
-  await tester.tap(finder);
-  await tester.runAsync(() => Future<void>.delayed(_writeTurn));
   await tester.pumpAndSettle();
 }
 
@@ -625,7 +613,7 @@ void main() {
 
     // add_meal_edit: edit mode saves over the meal in place.
     await tester.enterText(_inBottomSheet(find.byType(TextField)).last, 'Oats & berries');
-    await _tapToWrite(tester, _inBottomSheet(find.text('Save')));
+    await _tap(tester, _inBottomSheet(find.text('Save')));
     expect(find.byType(BottomSheet), findsNothing);
     expect(_onDetail(find.text('Oats & berries')), findsOneWidget);
     await shot(tester, 'add_meal_edit_$theme');
@@ -694,7 +682,7 @@ void main() {
     await shot(tester, 'add_meal_estimated_$theme');
 
     // add_meal_saved
-    await _tapToWrite(tester, _inBottomSheet(find.text('Save')));
+    await _tap(tester, _inBottomSheet(find.text('Save')));
     expect(find.byType(BottomSheet), findsNothing);
     final meals = _container(tester).read(areaDetailProvider(Area.nutrition)).requireValue.meals;
     expect(meals.where((m) => m.name == 'pho' && m.slot == 'Dinner'), hasLength(1));

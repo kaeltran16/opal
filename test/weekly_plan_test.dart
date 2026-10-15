@@ -3,10 +3,12 @@ import 'dart:async';
 import 'package:drift/native.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:opal/controllers/move_controller.dart' show buildWeekDays;
 import 'package:opal/controllers/providers.dart';
 import 'package:opal/controllers/weekly_plan_controller.dart';
 import 'package:opal/data/db/database.dart';
 import 'package:opal/data/repositories/repositories.dart';
+import 'package:opal/data/seed/seed_data.dart';
 import 'package:opal/data/seed/seeder.dart';
 import 'package:opal/models/models.dart';
 
@@ -105,6 +107,18 @@ void main() {
       final mon = schedule.firstWhere((a) => a.weekday == 1);
       expect(mon.routineId, 'seed-routine-push-a');
     });
+
+    test('a seeded workout named after a seeded routine links to it', () {
+      // an unlinked one reads 'Never done' on Start workout while Recent and
+      // the plan show it done.
+      final routineIdByName = {
+        for (final r in SeedData.routines()) r.name: r.id,
+      };
+      for (final w in SeedData.workouts()) {
+        final id = routineIdByName[w.name];
+        if (id != null) expect(w.routineId, id, reason: w.name);
+      }
+    });
   });
 
   group('weeklyPlanController reactivity', () {
@@ -127,7 +141,7 @@ void main() {
       container.listen(weeklyPlanControllerProvider, (_, _) {});
 
       var plan = await container.read(weeklyPlanControllerProvider.future);
-      expect(plan.doneCount, 0);
+      expect(plan.workoutCount, 0);
 
       // Complete a workout for that routine today — only the workouts table
       // changes, not the schedule. The plan (driven by watchSchedule) must
@@ -137,10 +151,12 @@ void main() {
         routineId: 'r1',
         name: 'Push A',
         startedAt: today.add(const Duration(hours: 8)),
+        endedAt: today.add(const Duration(hours: 9)),
       ));
 
-      plan = await _waitForPlan(container, (p) => p.doneCount == 1);
-      expect(plan.doneCount, 1);
+      plan = await _waitForPlan(container, (p) => p.workoutCount == 1);
+      expect(plan.workoutCount, 1);
+      expect(plan.today!.done, isTrue);
     });
   });
 
@@ -244,12 +260,14 @@ void main() {
         routineId: 'push',
         name: 'Push',
         startedAt: monday.add(const Duration(hours: 8)),
+        endedAt: monday.add(const Duration(hours: 9)),
       );
       final lastWeek = Workout(
         id: 'w0',
         routineId: 'push',
         name: 'Push',
         startedAt: monday.subtract(const Duration(days: 1)),
+        endedAt: monday.subtract(const Duration(hours: 23)),
       );
 
       final donePlan = buildWeeklyPlan(
@@ -260,7 +278,7 @@ void main() {
         now: wednesday,
       );
       expect(donePlan.days.first.done, isTrue);
-      expect(donePlan.doneCount, 1);
+      expect(donePlan.workoutCount, 1);
 
       // A prior-week workout for the same routine does NOT count as done.
       final notDonePlan = buildWeeklyPlan(
@@ -271,16 +289,18 @@ void main() {
         now: wednesday,
       );
       expect(notDonePlan.days.first.done, isFalse);
-      expect(notDonePlan.doneCount, 0);
+      expect(notDonePlan.workoutCount, 0);
     });
 
-    test("a routine done on another day does not tick the day it is planned for", () {
+    test("a routine done on another day does not tick the day it is planned "
+        "for, but the strip and count read it as the Workout tab does", () {
       // Push Day A planned Monday, done Wednesday: Monday stays open.
       final onWednesday = Workout(
         id: 'w2',
         routineId: 'push',
         name: 'Push',
         startedAt: wednesday.add(const Duration(hours: 1)),
+        endedAt: wednesday.add(const Duration(hours: 2)),
       );
       final plan = buildWeeklyPlan(
         schedule: const [WeeklyPlanAssignment(weekday: 1, routineId: 'push')],
@@ -290,7 +310,29 @@ void main() {
         now: wednesday,
       );
       expect(plan.days.first.done, isFalse);
-      expect(plan.doneCount, 0);
+      expect(plan.workoutCount, 1);
+      expect(plan.days.map((d) => d.trained),
+          buildWeekDays([onWednesday], wednesday).map((d) => d.done));
+      expect(plan.days[2].trained, isTrue);
+    });
+
+    test('an unfinished workout neither ticks its day nor counts', () {
+      final running = Workout(
+        id: 'w3',
+        routineId: 'push',
+        name: 'Push',
+        startedAt: monday.add(const Duration(hours: 8)),
+      );
+      final plan = buildWeeklyPlan(
+        schedule: const [WeeklyPlanAssignment(weekday: 1, routineId: 'push')],
+        routines: [pushRoutine],
+        exercisesById: exercisesById,
+        workouts: [running],
+        now: wednesday,
+      );
+      expect(plan.days.first.done, isFalse);
+      expect(plan.days.first.trained, isFalse);
+      expect(plan.workoutCount, 0);
     });
 
     test('summary counts ignore rest days; minutes sum est', () {
@@ -306,7 +348,7 @@ void main() {
       );
       expect(plan.totalCount, 2); // two non-rest days
       expect(plan.totalMinutes, 85); // 55 + 30
-      expect(plan.doneCount, 0);
+      expect(plan.workoutCount, 0);
     });
 
     test('marks today by date and finds it via WeeklyPlan.today', () {

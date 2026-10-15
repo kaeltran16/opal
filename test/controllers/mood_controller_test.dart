@@ -11,11 +11,11 @@ import 'package:opal/services/services.dart';
 /// No-op haptics so controller actions don't crash on non-device platforms.
 class _NoHaptics implements HapticsService {
   @override
-  Future<void> light() async {}
+  void light() {}
   @override
-  Future<void> medium() async {}
+  void medium() {}
   @override
-  Future<void> success() async {}
+  void success() {}
 }
 
 ProviderContainer _makeContainer(LoopDatabase db) => ProviderContainer(

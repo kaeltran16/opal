@@ -12,11 +12,11 @@ const _routineId = 'seed-routine-push-a';
 
 class _SilentHaptics implements HapticsService {
   @override
-  Future<void> light() async {}
+  void light() {}
   @override
-  Future<void> medium() async {}
+  void medium() {}
   @override
-  Future<void> success() async {}
+  void success() {}
 }
 
 /// Lets scheduled provider disposal and post-build microtasks run.

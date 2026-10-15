@@ -225,7 +225,7 @@ class EmailDashboardController extends _$EmailDashboardController {
         lastSyncAt: clock.now(),
       );
       await _refreshCounts();
-      await ref.read(hapticsServiceProvider).success(); // sync complete
+      ref.read(hapticsServiceProvider).success(); // sync complete
     } catch (_) {
       // the service already emits SyncStatus.error (surfaced via the status
       // stream); swallow so the future doesn't reject unhandled in the UI
