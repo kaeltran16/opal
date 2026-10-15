@@ -38,16 +38,25 @@ class InsetSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // the heading and footer are their own nodes: loose text folds into
+          // the nearest node above, which carries the rows with it.
           if (header != null)
             Padding(
               padding: const EdgeInsets.only(bottom: _headerGap),
-              child: Text(header!, style: AppType.headline.copyWith(color: c.ink)),
+              child: Semantics(
+                container: true,
+                header: true,
+                child: Text(header!, style: AppType.headline.copyWith(color: c.ink)),
+              ),
             ),
           ...children,
           if (footer != null)
             Padding(
               padding: const EdgeInsets.only(top: Spacing.sm),
-              child: Text(footer!, style: AppType.subhead.copyWith(color: c.ink3)),
+              child: Semantics(
+                container: true,
+                child: Text(footer!, style: AppType.subhead.copyWith(color: c.ink3)),
+              ),
             ),
         ],
       ),
@@ -106,6 +115,7 @@ class _ListRowState extends State<ListRow> {
     final value = widget.value;
     final tappable = widget.onTap != null;
     return Semantics(
+      container: true,
       button: tappable,
       label: tappable ? (value == null ? widget.title : '${widget.title}, $value') : null,
       excludeSemantics: tappable,

@@ -49,7 +49,10 @@ export interface InsightsContext {
   streakDays: number
   topCategory: string
   topCategoryPct: number
-  spendByWeekday: number[]
+  // null marks a weekday the period has not reached yet
+  spendByWeekday: (number | null)[]
+  // days of the period up to and including today
+  daysElapsed?: number
   entries: string[]
   // a single verified cross-dimension relationship, computed on-device; the
   // model only rephrases it. absent when nothing cleared the client's bar.
@@ -173,13 +176,17 @@ Data: ${money(c.spent, c.currency)} spent${deltaPhrase(c.spentDeltaPct)}, ${c.kc
 }
 
 // the aggregates as explicit state. a day range carries no weekday split: its
-// one non-zero day read as "with all of it spent Thursday".
+// one non-zero day read as "with all of it spent Thursday". a weekday still
+// ahead is left out, so the model never reads it as a no-spend day.
 function insightsData(c: InsightsContext): string {
   const weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-  const byDay = weekdays.map((d, i) => `${d} ${money(c.spendByWeekday[i] ?? 0, c.currency)}`).join(', ')
-  const weekdayLine = c.range === 'day' ? '' : `\nSpend by weekday: ${byDay}.`
+  const byDay = weekdays
+    .flatMap((d, i) => (c.spendByWeekday[i] === null ? [] : [`${d} ${money(c.spendByWeekday[i] ?? 0, c.currency)}`]))
+    .join(', ')
+  const weekdayLine = c.range === 'day' ? '' : `\nSpend by weekday: ${byDay || '(no days yet)'}.`
+  const soFar = c.daysElapsed === undefined || c.range === 'day' ? '' : ` (day ${c.daysElapsed} of the ${c.range} so far)`
   const entries = c.entries.length ? c.entries.join('\n') : '(none)'
-  return `Data: ${money(c.spent, c.currency)} spent of the ${money(c.budget, c.currency)} budget, ${budgetState(c.spent, c.budget, c.currency)}. ${c.moveKcal} of ${c.moveTargetKcal} move kcal. Rituals: ${routinesState(c.ritualsKept, c.ritualsTarget, `this ${c.range}`)}. ${c.activeDays} active days, ${c.streakDays}-day move streak. Top category: ${c.topCategory} ${c.topCategoryPct}%.${weekdayLine}
+  return `Data${soFar}: ${money(c.spent, c.currency)} spent of the ${money(c.budget, c.currency)} budget, ${budgetState(c.spent, c.budget, c.currency)}. ${c.moveKcal} of ${c.moveTargetKcal} move kcal. Rituals: ${routinesState(c.ritualsKept, c.ritualsTarget, `this ${c.range}`)}. ${c.activeDays} active days, ${c.streakDays}-day move streak. Top category: ${c.topCategory} ${c.topCategoryPct}%.${weekdayLine}
 Entries:
 ${entries}
 ${ROUTINE_STEPS_NOTE}`

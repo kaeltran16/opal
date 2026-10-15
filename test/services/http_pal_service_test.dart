@@ -1,7 +1,10 @@
 import 'dart:convert';
+import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:opal/data/db/database.dart';
+import 'package:opal/data/repositories/workout_repository.dart';
 import 'package:opal/models/models.dart';
 import 'package:opal/services/pal/http_pal_service.dart';
 import 'package:opal/services/pal/pal_service.dart';
@@ -422,6 +425,35 @@ void main() {
     await service.insights(InsightRange.week);
 
     expect(calls, 2);
+  });
+
+  test('post-workout note is requested once per finished workout', () async {
+    var calls = 0;
+    final service = HttpPalService(
+      baseUrl: 'https://pal.test',
+      httpClient: MockClient((req) async {
+        calls++;
+        return http.Response(jsonEncode({'note': 'n$calls'}), 200);
+      }),
+      tokens: tokenProvider(),
+      context: contextStub(),
+      cache: _MapCache(),
+    );
+    // a live session starts mid-second; the saved copy comes back from the
+    // database with fresh ids and its own clock precision
+    final start = DateTime(2026, 10, 14, 17, 45, 12, 345, 678);
+    final finished = Workout(id: 'active', name: 'Push', startedAt: start);
+    final db = LoopDatabase.forTesting(NativeDatabase.memory());
+    addTearDown(db.close);
+    final repo = WorkoutRepository(db);
+    final saved = (await repo.getById(await repo.insert(finished.copyWith(id: ''))))!;
+
+    expect(await service.postWorkoutNote(finished), 'n1'); // the summary
+    expect(await service.postWorkoutNote(saved), 'n1'); // its Workout detail
+    expect(calls, 1);
+
+    final next = finished.copyWith(startedAt: start.add(const Duration(days: 1)));
+    expect(await service.postWorkoutNote(next), 'n2');
   });
 }
 

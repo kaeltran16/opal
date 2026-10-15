@@ -194,6 +194,7 @@ class _Section extends StatelessWidget {
         spacing: _headingGap,
         children: [
           Semantics(
+            container: true,
             header: true,
             child: Text(title, style: AppType.headline.copyWith(color: c.ink)),
           ),
@@ -220,7 +221,10 @@ class _VolumeChart extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       spacing: Spacing.lg,
       children: [
-        Text(_volumeSentence(weeks), style: AppType.subhead.copyWith(color: c.ink3)),
+        Semantics(
+          container: true,
+          child: Text(_volumeSentence(weeks), style: AppType.subhead.copyWith(color: c.ink3)),
+        ),
         SizedBox(
           height: _chartHeight,
           child: BarChart(
@@ -315,7 +319,11 @@ class _ExerciseBlock extends StatelessWidget {
       children: [
         Padding(
           padding: const EdgeInsets.only(bottom: _headingGap),
-          child: Text(group.name, style: AppType.headline.copyWith(color: c.ink)),
+          child: Semantics(
+            container: true,
+            header: true,
+            child: Text(group.name, style: AppType.headline.copyWith(color: c.ink)),
+          ),
         ),
         for (final (i, set) in group.sets.indexed) _SetRow(index: i, set: set),
       ],
@@ -335,26 +343,29 @@ class _SetRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    return Container(
-      constraints: const BoxConstraints(minHeight: _rowMinHeight),
-      decoration: BoxDecoration(
-        border: Border(top: BorderSide(color: c.hair, width: _hairline)),
-      ),
-      child: Row(
-        spacing: Spacing.sm,
-        children: [
-          SizedBox(
-            width: _setNumberWidth,
-            child: Text('${index + 1}',
-                style: AppType.caption.copyWith(color: c.ink3, fontFeatures: _tabular)),
-          ),
-          Expanded(
-            child: Text(_load,
-                style: AppType.subhead.copyWith(color: c.ink, fontFeatures: _tabular)),
-          ),
-          if (set.isPR)
-            Text('New best', style: AppType.subhead.copyWith(color: c.thrivingInk)),
-        ],
+    return Semantics(
+      container: true,
+      child: Container(
+        constraints: const BoxConstraints(minHeight: _rowMinHeight),
+        decoration: BoxDecoration(
+          border: Border(top: BorderSide(color: c.hair, width: _hairline)),
+        ),
+        child: Row(
+          spacing: Spacing.sm,
+          children: [
+            SizedBox(
+              width: _setNumberWidth,
+              child: Text('${index + 1}',
+                  style: AppType.caption.copyWith(color: c.ink3, fontFeatures: _tabular)),
+            ),
+            Expanded(
+              child: Text(_load,
+                  style: AppType.subhead.copyWith(color: c.ink, fontFeatures: _tabular)),
+            ),
+            if (set.isPR)
+              Text('New best', style: AppType.subhead.copyWith(color: c.thrivingInk)),
+          ],
+        ),
       ),
     );
   }

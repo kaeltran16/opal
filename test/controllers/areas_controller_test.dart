@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:opal/analysis/area.dart';
 import 'package:opal/analysis/area_state.dart';
+import 'package:opal/controllers/area_detail_controller.dart' show buildNutritionDetail;
 import 'package:opal/controllers/areas_controller.dart';
 import 'package:opal/controllers/providers.dart';
 import 'package:opal/data/db/database.dart';
@@ -340,7 +341,7 @@ void main() {
   });
 
   group('vitals', () {
-    test('nutrition kcal so far with a thousands separator', () {
+    test('nutrition kcal today with a thousands separator', () {
       final nutrition = _build(
         meals: [
           _meal(640, _at(0, 8)),
@@ -351,11 +352,21 @@ void main() {
 
       expect(nutrition.state, isNull);
       expect(nutrition.number, '1,240');
-      expect(nutrition.unit, 'kcal eaten so far');
+      expect(nutrition.unit, 'kcal eaten today');
       expect(
         nutrition.semanticLabel,
-        'Nutrition: 1,240 kcal eaten so far. Open Nutrition',
+        'Nutrition: 1,240 kcal eaten today. Open Nutrition',
       );
+    });
+
+    test('nutrition counts today\'s meals the way the Nutrition page does', () {
+      // a meal logged for later today is today's, on both screens
+      final meals = [_meal(640, _at(0, 8)), _meal(580, _at(0, 19, minute: 10))];
+      final nutrition = _build(meals: meals).of(Area.nutrition);
+
+      expect(nutrition.number, '1,220');
+      expect(nutrition.number, buildNutritionDetail(meals, _now).hero);
+      expect(nutrition.unit, buildNutritionDetail(meals, _now).unit);
     });
 
     test('mood with a check-in today shows the latest word and time', () {

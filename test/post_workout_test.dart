@@ -287,6 +287,26 @@ void main() {
     await unmount(tester);
   });
 
+  testWidgets('closing the summary saves the workout', (tester) async {
+    final w = prWorkout();
+    await pumpSummary(tester, w, overrides: [
+      postWorkoutNoteProvider(w).overrideWith((ref) async => 'Note.'),
+    ]);
+    final container = ProviderScope.containerOf(tester.element(find.byType(PostWorkoutScreen)));
+    final repo = container.read(workoutRepositoryProvider);
+    final before = (await repo.getWorkouts()).length;
+
+    await tester.tap(find.byType(NavIconButton));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Move tab'), findsOneWidget);
+    final all = await repo.getWorkouts();
+    expect(all.length, before + 1);
+    expect(all.where((s) => s.name == 'Push Day A' && s.startedAt == w.startedAt), hasLength(1));
+
+    await unmount(tester);
+  });
+
   testWidgets('no workout shows the no-session state with Back to Workout',
       (tester) async {
     await pumpSummary(tester, null);

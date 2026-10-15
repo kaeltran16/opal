@@ -235,7 +235,7 @@ AreaSummary _nutrition(List<NutritionMeal> meals, DateTime now) {
       .where((m) => _within(m.timestamp, from, cutoff, inclusive: true))
       .fold<double>(0, (s, m) => s + m.cal.mid);
 
-  final kcal = kcalBetween(startOfDay(now), now);
+  final kcal = kcalEatenOn(meals, now);
   final history = _history(
     now,
     hasData: (from, to) => meals.any((m) => _within(m.timestamp, from, to)),
@@ -248,7 +248,7 @@ AreaSummary _nutrition(List<NutritionMeal> meals, DateTime now) {
   return _summary(
     Area.nutrition,
     number: groupThousands('${kcal.round()}', ','),
-    unit: 'kcal eaten so far',
+    unit: 'kcal eaten today',
     progress: share(kcal),
     usual: band == null ? null : UsualBand(share(band.low), share(band.high)),
   );

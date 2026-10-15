@@ -15,6 +15,7 @@ import 'package:opal/theme/app_colors.dart';
 import 'package:opal/widgets/stat_row.dart';
 
 import 'support/flush_provider_timers.dart';
+import 'support/semantics_blocks.dart';
 
 final _now = DateTime(2026, 10, 14, 10);
 final _colors = AppColors.light();
@@ -28,7 +29,7 @@ Workout _workout(String id, String name, Duration ago, {double kg = 0}) {
     endedAt: started.add(const Duration(minutes: 45)),
     sets: [
       if (kg > 0)
-        SetLog(id: '$id-s', exerciseId: 'bench', weightKg: kg, reps: 5, done: true),
+        SetLog(id: '$id-s', exerciseId: 'bench', weightKg: kg, reps: 5, done: true, isPR: true),
     ],
   );
 }
@@ -111,6 +112,19 @@ void main() {
     expect(find.text('Sessions'), findsOneWidget);
   });
 
+  _historyTest('the subtitle follows the selected range', (tester) async {
+    await _pump(tester, workouts);
+    expect(find.text('Sessions in the last 8 weeks'), findsOneWidget);
+
+    await tester.tap(find.text('6 months'));
+    await tester.pumpAndSettle();
+    expect(find.text('Sessions in the last 6 months'), findsOneWidget);
+
+    await tester.tap(find.text('All time'));
+    await tester.pumpAndSettle();
+    expect(find.text('All sessions, all time'), findsOneWidget);
+  });
+
   _historyTest('switching the range updates the stats', (tester) async {
     await _pump(tester, workouts);
     expect(_stat('2'), findsOneWidget);
@@ -127,6 +141,26 @@ void main() {
     final trend = find.text('Up 25% on the previous 4 weeks');
     expect(trend, findsOneWidget);
     expect(tester.widget<Text>(trend).style!.color, _colors.ink3);
+  });
+
+  _historyTest('a screen reader reaches each heading and session row on its own',
+      (tester) async {
+    final semantics = tester.ensureSemantics();
+    // one session in range: a lone row is where the heading folded into it
+    await _pump(tester, [workouts.first]);
+    await tester.scrollUntilVisible(find.text('Push A'), 200,
+        scrollable: find.byType(Scrollable).first);
+
+    expectOwnSemanticsNodes(tester, [
+      'Volume trend',
+      '0.5 t total',
+      'Weekly balance',
+      'No pull or legs sets in this range. A pull day would even things out.',
+      'Personal records · 1',
+      'All sessions · 1',
+      'Push A',
+    ]);
+    semantics.dispose();
   });
 
   _historyTest('a session row opens its detail', (tester) async {

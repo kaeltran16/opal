@@ -142,11 +142,10 @@ void main() {
       expect(out, isEmpty);
     });
 
-    test('ignores the still-open current month', () {
-      // A quiet Mar/Apr/May with a heavy June must still read as underspent.
+    test('the still-open month does not move the average', () {
       final entries = [
         for (final m in [3, 4, 5]) _expense('Food', 200, on: DateTime(2026, m, 12)),
-        _expense('Food', 5000, on: DateTime(2026, 6, 2)),
+        _expense('Food', 100, on: DateTime(2026, 6, 2)),
       ];
       final out = detectSavingsOpportunities(
         entries,
@@ -156,6 +155,35 @@ void main() {
       );
       expect(out, hasLength(1));
       expect(out.single.monthlyAverage, closeTo(200, 1e-9));
+    });
+
+    test('an envelope over its cap this month is no room to trim', () {
+      final entries = [
+        for (final m in [3, 4, 5]) _expense('Food', 200, on: DateTime(2026, m, 12)),
+        _expense('Food', 1101.25, on: DateTime(2026, 6, 2)),
+      ];
+      final out = detectSavingsOpportunities(
+        entries,
+        envelopes: [_envelope('Food', 1000)],
+        roundTo: 50,
+        now: _now,
+      );
+      expect(out, isEmpty);
+    });
+
+    test('this month already past the suggested cap is no room to trim', () {
+      // 200/mo suggests 250, but June has spent 300 of the 1000 cap
+      final entries = [
+        for (final m in [3, 4, 5]) _expense('Food', 200, on: DateTime(2026, m, 12)),
+        _expense('Food', 300, on: DateTime(2026, 6, 2)),
+      ];
+      final out = detectSavingsOpportunities(
+        entries,
+        envelopes: [_envelope('Food', 1000)],
+        roundTo: 50,
+        now: _now,
+      );
+      expect(out, isEmpty);
     });
   });
 }

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opal/controllers/providers.dart';
@@ -31,13 +32,18 @@ void main() {
     expect(pal.refreshCount, 1);
   });
 
-  test('a thrown refresh is swallowed and never propagates', () async {
+  test('a thrown refresh is logged and never propagates', () async {
     final pal = _RecordingPal()..shouldThrow = true;
     final container = ProviderContainer(overrides: [palServiceProvider.overrideWithValue(pal)]);
     addTearDown(container.dispose);
+    final logged = <String>[];
+    final print = debugPrint;
+    debugPrint = (message, {wrapWidth}) => logged.add(message ?? '');
+    addTearDown(() => debugPrint = print);
 
     // completes normally despite refreshMemory throwing — memory never blocks recap.
     await container.read(recapMemoryRefreshProvider.future);
     expect(pal.refreshCount, 1);
+    expect(logged.single, contains('boom'));
   });
 }

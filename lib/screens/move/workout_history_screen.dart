@@ -55,7 +55,7 @@ class _WorkoutHistoryScreenState extends ConsumerState<WorkoutHistoryScreen> {
 
     return LargeTitleScrollView(
       title: 'History and trends',
-      subtitle: 'All sessions, all time',
+      subtitle: _subtitle(_range),
       leading: NavAction(
         icon: 'chevron.left',
         label: 'Workout',
@@ -227,26 +227,37 @@ class _VolumeTrend extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Volume trend', style: AppType.headline.copyWith(color: c.ink)),
+        _heading('Volume trend', c),
         const SizedBox(height: Spacing.xxs),
-        Text('${totalT.toStringAsFixed(1)} t total',
-            style: AppType.subhead
-                .copyWith(color: c.ink2, fontFeatures: _tabular)),
-        if (pct != null)
-          Text(_trendSentence(pct, state.range, bars.length),
-              style: AppType.subhead.copyWith(color: c.ink3)),
-        const SizedBox(height: Spacing.lg),
-        SizedBox(
-          height: MediaQuery.textScalerOf(context).scale(_chartHeight),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            spacing: _barGap,
+        // the total and the trend speak for the chart, as one stop
+        Semantics(
+          container: true,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              for (final (i, bar) in bars.indexed)
-                Expanded(
-                    child: _Bar(
-                        bar: bar, maxY: maxY, current: i == bars.length - 1)),
+              Text('${totalT.toStringAsFixed(1)} t total',
+                  style: AppType.subhead
+                      .copyWith(color: c.ink2, fontFeatures: _tabular)),
+              if (pct != null)
+                Text(_trendSentence(pct, state.range, bars.length),
+                    style: AppType.subhead.copyWith(color: c.ink3)),
             ],
+          ),
+        ),
+        const SizedBox(height: Spacing.lg),
+        ExcludeSemantics(
+          child: SizedBox(
+            height: MediaQuery.textScalerOf(context).scale(_chartHeight),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              spacing: _barGap,
+              children: [
+                for (final (i, bar) in bars.indexed)
+                  Expanded(
+                      child: _Bar(
+                          bar: bar, maxY: maxY, current: i == bars.length - 1)),
+              ],
+            ),
           ),
         ),
       ],
@@ -312,37 +323,57 @@ class _Bar extends StatelessWidget {
 class _Balance extends StatelessWidget {
   const _Balance({required this.slices, required this.nudge});
   final List<HistoryGroupSlice> slices;
-  final String nudge;
+  final String? nudge;
 
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
+    final line = nudge;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       spacing: Spacing.md,
       children: [
-        Text('Weekly balance', style: AppType.headline.copyWith(color: c.ink)),
+        _heading('Weekly balance', c),
         for (final s in slices)
           ContributorBar(
             label: s.label,
             value: '${s.pct}%',
             fraction: s.pct / 100,
           ),
-        const SizedBox(height: Spacing.xs),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          spacing: Spacing.xs,
-          children: [
-            const PalLabel(),
-            Text(nudge, style: AppType.subhead.copyWith(color: c.ink)),
-          ],
-        ),
+        if (line != null) ...[
+          const SizedBox(height: Spacing.xs),
+          Semantics(
+            container: true,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              spacing: Spacing.xs,
+              children: [
+                const PalLabel(),
+                Text(line, style: AppType.subhead.copyWith(color: c.ink)),
+              ],
+            ),
+          ),
+        ],
       ],
     );
   }
 }
 
 // ─── Formatting helpers ──────────────────────────────────────────────────────
+
+/// A section heading as its own node: loose text folds into the nearest node
+/// above, which carries the section's chart or rows with it.
+Widget _heading(String text, AppColors c) => Semantics(
+      container: true,
+      header: true,
+      child: Text(text, style: AppType.headline.copyWith(color: c.ink)),
+    );
+
+String _subtitle(WorkoutHistoryRange range) => switch (range) {
+      WorkoutHistoryRange.eightWeeks => 'Sessions in the last 8 weeks',
+      WorkoutHistoryRange.sixMonths => 'Sessions in the last 6 months',
+      WorkoutHistoryRange.allTime => 'All sessions, all time',
+    };
 
 /// "Up 12% on the previous 4 weeks": the recent half of the bars against the
 /// half before it, which is what [historyTrendPct] compares.

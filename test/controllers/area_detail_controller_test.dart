@@ -238,7 +238,7 @@ void main() {
       _expectFinite(d);
     });
 
-    test('week runs Monday first and only past days can be off', () {
+    test('week runs Monday first and today counts once it is over budget', () {
       final d = _build(Area.money, [
         _spend(48, 'Food', daysAgo: 3),
         _spend(61, 'Food', daysAgo: 2),
@@ -250,9 +250,15 @@ void main() {
       expect(d.week.map((b) => b.value), [48, 61, 35, 65, null, null, null]);
       expect(d.week.map((b) => b.today),
           [false, false, false, true, false, false, false]);
-      // today is over budget too, but the day is not finished
+      // spend only grows, so today over budget stays over
       expect(d.week.map((b) => b.off),
-          [false, true, false, false, false, false, false]);
+          [false, true, false, true, false, false, false]);
+      expect(d.weekNote, '2 days over budget');
+    });
+
+    test('today alone over budget is not every day on track', () {
+      final d = _build(Area.money, [_spend(65, 'Food')]);
+
       expect(d.weekNote, '1 day over budget');
     });
 

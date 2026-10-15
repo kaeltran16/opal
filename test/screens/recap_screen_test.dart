@@ -15,6 +15,8 @@ import 'package:opal/screens/recap/recap_screen.dart';
 import 'package:opal/services/pal/pal_service.dart';
 import 'package:opal/theme/theme.dart';
 
+import '../support/semantics_blocks.dart';
+
 final _recap = RecapData(
   range: InsightRange.day,
   periodStart: DateTime(2026, 10, 14),
@@ -182,6 +184,22 @@ void main() {
     expect(find.text('COMPOSER Tell me more about this recap'), findsOneWidget);
     // opened over the Recap, so closing the composer lands back on it.
     expect(find.byType(RecapScreen, skipOffstage: false), findsOneWidget);
+  });
+
+  testWidgets('a screen reader reaches Wins, One thing to try and Ask Pal more on their own',
+      (tester) async {
+    final semantics = tester.ensureSemantics();
+    await _pump(tester);
+    await _scrollTo(tester, find.text('Ask Pal more'));
+
+    expectOwnSemanticsNodes(tester, [
+      'Wins',
+      'Moved three days running',
+      'One thing to try',
+      'Try a short walk after lunch.',
+      'Ask Pal more',
+    ]);
+    semantics.dispose();
   });
 
   testWidgets('shows the reviewing notice while Pal loads', (tester) async {

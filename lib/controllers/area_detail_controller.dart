@@ -172,8 +172,6 @@ AreaDetail buildAreaDetail({
 /// The Nutrition page. Pure: [meals] covers at least this week up to [now].
 AreaDetail buildNutritionDetail(List<NutritionMeal> meals, DateTime now) {
   final todays = _onDay(meals, now, (m) => m.timestamp);
-  double kcalOf(Iterable<NutritionMeal> ms) =>
-      ms.fold<double>(0, (s, m) => s + m.cal.mid);
 
   final protein = todays.fold<int>(0, (s, m) => s + m.macros.protein.mid);
   final carbs = todays.fold<int>(0, (s, m) => s + m.macros.carbs.mid);
@@ -191,7 +189,7 @@ AreaDetail buildNutritionDetail(List<NutritionMeal> meals, DateTime now) {
   final count = todays.length;
   return AreaDetail(
     area: Area.nutrition,
-    hero: _kcal(kcalOf(todays)),
+    hero: _kcal(kcalEatenOn(meals, now)),
     unit: 'kcal eaten today',
     state: null,
     palLine: switch (count) {
@@ -206,7 +204,7 @@ AreaDetail buildNutritionDetail(List<NutritionMeal> meals, DateTime now) {
     ],
     week: _weekBars(
       now: now,
-      valueOf: (day) => kcalOf(_onDay(meals, day, (m) => m.timestamp)),
+      valueOf: (day) => kcalEatenOn(meals, day),
       isOff: (_) => false,
     ),
     goal: 0,
@@ -297,6 +295,7 @@ AreaDetail _money(DetailData data, Currency currency, DateTime now) {
     now: now,
     valueOf: (day) => totals[day] ?? 0,
     isOff: (v) => hasBudget && v > budget,
+    judgesToday: true,
   );
 
   return AreaDetail(
@@ -473,10 +472,14 @@ Map<DateTime, double> _dayTotals(DetailData data) => {
             .fold<double>(0, (s, e) => s + data.tracker.magnitudeOf(e)),
     };
 
+/// [judgesToday] lets today be off before it ends: true where the value only
+/// grows past the line (spend over budget), false where the rest of the day
+/// can still reach a goal.
 List<WeekBar> _weekBars({
   required DateTime now,
   required double? Function(DateTime day) valueOf,
   required bool Function(double value) isOff,
+  bool judgesToday = false,
 }) {
   final monday = startOfWeek(now);
   final today = startOfDay(now);
@@ -491,7 +494,7 @@ List<WeekBar> _weekBars({
       day: label,
       value: value,
       today: isToday,
-      off: !isToday && value != null && isOff(value),
+      off: (!isToday || judgesToday) && value != null && isOff(value),
     );
   });
 }

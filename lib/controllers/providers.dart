@@ -338,6 +338,7 @@ PalService palService(Ref ref) {
         correlationSummary:
             surfaced.isEmpty ? null : surfaced.first.summary(settings.currency),
         currency: settings.currency,
+        now: now,
       );
     },
     suggest: (another, excludeRoutineId) async {

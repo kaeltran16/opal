@@ -281,6 +281,28 @@ void main() {
       expect(all.map((w) => w.sets.single.id), ['newer-s1', 'older-s1']);
     });
 
+    test('deleteById removes the workout\'s move entry and nothing else', () async {
+      final repo = WorkoutRepository(db);
+      final entries = EntryRepository(db);
+      await repo.insert(Workout(id: 'w1', name: 'Push', startedAt: DateTime(2026, 6, 9, 17)));
+      Entry move(String id, String? workoutId) => Entry(
+            id: id,
+            timestamp: DateTime(2026, 6, 9, 18),
+            type: EntryType.move,
+            title: 'Push',
+            calories: 300,
+            source: EntrySource.manual,
+            workoutId: workoutId,
+          );
+      await entries.insert(move('session', 'w1'));
+      await entries.insert(move('walk', null));
+
+      await repo.deleteById('w1');
+
+      final left = await entries.getEntriesInRange(DateTime(2026, 6, 9), DateTime(2026, 6, 10));
+      expect(left.map((e) => e.id), ['walk']);
+    });
+
     testWidgets('getWorkouts completes under fake async', (tester) async {
       final repo = WorkoutRepository(db);
       var done = false;

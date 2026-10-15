@@ -321,16 +321,27 @@ class _ResultHeader extends StatelessWidget {
       spacing: Spacing.xxs,
       children: [
         Semantics(
+          container: true,
           header: true,
           child: Text(draft.name, style: AppType.title.copyWith(color: c.ink)),
         ),
-        Text(_meta, style: AppType.label.copyWith(color: c.ink3)),
-        if (rationale != null && rationale.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.only(top: Spacing.sm),
-            child: Text(rationale,
-                style: AppType.subhead.copyWith(color: c.ink2)),
+        // the meta and why read as one stop after the name, not inside it
+        Semantics(
+          container: true,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            spacing: Spacing.xxs,
+            children: [
+              Text(_meta, style: AppType.label.copyWith(color: c.ink3)),
+              if (rationale != null && rationale.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: Spacing.sm),
+                  child: Text(rationale,
+                      style: AppType.subhead.copyWith(color: c.ink2)),
+                ),
+            ],
           ),
+        ),
       ],
     );
   }

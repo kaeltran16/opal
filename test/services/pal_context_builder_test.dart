@@ -176,9 +176,26 @@ void main() {
     expect(ctx['streakDays'], 4);
     expect(ctx['topCategory'], 'Dining');
     expect(ctx['topCategoryPct'], 83); // 100/120
-    final byDay = ctx['spendByWeekday'] as List<double>;
+    final byDay = ctx['spendByWeekday'] as List<double?>;
     expect(byDay[0], 20); // Monday
     expect(byDay[4], 100); // Friday
+  });
+
+  test('a week in progress leaves the days still ahead out of spend-by-weekday', () {
+    // Thu Jun 11 2026, mid-week: Fri, Sat and Sun have not happened yet, so
+    // they are neither spend nor no-spend days.
+    final ctx = buildInsightsContext(
+      range: InsightRange.week,
+      entries: [money(-20, category: 'Coffee', at: DateTime(2026, 6, 8, 8))],
+      goals: goals,
+      periodDays: 7,
+      streakDays: 0,
+      periodStart: DateTime(2026, 6, 8),
+      now: DateTime(2026, 6, 11, 15),
+    );
+    expect(ctx['spendByWeekday'], [20, 0, 0, 0, null, null, null]);
+    expect(ctx['daysElapsed'], 4);
+    expect(ctx['budget'], 420); // the week's budget, as the Recap tile shows it
   });
 
   test('buildReviewContext wires the range, computes ritualsPct, and carries nullable deltas', () {

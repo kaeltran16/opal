@@ -92,29 +92,32 @@ class ActionCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         spacing: _cardGap,
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            spacing: Spacing.xxs,
-            children: [
-              Text(meta,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppType.label.copyWith(color: c.ink3, fontFeatures: _tabular)),
-              Semantics(
-                header: true,
-                child: Text(title, style: AppType.title.copyWith(color: c.ink)),
-              ),
-            ],
+          // when and what are one heading, apart from the buttons below it
+          Semantics(
+            container: true,
+            header: true,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              spacing: Spacing.xxs,
+              children: [
+                Text(meta,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppType.label.copyWith(color: c.ink3, fontFeatures: _tabular)),
+                Text(title, style: AppType.title.copyWith(color: c.ink)),
+              ],
+            ),
           ),
           LayoutBuilder(
             builder: (context, box) => Row(
               spacing: Spacing.sm,
               children: [
-                Expanded(child: primary),
+                // each button its own stop, apart from the heading
+                Expanded(child: Semantics(container: true, child: primary)),
                 if (secondary != null)
                   ConstrainedBox(
                     constraints: BoxConstraints(maxWidth: box.maxWidth * _sideShare),
-                    child: secondary,
+                    child: Semantics(container: true, child: secondary),
                   ),
               ],
             ),

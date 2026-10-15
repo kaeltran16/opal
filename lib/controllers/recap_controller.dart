@@ -231,13 +231,13 @@ Stream<RecapData> recapData(Ref ref, InsightRange range) async* {
 
 /// Re-derives Pal's learned patterns from the data the recap already surfaces.
 /// Read once when the Recap opens (the client-chosen cadence). Best-effort: a
-/// model hiccup is swallowed so memory never blocks the recap.
+/// failure is logged, never rethrown, so memory never blocks the recap.
 @riverpod
 Future<void> recapMemoryRefresh(Ref ref) async {
   try {
     await ref.read(palServiceProvider).refreshMemory();
     ref.invalidate(palMemoryProvider);
-  } catch (_) {
-    // memory refresh is best-effort
+  } catch (e, st) {
+    debugPrint('recap: refreshing Pal memory failed: $e\n$st');
   }
 }
