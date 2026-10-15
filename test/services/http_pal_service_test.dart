@@ -165,6 +165,57 @@ void main() {
     expect(plain.navigatesToCloseOut, isFalse);
   });
 
+  const fact = PlanFact(
+    key: 'k1',
+    title: 'Morning',
+    when: '7:00 AM',
+    status: PlanFact.due,
+    steps: '2 of 4 steps',
+    why: 'It is the first thing on the clock.',
+  );
+
+  test('agenda posts the plan facts as JSON', () async {
+    late Map<String, dynamic> body;
+    final service = build(MockClient((req) async {
+      body = jsonDecode(req.body) as Map<String, dynamic>;
+      return http.Response(jsonEncode({'proposals': <Object>[], 'autopilot': <Object>[]}), 200);
+    }));
+
+    await service.agenda(plan: const [fact]);
+
+    expect(body['plan'], [fact.toJson()]);
+    expect((body['plan'] as List).single, containsPair('key', 'k1'));
+    expect((body['plan'] as List).single, containsPair('status', 'due'));
+  });
+
+  test('agenda decodes lines, dropping keys it did not send and blank lines', () async {
+    final service = build(MockClient((req) async => http.Response(
+        jsonEncode({
+          'proposals': <Object>[],
+          'autopilot': <Object>[],
+          'lines': [
+            {'key': 'k1', 'line': 'Morning is due now.'},
+            {'key': 'other', 'line': 'Not asked for.'},
+            {'key': 'k2', 'line': '   '},
+          ],
+        }),
+        200)));
+
+    final agenda = await service.agenda(plan: const [
+      fact,
+      PlanFact(key: 'k2', title: 'Walk', when: 'Any time', status: PlanFact.anytime, why: ''),
+    ]);
+
+    expect(agenda.lines, {'k1': 'Morning is due now.'});
+  });
+
+  test('agenda without lines in the payload gives an empty map', () async {
+    final service = build(MockClient((req) async =>
+        http.Response(jsonEncode({'proposals': <Object>[], 'autopilot': <Object>[]}), 200)));
+
+    expect((await service.agenda(plan: const [fact])).lines, isEmpty);
+  });
+
   test('parse maps the response into a ParsedEntryDraft (expense negated)', () async {
     final service = build(MockClient((req) async => http.Response(
           jsonEncode({'type': 'money', 'amount': 5, 'duration': null, 'category': 'Coffee', 'title': 'Coffee', 'note': null, 'direction': 'expense'}),

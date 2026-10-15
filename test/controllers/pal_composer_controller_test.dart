@@ -21,7 +21,7 @@ class _FakePal implements PalService {
   });
 
   @override
-  Future<PalAgenda> agenda() async => const PalAgenda();
+  Future<PalAgenda> agenda({List<PlanFact> plan = const []}) async => const PalAgenda();
 
   final String reply;
   final bool fails;

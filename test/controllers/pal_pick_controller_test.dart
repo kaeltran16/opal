@@ -12,7 +12,7 @@ class _RecordingPal implements PalService {
   _RecordingPal(this._suggestions);
 
   @override
-  Future<PalAgenda> agenda() async => const PalAgenda();
+  Future<PalAgenda> agenda({List<PlanFact> plan = const []}) async => const PalAgenda();
 
   @override
   Future<MealEstimate> estimateMeal(String description) async =>

@@ -1,5 +1,6 @@
 import 'package:clock/clock.dart';
 import 'package:drift/native.dart';
+import 'package:flutter/widgets.dart' show SizedBox;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
@@ -28,11 +29,17 @@ const legacyRitualId = 'legacy-step';
 /// both the brief and the agenda throw; a test can flip it after boot and
 /// refresh to fail a fetch that succeeded before.
 class TodayPal extends MockPalService {
-  TodayPal({this.headline, this.proposals, this.offline = false})
+  TodayPal({this.headline, this.proposals, this.linesByTitle, this.offline = false})
       : super(latency: Duration.zero, seed: 0);
 
   final String? headline;
   final List<PalProposal>? proposals;
+
+  /// A line for each received fact whose title has an entry.
+  final Map<String, String>? linesByTitle;
+
+  /// Each agenda call's plan, in call order.
+  final List<List<PlanFact>> plans = [];
   bool offline;
   int insightsCalls = 0;
 
@@ -47,10 +54,24 @@ class TodayPal extends MockPalService {
   }
 
   @override
-  Future<PalAgenda> agenda() async {
+  Future<PalAgenda> agenda({List<PlanFact> plan = const []}) async {
+    plans.add(plan);
     if (offline) throw Exception('offline');
+    final byTitle = linesByTitle;
+    final lines = {
+      for (final f in plan) f.key: ?byTitle?[f.title],
+    };
     final p = proposals;
-    return p == null ? super.agenda() : PalAgenda(proposals: p);
+    if (p == null) {
+      final base = await super.agenda(plan: plan);
+      return PalAgenda(
+        proposals: base.proposals,
+        autopilot: base.autopilot,
+        streakDays: base.streakDays,
+        lines: lines,
+      );
+    }
+    return PalAgenda(proposals: p, lines: lines);
   }
 }
 
@@ -236,6 +257,9 @@ class TodayDay {
   }
 }
 
+SharedPreferences? _lastPrefs;
+LoopDatabase? _lastDb;
+
 /// Boots the app on Today with [day] in the database. [strictLayout] leaves
 /// overflow errors fatal, for tests that assert there are none.
 Future<void> bootToday(
@@ -256,7 +280,32 @@ Future<void> bootToday(
   await Seeder(db).seedReferenceData();
   await day.write(db);
   addTearDown(db.close);
+  _lastPrefs = prefs;
+  _lastDb = db;
 
+  await _pumpApp(tester, prefs, db, pal, overrides);
+}
+
+/// Closes the app and boots a fresh one on the same preferences and database
+/// as the last [bootToday], as a relaunch does.
+Future<void> relaunchToday(
+  WidgetTester tester, {
+  MockPalService? pal,
+  List<Override> overrides = const [],
+}) async {
+  final prefs = _lastPrefs, db = _lastDb;
+  if (prefs == null || db == null) throw StateError('relaunchToday needs a bootToday first');
+  await tester.pumpWidget(const SizedBox());
+  await _pumpApp(tester, prefs, db, pal, overrides);
+}
+
+Future<void> _pumpApp(
+  WidgetTester tester,
+  SharedPreferences prefs,
+  LoopDatabase db,
+  MockPalService? pal,
+  List<Override> overrides,
+) async {
   await tester.pumpWidget(
     ProviderScope(
       overrides: [

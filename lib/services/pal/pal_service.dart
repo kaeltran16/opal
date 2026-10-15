@@ -598,13 +598,49 @@ class PalAgenda {
     this.proposals = const [],
     this.autopilot = const [],
     this.streakDays = 0,
+    this.lines = const {},
   });
 
   final List<PalProposal> proposals;
   final List<PalAutopilotItem> autopilot;
   final int streakDays;
 
+  /// Pal's one-sentence line about each open item sent in the request, by
+  /// [PlanFact.key]. Empty when Pal had no line, or the client sent no plan.
+  final Map<String, String> lines;
+
   bool get isEmpty => proposals.isEmpty && autopilot.isEmpty;
+}
+
+/// One open item of the day, as the agenda call words Pal's line about it.
+/// [key] is opaque to the server and comes back on the matching line.
+class PlanFact {
+  const PlanFact({
+    required this.key,
+    required this.title,
+    required this.when,
+    required this.status,
+    this.steps,
+    required this.why,
+  });
+
+  final String key, title, when, status;
+  final String? steps;
+  final String why;
+
+  static const due = 'due';
+  static const upcoming = 'upcoming';
+  static const missed = 'missed';
+  static const anytime = 'anytime';
+
+  Map<String, Object?> toJson() => {
+        'key': key,
+        'title': title,
+        'when': when,
+        'status': status,
+        if (steps != null) 'steps': steps,
+        'why': why,
+      };
 }
 
 /// A structured quick-log payload attached to a concrete suggestion chip. When
@@ -713,8 +749,9 @@ abstract interface class PalService {
 
   /// `/agenda`: the Pal Home hub payload — cross-pillar [PalProposal]s to
   /// approve, the autopilot delegation list, and the workout streak. Drives the
-  /// agentic Pal Home screen.
-  Future<PalAgenda> agenda();
+  /// agentic Pal Home screen. [plan] is the day's open items; the reply's
+  /// [PalAgenda.lines] words one sentence about each.
+  Future<PalAgenda> agenda({List<PlanFact> plan = const []});
 
   /// `/v1/suggestions`: Pal-generated, context-aware quick-pick chips for the
   /// given [surface]. Drives the composer starters, New Entry quick-picks, and

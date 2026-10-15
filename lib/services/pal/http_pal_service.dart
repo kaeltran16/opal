@@ -410,10 +410,14 @@ class HttpPalService implements PalService {
   }
 
   @override
-  Future<PalAgenda> agenda() async {
+  Future<PalAgenda> agenda({List<PlanFact> plan = const []}) async {
     // Reuses the chat context (today + week + goals + streak) — the agenda is
     // generated from the same signals, so there's no separate context seam.
-    final json = await _post('/v1/agenda', {'context': await context.chat()});
+    final json = await _post('/v1/agenda', {
+      'context': await context.chat(),
+      'plan': [for (final f in plan) f.toJson()],
+    });
+    final sent = {for (final f in plan) f.key};
     List<T> mapList<T>(String key, T Function(Map<String, dynamic>) f) =>
         ((json[key] as List?) ?? const [])
             .cast<Map<String, dynamic>>()
@@ -421,6 +425,11 @@ class HttpPalService implements PalService {
             .toList();
     return PalAgenda(
       streakDays: (json['streakDays'] as num?)?.round() ?? 0,
+      lines: {
+        for (final l in mapList('lines', (l) => l))
+          if (sent.contains(l['key']) && ((l['line'] as String?)?.trim().isNotEmpty ?? false))
+            l['key'] as String: (l['line'] as String).trim(),
+      },
       // colorToken passes through raw; the screen's color map clamps unknowns.
       proposals: mapList(
         'proposals',

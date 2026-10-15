@@ -15,7 +15,7 @@ class _ScriptedPal extends MockPalService {
   final List<Object> script;
 
   @override
-  Future<PalAgenda> agenda() async {
+  Future<PalAgenda> agenda({List<PlanFact> plan = const []}) async {
     final next = script.length > 1 ? script.removeAt(0) : script.single;
     if (next is PalAgenda) return next;
     throw next;

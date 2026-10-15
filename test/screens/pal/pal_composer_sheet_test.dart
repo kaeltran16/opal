@@ -41,7 +41,7 @@ class _Pal implements PalService {
   }
 
   @override
-  Future<PalAgenda> agenda() async => const PalAgenda();
+  Future<PalAgenda> agenda({List<PlanFact> plan = const []}) async => const PalAgenda();
 
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);

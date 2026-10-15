@@ -7,6 +7,13 @@ import 'pal_service.dart';
 
 // the agenda's money amounts in usd; [Currency.budgetScale] scales them.
 const double _rentHold = 40;
+
+String _planLine(PlanFact f) => switch (f.status) {
+      PlanFact.due => '${f.title} is due now.',
+      PlanFact.upcoming => '${f.title} is next, at ${f.when}.',
+      PlanFact.missed => '${f.title} was missed. It is still open if you want it.',
+      _ => '${f.title} fits any time today.',
+    };
 const double _rentDue = 2400;
 const double _rentSpare = 4192;
 const double _coffeeNudgeCap = 15;
@@ -461,12 +468,13 @@ class MockPalService implements PalService {
   }
 
   @override
-  Future<PalAgenda> agenda() async {
+  Future<PalAgenda> agenda({List<PlanFact> plan = const []}) async {
     await Future<void>.delayed(latency);
     final cur = currency();
     String money(double usd) => formatCurrency(usd * cur.budgetScale, cur);
     return PalAgenda(
       streakDays: 11,
+      lines: {for (final f in plan) f.key: _planLine(f)},
       proposals: [
         const PalProposal(
           id: 'move-legs-friday',

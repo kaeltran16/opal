@@ -120,7 +120,7 @@ class _ScenarioPal extends MockPalService {
   }
 
   @override
-  Future<PalAgenda> agenda() async {
+  Future<PalAgenda> agenda({List<PlanFact> plan = const []}) async {
     switch (autopilot) {
       case _Autopilot.seeded:
         return super.agenda();
