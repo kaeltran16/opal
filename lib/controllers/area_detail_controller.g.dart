@@ -8,14 +8,61 @@ part of 'area_detail_controller.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
-/// Streams the [AreaDetail] for [area]. Sleep has no data source, so its page
-/// does not watch this provider.
+/// Streams the Sleep page, null while no nights are stored. A night counts
+/// toward the day after it, so the window starts a day early.
+
+@ProviderFor(sleepDetail)
+const sleepDetailProvider = SleepDetailProvider._();
+
+/// Streams the Sleep page, null while no nights are stored. A night counts
+/// toward the day after it, so the window starts a day early.
+
+final class SleepDetailProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<AreaDetail?>,
+          AreaDetail?,
+          Stream<AreaDetail?>
+        >
+    with $FutureModifier<AreaDetail?>, $StreamProvider<AreaDetail?> {
+  /// Streams the Sleep page, null while no nights are stored. A night counts
+  /// toward the day after it, so the window starts a day early.
+  const SleepDetailProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'sleepDetailProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$sleepDetailHash();
+
+  @$internal
+  @override
+  $StreamProviderElement<AreaDetail?> $createElement(
+    $ProviderPointer pointer,
+  ) => $StreamProviderElement(pointer);
+
+  @override
+  Stream<AreaDetail?> create(Ref ref) {
+    return sleepDetail(ref);
+  }
+}
+
+String _$sleepDetailHash() => r'240b52d27d9654053aa1b8c8824f82b1d4a9428a';
+
+/// Streams the [AreaDetail] for [area]. Sleep reads [sleepDetailProvider]
+/// instead, which is empty while no nights are stored.
 
 @ProviderFor(areaDetail)
 const areaDetailProvider = AreaDetailFamily._();
 
-/// Streams the [AreaDetail] for [area]. Sleep has no data source, so its page
-/// does not watch this provider.
+/// Streams the [AreaDetail] for [area]. Sleep reads [sleepDetailProvider]
+/// instead, which is empty while no nights are stored.
 
 final class AreaDetailProvider
     extends
@@ -25,8 +72,8 @@ final class AreaDetailProvider
           Stream<AreaDetail>
         >
     with $FutureModifier<AreaDetail>, $StreamProvider<AreaDetail> {
-  /// Streams the [AreaDetail] for [area]. Sleep has no data source, so its page
-  /// does not watch this provider.
+  /// Streams the [AreaDetail] for [area]. Sleep reads [sleepDetailProvider]
+  /// instead, which is empty while no nights are stored.
   const AreaDetailProvider._({
     required AreaDetailFamily super.from,
     required Area super.argument,
@@ -70,10 +117,10 @@ final class AreaDetailProvider
   }
 }
 
-String _$areaDetailHash() => r'bd30a99d7e89f346a0c6610a6fcd13b677f608a2';
+String _$areaDetailHash() => r'a117657d09d72b284f049e83b2e6fd0dd1077dd7';
 
-/// Streams the [AreaDetail] for [area]. Sleep has no data source, so its page
-/// does not watch this provider.
+/// Streams the [AreaDetail] for [area]. Sleep reads [sleepDetailProvider]
+/// instead, which is empty while no nights are stored.
 
 final class AreaDetailFamily extends $Family
     with $FunctionalFamilyOverride<Stream<AreaDetail>, Area> {
@@ -86,8 +133,8 @@ final class AreaDetailFamily extends $Family
         isAutoDispose: true,
       );
 
-  /// Streams the [AreaDetail] for [area]. Sleep has no data source, so its page
-  /// does not watch this provider.
+  /// Streams the [AreaDetail] for [area]. Sleep reads [sleepDetailProvider]
+  /// instead, which is empty while no nights are stored.
 
   AreaDetailProvider call(Area area) =>
       AreaDetailProvider._(argument: area, from: this);

@@ -345,7 +345,9 @@ class _ExerciseSlotRow extends StatelessWidget {
   final VoidCallback onRemove;
 
   String get _targets {
-    final reps = '${slot.targetSets} × ${slot.targetReps ?? '—'}';
+    final minutes = slot.targetDurationMin;
+    final each = slot.targetReps?.toString() ?? (minutes != null ? '$minutes min' : '—');
+    final reps = '${slot.targetSets} × $each';
     final w = slot.targetWeightKg;
     return w != null && w > 0 ? '$reps · ${formatWeight(w)} kg' : reps;
   }

@@ -7,7 +7,6 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../analysis/area.dart';
 import '../analysis/area_state.dart';
 import '../models/models.dart';
-import '../screens/today/day_plan.dart' show clockLabel;
 import '../screens/today/today_logic.dart';
 import '../util/dates.dart';
 import '../util/format.dart';
@@ -130,6 +129,7 @@ AreasSummary buildAreasSummary({
   required List<Entry> entries,
   required List<NutritionMeal> meals,
   required List<MoodCheckin> checkins,
+  List<SleepNight> nights = const [],
   required Currency currency,
   required DateTime now,
 }) => AreasSummary([
@@ -139,7 +139,7 @@ AreasSummary buildAreasSummary({
       Area.move => _move(today, now),
       Area.routines => _routines(today, now),
       Area.nutrition => _nutrition(meals, now),
-      Area.sleep => _summary(Area.sleep, unit: 'No sleep data yet'),
+      Area.sleep => _sleep(nights, now),
       Area.mood => _mood(checkins, now),
     },
 ]);
@@ -252,6 +252,15 @@ AreaSummary _nutrition(List<NutritionMeal> meals, DateTime now) {
     progress: share(kcal),
     usual: band == null ? null : UsualBand(share(band.low), share(band.high)),
   );
+}
+
+/// Last night's sleep from the stored nights, the ones the findings read.
+AreaSummary _sleep(List<SleepNight> nights, DateTime now) {
+  if (nights.isEmpty) return _summary(Area.sleep, unit: 'No sleep data yet');
+  final today = startOfDay(now);
+  final last = nights.where((n) => n.countsToward == today).firstOrNull;
+  if (last == null) return _summary(Area.sleep, unit: 'No night synced for last night');
+  return _summary(Area.sleep, number: hm(last.asleepMinutes), unit: 'asleep last night');
 }
 
 AreaSummary _mood(List<MoodCheckin> checkins, DateTime now) {
@@ -376,6 +385,14 @@ Stream<List<MoodCheckin>> _recentCheckins(Ref ref) {
   return ref.watch(moodRepositoryProvider).watchCheckinsInRange(w.from, w.to);
 }
 
+@riverpod
+Stream<List<SleepNight>> _recentNights(Ref ref) {
+  final w = _window();
+  // a night counts toward the day after it, so the window starts a day early.
+  final from = DateTime(w.from.year, w.from.month, w.from.day - 1);
+  return ref.watch(sleepRepositoryProvider).watchNightsInRange(from, w.to);
+}
+
 /// Streams the Areas tab view model. Watching each source's `.future`
 /// rebuilds this provider when today's numbers, entries, meals or check-ins
 /// change.
@@ -396,11 +413,13 @@ Stream<AreasSummary> areasSummary(Ref ref) async* {
   final entries = await ref.watch(_recentEntriesProvider.future);
   final meals = await ref.watch(_recentMealsProvider.future);
   final checkins = await ref.watch(_recentCheckinsProvider.future);
+  final nights = await ref.watch(_recentNightsProvider.future);
   yield buildAreasSummary(
     today: today.glance,
     entries: entries,
     meals: meals,
     checkins: checkins,
+    nights: nights,
     currency: currency,
     now: clock.now(),
   );

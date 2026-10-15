@@ -45,4 +45,13 @@ void main() {
     expect(ctx['currency'], Currency.vnd.toWire());
     expect((ctx['todayEntries'] as List).single, contains('₫'));
   });
+
+  test('formatEntryLine writes the time on the app 12-hour clock', () {
+    final line = formatEntryLine(
+      Entry(id: '1', timestamp: DateTime(2026, 6, 20, 22, 37), type: EntryType.rituals,
+          title: 'Read', source: EntrySource.manual),
+      Currency.usd,
+    );
+    expect(line, '10:37 PM Read (rituals)');
+  });
 }

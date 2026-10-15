@@ -1,4 +1,5 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart' show Icons;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opal/widgets/app_icon.dart';
 
@@ -23,6 +24,11 @@ void main() {
   test('maps the drag-handle glyph rather than falling back', () {
     expect(iconForSf('line.3.horizontal'), CupertinoIcons.line_horizontal_3);
     expect(iconForSf('line.3.horizontal'), isNot(CupertinoIcons.circle));
+  });
+
+  test('Journal draws a writing glyph, not translate', () {
+    expect(iconForSf('character.book.closed.fill'), isNot(Icons.translate));
+    expect(lineIconForSf('character.book.closed.fill'), isNot(Icons.translate_outlined));
   });
 
   test('every filled picker glyph has a distinct line form', () {

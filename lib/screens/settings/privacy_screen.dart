@@ -14,10 +14,10 @@ const double _chevron = 14;
 
 /// You → Data and privacy.
 ///
-/// Opal is local-first, so this explains what is stored on the device and the
-/// only two cases where data leaves it (Pal and email sync, both opt-in), then
-/// links to exporting data and notification settings. No toggles — there is
-/// nothing collected to turn off.
+/// Opal is local-first, so this explains what is stored on the device and what
+/// leaves it: Pal, which reads the timeline on its own whenever its surfaces
+/// load, the memory it keeps server-side, and email sync, the one opt-in. Then
+/// links to exporting data and notification settings.
 class PrivacyScreen extends StatelessWidget {
   const PrivacyScreen({super.key});
 
@@ -38,25 +38,28 @@ class PrivacyScreen extends StatelessWidget {
           title: 'No tracking',
           subtitle: 'No third-party analytics or trackers.',
         ),
-        const _Footer('Opal has no account and no analytics. Your timeline never '
-            'leaves the device unless you use a feature below.'),
+        const _Footer('Opal has no account and no analytics. Data leaves the '
+            'device only through the features below.'),
         const SizedBox(height: Spacing.xxl),
         const _Heading('When data leaves your device'),
         const SizedBox(height: Spacing.sm),
         const _FactRow(
           title: 'Pal',
-          subtitle: 'Text you send to Pal is processed to reply.',
+          subtitle: 'When Today, You or Recap load, Pal gets your timeline: '
+              'entry titles, merchants, amounts and times, workouts and goals. '
+              'Anything you type to Pal is sent too.',
         ),
         const _FactRow(
           title: 'Pal memory',
-          subtitle: 'Facts you mention and patterns Pal learns, '
-              'stored to personalize replies. Clear anytime in Pal.',
+          subtitle: 'Facts you mention and patterns Pal finds in your timeline, '
+              "kept on Pal's server to personalize replies. Clear anytime in Pal.",
         ),
         const _FactRow(
           title: 'Email sync',
-          subtitle: 'Only if connected; reads filtered bank alerts.',
+          subtitle: 'Only if you connect it; reads filtered bank alerts and receipts.',
         ),
-        const _Footer('Both are opt-in and only send what each feature needs.'),
+        const _Footer('Email sync is opt-in. Pal is part of the app and reads your '
+            'timeline without you typing anything.'),
         const SizedBox(height: Spacing.xxl),
         _LinkRow(
           title: 'Export data',

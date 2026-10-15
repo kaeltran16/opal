@@ -20,6 +20,13 @@ describe('register + bearer guard', () => {
     expect((await b.json() as any).token).toBe(t1) // same device -> same token
   })
 
+  it('gives concurrent registers for one device the same token, no 500', async () => {
+    const body = { provisioningKey: env.PAL_PROVISIONING_KEY, deviceId: 'd-race' }
+    const [a, b] = await Promise.all([register(body), register(body)])
+    expect([a.status, b.status]).toEqual([200, 200])
+    expect((await a.json() as any).token).toBe((await b.json() as any).token)
+  })
+
   it('rejects a bad provisioning key with 401', async () => {
     const res = await register({ provisioningKey: 'wrong', deviceId: 'd1' })
     expect(res.status).toBe(401)

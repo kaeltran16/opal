@@ -45,7 +45,7 @@ final class RitualsControllerProvider
   RitualsController create() => RitualsController();
 }
 
-String _$ritualsControllerHash() => r'dc81f137fdf06ea65967be717005c76ae63d2dc9';
+String _$ritualsControllerHash() => r'5b7728d1660d0792313fda0b6665989e8262bf9f';
 
 /// Streams the Rituals view model and owns the step toggle / complete actions.
 ///

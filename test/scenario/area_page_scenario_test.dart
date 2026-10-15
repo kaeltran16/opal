@@ -216,7 +216,8 @@ void main() {
   });
 
   scenarioTest('area sleep', (tester, dark) async {
-    await bootToday(tester, dark: dark);
+    // no nights stored: Sleep has no source connected.
+    await bootToday(tester, dark: dark, day: const TodayDay(sleep: false));
     await _open(tester, Area.sleep);
 
     expect(_onPage(find.text('Sleep')), findsOneWidget);
@@ -230,6 +231,18 @@ void main() {
     expect(_onPage(find.byType(ContributorBar)), findsNothing);
     expect(_onPage(find.byType(WeekBars)), findsNothing);
     await shot(tester, 'area_sleep_${_theme(dark)}');
+  });
+
+  scenarioTest('area sleep with nights', (tester, dark) async {
+    await bootToday(tester, dark: dark);
+    await _open(tester, Area.sleep);
+
+    // the night that began yesterday is last night: the seed's 432 minutes.
+    expect(_onPage(find.text('7h 12m')), findsWidgets);
+    expect(_onPage(find.text('asleep last night')), findsOneWidget);
+    expect(_onPage(find.byType(ContributorBar)), findsNWidgets(3));
+    expect(_onPage(find.byType(WeekBars)), findsOneWidget);
+    await shot(tester, 'area_sleep_nights_${_theme(dark)}');
   });
 
   scenarioTest('area mood', (tester, dark) async {

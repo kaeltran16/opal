@@ -217,7 +217,7 @@ void main() {
     expect(detail.meals.map((m) => m.name), [mealTitle]);
     expect(_onPage(find.text("Today's meals")), findsOneWidget);
     expect(_onPage(find.text(mealTitle)), findsOneWidget);
-    await tester.tap(find.bySemanticsLabel(RegExp('^Breakfast at 06:40, $mealTitle, ')));
+    await tester.tap(find.bySemanticsLabel(RegExp('^Breakfast at 6:40 AM, $mealTitle, ')));
     await tester.pumpAndSettle();
 
     final page = find.byType(NutritionMealDetailScreen);
@@ -340,8 +340,21 @@ void main() {
     _expectNoStateWord();
   });
 
-  _pageTest('sleep shows its empty state and nothing else', (tester) async {
+  _pageTest('sleep reads last night from the stored nights', (tester) async {
     await _boot(tester, day: _fullDay);
+    await _openPage(tester, Area.sleep);
+
+    // the seed's last night: 432 minutes asleep of 450 in bed.
+    expect(_onPage(find.text('7h 12m')), findsWidgets);
+    expect(_onPage(find.text('asleep last night')), findsOneWidget);
+    expect(_onPage(find.text('In bed')), findsOneWidget);
+    expect(_onPage(find.byType(WeekBars)), findsOneWidget);
+    expect(_onPage(find.text('No sleep data yet')), findsNothing);
+    _expectNoStateWord();
+  });
+
+  _pageTest('sleep with no nights stored shows its empty state and nothing else', (tester) async {
+    await _boot(tester, day: const TodayDay(meal: true, mood: true, sleep: false));
     await _openPage(tester, Area.sleep);
 
     expect(_onPage(find.text('No sleep data yet')), findsOneWidget);

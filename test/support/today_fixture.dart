@@ -190,8 +190,9 @@ class TodayDay {
       ));
     }
     if (sleep) {
-      await SleepRepository(db)
-          .insert(SeedData.sleepNights().first.copyWith(id: 'night-today', night: today));
+      // last night: the session began yesterday and counts toward today.
+      await SleepRepository(db).insert(SeedData.sleepNights().first.copyWith(
+          id: 'night-today', night: DateTime(today.year, today.month, today.day - 1)));
     }
     if (mood) {
       await MoodRepository(db).insert(MoodCheckin(

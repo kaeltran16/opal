@@ -61,7 +61,7 @@ export interface InsightsContext {
 }
 
 export interface SuggestContext {
-  recentWorkouts: Array<{ routineName: string; date: string; muscles: string }>
+  recentWorkouts: Array<{ routineName: string; date: string; muscles: string; groups?: string }>
   dayOfWeek: string
   availableRoutines: Array<{ id: string; name: string }>
   plannedToday?: string | null
@@ -80,6 +80,24 @@ export interface PostWorkoutContext {
 // DESIGN.md: emphasis comes from size, never bold. every Pal surface renders
 // the model's text as plain text, so markdown would show as raw asterisks.
 export const PLAIN_TEXT = 'Write plain text: no markdown, no asterisks or underscores for emphasis, no headings, no lists.'
+
+// reasoning is off, so a model that has to count in its reply recounts aloud
+// ("six steps... let me recount... five").
+export const ANSWER_ONLY = 'Work the answer out before you write. The reply is the final answer only: never show counting, rechecking or a correction ("let me recount", "wait", "make that").'
+
+const ENTRY_KINDS = [['rituals', 'routine step'], ['money', 'money entry'], ['move', 'movement']] as const
+
+// how many of each kind the day's entries hold, read from the "(type, ...)" tag
+// the app writes on each line, so a "how many" question is a lookup, not a count.
+export function entryCounts(entries: string[]): string {
+  const parts = ENTRY_KINDS.flatMap(([wire, noun]) => {
+    const n = entries.filter((e) => e.includes(`(${wire},`) || e.includes(`(${wire})`)).length
+    if (n === 0) return []
+    const plural = noun.endsWith('y') ? `${noun.slice(0, -1)}ies` : `${noun}s`
+    return [`${n} ${n === 1 ? noun : plural}`]
+  })
+  return `${entries.length} in all${parts.length ? `: ${parts.join(', ')}` : ''}`
+}
 
 const WEEKDAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 
@@ -143,7 +161,8 @@ export function memoryBlock(digest: MemoryDigest | undefined, opts?: { withIds?:
 
 export function chatSystemPrompt(c: ChatContext, memory?: MemoryDigest): string {
   const entries = c.todayEntries.length ? c.todayEntries.join('\n') : '(none yet)'
-  const heading = c.userName ? `Today's entries for ${c.userName}:` : "Today's entries:"
+  const counts = c.todayEntries.length ? ` (${entryCounts(c.todayEntries)})` : ''
+  const heading = `Today's entries${c.userName ? ` for ${c.userName}` : ''}${counts}:`
   const mem = memoryBlock(memory, { withIds: true })
   const memSection = mem ? `${mem}\nWhen the user states a durable fact about themselves, call remember. When a remembered fact is wrong or obsolete, call forget with its id.\n\n` : ''
   return `You are Pal, a gentle, concise coach in ${PRODUCT_FRAMING}.
@@ -161,7 +180,7 @@ Money amounts are in the user's own currency, not necessarily dollars — never 
 
 When you log an entry (expense, income, movement or ritual), the app already shows the user a confirmation card with the entry and an updated progress ring — so do NOT restate what was logged or say "logged it". Instead reply with at most one short, specific insight tied to their day or week (a pace, a streak, a budget heads-up), or reply with nothing at all if you have nothing genuinely useful to add. For a goal or routine change, a one-line confirmation is still helpful.
 
-Reply in 1-3 short sentences. Friendly, specific, no filler. Never say "amazing" or "great job" — be observational and warm instead. State over, under, finished or not exactly as the facts above say. ${PLAIN_TEXT}`
+Reply in 1-3 short sentences. Friendly, specific, no filler. Never say "amazing" or "great job" — be observational and warm instead. State over, under, finished or not exactly as the facts above say. ${ANSWER_ONLY} ${PLAIN_TEXT}`
 }
 
 export function reviewPrompt(c: ReviewContext, memory?: MemoryDigest): string {
@@ -245,7 +264,7 @@ No prose, no code fence. Output only the JSON object.`
 
 export function suggestPrompt(c: SuggestContext): string {
   const recent = c.recentWorkouts.length
-    ? c.recentWorkouts.map((w) => `${w.routineName} — ${w.date} — ${w.muscles}`).join('\n')
+    ? c.recentWorkouts.map((w) => `${w.routineName} — ${w.date} — ${w.muscles}${w.groups ? ` (${w.groups})` : ''}`).join('\n')
     : '(none this week)'
   const available = c.availableRoutines.map((r) => `${r.id}: ${r.name}`).join(', ')
   const plan = !c.plannedToday
@@ -253,12 +272,15 @@ export function suggestPrompt(c: SuggestContext): string {
     : c.plannedToday === 'Rest'
       ? ' Their weekly plan has today as a rest day.'
       : ` Their weekly plan has ${c.plannedToday} today; prefer it unless their recent workouts already hit those muscles.`
+  const trainedToday = c.recentWorkouts.some((w) => w.date.toLowerCase() === 'today')
+    ? ' They already trained today, so this pick is for their next session: say it suits tomorrow or next time, never today.'
+    : ''
   return `The user's recent workouts, newest first (the day is relative to today):
 ${recent}
 
-Today is ${c.dayOfWeek}.${plan} Pick ONE routine from ${available} that balances their recent volume. Return strictly:
+Today is ${c.dayOfWeek}.${plan}${trainedToday} Pick ONE routine from ${available} that balances their recent volume. Return strictly:
 {"routineId": string, "reason": string}
-"reason" is one short sentence, at most 20 words, spoken to the user ("you"), saying why this routine fits today. Use only the workouts listed above; when the routine is not among them, do not say when it was last done. Name days as today, yesterday or a weekday, never as a date. No reasoning steps. ${PLAIN_TEXT}
+"reason" is one short sentence, at most 20 words, spoken to the user ("you"), saying why this routine fits today. Use only the workouts listed above, and never say a muscle or group they list went untrained; when the routine is not among them, do not say when it was last done. Name days as today, yesterday or a weekday, never as a date. No reasoning steps. ${PLAIN_TEXT}
 No prose. Output only the JSON object.`
 }
 
@@ -362,12 +384,13 @@ export interface RoutineExercise {
   id: string
   name: string
   group: string
+  muscle?: string | null
   equipment: string | null
 }
 
 export function routinePrompt(goal: string, exercises: RoutineExercise[], memory?: MemoryDigest): string {
   const list = exercises
-    .map((e) => `${e.id}: ${e.name} (${e.group}${e.equipment ? `, ${e.equipment}` : ''})`)
+    .map((e) => `${e.id}: ${e.name} (${[e.group, e.muscle, e.equipment].filter(Boolean).join(', ')})`)
     .join('\n')
   const mem = memoryBlock(memory)
   return `Design a workout routine for this goal: "${goal}".
@@ -381,6 +404,7 @@ Return strictly this JSON, no prose:
 {"name": string, "tag": "upper|lower|full|cardio|custom", "estMin": number, "rationale": "one short sentence", "exercises": [{"exerciseId": string, "sets": [{"reps": number|null, "weight": number|null, "duration": number|null}]}]}
 - exerciseId MUST be one of the ids listed above.
 - tag: pick the closest of upper, lower, full, cardio, custom.
+- rationale: name only groups and muscles that the exercises you chose train.
 - name and rationale: ${PLAIN_TEXT}
 - Output only the JSON object.`
 }

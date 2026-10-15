@@ -2016,6 +2016,17 @@ class $RoutineExercisesTable extends RoutineExercises
     type: DriftSqlType.double,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _targetDurationMinMeta = const VerificationMeta(
+    'targetDurationMin',
+  );
+  @override
+  late final GeneratedColumn<int> targetDurationMin = GeneratedColumn<int>(
+    'target_duration_min',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -2025,6 +2036,7 @@ class $RoutineExercisesTable extends RoutineExercises
     targetSets,
     targetReps,
     targetWeightKg,
+    targetDurationMin,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -2088,6 +2100,15 @@ class $RoutineExercisesTable extends RoutineExercises
         ),
       );
     }
+    if (data.containsKey('target_duration_min')) {
+      context.handle(
+        _targetDurationMinMeta,
+        targetDurationMin.isAcceptableOrUnknown(
+          data['target_duration_min']!,
+          _targetDurationMinMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -2125,6 +2146,10 @@ class $RoutineExercisesTable extends RoutineExercises
         DriftSqlType.double,
         data['${effectivePrefix}target_weight_kg'],
       ),
+      targetDurationMin: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}target_duration_min'],
+      ),
     );
   }
 
@@ -2145,6 +2170,9 @@ class RoutineExerciseRow extends DataClass
   final int targetSets;
   final int? targetReps;
   final double? targetWeightKg;
+
+  /// Planned minutes per set for a timed set (a plank), else null.
+  final int? targetDurationMin;
   const RoutineExerciseRow({
     required this.id,
     required this.routineId,
@@ -2153,6 +2181,7 @@ class RoutineExerciseRow extends DataClass
     required this.targetSets,
     this.targetReps,
     this.targetWeightKg,
+    this.targetDurationMin,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -2167,6 +2196,9 @@ class RoutineExerciseRow extends DataClass
     }
     if (!nullToAbsent || targetWeightKg != null) {
       map['target_weight_kg'] = Variable<double>(targetWeightKg);
+    }
+    if (!nullToAbsent || targetDurationMin != null) {
+      map['target_duration_min'] = Variable<int>(targetDurationMin);
     }
     return map;
   }
@@ -2184,6 +2216,9 @@ class RoutineExerciseRow extends DataClass
       targetWeightKg: targetWeightKg == null && nullToAbsent
           ? const Value.absent()
           : Value(targetWeightKg),
+      targetDurationMin: targetDurationMin == null && nullToAbsent
+          ? const Value.absent()
+          : Value(targetDurationMin),
     );
   }
 
@@ -2200,6 +2235,7 @@ class RoutineExerciseRow extends DataClass
       targetSets: serializer.fromJson<int>(json['targetSets']),
       targetReps: serializer.fromJson<int?>(json['targetReps']),
       targetWeightKg: serializer.fromJson<double?>(json['targetWeightKg']),
+      targetDurationMin: serializer.fromJson<int?>(json['targetDurationMin']),
     );
   }
   @override
@@ -2213,6 +2249,7 @@ class RoutineExerciseRow extends DataClass
       'targetSets': serializer.toJson<int>(targetSets),
       'targetReps': serializer.toJson<int?>(targetReps),
       'targetWeightKg': serializer.toJson<double?>(targetWeightKg),
+      'targetDurationMin': serializer.toJson<int?>(targetDurationMin),
     };
   }
 
@@ -2224,6 +2261,7 @@ class RoutineExerciseRow extends DataClass
     int? targetSets,
     Value<int?> targetReps = const Value.absent(),
     Value<double?> targetWeightKg = const Value.absent(),
+    Value<int?> targetDurationMin = const Value.absent(),
   }) => RoutineExerciseRow(
     id: id ?? this.id,
     routineId: routineId ?? this.routineId,
@@ -2234,6 +2272,9 @@ class RoutineExerciseRow extends DataClass
     targetWeightKg: targetWeightKg.present
         ? targetWeightKg.value
         : this.targetWeightKg,
+    targetDurationMin: targetDurationMin.present
+        ? targetDurationMin.value
+        : this.targetDurationMin,
   );
   RoutineExerciseRow copyWithCompanion(RoutineExercisesCompanion data) {
     return RoutineExerciseRow(
@@ -2252,6 +2293,9 @@ class RoutineExerciseRow extends DataClass
       targetWeightKg: data.targetWeightKg.present
           ? data.targetWeightKg.value
           : this.targetWeightKg,
+      targetDurationMin: data.targetDurationMin.present
+          ? data.targetDurationMin.value
+          : this.targetDurationMin,
     );
   }
 
@@ -2264,7 +2308,8 @@ class RoutineExerciseRow extends DataClass
           ..write('position: $position, ')
           ..write('targetSets: $targetSets, ')
           ..write('targetReps: $targetReps, ')
-          ..write('targetWeightKg: $targetWeightKg')
+          ..write('targetWeightKg: $targetWeightKg, ')
+          ..write('targetDurationMin: $targetDurationMin')
           ..write(')'))
         .toString();
   }
@@ -2278,6 +2323,7 @@ class RoutineExerciseRow extends DataClass
     targetSets,
     targetReps,
     targetWeightKg,
+    targetDurationMin,
   );
   @override
   bool operator ==(Object other) =>
@@ -2289,7 +2335,8 @@ class RoutineExerciseRow extends DataClass
           other.position == this.position &&
           other.targetSets == this.targetSets &&
           other.targetReps == this.targetReps &&
-          other.targetWeightKg == this.targetWeightKg);
+          other.targetWeightKg == this.targetWeightKg &&
+          other.targetDurationMin == this.targetDurationMin);
 }
 
 class RoutineExercisesCompanion extends UpdateCompanion<RoutineExerciseRow> {
@@ -2300,6 +2347,7 @@ class RoutineExercisesCompanion extends UpdateCompanion<RoutineExerciseRow> {
   final Value<int> targetSets;
   final Value<int?> targetReps;
   final Value<double?> targetWeightKg;
+  final Value<int?> targetDurationMin;
   final Value<int> rowid;
   const RoutineExercisesCompanion({
     this.id = const Value.absent(),
@@ -2309,6 +2357,7 @@ class RoutineExercisesCompanion extends UpdateCompanion<RoutineExerciseRow> {
     this.targetSets = const Value.absent(),
     this.targetReps = const Value.absent(),
     this.targetWeightKg = const Value.absent(),
+    this.targetDurationMin = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   RoutineExercisesCompanion.insert({
@@ -2319,6 +2368,7 @@ class RoutineExercisesCompanion extends UpdateCompanion<RoutineExerciseRow> {
     this.targetSets = const Value.absent(),
     this.targetReps = const Value.absent(),
     this.targetWeightKg = const Value.absent(),
+    this.targetDurationMin = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        routineId = Value(routineId),
@@ -2332,6 +2382,7 @@ class RoutineExercisesCompanion extends UpdateCompanion<RoutineExerciseRow> {
     Expression<int>? targetSets,
     Expression<int>? targetReps,
     Expression<double>? targetWeightKg,
+    Expression<int>? targetDurationMin,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -2342,6 +2393,7 @@ class RoutineExercisesCompanion extends UpdateCompanion<RoutineExerciseRow> {
       if (targetSets != null) 'target_sets': targetSets,
       if (targetReps != null) 'target_reps': targetReps,
       if (targetWeightKg != null) 'target_weight_kg': targetWeightKg,
+      if (targetDurationMin != null) 'target_duration_min': targetDurationMin,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -2354,6 +2406,7 @@ class RoutineExercisesCompanion extends UpdateCompanion<RoutineExerciseRow> {
     Value<int>? targetSets,
     Value<int?>? targetReps,
     Value<double?>? targetWeightKg,
+    Value<int?>? targetDurationMin,
     Value<int>? rowid,
   }) {
     return RoutineExercisesCompanion(
@@ -2364,6 +2417,7 @@ class RoutineExercisesCompanion extends UpdateCompanion<RoutineExerciseRow> {
       targetSets: targetSets ?? this.targetSets,
       targetReps: targetReps ?? this.targetReps,
       targetWeightKg: targetWeightKg ?? this.targetWeightKg,
+      targetDurationMin: targetDurationMin ?? this.targetDurationMin,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -2392,6 +2446,9 @@ class RoutineExercisesCompanion extends UpdateCompanion<RoutineExerciseRow> {
     if (targetWeightKg.present) {
       map['target_weight_kg'] = Variable<double>(targetWeightKg.value);
     }
+    if (targetDurationMin.present) {
+      map['target_duration_min'] = Variable<int>(targetDurationMin.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -2408,6 +2465,7 @@ class RoutineExercisesCompanion extends UpdateCompanion<RoutineExerciseRow> {
           ..write('targetSets: $targetSets, ')
           ..write('targetReps: $targetReps, ')
           ..write('targetWeightKg: $targetWeightKg, ')
+          ..write('targetDurationMin: $targetDurationMin, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -9317,6 +9375,7 @@ typedef $$RoutineExercisesTableCreateCompanionBuilder =
       Value<int> targetSets,
       Value<int?> targetReps,
       Value<double?> targetWeightKg,
+      Value<int?> targetDurationMin,
       Value<int> rowid,
     });
 typedef $$RoutineExercisesTableUpdateCompanionBuilder =
@@ -9328,6 +9387,7 @@ typedef $$RoutineExercisesTableUpdateCompanionBuilder =
       Value<int> targetSets,
       Value<int?> targetReps,
       Value<double?> targetWeightKg,
+      Value<int?> targetDurationMin,
       Value<int> rowid,
     });
 
@@ -9372,6 +9432,11 @@ class $$RoutineExercisesTableFilterComposer
 
   ColumnFilters<double> get targetWeightKg => $composableBuilder(
     column: $table.targetWeightKg,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get targetDurationMin => $composableBuilder(
+    column: $table.targetDurationMin,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -9419,6 +9484,11 @@ class $$RoutineExercisesTableOrderingComposer
     column: $table.targetWeightKg,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<int> get targetDurationMin => $composableBuilder(
+    column: $table.targetDurationMin,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$RoutineExercisesTableAnnotationComposer
@@ -9456,6 +9526,11 @@ class $$RoutineExercisesTableAnnotationComposer
 
   GeneratedColumn<double> get targetWeightKg => $composableBuilder(
     column: $table.targetWeightKg,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get targetDurationMin => $composableBuilder(
+    column: $table.targetDurationMin,
     builder: (column) => column,
   );
 }
@@ -9504,6 +9579,7 @@ class $$RoutineExercisesTableTableManager
                 Value<int> targetSets = const Value.absent(),
                 Value<int?> targetReps = const Value.absent(),
                 Value<double?> targetWeightKg = const Value.absent(),
+                Value<int?> targetDurationMin = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => RoutineExercisesCompanion(
                 id: id,
@@ -9513,6 +9589,7 @@ class $$RoutineExercisesTableTableManager
                 targetSets: targetSets,
                 targetReps: targetReps,
                 targetWeightKg: targetWeightKg,
+                targetDurationMin: targetDurationMin,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -9524,6 +9601,7 @@ class $$RoutineExercisesTableTableManager
                 Value<int> targetSets = const Value.absent(),
                 Value<int?> targetReps = const Value.absent(),
                 Value<double?> targetWeightKg = const Value.absent(),
+                Value<int?> targetDurationMin = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => RoutineExercisesCompanion.insert(
                 id: id,
@@ -9533,6 +9611,7 @@ class $$RoutineExercisesTableTableManager
                 targetSets: targetSets,
                 targetReps: targetReps,
                 targetWeightKg: targetWeightKg,
+                targetDurationMin: targetDurationMin,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

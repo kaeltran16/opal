@@ -324,6 +324,28 @@ void main() {
       expect(d.contributors[1].fraction, 1);
     });
 
+    test('another routine finished today settles the planned one', () {
+      final d = _build(
+        Area.move,
+        [_burn(310)],
+        workout: const WeekPlanDay(
+          day: 'Thu',
+          date: 1,
+          type: 'Legs',
+          routine: 'Leg Day',
+          est: 45,
+          colorKey: 'move',
+          icon: 'dumbbell.fill',
+          trained: true,
+          today: true,
+        ),
+      );
+
+      expect(d.palLine, '190 kcal to go.');
+      expect(d.contributors[1].value, 'Another workout done today');
+      expect(d.contributors[1].fraction, 1);
+    });
+
     test('a rest day adds no contributor', () {
       final d = _build(
         Area.move,
@@ -370,11 +392,88 @@ void main() {
     });
   });
 
+  group('sleep', () {
+    SleepNight night(int daysBefore, int asleep, {int wakes = 1}) => SleepNight(
+          id: 'n$daysBefore',
+          night: DateTime(_now.year, _now.month, _now.day - daysBefore),
+          asleepMinutes: asleep,
+          inBedMinutes: asleep + 18,
+          bedtime: '23:00',
+          wake: '7:00',
+          deepMinutes: 64,
+          remMinutes: 98,
+          coreMinutes: 270,
+          awakeMinutes: 18,
+          wakes: wakes,
+          source: EntrySource.health,
+        );
+
+    test('no nights stored is no page: Sleep keeps its empty state', () {
+      expect(buildSleepDetail(const [], _now), isNull);
+    });
+
+    test('last night leads, with its stages and the week of nights', () {
+      // _now is a Thursday; the nights that began Mon-Wed count toward Tue-Thu.
+      final d = buildSleepDetail([night(3, 450), night(2, 355), night(1, 432)], _now)!;
+
+      expect(d.hero, '7h 12m');
+      expect(d.unit, 'asleep last night');
+      expect(d.state, isNull);
+      expect(d.palLine, 'Your usual is 7h 12m.');
+      expect(d.contributors.map((c) => (c.label, c.value)),
+          [('In bed', '7h 30m'), ('Deep', '1h 4m'), ('REM', '1h 38m')]);
+      expect(d.week.map((b) => b.value), [null, 450, 355, 432, null, null, null]);
+      expect(d.week.map((b) => b.off), [false, false, true, false, false, false, false]);
+      expect(d.weekNote, '1 short night');
+    });
+
+    test('a short night says so, and a missing one says it is not synced', () {
+      expect(buildSleepDetail([night(2, 450), night(1, 350)], _now)!.palLine,
+          'A short night, under your usual 6h 40m.');
+      final missing = buildSleepDetail([night(3, 450)], _now)!;
+      expect(missing.hero, '—');
+      expect(missing.palLine, 'No night synced for last night yet. Your usual is 7h 30m.');
+      expect(missing.contributors, isEmpty);
+    });
+  });
+
   group('routines', () {
     final morning = _routines[0];
     final midday = _routines[1];
     final evening = _routines[2];
     final night = _routines[3];
+
+    test('late in the evening it points at the routine in progress, not the missed morning', () {
+      final d = _build(
+        Area.routines,
+        [..._allSteps(midday), _step(evening.steps[0].id), _step(evening.steps[1].id)],
+        routines: _routines,
+        rituals: RitualsState(routines: _routines, progress: const {
+          'midday': {0},
+          'evening': {0, 1},
+        }),
+        now: DateTime(_now.year, _now.month, _now.day, 22, 39),
+      );
+
+      expect(d.palLine, '3 left. Evening was due at 9:00 PM.');
+      expect(d.contributors.last.label, 'Evening, 9:00 PM');
+    });
+
+    test('a missed routine is pointed at only when nothing else is open', () {
+      final d = _build(
+        Area.routines,
+        [..._allSteps(midday), ..._allSteps(evening), ..._allSteps(night)],
+        routines: _routines,
+        rituals: RitualsState(routines: _routines, progress: const {
+          'midday': {0},
+          'evening': {0, 1, 2, 3, 4},
+          'night': {0},
+        }),
+        now: DateTime(_now.year, _now.month, _now.day, 22, 39),
+      );
+
+      expect(d.palLine, '1 left. Morning was due at 7:00 AM.');
+    });
 
     test('two of four done', () {
       final d = _build(

@@ -13,7 +13,8 @@ const Map<String, IconData> _sfMap = {
   'dumbbell.fill': Icons.fitness_center,
   'book.closed.fill': CupertinoIcons.book_fill,
   'books.vertical.fill': Icons.menu_book,
-  'character.book.closed.fill': Icons.translate,
+  // a journal is writing; Icons.translate drew a 文A glyph.
+  'character.book.closed.fill': Icons.edit_note,
   'tray.fill': CupertinoIcons.tray_fill,
   'cup.and.saucer.fill': Icons.local_cafe,
   'fork.knife': Icons.restaurant,
@@ -105,7 +106,7 @@ const Map<String, IconData> _sfMap = {
   'leaf': Icons.eco_outlined,
   'book.closed': CupertinoIcons.book,
   'books.vertical': Icons.menu_book_outlined,
-  'character.book.closed': Icons.translate_outlined,
+  'character.book.closed': Icons.edit_note_outlined,
   'tray': CupertinoIcons.tray,
   'cup.and.saucer': Icons.local_cafe_outlined,
   'heart': CupertinoIcons.heart,

@@ -122,19 +122,21 @@ class GlassTabBar extends StatelessWidget {
 
   Widget _minimized(AppColors c) {
     final active = tabs.firstWhere((t) => t.id == activeId);
-    return Semantics(
+    return MergeSemantics(
       key: const ValueKey('minimized'),
-      container: true,
-      selected: true,
-      button: true,
-      label: '${active._a11yLabel} tab, expand tab bar',
-      child: PressScale(
-        onTap: onRestore,
-        child: ExcludeSemantics(
-          child: SizedBox.square(
-            dimension: minimizedSize,
-            child: Center(
-              child: _DottedIcon(tab: active, color: c.ink),
+      child: Semantics(
+        container: true,
+        selected: true,
+        button: true,
+        label: '${active._a11yLabel} tab, expand tab bar',
+        child: PressScale(
+          onTap: onRestore,
+          child: ExcludeSemantics(
+            child: SizedBox.square(
+              dimension: minimizedSize,
+              child: Center(
+                child: _DottedIcon(tab: active, color: c.ink),
+              ),
             ),
           ),
         ),
@@ -158,34 +160,38 @@ class _TabButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     final color = active ? c.ink : c.ink3;
-    return Semantics(
-      container: true,
-      selected: active,
-      button: true,
-      label: tab._a11yLabel,
-      child: PressScale(
-        onTap: onTap,
-        child: ExcludeSemantics(
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              color: active ? c.surface2 : null,
-              borderRadius: BorderRadius.circular(Radii.pill),
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              spacing: Spacing.xxs,
-              children: [
-                _DottedIcon(tab: tab, color: color),
-                Text(
-                  tab.label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppType.caption.copyWith(
-                    fontWeight: active ? FontWeight.w600 : FontWeight.w400,
-                    color: color,
+    // one stop per tab: PressScale's own tap node would otherwise sit beside
+    // this label as a blank button.
+    return MergeSemantics(
+      child: Semantics(
+        container: true,
+        selected: active,
+        button: true,
+        label: tab._a11yLabel,
+        child: PressScale(
+          onTap: onTap,
+          child: ExcludeSemantics(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: active ? c.surface2 : null,
+                borderRadius: BorderRadius.circular(Radii.pill),
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                spacing: Spacing.xxs,
+                children: [
+                  _DottedIcon(tab: tab, color: color),
+                  Text(
+                    tab.label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppType.caption.copyWith(
+                      fontWeight: active ? FontWeight.w600 : FontWeight.w400,
+                      color: color,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),

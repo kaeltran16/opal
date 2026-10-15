@@ -100,6 +100,9 @@ class RoutineExercises extends Table {
   IntColumn get targetReps => integer().nullable()();
   RealColumn get targetWeightKg => real().nullable()();
 
+  /// Planned minutes per set for a timed set (a plank), else null.
+  IntColumn get targetDurationMin => integer().nullable()();
+
   @override
   Set<Column> get primaryKey => {id};
 

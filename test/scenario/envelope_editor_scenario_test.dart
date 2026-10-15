@@ -38,7 +38,8 @@ const _dragSteps = 5;
 // the scenario's own spend, on the 10th of each month it lands in.
 const _spendDay = 10;
 const _groceriesMonthly = 900.0; // lifts its suggested cap well past the seed's 500
-const _coffeeMonthly = 80.0;
+// high enough that its suggested cap clears this month's spend, which vetoes a lower one.
+const _coffeeMonthly = 500.0;
 const _coffeeThisMonth = 520.0; // at or above the $500 advisory floor
 
 const _iconWords = [
@@ -654,9 +655,9 @@ void main() {
         findsOneWidget);
     expect(find.descendant(of: groceries, matching: find.byIcon(iconForSf('basket.fill'))),
         findsNothing);
-    await tester.ensureVisible(find.text(_budgetsFooter));
+    await tester.ensureVisible(find.textContaining(_budgetsFooter));
     await tester.pumpAndSettle();
-    expect(find.text(_budgetsFooter), findsOneWidget);
+    expect(find.textContaining(_budgetsFooter), findsOneWidget);
     await shot(tester, 'budgets_line_glyphs_${_theme(dark)}');
   });
 }

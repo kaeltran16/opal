@@ -40,9 +40,10 @@ class ContributorBar extends StatelessWidget {
               const SizedBox(width: Spacing.md),
               Text(
                 value,
+                // DESIGN.md 9: amounts are never bold; ink against the ink2
+                // label is the emphasis.
                 style: AppType.subhead.copyWith(
                   color: off ? c.watchInk : c.ink,
-                  fontWeight: FontWeight.w600,
                   fontFeatures: _tabular,
                 ),
               ),

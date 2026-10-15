@@ -269,8 +269,8 @@ class _Player extends StatelessWidget {
           ],
         ),
         const SizedBox(height: _barGap),
-        Semantics(
-          label: doneText,
+        // the caption above already reads the progress; the bar only draws it.
+        ExcludeSemantics(
           child: ProgressBar(value: doneCount / total, color: c.ink),
         ),
         const SizedBox(height: _cardGap),
