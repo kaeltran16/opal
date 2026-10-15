@@ -385,6 +385,19 @@ void main() {
     });
   });
 
+  _todayTest('after a check-in the timeline lists Check in again, and it opens the logger',
+      (tester) async {
+    await _boot(tester, day: const TodayDay(routines: [], workout: false, mood: true));
+    expect(_card('Log a meal'), findsOneWidget);
+    expect(_row('Check in again', 'any time'), findsOneWidget);
+
+    await _tap(tester, _row('Check in again', 'any time'));
+    expect(_card('Check in again'), findsOneWidget);
+
+    await _tap(tester, find.text('Check in'));
+    expect(find.byType(BottomSheet), findsOneWidget);
+  });
+
   _todayTest('tapping a row makes it the lead and hides Why', (tester) async {
     await _boot(tester, day: _bare, pal: TodayPal(proposals: [proposal('a', 'Rent auto-pays')]));
     expect(_why(), findsOneWidget);

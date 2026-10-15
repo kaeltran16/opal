@@ -36,6 +36,7 @@ class PlanItem {
     this.ref,
     this.area,
     this.proposal,
+    this.trailing = false,
   });
 
   final String id;
@@ -63,6 +64,9 @@ class PlanItem {
 
   /// The proposal this item stands for, which approving performs.
   final PalProposal? proposal;
+
+  /// Stays listed after everything else and never leads unless selected.
+  final bool trailing;
 
   /// The card's when line: "At 9:30 PM" or "Any time", then the detail.
   String get whenLabel {
@@ -174,7 +178,11 @@ class DayPlan {
       for (final area in rules.care) ?_careLead(area, clock, nowMinute),
       if (rules.palOnline) ...clock.where((i) => i.kind == PlanKind.proposal),
     };
-    return [...lead, ...clock.where((i) => !lead.contains(i))];
+    final ordered = [...lead, ...clock.where((i) => !lead.contains(i))];
+    return [
+      ...ordered.where((i) => !i.trailing),
+      ...ordered.where((i) => i.trailing),
+    ];
   }
 
   List<PlanItem> _clockOrder(PlanSession session, DateTime now) {
@@ -267,7 +275,7 @@ class DayPlan {
   /// The lead Pal's order gives, whatever the user tapped.
   PlanItem? palPick(PlanSession session, DateTime now,
           [LeadRules rules = const LeadRules()]) =>
-      open(session, now, rules).firstOrNull;
+      open(session, now, rules).where((i) => !i.trailing).firstOrNull;
 
   PlanItem? current(PlanSession session, DateTime now,
       [LeadRules rules = const LeadRules()]) {
@@ -275,7 +283,7 @@ class DayPlan {
     for (final i in items) {
       if (i.id == session.selected) return i;
     }
-    return items.firstOrNull;
+    return palPick(session, now, rules);
   }
 
   bool isPalPick(PlanSession session, DateTime now,
@@ -397,10 +405,10 @@ DayPlan buildDayPlan({
     PlanItem(
       id: 'mood',
       kind: PlanKind.mood,
-      title: 'Mood check-in',
+      title: checkedIn ? 'Check in again' : 'Mood check-in',
       icon: 'heart.fill',
       actionLabel: 'Check in',
-      done: checkedIn,
+      trailing: checkedIn,
     ),
     if (!ateToday)
       const PlanItem(
