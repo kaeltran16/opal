@@ -561,7 +561,7 @@ class _Suggestions extends ConsumerWidget {
           _SuggestionRow(
             item: item,
             onApprove: () => actOnPlanItem(context, ref, item),
-            onSkip: () => plan.skip(item),
+            onSkip: () => plan.putOff(item),
           ),
       ],
     );

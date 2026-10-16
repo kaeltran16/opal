@@ -422,11 +422,13 @@ class HttpPalService implements PalService {
   }
 
   @override
-  Future<PalAgenda> agenda() async {
+  Future<PalAgenda> agenda({List<PlanFact> plan = const []}) async {
     final json = await _post('/v1/agenda', {
       'context': await context.chat(),
       'targets': await context.agendaTargets(),
+      'plan': [for (final f in plan) f.toJson()],
     });
+    final sent = {for (final f in plan) f.key};
     List<T> mapList<T>(String key, T Function(Map<String, dynamic>) f) =>
         ((json[key] as List?) ?? const [])
             .cast<Map<String, dynamic>>()
@@ -434,6 +436,11 @@ class HttpPalService implements PalService {
             .toList();
     return PalAgenda(
       streakDays: (json['streakDays'] as num?)?.round() ?? 0,
+      lines: {
+        for (final l in mapList('lines', (l) => l))
+          if (sent.contains(l['key']) && ((l['line'] as String?)?.trim().isNotEmpty ?? false))
+            l['key'] as String: (l['line'] as String).trim(),
+      },
       proposals: [
         for (final p in mapList('proposals', (p) => p))
           ?_decodeProposal(p),

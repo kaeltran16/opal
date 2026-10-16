@@ -14,6 +14,7 @@ import 'package:opal/data/seed/seed_data.dart';
 import 'package:opal/models/models.dart';
 import 'package:opal/screens/move/weekly_plan_screen.dart';
 import 'package:opal/screens/rituals/routine_player_screen.dart';
+import 'package:opal/screens/shell/plan_undo_toast.dart';
 import 'package:opal/screens/today/today_screen.dart';
 import 'package:opal/services/pal/pal_service.dart';
 
@@ -24,6 +25,7 @@ import 'scenario_harness.dart';
 const _step = 'Two-minute wind-down';
 const _eveningId = 'evening';
 const _saveFailed = "Couldn't save. Try again.";
+const _added = 'Added $_step to Evening wind-down';
 
 /// Pal's two proposals Approve performs, as the mock sends them.
 const _addRitual = PalProposal(
@@ -71,13 +73,16 @@ class _FailingRituals extends RitualRepository {
 
 String _theme(bool dark) => dark ? 'dark' : 'light';
 
-Finder _onToday(Finder matching) =>
-    find.descendant(of: find.byType(TodayScreen), matching: matching);
-
 Finder _card(String title) =>
     find.descendant(of: find.byKey(todayCardKey), matching: find.text(title));
 
-Finder _undo(String what) => _onToday(find.bySemanticsLabel('Undo $what'));
+/// The shell toast's [text], above the composer.
+Finder _toast(Pattern text) => find.descendant(
+    of: find.byKey(planUndoToastKey),
+    matching: text is String ? find.text(text) : find.textContaining(text));
+
+Finder get _undo =>
+    find.descendant(of: find.byKey(planUndoToastKey), matching: find.text('Undo'));
 
 Future<void> _tap(WidgetTester tester, Finder finder) async {
   await tester.ensureVisible(finder);
@@ -116,9 +121,11 @@ void main() {
   scenarioTest('approve add ritual', (tester, dark) async {
     await _approveAddRitual(tester, dark);
 
-    expect(_onToday(find.text(_addRitual.title)), findsNothing);
-    expect(_onToday(find.text('Undo · $_step added')), findsOneWidget);
-    expect(_undo('$_step added'), findsOneWidget);
+    expect(_card(_addRitual.title), findsNothing);
+    // the evening now has a step, so it is the close-out and stands in for the proposal.
+    expect(find.bySemanticsLabel(RegExp(r'^Start: Close-out, 1 step$')), findsOneWidget);
+    expect(_toast(_added), findsOneWidget);
+    expect(_undo, findsOneWidget);
     await shot(tester, 'proposal_add_ritual_undo_${_theme(dark)}');
 
     unawaited(appRouter(tester).push('/rituals/player/$_eveningId'));
@@ -132,11 +139,11 @@ void main() {
     await _approveAddRitual(tester, dark, capture: false);
     expect(_eveningSteps(tester), [_step]);
 
-    await _tap(tester, _undo('$_step added'));
+    await _tap(tester, _undo);
 
     expect(_eveningSteps(tester), isEmpty);
     expect(_card(_addRitual.title), findsOneWidget);
-    expect(_onToday(find.bySemanticsLabel(RegExp('^Undo '))), findsNothing);
+    expect(_undo, findsNothing);
     await shot(tester, 'proposal_undo_restores_${_theme(dark)}');
   });
 
@@ -147,8 +154,8 @@ void main() {
     await _tap(tester, find.text(_legs.approveLabel));
     await _toTop(tester);
 
-    expect(_onToday(find.text('Undo · Leg Day on Friday')), findsOneWidget);
-    expect(_undo('Leg Day on Friday'), findsOneWidget);
+    expect(_toast(RegExp(r'^Planned Leg Day for (Friday|tomorrow)$')), findsOneWidget);
+    expect(_undo, findsOneWidget);
     await shot(tester, 'proposal_reschedule_undo_${_theme(dark)}');
 
     appRouter(tester).go('/move/weekly-plan');
@@ -162,12 +169,11 @@ void main() {
   scenarioTest('skip names undo', (tester, dark) async {
     await bootToday(tester, dark: dark, pal: TodayPal(proposals: const [_legs]));
 
-    await _tap(tester, find.bySemanticsLabel('Mood check-in, any time. Do this next'));
-    await _tap(tester, find.text('Not today'));
+    await _tap(tester, find.text('Not now'));
     await _toTop(tester);
 
-    expect(_onToday(find.text('Undo · Mood check-in skipped')), findsOneWidget);
-    expect(_undo('Mood check-in skipped'), findsOneWidget);
+    expect(_toast('Put off until tomorrow: ${_legs.title}'), findsOneWidget);
+    expect(_undo, findsOneWidget);
     await shot(tester, 'proposal_skip_undo_${_theme(dark)}');
   });
 
@@ -185,7 +191,7 @@ void main() {
 
     expect(find.text(_saveFailed), findsOneWidget);
     expect(_card(_addRitual.title), findsOneWidget);
-    expect(_onToday(find.bySemanticsLabel(RegExp('^Undo '))), findsNothing);
+    expect(_undo, findsNothing);
     await shot(tester, 'proposal_approve_fails_${_theme(dark)}');
   });
 }

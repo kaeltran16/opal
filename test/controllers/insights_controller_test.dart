@@ -15,7 +15,7 @@ class _FakePal implements PalService {
   _FakePal({this.result = const PalInsights(headline: 'hi'), this.fail = false});
 
   @override
-  Future<PalAgenda> agenda() async => const PalAgenda();
+  Future<PalAgenda> agenda({List<PlanFact> plan = const []}) async => const PalAgenda();
 
   final PalInsights result;
   final bool fail;

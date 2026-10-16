@@ -13,7 +13,6 @@ import '../../controllers/nutrition_controller.dart';
 import '../../controllers/pal_agenda_controller.dart';
 import '../../controllers/plan_session_controller.dart';
 import '../../controllers/rituals_controller.dart';
-import '../../controllers/today_brief_controller.dart';
 import '../../controllers/today_controller.dart';
 import '../../controllers/weekly_plan_controller.dart';
 import '../../router.dart';
@@ -35,11 +34,16 @@ const double _contentTop = 52;
 const double _minTap = 44;
 const double _pillHeight = 48;
 const double _cardGap = 14;
+const double _cardDisc = 40;
+const double _cardIcon = 20;
 const double _rowDisc = 28;
 const double _rowIcon = 18;
 const double _rowGap = 10;
 const double _rowInset = Spacing.xs;
-// wide enough for "12:30 PM" in caption.
+// a title and its detail, with room around them.
+const double _rowHeight = _minTap + Spacing.md;
+const double _chevron = 14;
+// wide enough for "12:30 PM" and "Any time" in caption.
 const double _timeWidth = 56;
 const double _railWidth = 1;
 const double _labelHeight = 18;
@@ -49,19 +53,18 @@ const double _whyIcon = 14;
 const double _leadMaxWidth = 300;
 const double _leadMinHeight = 100;
 const double _dateTracking = 1.2;
-// the timeline stays short so the lead is the only thing that reads first.
-const int _laterShown = 2;
 // the most of its row a secondary text button takes, so large text ellipsises
 // it instead of crowding out the label or the primary pill.
 const double _sideShare = 0.5;
 const List<FontFeature> _tabular = [FontFeature.tabularFigures()];
 
-const String _restLead = 'Nothing is left. Rest up.';
 const String _palOnline = 'Pal';
 const String _palOffline = 'Pal is offline · next on the clock';
 const String _why = 'Why this first';
+const String _yourDay = 'Your day';
+const String _anyTime = 'Any time';
 
-/// The timeline's rail, drawn only when there are rows.
+/// Your day's rail, drawn only when there are rows.
 const Key todayRailKey = ValueKey('today.rail');
 
 /// The action card, always shown once the day has loaded.
@@ -97,9 +100,9 @@ Future<void> _orSaveFailed(BuildContext context, Future<void> write) async {
   }
 }
 
-/// Today: the scene, the date line, Pal's lead, one action card and a short
-/// timeline of what is still open. Every number comes from local providers;
-/// Pal only supplies the headline and its proposals.
+/// Today: the scene, the date line, Pal's line about the lead, one action
+/// card and the whole day as a quiet list. The code picks the lead and every
+/// number comes from local providers; Pal only words the line and proposes.
 class TodayScreen extends ConsumerStatefulWidget {
   const TodayScreen({super.key});
 
@@ -110,15 +113,13 @@ class TodayScreen extends ConsumerStatefulWidget {
 class _TodayScreenState extends ConsumerState<TodayScreen> {
   late final AppLifecycleListener _lifecycle;
   Timer? _minuteTick;
-  // once opened, the rest of the day stays listed while the screen lives.
-  bool _allLater = false;
 
   @override
   void initState() {
     super.initState();
     // today stays mounted in the shell's indexed stack, so a resume on any tab
-    // refetches and the brief is fresh when the user comes back.
-    _lifecycle = AppLifecycleListener(onResume: _refresh);
+    // refetches and the day is current when the user comes back.
+    _lifecycle = AppLifecycleListener(onResume: _resume);
     _scheduleTick();
   }
 
@@ -129,18 +130,30 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
     super.dispose();
   }
 
-  // the date line, the scene's phase and what is overdue all follow the clock.
+  // the date line, the scene's phase, what is overdue and the day's put-offs
+  // all follow the clock.
   void _scheduleTick() {
     final toNextMinute = Duration.secondsPerMinute - clock.now().second;
     _minuteTick = Timer(Duration(seconds: toNextMinute), () {
+      _plan.syncDay(clock.now());
       setState(() {});
       _scheduleTick();
     });
   }
 
-  Future<void> _refresh() async {
+  void _resume() {
+    _plan.syncDay(clock.now());
     ref.invalidate(palAgendaProvider);
-    await ref.read(todayBriefProvider.notifier).refresh();
+  }
+
+  Future<void> _pull() async {
+    try {
+      ref.invalidate(palAgendaProvider);
+      await ref.read(palAgendaProvider.future);
+    } catch (e) {
+      // the provider holds the error, which Today reads as Pal offline.
+      debugPrint('today: agenda refresh failed: $e');
+    }
   }
 
   PlanSessionController get _plan => ref.read(planSessionControllerProvider.notifier);
@@ -154,18 +167,6 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
   Widget build(BuildContext context) {
     final c = context.colors;
     final async = ref.watch(todayStateProvider);
-    // a check-in logged anywhere answers the mood item the user picked; closing
-    // the logger without logging keeps it.
-    ref.listen(
-        moodControllerProvider.select((m) => m.value?.lastCheckin?.timestamp),
-        (prev, next) {
-      final newer = next != null && (prev == null || next.isAfter(prev));
-      if (newer &&
-          ref.read(planSessionControllerProvider).selected == moodItemId) {
-        _plan.deselect();
-      }
-    });
-
     return async.when(
       loading: () => Center(
         child: Text('…', style: AppType.body.copyWith(color: c.ink3)),
@@ -178,17 +179,17 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
               style: AppType.subhead.copyWith(color: c.ink3)),
         ),
       ),
-      data: (today) => RefreshIndicator(onRefresh: _refresh, child: _content(today)),
+      data: (today) => RefreshIndicator(onRefresh: _pull, child: _content(today)),
     );
   }
 
   Widget _content(TodayState today) {
     final now = clock.now();
     final agenda = ref.watch(palAgendaProvider);
-    final headline = ref.watch(todayBriefProvider).value;
+    final palAgenda = agenda.value ?? const PalAgenda();
     final session = ref.watch(planSessionControllerProvider);
     final plan = buildDayPlan(
-      agenda: agenda.value ?? const PalAgenda(),
+      agenda: palAgenda,
       rituals: ref.watch(ritualsControllerProvider).value,
       workout: ref.watch(weeklyPlanControllerProvider).value?.today,
       lastCheckin: ref.watch(moodControllerProvider).value?.lastCheckin,
@@ -203,10 +204,14 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
       care: careAreas(today.glance, now),
     );
     final current = plan.current(session, now, rules);
-    final palsLead = online && plan.isPalPick(session, now, rules);
-    final later = plan.later(session, now, rules);
-    final hidden = _allLater ? 0 : math.max(0, later.length - _laterShown);
-    final shown = hidden > 0 ? later.take(_laterShown) : later;
+    final line = leadLine(
+      lead: current,
+      agenda: palAgenda,
+      online: online,
+      leadKey: current == null ? null : plan.factFor(current, session, now, rules).key,
+    );
+    final rows = plan.rows(session, now);
+    final progress = plan.progress(session);
     final safe = MediaQuery.paddingOf(context);
 
     return SingleChildScrollView(
@@ -236,36 +241,25 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               spacing: Spacing.md,
               children: [
-                _Header(
-                  date: dateLine(now),
-                  undoLabel: session.undoLabel,
-                  onUndo: () => _orSaveFailed(context, _plan.undo()),
-                ),
+                _Header(date: dateLine(now)),
                 _Lead(
                   label: online ? _palOnline : _palOffline,
-                  text: _leadFor(current, palsLead ? headline : null),
-                  onWhy: palsLead && current != null
+                  text: line,
+                  onWhy: online && current != null
                       ? () => _askWhy(current, plan.whyNote(current, session, now, rules))
                       : null,
                 ),
                 _ActionCard(
                   item: current,
                   onAct: (item) => actOnPlanItem(context, ref, item),
-                  onSkip: _plan.skip,
+                  onSkip: _plan.putOff,
                 ),
-                if (later.isNotEmpty)
-                  _Timeline(
+                if (rows.isNotEmpty)
+                  _YourDay(
+                    done: progress.done,
+                    total: progress.total,
                     rows: [
-                      for (final item in shown)
-                        _PlanRow(
-                          item: item,
-                          onTap: () => _plan.select(item.id),
-                        ),
-                      if (hidden > 0)
-                        _MoreRow(
-                          label: '$hidden more later today',
-                          onTap: () => setState(() => _allLater = true),
-                        ),
+                      for (final row in rows) _PlanRow(row: row, onTap: _rowTap(row)),
                     ],
                   ),
               ],
@@ -276,60 +270,32 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
     );
   }
 
-  /// Pal's [headline] when it leads, else the item's own sentence, else its
-  /// title.
-  String _leadFor(PlanItem? current, String? headline) {
-    if (current == null) return _restLead;
-    if (headline != null && headline.isNotEmpty) return headline;
-    final said = current.said;
-    return said != null && said.isNotEmpty ? said : current.title;
-  }
+  /// An open row opens as the card's pill does; a put-off comes back; a done
+  /// mood check-in opens the logger again; any other done row is inert.
+  VoidCallback? _rowTap(PlanRow row) => switch (row.state) {
+        PlanRowState.open || PlanRowState.missed => () => actOnPlanItem(context, ref, row.item),
+        PlanRowState.putOff => () => _plan.bringBack(row.item),
+        PlanRowState.done when row.tappable => () => showMoodLogger(context),
+        PlanRowState.done => null,
+      };
 }
 
-/// The date line, and `Undo · <what>` while the session can undo.
+/// The date line.
 class _Header extends StatelessWidget {
-  const _Header({required this.date, required this.undoLabel, required this.onUndo});
+  const _Header({required this.date});
 
   final String date;
 
-  /// What Undo names, or null when there is nothing to undo.
-  final String? undoLabel;
-  final VoidCallback onUndo;
-
   @override
   Widget build(BuildContext context) {
-    final c = context.colors;
-    final undoLabel = this.undoLabel;
     return ConstrainedBox(
       constraints: const BoxConstraints(minHeight: _minTap),
-      child: LayoutBuilder(
-        builder: (context, box) => Row(
-          children: [
-            Expanded(
-              child: Text(date,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppType.label.copyWith(color: c.ink2, letterSpacing: _dateTracking)),
-            ),
-            if (undoLabel != null)
-              ConstrainedBox(
-                constraints: BoxConstraints(maxWidth: box.maxWidth * _sideShare),
-                child: PressScale(
-                  onTap: onUndo,
-                  semanticLabel: 'Undo $undoLabel',
-                  child: Container(
-                    constraints: const BoxConstraints(minHeight: _minTap),
-                    padding: const EdgeInsets.symmetric(horizontal: Spacing.md),
-                    alignment: Alignment.center,
-                    child: Text('Undo · $undoLabel',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppType.headline.copyWith(color: c.ink)),
-                  ),
-                ),
-              ),
-          ],
-        ),
+      child: Align(
+        alignment: AlignmentDirectional.centerStart,
+        child: Text(date,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: AppType.label.copyWith(color: context.colors.ink2, letterSpacing: _dateTracking)),
       ),
     );
   }
@@ -429,18 +395,29 @@ class _ActionCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         spacing: _cardGap,
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            spacing: Spacing.xxs,
+          Row(
+            spacing: Spacing.md,
             children: [
-              Text(item?.whenLabel ?? 'All done',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppType.label.copyWith(color: c.ink3, fontFeatures: _tabular)),
-              Semantics(
-                header: true,
-                child: Text(item?.title ?? "That's the day",
-                    style: AppType.title.copyWith(color: c.ink)),
+              _Disc(
+                size: _cardDisc,
+                child: AppIcon(item?.icon ?? 'checkmark', size: _cardIcon, color: c.ink),
+              ),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  spacing: Spacing.xxs,
+                  children: [
+                    Text(item?.whenLabel ?? 'All done',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppType.label.copyWith(color: c.ink3, fontFeatures: _tabular)),
+                    Semantics(
+                      header: true,
+                      child: Text(item?.title ?? "That's the day",
+                          style: AppType.title.copyWith(color: c.ink)),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
@@ -507,108 +484,143 @@ class _Pill extends StatelessWidget {
   }
 }
 
-/// The open rows on a hairline rail.
-class _Timeline extends StatelessWidget {
-  const _Timeline({required this.rows});
+/// A round `surface2` disc holding an icon.
+class _Disc extends StatelessWidget {
+  const _Disc({required this.size, required this.child});
 
+  final double size;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(color: context.colors.surface2, shape: BoxShape.circle),
+        alignment: Alignment.center,
+        child: child,
+      );
+}
+
+/// `Your day · N of M done`, then every row of the day on a hairline rail.
+class _YourDay extends StatelessWidget {
+  const _YourDay({required this.done, required this.total, required this.rows});
+
+  final int done, total;
   final List<Widget> rows;
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     final timeWidth = MediaQuery.textScalerOf(context).scale(_timeWidth);
     return Padding(
-      padding: const EdgeInsets.only(top: Spacing.sm),
-      child: Stack(
+      padding: const EdgeInsets.only(top: Spacing.xl),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Positioned(
-            key: todayRailKey,
-            left: _rowInset + timeWidth + _rowGap + (_rowDisc - _railWidth) / 2,
-            top: _minTap / 2,
-            bottom: _minTap / 2,
-            width: _railWidth,
-            child: ColoredBox(color: context.colors.hair),
+          ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: Spacing.xxxl),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: _rowInset),
+              child: Row(
+                spacing: Spacing.xs,
+                children: [
+                  Semantics(
+                    header: true,
+                    child: Text(_yourDay, style: AppType.label.copyWith(color: c.ink2)),
+                  ),
+                  Flexible(
+                    child: Text('· $done of $total done',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppType.label.copyWith(color: c.ink3, fontFeatures: _tabular)),
+                  ),
+                ],
+              ),
+            ),
           ),
-          Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: rows),
+          Stack(
+            children: [
+              Positioned(
+                key: todayRailKey,
+                left: _rowInset + timeWidth + _rowGap + (_rowDisc - _railWidth) / 2,
+                top: _rowHeight / 2,
+                bottom: _rowHeight / 2,
+                width: _railWidth,
+                child: ColoredBox(color: c.hair),
+              ),
+              Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: rows),
+            ],
+          ),
         ],
       ),
     );
   }
 }
 
-/// One open item; a tap makes it the lead.
+/// One item of the day: its time, a disc, the title and its detail. A done
+/// or put-off row goes quiet; a row with [onTap] carries a chevron.
 class _PlanRow extends StatelessWidget {
-  const _PlanRow({required this.item, required this.onTap});
+  const _PlanRow({required this.row, required this.onTap});
 
-  final PlanItem item;
-  final VoidCallback onTap;
+  final PlanRow row;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
+    final item = row.item;
+    final done = row.state == PlanRowState.done;
+    final ink = done || row.state == PlanRowState.putOff ? c.ink3 : c.ink;
     final minute = item.minuteOfDay;
-    final time = minute == null ? null : clockLabel(minute);
-    return PressScale(
-      onTap: onTap,
-      semanticLabel:
-          '${item.title}, ${time == null ? 'any time' : 'at $time'}. Do this next',
-      pressedScale: 1,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(minHeight: _minTap),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: _rowInset),
-          child: Row(
-            spacing: _rowGap,
-            children: [
-              SizedBox(
-                width: MediaQuery.textScalerOf(context).scale(_timeWidth),
-                child: Text(time ?? 'Any',
-                    maxLines: 1,
-                    style: AppType.caption.copyWith(color: c.ink3, fontFeatures: _tabular)),
+    final detail = row.detail;
+    final body = ConstrainedBox(
+      constraints: const BoxConstraints(minHeight: _rowHeight),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: _rowInset),
+        child: Row(
+          spacing: _rowGap,
+          children: [
+            SizedBox(
+              width: MediaQuery.textScalerOf(context).scale(_timeWidth),
+              child: Text(minute == null ? _anyTime : clockLabel(minute),
+                  maxLines: 1,
+                  style: AppType.caption.copyWith(color: c.ink3, fontFeatures: _tabular)),
+            ),
+            _Disc(
+              size: _rowDisc,
+              child: AppIcon(done ? 'checkmark' : item.icon, size: _rowIcon, color: ink),
+            ),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(item.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppType.callout.copyWith(color: ink)),
+                  if (detail != null)
+                    Text(detail,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppType.caption.copyWith(color: c.ink3, fontFeatures: _tabular)),
+                ],
               ),
-              Container(
-                width: _rowDisc,
-                height: _rowDisc,
-                decoration: BoxDecoration(color: c.surface2, shape: BoxShape.circle),
-                alignment: Alignment.center,
-                child: AppIcon(item.icon, size: _rowIcon, color: c.ink),
-              ),
-              Expanded(
-                child: Text(item.title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: AppType.callout.copyWith(color: c.ink)),
-              ),
-            ],
-          ),
+            ),
+            if (onTap != null) AppIcon('chevron.right', size: _chevron, color: c.ink3),
+          ],
         ),
       ),
     );
-  }
-}
-
-/// `N more later today`, lined up with the row titles.
-class _MoreRow extends StatelessWidget {
-  const _MoreRow({required this.label, required this.onTap});
-
-  final String label;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final timeWidth = MediaQuery.textScalerOf(context).scale(_timeWidth);
-    return PressScale(
-      onTap: onTap,
-      pressedScale: 1,
-      child: Container(
-        constraints: const BoxConstraints(minHeight: _minTap),
-        padding: EdgeInsets.only(
-            left: _rowInset + timeWidth + _rowGap + _rowDisc + _rowGap, right: _rowInset),
-        alignment: AlignmentDirectional.centerStart,
-        child: Text(label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: AppType.subhead.copyWith(color: context.colors.ink3)),
-      ),
-    );
+    final tap = onTap;
+    if (tap == null) {
+      // read as one line, but not a button.
+      return Semantics(
+        container: true,
+        label: row.semanticLabel,
+        excludeSemantics: true,
+        child: body,
+      );
+    }
+    return PressScale(onTap: tap, semanticLabel: row.semanticLabel, pressedScale: 1, child: body);
   }
 }

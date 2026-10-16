@@ -30,7 +30,7 @@ class _SpyHaptics implements HapticsService {
 class _CountingPal implements PalService {
   int agendaCalls = 0;
   @override
-  Future<PalAgenda> agenda() async {
+  Future<PalAgenda> agenda({List<PlanFact> plan = const []}) async {
     agendaCalls++;
     return const PalAgenda();
   }

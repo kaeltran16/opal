@@ -10,6 +10,13 @@ const int _fridayWeekday = 5;
 // the autopilot's money amount in usd; [Currency.budgetScale] scales it.
 const double _spendLeftToday = 12;
 
+String _planLine(PlanFact f) => switch (f.status) {
+      PlanFact.due => '${f.title} is due now.',
+      PlanFact.upcoming => '${f.title} is next, at ${f.when}.',
+      PlanFact.missed => '${f.title} was missed. It is still open if you want it.',
+      _ => '${f.title} fits any time today.',
+    };
+
 /// On-brand canned [PalService] for Windows preview + tests.
 ///
 /// Returns deterministic-ish strings with a small fake latency so the chat
@@ -459,12 +466,13 @@ class MockPalService implements PalService {
   }
 
   @override
-  Future<PalAgenda> agenda() async {
+  Future<PalAgenda> agenda({List<PlanFact> plan = const []}) async {
     await Future<void>.delayed(latency);
     final cur = currency();
     String money(double usd) => formatCurrency(usd * cur.budgetScale, cur);
     return PalAgenda(
       streakDays: 11,
+      lines: {for (final f in plan) f.key: _planLine(f)},
       proposals: [
         const PalProposal(
           id: 'move-legs-friday',

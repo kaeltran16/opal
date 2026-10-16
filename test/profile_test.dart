@@ -619,7 +619,7 @@ void main() {
     final session = ProviderScope.containerOf(tester.element(find.byType(ProfileScreen)))
         .read(planSessionControllerProvider);
     expect(session.settled, {'proposal:move-legs-friday': false});
-    expect(session.undoLabel, '$title skipped');
+    expect(session.notice?.label, 'Put off until tomorrow: $title');
     await flushProviderTimers(tester);
   });
 

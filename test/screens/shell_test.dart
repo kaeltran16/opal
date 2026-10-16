@@ -11,7 +11,9 @@ import 'package:opal/screens/detail/detail_screen.dart';
 import 'package:opal/screens/move/workout_history_screen.dart';
 import 'package:opal/screens/pal/pal_composer_screen.dart';
 import 'package:opal/screens/shell/loop_shell.dart';
+import 'package:opal/screens/shell/plan_undo_toast.dart';
 import 'package:opal/screens/today/today_logic.dart';
+import 'package:opal/screens/today/today_screen.dart' show todayCardKey;
 import 'package:opal/theme/theme.dart';
 import 'package:opal/util/format.dart';
 import 'package:opal/widgets/glass_tab_bar.dart';
@@ -182,6 +184,33 @@ void main() {
     for (final label in _tabLabels) {
       expect(_tab(label), findsOneWidget, reason: label);
     }
+
+    await flushProviderTimers(tester);
+  });
+
+  testWidgets('the plan toast sits above the ask bar on Today and on You', (tester) async {
+    await bootToday(tester,
+        day: const TodayDay(routines: [], workout: false),
+        pal: TodayPal(proposals: [proposal('a', 'A'), proposal('b', 'B')]));
+    void expectAboveAskBar() {
+      expect(find.byKey(planUndoToastKey), findsOneWidget);
+      expect(tester.getRect(find.byKey(planUndoToastKey)).bottom,
+          lessThan(tester.getRect(find.byType(PalAskBar)).top));
+    }
+
+    await tester.tap(find.descendant(of: find.byKey(todayCardKey), matching: find.text('Not now')));
+    await tester.pump();
+    expectAboveAskBar();
+
+    await tester.tap(_tab('You'));
+    await tester.pumpAndSettle();
+    final skip = find.bySemanticsLabel('Not now: B');
+    await tester.ensureVisible(skip);
+    await tester.pumpAndSettle();
+    await tester.tap(skip);
+    await tester.pump();
+    expect(find.text('Put off until tomorrow: B'), findsOneWidget);
+    expectAboveAskBar();
 
     await flushProviderTimers(tester);
   });

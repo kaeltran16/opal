@@ -562,10 +562,7 @@ void main() {
     const rent = 'Set aside \$40 for rent';
     await bootToday(tester,
         dark: dark,
-        pal: TodayPal(
-          headline: 'A steady start.',
-          proposals: [proposal('hold-rent-40', rent)],
-        ));
+        pal: TodayPal(proposals: [proposal('hold-rent-40', rent)]));
     final why = find.descendant(of: find.byType(TodayScreen), matching: find.text('Why this first'));
     await _tap(tester, why);
 

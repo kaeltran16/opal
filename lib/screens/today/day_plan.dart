@@ -2,14 +2,12 @@ import '../../controllers/rituals_controller.dart';
 import '../../controllers/spending_controller.dart' show DetailTracker;
 import '../../controllers/weekly_plan_controller.dart';
 import '../../models/models.dart';
-import '../../services/pal/pal_service.dart' show PalAgenda, PalProposal;
+import '../../services/pal/pal_service.dart' show PalAgenda, PalProposal, PlanFact;
 import '../../util/dates.dart';
+import '../../util/mood_scale.dart' show moodWord;
 import 'today_logic.dart';
 
 enum PlanKind { proposal, routine, workout, mood, meal, closeOut }
-
-/// The mood item's id: a check-in landing clears its selection by it.
-const String moodItemId = 'mood';
 
 /// When the evening close-out is due, in minutes after midnight.
 const int closeOutMinute = 21 * 60 + 30;
@@ -19,6 +17,14 @@ const String _overdueLeadSpan = 'four hours';
 const String _notToday = 'Not today';
 const String _notNow = 'Not now';
 const String _start = 'Start';
+const String _restLine = 'Nothing is left. Rest up.';
+const String _palSuggests = 'Pal suggests';
+const String _missedLabel = 'Missed';
+const String _putOff = 'Put off until tomorrow';
+const String _done = 'Done';
+const String _bringBack = 'Bring back';
+const String _checkInAgain = 'Check in again';
+const String _anyTime = 'any time';
 
 /// One thing in the day: something to do, or something already done.
 class PlanItem {
@@ -29,6 +35,7 @@ class PlanItem {
     required this.icon,
     this.minuteOfDay,
     this.detail,
+    this.doneDetail,
     this.said,
     this.actionLabel = '',
     this.skipLabel = _notToday,
@@ -36,7 +43,6 @@ class PlanItem {
     this.ref,
     this.area,
     this.proposal,
-    this.trailing = false,
   });
 
   final String id;
@@ -49,6 +55,9 @@ class PlanItem {
   /// When it is due, in minutes after midnight. Null when it has no time.
   final int? minuteOfDay;
   final String? detail;
+
+  /// What the item reads once done, when that is more than `Done`.
+  final String? doneDetail;
 
   /// Pal's sentence for the item, the lead when there is no brief.
   final String? said;
@@ -65,14 +74,45 @@ class PlanItem {
   /// The proposal this item stands for, which approving performs.
   final PalProposal? proposal;
 
-  /// Stays listed after everything else and never leads unless selected.
-  final bool trailing;
-
   /// The card's when line: "At 9:30 PM" or "Any time", then the detail.
   String get whenLabel {
     final minute = minuteOfDay;
     final when = minute == null ? 'Any time' : 'At ${clockLabel(minute)}';
     return detail == null ? when : '$when · $detail';
+  }
+}
+
+enum PlanRowState { open, missed, done, putOff }
+
+/// One item in Today's list of the whole day, as it stands now.
+class PlanRow {
+  const PlanRow({required this.item, required this.state});
+
+  final PlanItem item;
+  final PlanRowState state;
+
+  /// The line under the title.
+  String? get detail => switch (state) {
+        PlanRowState.open => item.kind == PlanKind.proposal ? _palSuggests : item.detail,
+        PlanRowState.missed => item.detail == null ? _missedLabel : '$_missedLabel · ${item.detail}',
+        PlanRowState.putOff => _putOff,
+        PlanRowState.done => item.doneDetail ?? _done,
+      };
+
+  /// What a tap does, or null when the row is inert.
+  String? get verb => switch (state) {
+        PlanRowState.open || PlanRowState.missed => item.actionLabel,
+        PlanRowState.putOff => _bringBack,
+        PlanRowState.done => item.kind == PlanKind.mood ? _checkInAgain : null,
+      };
+
+  bool get tappable => verb != null;
+
+  String get semanticLabel {
+    final d = detail;
+    final v = verb;
+    final what = d == null ? item.title : '${item.title}, $d';
+    return v == null ? what : '$v: $what';
   }
 }
 
@@ -108,48 +148,66 @@ class PlanStep {
   final PlanChange? change;
 }
 
-/// What the user did with the plan this session. In [settled], true is done
-/// and false is skipped.
+/// What the toast says about the last change, and whether it offers Undo.
+class PlanNotice {
+  const PlanNotice({required this.label, required this.undoable});
+
+  final String label;
+  final bool undoable;
+}
+
+/// What the user did with the plan on [day]. In [settled], true is done and
+/// false is put off.
 class PlanSession {
   const PlanSession({
+    required this.day,
     this.settled = const {},
     this.history = const [],
-    this.selected,
+    this.notice,
   });
 
+  /// The start of the local day the session belongs to.
+  final DateTime day;
   final Map<String, bool> settled;
   final List<PlanStep> history;
-  final String? selected;
+
+  /// A new instance per change, so the toast restarts.
+  final PlanNotice? notice;
 
   PlanSession settle(String id,
-          {required bool done, String label = '', PlanChange? change}) =>
+          {required bool done, required String label, PlanChange? change}) =>
       PlanSession(
+        day: day,
         settled: {...settled, id: done},
         history: [...history, PlanStep(id, label, change)],
+        notice: PlanNotice(label: label, undoable: true),
       );
 
+  /// Reverses the last change and clears the notice.
   PlanSession undo() {
     final last = lastStep;
     if (last == null) return this;
     return PlanSession(
+      day: day,
       settled: {...settled}..remove(last.id),
       history: history.sublist(0, history.length - 1),
-      selected: last.id,
     );
   }
 
-  PlanSession select(String id) =>
-      PlanSession(settled: settled, history: history, selected: id);
+  /// Reopens [id]. Its change leaves the history, so a later undo does not
+  /// reach past it, and the notice offers no Undo.
+  PlanSession bringBack(String id, {required String label}) => PlanSession(
+        day: day,
+        settled: {...settled}..remove(id),
+        history: [for (final c in history) if (c.id != id) c],
+        notice: PlanNotice(label: label, undoable: false),
+      );
 
-  /// Drops the lead the user picked, keeping what they settled and Undo.
-  PlanSession deselect() => PlanSession(settled: settled, history: history);
+  PlanSession dismissNotice() => PlanSession(day: day, settled: settled, history: history);
 
   bool get canUndo => history.isNotEmpty;
 
   PlanStep? get lastStep => history.lastOrNull;
-
-  /// What the header's Undo names: "Mood check-in skipped".
-  String? get undoLabel => lastStep?.label;
 }
 
 /// What decides the lead beyond the clock. The default is the clock alone.
@@ -181,11 +239,7 @@ class DayPlan {
       for (final area in rules.care) ?_careLead(area, clock, nowMinute),
       if (rules.palOnline) ...clock.where((i) => i.kind == PlanKind.proposal),
     };
-    final ordered = [...lead, ...clock.where((i) => !lead.contains(i))];
-    return [
-      ...ordered.where((i) => !i.trailing),
-      ...ordered.where((i) => i.trailing),
-    ];
+    return [...lead, ...clock.where((i) => !lead.contains(i))];
   }
 
   List<PlanItem> _clockOrder(PlanSession session, DateTime now) {
@@ -229,17 +283,16 @@ class DayPlan {
         ...routines.where((i) => _missed(i, nowMinute)),
       ].firstOrNull;
 
-  /// Why [item] leads and what else is open, for Pal's Why thread. Built from
-  /// the same rules as [open], so Pal explains the order instead of guessing.
-  String whyNote(PlanItem item, PlanSession session, DateTime now,
+  /// Why [item] leads, by the same rules as [open], so Pal explains the
+  /// order instead of guessing.
+  String reasonFor(PlanItem item, PlanSession session, DateTime now,
       [LeadRules rules = const LeadRules()]) {
     final nowMinute = now.hour * 60 + now.minute;
     final clock = _clockOrder(session, now);
     final care = rules.care
         .where((area) => _careLead(area, clock, nowMinute) == item)
         .firstOrNull;
-    final minute = item.minuteOfDay;
-    final reason = switch (minute) {
+    return switch (item.minuteOfDay) {
       _ when care != null =>
         '${_areaNames[care]} needs care, and an area in Needs care always leads.',
       _ when rules.palOnline && item.kind == PlanKind.proposal =>
@@ -250,6 +303,13 @@ class DayPlan {
         'It was due at ${clockLabel(m)} and nothing else is open.',
       final m => 'It was due at ${clockLabel(m)}, under $_overdueLeadSpan ago, and is still open.',
     };
+  }
+
+  /// Why [item] leads and what else is open, for Pal's Why thread.
+  String whyNote(PlanItem item, PlanSession session, DateTime now,
+      [LeadRules rules = const LeadRules()]) {
+    final nowMinute = now.hour * 60 + now.minute;
+    final reason = reasonFor(item, session, now, rules);
     final rest = [
       for (final i in open(session, now, rules))
         if (i != item) '${i.title} (${_whenNote(i, nowMinute)})',
@@ -275,25 +335,9 @@ class DayPlan {
     DetailTracker.rituals: 'Routines',
   };
 
-  /// The lead Pal's order gives, whatever the user tapped.
-  PlanItem? palPick(PlanSession session, DateTime now,
-          [LeadRules rules = const LeadRules()]) =>
-      open(session, now, rules).where((i) => !i.trailing).firstOrNull;
-
   PlanItem? current(PlanSession session, DateTime now,
-      [LeadRules rules = const LeadRules()]) {
-    final items = open(session, now, rules);
-    for (final i in items) {
-      if (i.id == session.selected) return i;
-    }
-    return palPick(session, now, rules);
-  }
-
-  bool isPalPick(PlanSession session, DateTime now,
-      [LeadRules rules = const LeadRules()]) {
-    final cur = current(session, now, rules);
-    return cur != null && cur == palPick(session, now, rules);
-  }
+          [LeadRules rules = const LeadRules()]) =>
+      open(session, now, rules).firstOrNull;
 
   /// The open items besides the lead, untimed first, then by time.
   List<PlanItem> later(PlanSession session, DateTime now,
@@ -303,6 +347,60 @@ class DayPlan {
         untimedFirst: true);
   }
 
+  /// Every item of the day, done and put off included: timed ones by minute,
+  /// then untimed ones in build order.
+  List<PlanRow> rows(PlanSession session, DateTime now) {
+    final nowMinute = now.hour * 60 + now.minute;
+    return [
+      for (final i in _timeOrder(items, untimedFirst: false))
+        PlanRow(item: i, state: switch (session.settled[i.id]) {
+          _ when _isDone(i, session) => PlanRowState.done,
+          false => PlanRowState.putOff,
+          _ when _missed(i, nowMinute) => PlanRowState.missed,
+          _ => PlanRowState.open,
+        }),
+    ];
+  }
+
+  /// How many of the day's items are done or approved, of all of them.
+  ({int done, int total}) progress(PlanSession session) =>
+      (done: items.where((i) => _isDone(i, session)).length, total: items.length);
+
+  static bool _isDone(PlanItem i, PlanSession session) =>
+      i.done || session.settled[i.id] == true;
+
+  /// [item] as Pal's line call sees it. The key holds the status and the
+  /// detail, so a line worded before a step was logged or the item was missed
+  /// no longer matches.
+  PlanFact factFor(PlanItem item, PlanSession session, DateTime now,
+      [LeadRules rules = const LeadRules()]) {
+    final nowMinute = now.hour * 60 + now.minute;
+    final minute = item.minuteOfDay;
+    final status = switch (minute) {
+      null => PlanFact.anytime,
+      _ when _missed(item, nowMinute) => PlanFact.missed,
+      final m when m <= nowMinute => PlanFact.due,
+      _ => PlanFact.upcoming,
+    };
+    return PlanFact(
+      key: '${item.id}|$status|${item.detail ?? ''}',
+      title: item.title,
+      when: minute == null ? _anyTime : clockLabel(minute),
+      status: status,
+      steps: item.detail,
+      why: reasonFor(item, session, now, rules),
+    );
+  }
+
+  /// The open local items as facts, in lead order. Proposals carry Pal's own
+  /// body, so they need no line.
+  List<PlanFact> planFacts(PlanSession session, DateTime now,
+          [LeadRules rules = const LeadRules()]) =>
+      [
+        for (final i in open(session, now, rules))
+          if (i.kind != PlanKind.proposal) factFor(i, session, now, rules),
+      ];
+
   /// [from] by minute, untimed items first or last; ties keep build order.
   List<PlanItem> _timeOrder(Iterable<PlanItem> from, {required bool untimedFirst}) {
     final picked = from.toSet();
@@ -311,6 +409,20 @@ class DayPlan {
     final timed = _byMinute(inBuildOrder.where((i) => i.minuteOfDay != null));
     return untimedFirst ? [...untimed, ...timed] : [...timed, ...untimed];
   }
+}
+
+/// The sentence under Today's lead. Pal's line shows only while Pal is online
+/// and [leadKey] still matches the facts it was worded from; otherwise the
+/// item's own sentence, which needs no model.
+String leadLine({
+  required PlanItem? lead,
+  required PalAgenda agenda,
+  required bool online,
+  required String? leadKey,
+}) {
+  if (lead == null) return _restLine;
+  final palLine = online && lead.kind != PlanKind.proposal ? agenda.lines[leadKey] : null;
+  return palLine ?? lead.said ?? lead.title;
 }
 
 // List.sort is not stable, so ties keep their build order by index.
@@ -331,6 +443,7 @@ PlanItem proposalItem(PalProposal p) => PlanItem(
       title: p.title,
       icon: p.icon,
       said: p.body,
+      doneDetail: p.doneLabel,
       actionLabel: p.approveLabel,
       skipLabel: _notNow,
       ref: p.id,
@@ -344,6 +457,13 @@ List<PlanItem> pendingProposals(PalAgenda agenda, PlanSession session) => [
       for (final p in agenda.proposals)
         if (!session.settled.containsKey(proposalItem(p).id)) proposalItem(p),
     ];
+
+/// "3 steps" before any is done, then "2 of 4 steps".
+String _stepsDetail(int done, int total) => switch (done) {
+      0 when total == 1 => '1 step',
+      0 => '$total steps',
+      _ => '$done of $total steps',
+    };
 
 bool _isToday(DateTime at, DateTime now) =>
     startOfDay(at.toLocal()) == startOfDay(now.toLocal());
@@ -380,9 +500,10 @@ DayPlan buildDayPlan({
           title: r.name,
           icon: r.icon,
           minuteOfDay: routineMinute(r.time),
+          detail: _stepsDetail(rituals!.doneCount(r.id), r.steps.length),
           said: r.blurb,
           actionLabel: _start,
-          done: rituals!.isComplete(r),
+          done: rituals.isComplete(r),
           ref: r.id,
           area: DetailTracker.rituals,
         ),
@@ -398,12 +519,13 @@ DayPlan buildDayPlan({
         area: DetailTracker.move,
       ),
     PlanItem(
-      id: moodItemId,
+      id: 'mood',
       kind: PlanKind.mood,
-      title: checkedIn ? 'Check in again' : 'Mood check-in',
+      title: 'Mood check-in',
       icon: 'heart.fill',
+      doneDetail: checkedIn ? moodWord(lastCheckin.pleasantness) : null,
       actionLabel: 'Check in',
-      trailing: checkedIn,
+      done: checkedIn,
     ),
     if (!ateToday)
       const PlanItem(
@@ -420,9 +542,10 @@ DayPlan buildDayPlan({
         title: 'Close-out',
         icon: 'moon.stars.fill',
         minuteOfDay: routineMinute(closeOut.time) ?? closeOutMinute,
+        detail: _stepsDetail(rituals!.doneCount(closeOut.id), closeOut.steps.length),
         said: closeOutSaid ?? closeOut.blurb,
         actionLabel: _start,
-        done: rituals!.isComplete(closeOut),
+        done: rituals.isComplete(closeOut),
         ref: closeOut.id,
         area: DetailTracker.rituals,
       ),

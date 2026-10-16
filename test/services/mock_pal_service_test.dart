@@ -28,6 +28,25 @@ void main() {
     expect(byId['close-out-tonight']!.addsRitual, isFalse);
   });
 
+  test('agenda words one deterministic line per fact, keyed by fact.key', () async {
+    PlanFact fact(String key, String status) => PlanFact(
+        key: key, title: 'Morning', when: '7:00 AM', status: status, why: '');
+
+    final agenda = await MockPalService(latency: fast).agenda(plan: [
+      fact('a', PlanFact.due),
+      fact('b', PlanFact.upcoming),
+      fact('c', PlanFact.missed),
+      fact('d', PlanFact.anytime),
+    ]);
+
+    expect(agenda.lines, {
+      'a': 'Morning is due now.',
+      'b': 'Morning is next, at 7:00 AM.',
+      'c': 'Morning was missed. It is still open if you want it.',
+      'd': 'Morning fits any time today.',
+    });
+  });
+
   test('every agenda proposal has a known action and its payload', () async {
     final proposals = (await MockPalService(latency: fast).agenda()).proposals;
     expect(proposals, isNotEmpty);

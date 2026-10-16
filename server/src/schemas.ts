@@ -89,6 +89,18 @@ export const postWorkoutContext = z.object({
 })
 export const postWorkoutBody = z.object({ context: postWorkoutContext })
 
+// one open item of the day, worded on the device; Pal's line for it is written
+// from these facts alone. `key` is opaque to the server and only echoed back.
+const planText = z.string().max(300)
+export const planFact = z.object({
+  key: z.string().min(1).max(200),
+  title: planText,
+  when: planText,
+  status: z.enum(['due', 'upcoming', 'missed', 'anytime']),
+  steps: planText.nullable(),
+  why: planText,
+})
+
 // The Pal Home agenda reuses the chat context (today + week + goals + streak).
 // what an approval may act on: the ids the model must pick from.
 export const agendaTargets = z.object({
@@ -96,9 +108,11 @@ export const agendaTargets = z.object({
   workouts: z.array(z.object({ id: z.string(), name: z.string() })).default([]),
   week: z.array(z.object({ weekday: z.number(), routineId: z.string().nullable() })).default([]),
 })
+// an older client sends no plan and gets no lines.
 export const agendaBody = z.object({
   context: chatContext,
   targets: agendaTargets.default({ rituals: [], workouts: [], week: [] }),
+  plan: z.array(planFact).max(20).default([]),
 })
 
 export const suggestionsBody = z.object({

@@ -16,7 +16,7 @@ class _FakePal implements PalService {
   _FakePal({this.routineFails = false});
 
   @override
-  Future<PalAgenda> agenda() async => const PalAgenda();
+  Future<PalAgenda> agenda({List<PlanFact> plan = const []}) async => const PalAgenda();
 
   final bool routineFails;
   int generateCalls = 0;
@@ -329,7 +329,7 @@ class _CountingFailPal implements PalService {
   _CountingFailPal({required this.failOnCall});
 
   @override
-  Future<PalAgenda> agenda() async => const PalAgenda();
+  Future<PalAgenda> agenda({List<PlanFact> plan = const []}) async => const PalAgenda();
 
   final int failOnCall;
   int _calls = 0;

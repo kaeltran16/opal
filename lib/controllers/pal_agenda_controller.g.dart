@@ -79,4 +79,4 @@ final class PalAgendaProvider
   }
 }
 
-String _$palAgendaHash() => r'90846f961c503a21b2dd42f1019210755bff9f95';
+String _$palAgendaHash() => r'86920f65c56e95e5c342cc70e53538b669fd101f';

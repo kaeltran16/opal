@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import {
-  chatSystemPrompt, reviewPrompt, insightsPrompt, parsePrompt, suggestPrompt, postWorkoutPrompt, routinePrompt, agendaPrompt, suggestionsPrompt, memoryPatternsPrompt, nutritionEstimatePrompt,
-  type ChatContext, type ReviewContext, type InsightsContext, type SuggestContext, type PostWorkoutContext, type RoutineExercise, type AgendaTargets,
+  chatSystemPrompt, reviewPrompt, insightsPrompt, parsePrompt, suggestPrompt, postWorkoutPrompt, routinePrompt, agendaPrompt, suggestionsPrompt, memoryPatternsPrompt, nutritionEstimatePrompt, leadLinesPrompt,
+  type ChatContext, type ReviewContext, type InsightsContext, type SuggestContext, type PostWorkoutContext, type RoutineExercise, type AgendaTargets, type PlanFact,
 } from './prompts.js'
 import { MAX_PATTERNS, type MemoryOp, type MemoryDigest, type MemoryPattern } from './memory.js'
 import { ENTRY_TYPES, DIMENSIONS, SPEND_CATEGORIES, USD, spendCategory, type CurrencyDescriptor } from './product.js'
@@ -10,6 +10,8 @@ const MAX_TOKENS = 1024
 // insights and routine JSON run long; a 1024 cut-off truncates the object.
 const INSIGHTS_MAX_TOKENS = 2048
 const ROUTINE_MAX_TOKENS = 4096
+// one sentence of at most 20 words per open item, and a day holds a handful of them.
+const LINES_MAX_TOKENS = 1024
 // reasoning models (deepseek-v4.1-flash) spend hidden reasoning tokens out of max_tokens and
 // truncate the answer; Pal's prompts carry every fact the reply needs, so reasoning stays off.
 const REASONING_OFF = { enabled: false }
@@ -326,6 +328,32 @@ export function moneyAmounts(text: string, c: CurrencyDescriptor = USD, bare = f
 export function labelsAgree(p: Pick<AgendaProposal, 'title' | 'body' | 'approveLabel' | 'doneLabel'>, c?: CurrencyDescriptor): boolean {
   const stated = new Set(moneyAmounts(`${p.title} ${p.body}`, c, true))
   return [p.approveLabel, p.doneLabel].every((label) => moneyAmounts(label, c).every((n) => stated.has(n)))
+}
+
+// --- Pal's line per open item of the day (/v1/agenda `lines`) ----------------
+export const leadLinesModelSchema = z.object({
+  lines: z.array(z.object({ key: z.string(), line: prose })).default([]),
+})
+
+export interface LeadLine {
+  key: string
+  line: string
+}
+
+const NUMBER_WORDS = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten',
+  'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen', 'seventeen', 'eighteen', 'nineteen', 'twenty']
+const STATED_NUMBER = new RegExp(`\\d+|\\b(?:${NUMBER_WORDS.join('|')})\\b`, 'gi')
+
+// every number `text` states, in digits or as a word; a time gives its hour and minutes.
+function statedNumbers(text: string): number[] {
+  return [...text.matchAll(STATED_NUMBER)].map(([m]) => (/\d/.test(m) ? Number(m) : NUMBER_WORDS.indexOf(m.toLowerCase())))
+}
+
+// a line states only numbers its item's facts hold: the model words the item,
+// it never counts steps or moves a time on its own.
+export function lineAgrees(line: string, fact: PlanFact): boolean {
+  const held = new Set(statedNumbers([fact.title, fact.when, fact.steps ?? '', fact.why].join(' ')))
+  return statedNumbers(line).every((n) => held.has(n))
 }
 
 // the payload an approval acts on must name something that exists and would
@@ -698,6 +726,22 @@ export class Pal {
       }),
       streakDays: ctx.moveStreakDays,
     }
+  }
+
+  // no redraw when a line disagrees: the app falls back to the item's own sentence.
+  async leadLines(plan: PlanFact[]): Promise<LeadLine[]> {
+    if (plan.length === 0) return []
+    const parsed = await this.completeJson(leadLinesPrompt(plan), { maxTokens: LINES_MAX_TOKENS, temperature: 0 }, (j) => leadLinesModelSchema.parse(j))
+    const unanswered = new Map(plan.map((f) => [f.key, f]))
+    const lines: LeadLine[] = []
+    for (const { key, line } of parsed.lines) {
+      const fact = unanswered.get(key)
+      const text = line.trim()
+      if (!fact || !text) continue
+      unanswered.delete(key)
+      if (lineAgrees(text, fact)) lines.push({ key, line: text })
+    }
+    return lines
   }
 
   async suggestions(surface: 'composer' | 'routineGoal', ctx: ChatContext | SuggestContext): Promise<SuggestionsResult> {
