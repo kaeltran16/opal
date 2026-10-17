@@ -547,6 +547,7 @@ GoRouter createRouter({
           final seed = state.uri.queryParameters['seed'];
           final from = state.uri.queryParameters['from'];
           final about = state.uri.queryParameters['about'];
+          final dictate = state.uri.queryParameters['dictate'] == '1';
           final c = context.colors;
           // a light scrim keeps the page readable through the glass sheet.
           final scrimAlpha =
@@ -577,7 +578,7 @@ GoRouter createRouter({
               type: MaterialType.transparency,
               child: Align(
                 alignment: Alignment.bottomCenter,
-                child: PalComposerSheet(seed: seed, about: about, from: from),
+                child: PalComposerSheet(seed: seed, about: about, from: from, dictate: dictate),
               ),
             ),
           );

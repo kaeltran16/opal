@@ -46,6 +46,10 @@
 	<string>????</string>
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Opal listens while you dictate to Pal.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Opal turns what you say to Pal into text.</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>UIApplicationSceneManifest</key>

@@ -113,8 +113,8 @@ class _LoopShellState extends ConsumerState<LoopShell> {
     return false;
   }
 
-  void _openComposer() => context.pushNamed(AppRoute.palComposer.name,
-      queryParameters: {'from': GoRouterState.of(context).uri.path});
+  void _openComposer({bool dictate = false}) => context.pushNamed(AppRoute.palComposer.name,
+      queryParameters: {'from': GoRouterState.of(context).uri.path, if (dictate) 'dictate': '1'});
 
   @override
   Widget build(BuildContext context) {
@@ -162,8 +162,7 @@ class _LoopShellState extends ConsumerState<LoopShell> {
             left: askLeft,
             right: GlassTabBar.sideInset,
             bottom: askBottom,
-            // the mic opens the composer too until dictation lands.
-            child: PalAskBar(onAsk: _openComposer, onMic: _openComposer),
+            child: PalAskBar(onAsk: _openComposer, onMic: () => _openComposer(dictate: true)),
           ),
         ],
       ),

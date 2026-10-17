@@ -1,6 +1,6 @@
 /// Barrel export for the service interfaces + their DTOs and mock/no-op impls.
 ///
-/// Every external dependency (Pal, Email, Notifications, Haptics) sits
+/// Every external dependency (Pal, Email, Notifications, Haptics, Speech) sits
 /// behind an interface here so the mock and the real impl are swappable via a
 /// Riverpod provider override (U03). Real impls land later (U23/U24/U27).
 library;
@@ -25,6 +25,7 @@ export 'notifications/local_notification_service.dart';
 export 'notifications/noop_notification_service.dart';
 export 'notifications/notification_service.dart';
 export 'siri/siri_shortcuts_service.dart';
+export 'speech/speech_service.dart';
 export 'pal/device_token_store.dart';
 export 'pal/http_pal_service.dart';
 export 'pal/mock_pal_service.dart';

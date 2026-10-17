@@ -48,6 +48,34 @@ class _Pal implements PalService {
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
+/// Dictation the test drives: [say] feeds what is heard; [stop] ends it.
+class _Speech implements SpeechService {
+  _Speech({this.allowed = true});
+
+  final bool allowed;
+  StreamController<String>? _words;
+  var stops = 0;
+
+  bool get listening => _words != null && !_words!.isClosed;
+
+  void say(String words) => _words!.add(words);
+
+  @override
+  bool get supported => true;
+
+  @override
+  Future<bool> ready() async => allowed;
+
+  @override
+  Stream<String> listen() => (_words = StreamController<String>()).stream;
+
+  @override
+  Future<void> stop() async {
+    stops++;
+    await _words?.close();
+  }
+}
+
 /// Opens the composer over a host page, with a Start workout route to land on.
 Future<GoRouter> _open(
   WidgetTester tester, {
@@ -57,6 +85,8 @@ Future<GoRouter> _open(
   List<PalSuggestion> suggestions = const [],
   double textScale = 1,
   bool trainedToday = false,
+  SpeechService speech = const NoopSpeechService(),
+  bool dictate = false,
 }) async {
   SharedPreferences.setMockInitialValues({});
   final prefs = await SharedPreferences.getInstance();
@@ -66,7 +96,8 @@ Future<GoRouter> _open(
     GoRoute(path: '/$_host', builder: (_, _) => const Scaffold(body: Text(_host))),
     GoRoute(
       path: '/pal',
-      builder: (_, _) => Scaffold(body: PalComposerSheet(seed: seed, from: from)),
+      builder: (_, _) =>
+          Scaffold(body: PalComposerSheet(seed: seed, from: from, dictate: dictate)),
     ),
     GoRoute(path: '/move/start', builder: (_, _) => const Scaffold(body: Text(_startWorkout))),
   ]);
@@ -75,6 +106,7 @@ Future<GoRouter> _open(
       loopDatabaseProvider.overrideWithValue(db),
       sharedPreferencesProvider.overrideWithValue(prefs),
       palServiceProvider.overrideWithValue(pal ?? _Pal()),
+      speechServiceProvider.overrideWithValue(speech),
       palSuggestionsProvider(SuggestionSurface.composer).overrideWith((ref) async => suggestions),
       weeklyPlanControllerProvider.overrideWith((ref) => Stream.value(WeeklyPlan(days: [
             WeekPlanDay(day: 'Thu', date: 15, type: 'Legs', routine: 'Leg Day', colorKey: 'move',
@@ -265,6 +297,75 @@ void main() {
 
     final reply = tester.widget<Text>(_inSheet(find.textContaining("couldn't reach")));
     expect(reply.style?.color, _colors(tester).ink3);
+
+    await flushProviderTimers(tester);
+  });
+
+  testWidgets('without dictation there is no mic', (tester) async {
+    await _open(tester);
+
+    expect(_inSheet(find.bySemanticsLabel('Dictate')), findsNothing);
+
+    await flushProviderTimers(tester);
+  });
+
+  testWidgets('the mic stands in for Send until dictation fills the input', (tester) async {
+    final speech = _Speech();
+    await _open(tester, speech: speech);
+    expect(_inSheet(find.bySemanticsLabel('Send')), findsNothing);
+
+    await tester.tap(find.bySemanticsLabel('Dictate'));
+    await tester.pump();
+    speech.say('Verve coffee five');
+    await tester.pump();
+
+    final field = tester.widget<TextField>(find.byType(TextField));
+    expect(field.controller!.text, 'Verve coffee five');
+    expect(_inSheet(find.bySemanticsLabel('Send')), findsNothing);
+
+    await tester.tap(find.bySemanticsLabel('Stop dictating'));
+    await tester.pumpAndSettle();
+
+    expect(speech.stops, 1);
+    expect(field.controller!.text, 'Verve coffee five');
+    expect(_inSheet(find.bySemanticsLabel('Send')), findsOneWidget);
+
+    await flushProviderTimers(tester);
+  });
+
+  testWidgets("the ask bar's mic opens the sheet listening", (tester) async {
+    final speech = _Speech();
+    await _open(tester, speech: speech, dictate: true);
+
+    expect(speech.listening, isTrue);
+    expect(_inSheet(find.bySemanticsLabel('Stop dictating')), findsOneWidget);
+
+    await flushProviderTimers(tester);
+  });
+
+  testWidgets('sending mid-dictation stops it and keeps the input clear', (tester) async {
+    final speech = _Speech();
+    await _open(tester, speech: speech, dictate: true);
+    speech.say('how is my week');
+    await tester.pump();
+
+    await tester.testTextInput.receiveAction(TextInputAction.send);
+    await tester.pumpAndSettle();
+
+    expect(speech.stops, 1);
+    expect(_inSheet(find.text('how is my week')), findsOneWidget);
+    expect(tester.widget<TextField>(find.byType(TextField)).controller!.text, isEmpty);
+
+    await flushProviderTimers(tester);
+  });
+
+  testWidgets('a refused mic says where to allow it', (tester) async {
+    await _open(tester, speech: _Speech(allowed: false));
+
+    await tester.tap(find.bySemanticsLabel('Dictate'));
+    await tester.pump();
+
+    expect(_inSheet(find.text('Allow the mic and speech recognition in Settings')), findsOneWidget);
 
     await flushProviderTimers(tester);
   });

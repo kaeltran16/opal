@@ -1156,6 +1156,58 @@ final class HapticsServiceProvider
 
 String _$hapticsServiceHash() => r'9804f50173cd1effd98eda0576aa018ccaf3c973';
 
+/// Dictation into the Pal composer: the system recognizer on iOS; elsewhere
+/// the mic is hidden. Needs the mic and speech recognition usage strings in
+/// Info.plist.
+
+@ProviderFor(speechService)
+const speechServiceProvider = SpeechServiceProvider._();
+
+/// Dictation into the Pal composer: the system recognizer on iOS; elsewhere
+/// the mic is hidden. Needs the mic and speech recognition usage strings in
+/// Info.plist.
+
+final class SpeechServiceProvider
+    extends $FunctionalProvider<SpeechService, SpeechService, SpeechService>
+    with $Provider<SpeechService> {
+  /// Dictation into the Pal composer: the system recognizer on iOS; elsewhere
+  /// the mic is hidden. Needs the mic and speech recognition usage strings in
+  /// Info.plist.
+  const SpeechServiceProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'speechServiceProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$speechServiceHash();
+
+  @$internal
+  @override
+  $ProviderElement<SpeechService> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  SpeechService create(Ref ref) {
+    return speechService(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(SpeechService value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<SpeechService>(value),
+    );
+  }
+}
+
+String _$speechServiceHash() => r'2640348f6e39180306caabb963799b9f92d97008';
+
 /// Live Activity / Dynamic Island for the active workout (U25). The real impl
 /// talks to the native `opal/live_activity` MethodChannel; until the OpalWidgets
 /// extension + AppDelegate bridge are added in Xcode (see

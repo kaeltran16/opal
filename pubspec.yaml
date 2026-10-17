@@ -75,6 +75,7 @@ dependencies:
   # conditional import and is absent from the web build (see
   # lib/services/email/imap_mailbox_client_web.dart).
   enough_mail: ^2.1.7
+  speech_to_text: ^7.5.0
 
 dev_dependencies:
   flutter_test:

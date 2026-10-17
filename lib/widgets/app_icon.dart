@@ -86,6 +86,7 @@ const Map<String, IconData> _sfMap = {
   'plus.circle.fill': CupertinoIcons.add_circled_solid,
   'pencil': CupertinoIcons.pencil,
   'mic': CupertinoIcons.mic,
+  'stop.fill': CupertinoIcons.stop_fill,
   // workout line glyphs (oura): outline icons, drawn in ink2, never in tiles.
   'list.bullet': CupertinoIcons.list_bullet,
   'wand.and.stars': Icons.auto_fix_high_outlined,

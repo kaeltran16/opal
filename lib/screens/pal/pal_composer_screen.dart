@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -70,13 +72,15 @@ const _screenChips = {
 /// the conversation. A non-empty [seed] opens straight into the conversation
 /// with that message, and [about] rides along with it as context for Pal only.
 /// [from] is the path of the screen underneath, shown as the context chip
-/// only: what is sent to Pal does not change.
+/// only: what is sent to Pal does not change. [dictate] opens it listening,
+/// as the ask bar's mic does.
 class PalComposerSheet extends ConsumerStatefulWidget {
-  const PalComposerSheet({super.key, this.seed, this.about, this.from});
+  const PalComposerSheet({super.key, this.seed, this.about, this.from, this.dictate = false});
 
   final String? seed;
   final String? about;
   final String? from;
+  final bool dictate;
 
   @override
   ConsumerState<PalComposerSheet> createState() => _PalComposerSheetState();
@@ -86,15 +90,20 @@ class _PalComposerSheetState extends ConsumerState<PalComposerSheet> {
   final TextEditingController _inputCtrl = TextEditingController();
   final ScrollController _scrollCtrl = ScrollController();
   final FocusNode _inputFocus = FocusNode();
+  late final SpeechService _speech = ref.read(speechServiceProvider);
+  StreamSubscription<String>? _dictation;
+  bool _micRefused = false;
 
   @override
   void initState() {
     super.initState();
     _inputCtrl.addListener(() => setState(() {}));
+    if (widget.dictate) WidgetsBinding.instance.addPostFrameCallback((_) => _toggleDictation());
   }
 
   @override
   void dispose() {
+    _endDictation();
     _inputCtrl.dispose();
     _scrollCtrl.dispose();
     _inputFocus.dispose();
@@ -107,6 +116,7 @@ class _PalComposerSheetState extends ConsumerState<PalComposerSheet> {
   Future<void> _send(String text) async {
     final trimmed = text.trim();
     if (trimmed.isEmpty) return;
+    _endDictation();
     _inputCtrl.clear();
     final pending = _controller.send(trimmed);
     _scrollToBottomSoon();
@@ -117,6 +127,39 @@ class _PalComposerSheetState extends ConsumerState<PalComposerSheet> {
     if (result == PalSendResult.offlineFallback) {
       context.pushReplacement('/entry/new?kind=expense&notice=pal-offline');
     }
+  }
+
+  /// Starts dictating into the input, or stops it. The words heard so far
+  /// replace the input as they arrive; sending stays a tap, so they can be
+  /// checked first.
+  Future<void> _toggleDictation() async {
+    if (_dictation != null) return _speech.stop();
+    final ready = await _speech.ready();
+    if (!mounted || _dictation != null) return;
+    if (!ready) {
+      setState(() => _micRefused = true);
+      return;
+    }
+    setState(() {
+      _micRefused = false;
+      _dictation = _speech.listen().listen(
+            (words) => _inputCtrl.value = TextEditingValue(
+              text: words,
+              selection: TextSelection.collapsed(offset: words.length),
+            ),
+            onDone: () {
+              if (mounted) setState(() => _dictation = null);
+            },
+          );
+    });
+  }
+
+  /// Drops the words still to come, so nothing refills a sent or closed input.
+  void _endDictation() {
+    if (_dictation == null) return;
+    _dictation!.cancel();
+    _dictation = null;
+    _speech.stop();
   }
 
   void _sendStarter(_Starter starter) {
@@ -217,10 +260,20 @@ class _PalComposerSheetState extends ConsumerState<PalComposerSheet> {
                   _Input(
                     controller: _inputCtrl,
                     focusNode: _inputFocus,
-                    hint: expanded ? 'Ask a follow-up' : 'Tell Pal anything',
+                    hint: _micRefused
+                        ? 'Allow the mic and speech recognition in Settings'
+                        : expanded
+                            ? 'Ask a follow-up'
+                            : 'Tell Pal anything',
                     canSend: !state.isLoading && _inputCtrl.text.trim().isNotEmpty,
                     enabled: !state.isLoading,
                     onSend: () => _send(_inputCtrl.text),
+                    dictating: _dictation != null,
+                    // the mic takes Send's place while there is nothing to send.
+                    onDictate: _speech.supported &&
+                            (_dictation != null || _inputCtrl.text.trim().isEmpty)
+                        ? _toggleDictation
+                        : null,
                   ),
                 ],
               ),
@@ -482,7 +535,7 @@ class _Conversation extends StatelessWidget {
   }
 }
 
-/// The text field and Send.
+/// The text field and Send, or the mic in Send's place.
 class _Input extends StatelessWidget {
   const _Input({
     required this.controller,
@@ -491,6 +544,8 @@ class _Input extends StatelessWidget {
     required this.canSend,
     required this.enabled,
     required this.onSend,
+    required this.dictating,
+    this.onDictate,
   });
 
   final TextEditingController controller;
@@ -499,6 +554,10 @@ class _Input extends StatelessWidget {
   final bool canSend;
   final bool enabled;
   final VoidCallback onSend;
+  final bool dictating;
+
+  /// Starts or stops dictation. Null shows Send instead.
+  final VoidCallback? onDictate;
 
   @override
   Widget build(BuildContext context) {
@@ -533,25 +592,47 @@ class _Input extends StatelessWidget {
               ),
             ),
           ),
-          // labelled even while it cannot send, so it is never a mystery button.
-          Semantics(
-            button: true,
-            enabled: canSend,
-            label: 'Send',
-            onTap: canSend ? onSend : null,
-            excludeSemantics: true,
-            child: PressScale(
-              onTap: canSend ? onSend : null,
-              child: Container(
-                width: _sendSize,
-                height: _sendSize,
-                decoration: BoxDecoration(color: c.ink, shape: BoxShape.circle),
-                alignment: Alignment.center,
-                child: AppIcon('arrow.up', size: _sendGlyph, color: c.bg),
-              ),
-            ),
-          ),
+          if (onDictate case final onDictate?)
+            _RoundButton(
+              label: dictating ? 'Stop dictating' : 'Dictate',
+              glyph: dictating ? 'stop.fill' : 'mic',
+              onTap: dictating || enabled ? onDictate : null,
+            )
+          else
+            _RoundButton(label: 'Send', glyph: 'arrow.up', onTap: canSend ? onSend : null),
         ],
+      ),
+    );
+  }
+}
+
+/// The input's trailing button.
+class _RoundButton extends StatelessWidget {
+  const _RoundButton({required this.label, required this.glyph, this.onTap});
+
+  final String label;
+  final String glyph;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    // labelled even while it cannot act, so it is never a mystery button.
+    return Semantics(
+      button: true,
+      enabled: onTap != null,
+      label: label,
+      onTap: onTap,
+      excludeSemantics: true,
+      child: PressScale(
+        onTap: onTap,
+        child: Container(
+          width: _sendSize,
+          height: _sendSize,
+          decoration: BoxDecoration(color: c.ink, shape: BoxShape.circle),
+          alignment: Alignment.center,
+          child: AppIcon(glyph, size: _sendGlyph, color: c.bg),
+        ),
       ),
     );
   }

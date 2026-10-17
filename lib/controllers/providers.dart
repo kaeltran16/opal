@@ -484,6 +484,17 @@ NotificationService notificationService(Ref ref) {
 @Riverpod(keepAlive: true)
 HapticsService hapticsService(Ref ref) => const PlatformHapticsService();
 
+/// Dictation into the Pal composer: the system recognizer on iOS; elsewhere
+/// the mic is hidden. Needs the mic and speech recognition usage strings in
+/// Info.plist.
+@Riverpod(keepAlive: true)
+SpeechService speechService(Ref ref) {
+  if (!kIsWeb && defaultTargetPlatform == TargetPlatform.iOS) {
+    return PluginSpeechService();
+  }
+  return const NoopSpeechService();
+}
+
 /// Live Activity / Dynamic Island for the active workout (U25). The real impl
 /// talks to the native `opal/live_activity` MethodChannel; until the OpalWidgets
 /// extension + AppDelegate bridge are added in Xcode (see
