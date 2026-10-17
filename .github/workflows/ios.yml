@@ -1,0 +1,55 @@
+name: opal-ios build
+
+# Builds the AltStore .ipa on a macOS runner, for building without a local Mac.
+# Manual trigger only: a new .ipa is needed only when reinstalling.
+#
+# The repo is public, so any signed-in GitHub user can download artifacts, and
+# PAL_PROVISIONING_KEY is baked into the .ipa (widget Info.plist + Dart
+# binary). The artifact is therefore uploaded encrypted with IPA_PASSPHRASE;
+# see README "Building in CI" for the decrypt command.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  ipa:
+    # the deployment target is iOS 26.0, so the image's Xcode must be 26+
+    runs-on: macos-26
+    timeout-minutes: 45
+    env:
+      PAL_BASE_URL: ${{ secrets.PAL_BASE_URL }}
+      PAL_PROVISIONING_KEY: ${{ secrets.PAL_PROVISIONING_KEY }}
+      IPA_PASSPHRASE: ${{ secrets.IPA_PASSPHRASE }}
+    steps:
+      # fail fast: a missing PAL secret would silently build the standalone app
+      - name: Require secrets
+        run: |
+          for name in PAL_BASE_URL PAL_PROVISIONING_KEY IPA_PASSPHRASE; do
+            [[ -n "${!name}" ]] || { echo "::error::repo secret $name is not set"; exit 1; }
+          done
+
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          # same pin as app.yml
+          flutter-version: 3.44.1
+          channel: stable
+          cache: true
+
+      - run: xcodebuild -version
+
+      - run: ./scripts/build_ipa.sh
+
+      # brew's openssl@3, not macOS's LibreSSL, so the flags match the
+      # OpenSSL 3 that Git for Windows ships for decrypting
+      - name: Encrypt .ipa
+        run: |
+          "$(brew --prefix openssl@3)/bin/openssl" enc -aes-256-cbc -pbkdf2 -iter 200000 -md sha256 -salt \
+            -in build/altstore/Opal.ipa -out build/altstore/Opal.ipa.enc -pass env:IPA_PASSPHRASE
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: opal-ipa
+          path: build/altstore/Opal.ipa.enc
+          if-no-files-found: error
+          retention-days: 3

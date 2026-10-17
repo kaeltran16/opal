@@ -38,6 +38,26 @@ Output: `build/altstore/Opal.ipa`. AltStore/SideStore re-signs it with your
 Apple ID at install time. AirDrop the `.ipa` to the phone → open in AltStore,
 or AltStore → My Apps → "+" → pick the file.
 
+### Building in CI (no Mac)
+
+`.github/workflows/ios.yml` runs the same script on a GitHub macOS runner. It
+needs three repo secrets: `PAL_BASE_URL`, `PAL_PROVISIONING_KEY` and
+`IPA_PASSPHRASE`. The repo is public and the provisioning key is baked into the
+`.ipa`, so the artifact is uploaded encrypted and kept for 3 days.
+
+```bash
+gh workflow run ios.yml
+gh run watch                              # wait for it to finish
+gh run download --name opal-ipa           # -> Opal.ipa.enc
+
+read -rsp 'Passphrase: ' IPA_PASSPHRASE && export IPA_PASSPHRASE && echo
+openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -md sha256 \
+  -in Opal.ipa.enc -out Opal.ipa -pass env:IPA_PASSPHRASE
+```
+
+Then install `Opal.ipa` with AltServer for Windows (needs the iTunes and iCloud
+installers from apple.com, not the Microsoft Store versions).
+
 Notes:
 - The deployment target is **iOS 26.0**; the device must be on iOS 26+.
 - Enable **Settings → Privacy & Security → Developer Mode** on first install.
