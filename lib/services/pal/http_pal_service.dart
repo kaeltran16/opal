@@ -344,10 +344,15 @@ class HttpPalService implements PalService {
     bool another = false,
     String? excludeRoutineId,
   }) async {
-    final json = await _post('/v1/suggest-workout', {
-      'another': another,
-      'context': await context.suggest(another, excludeRoutineId),
-    });
+    // the default pick is keyed by its context, whose dates are day-relative: a
+    // repeat open the same day hits, while a logged workout, a new routine or
+    // the day turning misses. 'another' asks for a fresh pick, so it always
+    // posts and never replaces the cached default.
+    final ctx = await context.suggest(another, excludeRoutineId);
+    final json = another
+        ? await _post('/v1/suggest-workout', {'another': true, 'context': ctx})
+        : await _cachedPost('suggest-workout', '/v1/suggest-workout', ctx,
+            extra: {'another': false});
     final String? routineId;
     final String rationale;
     try {
