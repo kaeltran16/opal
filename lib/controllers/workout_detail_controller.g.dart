@@ -10,7 +10,7 @@ part of 'workout_detail_controller.dart';
 // ignore_for_file: type=lint, type=warning
 /// Streams the [WorkoutDetailState] for [workoutId]: the session aggregate, its
 /// per-exercise set groups (names resolved via the catalog), and the trailing
-/// 8-week volume buckets computed from all workouts. Re-emits when the workout
+/// 8-week buckets computed from all workouts. Re-emits when the workout
 /// store changes.
 
 @ProviderFor(workoutDetail)
@@ -18,7 +18,7 @@ const workoutDetailProvider = WorkoutDetailFamily._();
 
 /// Streams the [WorkoutDetailState] for [workoutId]: the session aggregate, its
 /// per-exercise set groups (names resolved via the catalog), and the trailing
-/// 8-week volume buckets computed from all workouts. Re-emits when the workout
+/// 8-week buckets computed from all workouts. Re-emits when the workout
 /// store changes.
 
 final class WorkoutDetailProvider
@@ -33,7 +33,7 @@ final class WorkoutDetailProvider
         $StreamProvider<WorkoutDetailState> {
   /// Streams the [WorkoutDetailState] for [workoutId]: the session aggregate, its
   /// per-exercise set groups (names resolved via the catalog), and the trailing
-  /// 8-week volume buckets computed from all workouts. Re-emits when the workout
+  /// 8-week buckets computed from all workouts. Re-emits when the workout
   /// store changes.
   const WorkoutDetailProvider._({
     required WorkoutDetailFamily super.from,
@@ -79,11 +79,11 @@ final class WorkoutDetailProvider
   }
 }
 
-String _$workoutDetailHash() => r'763697c766209042ef1c176e0a5da962024c6369';
+String _$workoutDetailHash() => r'0b0dba494c17865df223f3519e59083802e4840b';
 
 /// Streams the [WorkoutDetailState] for [workoutId]: the session aggregate, its
 /// per-exercise set groups (names resolved via the catalog), and the trailing
-/// 8-week volume buckets computed from all workouts. Re-emits when the workout
+/// 8-week buckets computed from all workouts. Re-emits when the workout
 /// store changes.
 
 final class WorkoutDetailFamily extends $Family
@@ -99,7 +99,7 @@ final class WorkoutDetailFamily extends $Family
 
   /// Streams the [WorkoutDetailState] for [workoutId]: the session aggregate, its
   /// per-exercise set groups (names resolved via the catalog), and the trailing
-  /// 8-week volume buckets computed from all workouts. Re-emits when the workout
+  /// 8-week buckets computed from all workouts. Re-emits when the workout
   /// store changes.
 
   WorkoutDetailProvider call(String workoutId) =>

@@ -18,6 +18,7 @@ const _step = 'Two-minute wind-down';
 const _evening = 'Evening wind-down';
 const _legs = 'seed-routine-legs';
 const _treadmill = 'seed-routine-treadmill-int';
+const _thursdayDay = 4;
 const _friday = 5;
 
 // a sunday, so friday is neither today nor tomorrow.
@@ -157,6 +158,23 @@ void main() {
       });
     });
 
+    test('approving reschedule moves the routine off its old day, and undo restores both',
+        () async {
+      await WeeklyPlanRepository(_db).upsert(_thursdayDay, _legs);
+      await withClock(_lateEvening, () async {
+        await _plan.approve(_reschedule());
+
+        expect(await _slot(_friday), _legs);
+        expect(await _slot(_thursdayDay), isNull);
+        expect(_session.notice?.label, 'Moved Leg Day to Friday');
+
+        await _plan.undo();
+
+        expect(await _slot(_friday), _treadmill);
+        expect(await _slot(_thursdayDay), _legs);
+      });
+    });
+
     test('a reschedule onto tomorrow names it tomorrow', () async {
       await withClock(_thursday, () async {
         await _plan.approve(_reschedule());
@@ -236,6 +254,19 @@ void main() {
 
       expect(_session.lastStep?.label, 'Added $_step to $_evening');
       expect(_session.settled, {'proposal:p': true});
+    });
+  });
+
+  group('sourceDay', () {
+    test('is the other day nearest the target, the earlier on a tie', () {
+      expect(sourceDay({1: _legs, 4: _legs, 5: _treadmill}, _legs, 6), 4);
+      expect(sourceDay({3: _legs, 7: _legs}, _legs, 5), 3);
+      expect(sourceDay({5: _legs, 7: _legs}, _legs, 5), 7);
+    });
+
+    test('is null when no other day plans the routine', () {
+      expect(sourceDay({5: _legs, 2: null}, _legs, 5), isNull);
+      expect(sourceDay(const {}, _legs, 5), isNull);
     });
   });
 

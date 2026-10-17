@@ -6,6 +6,8 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:opal/controllers/nutrition_controller.dart';
+import 'package:opal/controllers/providers.dart' show ritualRepositoryProvider;
 import 'package:opal/controllers/rituals_controller.dart';
 import 'package:opal/controllers/today_controller.dart';
 import 'package:opal/data/seed/seed_data.dart';
@@ -65,6 +67,19 @@ const _emptyEvening = RitualRoutine(
   icon: 'moon.stars.fill',
   blurb: 'Close the day gently',
 );
+
+/// Today's meals, held back until [gate] completes, as a slow cold start.
+class _GatedNutrition extends NutritionController {
+  _GatedNutrition(this.gate);
+
+  final Future<void> gate;
+
+  @override
+  Stream<NutritionState> build() async* {
+    await gate;
+    yield* super.build();
+  }
+}
 
 /// Only the mood check-in and Log a meal, so proposals set the count.
 const _bare = TodayDay(routines: [], workout: false);
@@ -412,6 +427,51 @@ void main() {
       await _tap(tester, _toastUndo);
       expect(_card('Rent auto-pays'), findsOneWidget);
       expect(find.byKey(planUndoToastKey), findsNothing);
+    });
+  });
+
+  group('while the day loads', () {
+    _todayTest('the lead, card and list wait for every store the plan reads', (tester) async {
+      tester.view.physicalSize = _tall;
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.reset);
+      final meals = Completer<void>();
+      await bootToday(tester,
+          day: const TodayDay(mood: true),
+          overrides: [nutritionControllerProvider.overrideWith(() => _GatedNutrition(meals.future))]);
+
+      expect(find.text('MON 28 SEP · 9:30 AM'), findsOneWidget);
+      expect(find.byKey(todayCardKey), findsNothing);
+      expect(find.byKey(todayRailKey), findsNothing);
+      expect(_onToday(find.byType(PalLeadText)), findsNothing);
+      expect(_row('Mood check-in'), findsNothing);
+
+      meals.complete();
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(todayCardKey), findsOneWidget);
+      expect(find.byKey(todayRailKey), findsOneWidget);
+      expect(_row('Mood check-in'), findsOneWidget);
+    });
+
+    _todayTest('a routine edit keeps the day drawn and the check-in done', (tester) async {
+      await _boot(tester, day: const TodayDay(mood: true));
+      final again = find.bySemanticsLabel('Check in again: Mood check-in, ${moodWord(0.7)}');
+      expect(again, findsOneWidget);
+
+      // a routine edit re-emits Today's state; the stores behind the plan
+      // must keep their values through it.
+      final repo = ProviderScope.containerOf(tester.element(find.byType(TodayScreen)))
+          .read(ritualRepositoryProvider);
+      await tester.runAsync(() async {
+        final morning = (await repo.getAll()).first;
+        await repo.upsertRoutine(morning.copyWith(blurb: 'A new blurb'));
+      });
+      for (var i = 0; i < 5; i++) {
+        await tester.pump();
+        expect(again, findsOneWidget, reason: 'frame $i');
+        expect(_onToday(find.text('Mood check-in')), findsOneWidget, reason: 'frame $i');
+      }
     });
   });
 

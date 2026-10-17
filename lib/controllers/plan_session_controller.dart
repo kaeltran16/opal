@@ -54,8 +54,8 @@ class PlanSessionController extends _$PlanSessionController {
     switch (last?.change) {
       case AddedRitualStep(:final routineId, :final stepId):
         await _removeStep(routineId, stepId);
-      case SetPlanSlot(:final weekday, :final priorRoutineId):
-        await ref.read(weeklyPlanRepositoryProvider).upsert(weekday, priorRoutineId);
+      case SetPlanSlots(:final prior):
+        await ref.read(weeklyPlanRepositoryProvider).setDays(prior);
       case null:
     }
     // a second tap while this one wrote has popped the step already; popping
@@ -113,15 +113,34 @@ class PlanSessionController extends _$PlanSessionController {
   Future<RitualRoutine?> _ritual(String id) async =>
       (await ref.read(ritualRepositoryProvider).getAll()).where((r) => r.id == id).firstOrNull;
 
+  /// Moves [routineId] onto [weekday]: plans it there and clears the day it
+  /// was planned on, so "Move X to Friday" moves it for real. A routine not
+  /// yet planned anywhere is only planned.
   Future<(String, PlanChange)> _setSlot(int weekday, String routineId) async {
     final routine = await ref.read(routineRepositoryProvider).getById(routineId);
     if (routine == null) throw StateError('no workout routine $routineId');
     final plan = ref.read(weeklyPlanRepositoryProvider);
-    final prior =
-        (await plan.getSchedule()).where((a) => a.weekday == weekday).firstOrNull?.routineId;
-    await plan.upsert(weekday, routineId);
+    final schedule = {for (final a in await plan.getSchedule()) a.weekday: a.routineId};
+    final from = sourceDay(schedule, routineId, weekday);
+    await plan.setDays({weekday: routineId, ?from: null});
     final tomorrow = clock.now().add(const Duration(days: 1)).weekday;
     final when = weekday == tomorrow ? 'tomorrow' : kWeekdays[weekday - 1];
-    return ('Planned ${routine.name} for $when', SetPlanSlot(weekday, prior));
+    final label =
+        from == null ? 'Planned ${routine.name} for $when' : 'Moved ${routine.name} to $when';
+    return (label, SetPlanSlots({weekday: schedule[weekday], ?from: routineId}));
   }
+}
+
+/// The day a reschedule of [routineId] onto [target] moves it from: of the
+/// other weekdays [schedule] plans it on, the nearest to [target], the earlier
+/// on a tie. Null when no other day plans it.
+int? sourceDay(Map<int, String?> schedule, String routineId, int target) {
+  final days = [
+    for (final MapEntry(key: day, value: id) in schedule.entries)
+      if (id == routineId && day != target) day,
+  ]..sort((a, b) {
+      final byDistance = (a - target).abs().compareTo((b - target).abs());
+      return byDistance != 0 ? byDistance : a.compareTo(b);
+    });
+  return days.firstOrNull;
 }

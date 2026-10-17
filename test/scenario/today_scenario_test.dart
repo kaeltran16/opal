@@ -259,8 +259,13 @@ void main() {
     expect(find.byType(RoutinePlayerScreen), findsOneWidget);
     await shot(tester, 'today_row_opens_${_theme(dark)}');
 
-    // back on today the card keeps its item: a row tap never swaps the lead.
-    await _backToToday(tester);
+    // closing the player returns to today, not the routines area, and the
+    // card keeps its item: a row tap never swaps the lead.
+    await tester.tap(find.bySemanticsLabel('Close'));
+    await tester.pumpAndSettle();
+    expect(find.byType(RoutinePlayerScreen), findsNothing);
+    expect(appRouter(tester).state.matchedLocation, '/today');
+    await shot(tester, 'today_player_closed_${_theme(dark)}');
     await _toTop(tester);
     expect(_card(_rentTitle), findsOneWidget);
     expect(_whyButton(), findsOneWidget);

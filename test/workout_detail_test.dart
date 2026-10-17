@@ -50,13 +50,31 @@ void main() {
     );
 
     final buckets =
-        buildWeeklyVolume([thisWeekWorkout, fourWeeksAgo, old], now);
+        buildWeeklyTotals([thisWeekWorkout, fourWeeksAgo, old], now);
 
     expect(buckets.length, 8);
     expect(buckets.last.volumeKg, 500); // current week
     expect(buckets[3].volumeKg, 1000); // 4 weeks back (index 3 of 0..7)
     // Total only counts in-window workouts.
     expect(buckets.fold<double>(0, (s, b) => s + b.volumeKg), 1500);
+  });
+
+  test('buildWeeklyTotals also sums the minutes and km of timed sets', () {
+    final now = DateTime(2026, 6, 10);
+    SetLog timed(int minutes, {double? km}) => SetLog(
+        id: 't', exerciseId: 'run', weightKg: 0, reps: 0, done: true, minutes: minutes, distanceKm: km);
+    Workout run(String id, DateTime at, List<SetLog> sets) =>
+        Workout(id: id, name: id, startedAt: at, endedAt: at, sets: sets);
+
+    final weeks = buildWeeklyTotals([
+      run('a', now, [timed(20, km: 3.2), timed(10)]),
+      run('b', now.subtract(const Duration(days: 7)), [timed(15, km: 2)]),
+    ], now);
+
+    expect(weeks.last.minutes, 30);
+    expect(weeks.last.km, closeTo(3.2, 1e-9));
+    expect(weeks[6].minutes, 15);
+    expect(weeks.last.volumeKg, 0);
   });
 
   test('buildExerciseGroups groups sets by exercise in first-seen order', () {
@@ -172,6 +190,11 @@ void main() {
       expect(find.text('kg lifted'), findsNothing);
       expect(find.textContaining('0 kg'), findsNothing);
       expect(find.text('New best'), findsNothing);
+      // the 8-week chart counts minutes, not tonnes.
+      expect(find.text('Minutes over 8 weeks'), findsOneWidget);
+      expect(find.text('Volume over 8 weeks'), findsNothing);
+      expect(find.textContaining(' min over 8 weeks'), findsOneWidget);
+      expect(find.textContaining(' t over 8 weeks'), findsNothing);
 
       await _unmount(tester);
     });

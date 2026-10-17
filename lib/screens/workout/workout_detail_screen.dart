@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -41,8 +43,9 @@ const List<FontFeature> _tabular = [FontFeature.tabularFigures()];
 /// Screen 12 — Workout Detail (past session).
 ///
 /// Read-only breakdown of one finished [Workout]: the volume as the lead with
-/// its best and a stat row (Time / Sets / Records), an 8-week volume bar chart
-/// (fl_chart), a per-exercise set table, and Pal's post-workout note.
+/// its best and a stat row (Time / Sets / Records), an 8-week bar chart of
+/// volume, or minutes for a timed session (fl_chart), a per-exercise set
+/// table, and Pal's post-workout note.
 ///
 /// All derivation lives in [workoutDetailProvider] / [workoutNoteProvider];
 /// this widget only lays out.
@@ -104,8 +107,8 @@ class _Body extends StatelessWidget {
       children: [
         _Lead(state: state),
         _Section(
-          title: 'Volume over 8 weeks',
-          child: _VolumeChart(weeks: state.weeklyVolume),
+          title: w.isTimedSession ? 'Minutes over 8 weeks' : 'Volume over 8 weeks',
+          child: _WeeksChart(weeks: state.weeks, timed: w.isTimedSession),
         ),
         _Section(
           title: 'Exercises',
@@ -210,17 +213,20 @@ class _Section extends StatelessWidget {
   }
 }
 
-/// 8-week weekly-volume bars (fl_chart) in `ink` on `track`, under a sentence
-/// with the total and the trend.
-class _VolumeChart extends StatelessWidget {
-  const _VolumeChart({required this.weeks});
-  final List<WeekVolume> weeks;
+/// 8-week bars (fl_chart) in `ink` on `track`, under a sentence with the
+/// total and the trend: weekly volume, or the minutes of timed sets when
+/// [timed], as a timed session counts time, not weight.
+class _WeeksChart extends StatelessWidget {
+  const _WeeksChart({required this.weeks, required this.timed});
+  final List<WeekTotals> weeks;
+  final bool timed;
 
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    final maxKg = weeks.fold<double>(0, (m, w) => w.volumeKg > m ? w.volumeKg : m);
-    final maxY = maxKg <= 0 ? 1.0 : maxKg;
+    final values = [for (final w in weeks) timed ? w.minutes.toDouble() : w.volumeKg];
+    final most = values.fold<double>(0, math.max);
+    final maxY = most <= 0 ? 1.0 : most;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -228,7 +234,8 @@ class _VolumeChart extends StatelessWidget {
       children: [
         Semantics(
           container: true,
-          child: Text(_volumeSentence(weeks), style: AppType.subhead.copyWith(color: c.ink3)),
+          child: Text(_weeksSentence(weeks, timed: timed),
+              style: AppType.subhead.copyWith(color: c.ink3)),
         ),
         SizedBox(
           height: _chartHeight,
@@ -262,12 +269,12 @@ class _VolumeChart extends StatelessWidget {
                 ),
               ),
               barGroups: [
-                for (final (i, week) in weeks.indexed)
+                for (final (i, value) in values.indexed)
                   BarChartGroupData(
                     x: i,
                     barRods: [
                       BarChartRodData(
-                        toY: week.volumeKg,
+                        toY: value,
                         width: _barWidth,
                         color: c.ink,
                         borderRadius: const BorderRadius.all(Radius.circular(Radii.xs)),
@@ -288,11 +295,19 @@ class _VolumeChart extends StatelessWidget {
   }
 }
 
-/// "12.4 t over 8 weeks, up 15% in the last 4 weeks."
-String _volumeSentence(List<WeekVolume> weeks) {
-  final tonnes = weeks.fold<double>(0, (s, w) => s + w.volumeKg) / 1000;
-  final total = '${tonnes.toStringAsFixed(1)} t over 8 weeks';
-  final trend = _trendPct(weeks);
+/// "12.4 t over 8 weeks, up 15% in the last 4 weeks.", or for a timed session
+/// "95 min · 12.4 km over 8 weeks, ...".
+String _weeksSentence(List<WeekTotals> weeks, {required bool timed}) {
+  final String amount;
+  if (timed) {
+    final minutes = weeks.fold<int>(0, (s, w) => s + w.minutes);
+    amount = formatTimed(minutes, weeks.fold<double>(0, (s, w) => s + w.km));
+  } else {
+    final tonnes = weeks.fold<double>(0, (s, w) => s + w.volumeKg) / 1000;
+    amount = '${tonnes.toStringAsFixed(1)} t';
+  }
+  final total = '$amount over 8 weeks';
+  final trend = _trendPct([for (final w in weeks) timed ? w.minutes.toDouble() : w.volumeKg]);
   if (trend == null) return '$total.';
   if (trend == 0) return '$total, level over the last 4 weeks.';
   final direction = trend > 0 ? 'up' : 'down';
@@ -302,11 +317,11 @@ String _volumeSentence(List<WeekVolume> weeks) {
 /// Percent change of the recent half vs the prior half of the 8-week window.
 /// Null when there's no prior baseline to compare against (avoids /0 and a
 /// meaningless "+0%").
-int? _trendPct(List<WeekVolume> weeks) {
+int? _trendPct(List<double> weeks) {
   if (weeks.length < 2) return null;
   final half = weeks.length ~/ 2;
-  final prior = weeks.take(half).fold<double>(0, (s, w) => s + w.volumeKg);
-  final recent = weeks.skip(half).fold<double>(0, (s, w) => s + w.volumeKg);
+  final prior = weeks.take(half).fold<double>(0, (s, w) => s + w);
+  final recent = weeks.skip(half).fold<double>(0, (s, w) => s + w);
   if (prior <= 0) return null;
   return (((recent - prior) / prior) * 100).round();
 }

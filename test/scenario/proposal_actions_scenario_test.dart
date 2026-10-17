@@ -53,7 +53,7 @@ const _legs = PalProposal(
   approveIcon: 'arrow.triangle.2.circlepath',
   doneLabel: 'Legs moved to Friday · plan updated',
   action: rescheduleWorkoutAction,
-  slot: (weekday: DateTime.friday, routineId: 'seed-routine-legs'),
+  slot: (weekday: DateTime.friday, routineId: _legsId),
 );
 
 /// The seed routines with an evening that has no steps yet, so it is no
@@ -72,6 +72,18 @@ class _FailingRituals extends RitualRepository {
 }
 
 String _theme(bool dark) => dark ? 'dark' : 'light';
+
+const _legsId = 'seed-routine-legs';
+
+WeeklyPlanRepository _plan(WidgetTester tester) =>
+    ProviderScope.containerOf(tester.element(find.byType(LoopApp)))
+        .read(weeklyPlanRepositoryProvider);
+
+/// Weekday to its planned routine, null for rest.
+Future<Map<int, String?>> _schedule(WidgetTester tester) async => {
+      for (final a in (await tester.runAsync(_plan(tester).getSchedule))!)
+        a.weekday: a.routineId,
+    };
 
 Finder _card(String title) =>
     find.descendant(of: find.byKey(todayCardKey), matching: find.text(title));
@@ -164,6 +176,26 @@ void main() {
     expect(find.descendant(of: plan, matching: find.text('Leg Day')), findsOneWidget);
     expect(find.descendant(of: plan, matching: find.text('Fri')), findsWidgets);
     await shot(tester, 'proposal_reschedule_weekly_plan_${_theme(dark)}');
+  });
+
+  scenarioTest('reschedule moves and undo restores', (tester, dark) async {
+    await bootToday(tester, dark: dark, pal: TodayPal(proposals: const [_legs]));
+    await tester.runAsync(() => _plan(tester).upsert(DateTime.thursday, _legsId));
+
+    await _tap(tester, find.text(_legs.approveLabel));
+    await _toTop(tester);
+
+    expect(_toast('Moved Leg Day to Friday'), findsOneWidget);
+    expect(await _schedule(tester), containsPair(DateTime.friday, _legsId));
+    expect(await _schedule(tester), containsPair(DateTime.thursday, null));
+    await shot(tester, 'proposal_reschedule_moved_${_theme(dark)}');
+
+    await _tap(tester, _undo);
+
+    expect(await _schedule(tester), containsPair(DateTime.thursday, _legsId));
+    expect(await _schedule(tester), containsPair(DateTime.friday, null));
+    expect(_card(_legs.title), findsOneWidget);
+    await shot(tester, 'proposal_reschedule_restored_${_theme(dark)}');
   });
 
   scenarioTest('skip names undo', (tester, dark) async {

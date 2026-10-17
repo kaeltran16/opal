@@ -20,6 +20,15 @@ class SeedData {
     return DateTime(now.year, now.month, now.day, hour, minute);
   }
 
+  /// Helper: today at [hour]:[minute] when that has passed, else the day
+  /// before. Today's demo check-ins and meals are relative to now, so just
+  /// after midnight the day is not already checked in and eaten, and a new
+  /// check-in is the latest.
+  static DateTime _soFarAt(int hour, int minute) {
+    final at = _todayAt(hour, minute);
+    return at.isAfter(clock.now()) ? _daysAgoAt(1, hour, minute) : at;
+  }
+
   /// Helper: [daysAgo] days back at [hour]:[minute].
   static DateTime _daysAgoAt(int daysAgo, int hour, int minute) {
     final now = clock.now();
@@ -1027,15 +1036,15 @@ class SeedData {
         ..._backfillMoneyAndRituals(),
       ];
 
-  /// Four demo nutrition meals (design's m1–m4), anchored to today so the
-  /// Nutrition landing always has content on first run.
+  /// Four demo nutrition meals (design's m1–m4), anchored to the day so far
+  /// ([_soFarAt]) so the Nutrition landing has content on first run.
   ///
   /// m2 links to the seeded Verve coffee expense; m3 links to the Tartine lunch
   /// expense — both already in [entries]. m1/m4 are home meals with no link.
   static List<NutritionMeal> nutritionMeals() => [
         NutritionMeal(
           id: 'seed-meal-m1',
-          timestamp: _todayAt(7, 50),
+          timestamp: _soFarAt(7, 50),
           slot: 'Breakfast',
           name: 'Oats & banana',
           source: NutritionSource.home,
@@ -1047,7 +1056,7 @@ class SeedData {
         ),
         NutritionMeal(
           id: 'seed-meal-m2',
-          timestamp: _todayAt(8, 30),
+          timestamp: _soFarAt(8, 30),
           slot: 'Drink',
           name: 'Verve cortado',
           source: NutritionSource.takeout,
@@ -1059,7 +1068,7 @@ class SeedData {
         ),
         NutritionMeal(
           id: 'seed-meal-m3',
-          timestamp: _todayAt(12, 40),
+          timestamp: _soFarAt(12, 40),
           slot: 'Lunch',
           name: 'Tartine sandwich',
           source: NutritionSource.takeout,
@@ -1073,7 +1082,7 @@ class SeedData {
         ),
         NutritionMeal(
           id: 'seed-meal-m4',
-          timestamp: _todayAt(19, 10),
+          timestamp: _soFarAt(19, 10),
           slot: 'Dinner',
           name: 'Whole Foods bowl',
           source: NutritionSource.home,
@@ -1243,7 +1252,8 @@ class SeedData {
 
   /// One+ check-ins per day for 30 days. On ritual days (where morning steps
   /// were logged) pleasantness is higher (0.62–0.72); on skipped days it is
-  /// lower (0.36–0.46). Today has three check-ins matching the prototype hero.
+  /// lower (0.36–0.46). Today has three check-ins matching the prototype hero,
+  /// each one still ahead of now seeded on the day before ([_soFarAt]).
   static List<MoodCheckin> moodCheckins() {
     // ritual days: 0,1,2,3,5,6,8,9,11,12,14,15,17,18,20,21,23,24,26,27
     // skipped days: 4,7,10,13,16,19,22,25,28,29 — lower pleasantness entries below.
@@ -1291,7 +1301,7 @@ class SeedData {
       final (d, h, m, p, tag) = specs[i];
       result.add(MoodCheckin(
         id: 'seed-mood-$i',
-        timestamp: _daysAgoAt(d, h, m),
+        timestamp: d == 0 ? _soFarAt(h, m) : _daysAgoAt(d, h, m),
         pleasantness: p,
         tag: tag,
         source: EntrySource.manual,

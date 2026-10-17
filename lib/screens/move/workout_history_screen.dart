@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -7,7 +9,7 @@ import '../../controllers/workout_history_controller.dart';
 import '../../router.dart';
 import '../../theme/theme.dart';
 import '../../util/dates.dart' show relativeDateLabel;
-import '../../util/format.dart' show formatTimed;
+import '../../util/format.dart' show formatKm, formatTimed;
 import '../../widgets/contributor_bar.dart';
 import '../../widgets/controls.dart';
 import '../../widgets/exercise_row.dart';
@@ -126,7 +128,7 @@ class _WorkoutHistoryScreenState extends ConsumerState<WorkoutHistoryScreen> {
       Padding(
         padding: const EdgeInsets.fromLTRB(
             Spacing.lg, 0, Spacing.lg, _sectionGap),
-        child: _Summary(summary: s.summary),
+        child: _Summary(summary: s.summary, timed: s.timedOnly),
       ),
 
       Padding(
@@ -183,28 +185,44 @@ class _WorkoutHistoryScreenState extends ConsumerState<WorkoutHistoryScreen> {
 
 // ─── Summary ─────────────────────────────────────────────────────────────────
 
-/// The four headline numbers, two to a row so they hold at large text sizes.
+/// The headline numbers, two to a row so they hold at large text sizes. A
+/// timed-only range leads with its minutes and shows its km where logged, as
+/// its sessions lift no weight.
 class _Summary extends StatelessWidget {
-  const _Summary({required this.summary});
+  const _Summary({required this.summary, required this.timed});
   final HistorySummary summary;
+  final bool timed;
 
   @override
   Widget build(BuildContext context) {
+    final sessions = Stat(value: '${summary.sessionCount}', label: 'Sessions');
+    final prs = Stat(value: '${summary.prCount}', label: 'PRs');
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       spacing: Spacing.lg,
       children: [
-        StatRow(stats: [
-          Stat(
-              value: (summary.volumeKg / 1000).toStringAsFixed(1),
-              unit: 't',
-              label: 'Volume'),
-          Stat(value: '${summary.sessionCount}', label: 'Sessions'),
-        ]),
-        StatRow(stats: [
-          Stat(value: _hm(summary.totalMinutes), unit: 'h:m', label: 'Time'),
-          Stat(value: '${summary.prCount}', label: 'PRs'),
-        ]),
+        if (timed) ...[
+          StatRow(stats: [
+            Stat(value: '${summary.timedMinutes}', unit: 'min', label: 'Time'),
+            sessions,
+          ]),
+          StatRow(stats: [
+            if (summary.km > 0) Stat(value: formatKm(summary.km), unit: 'km', label: 'Distance'),
+            prs,
+          ]),
+        ] else ...[
+          StatRow(stats: [
+            Stat(
+                value: (summary.volumeKg / 1000).toStringAsFixed(1),
+                unit: 't',
+                label: 'Volume'),
+            sessions,
+          ]),
+          StatRow(stats: [
+            Stat(value: _hm(summary.totalMinutes), unit: 'h:m', label: 'Time'),
+            prs,
+          ]),
+        ],
       ],
     );
   }
@@ -220,15 +238,15 @@ class _VolumeTrend extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     final bars = state.bars;
-    final totalT = bars.fold<double>(0, (s, b) => s + b.volumeKg) / 1000;
-    final maxKg = bars.fold<double>(0, (m, b) => b.volumeKg > m ? b.volumeKg : m);
-    final maxY = maxKg <= 0 ? 1.0 : maxKg;
+    final timed = state.timedOnly;
+    final most = bars.fold<double>(0, (m, b) => math.max(m, b.value(timed: timed)));
+    final maxY = most <= 0 ? 1.0 : most;
     final pct = state.trendPct;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _heading('Volume trend', c),
+        _heading(timed ? 'Time trend' : 'Volume trend', c),
         const SizedBox(height: Spacing.xxs),
         // the total and the trend speak for the chart, as one stop
         Semantics(
@@ -236,7 +254,7 @@ class _VolumeTrend extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('${totalT.toStringAsFixed(1)} t total',
+              Text('${_barsTotal(bars, timed: timed)} total',
                   style: AppType.subhead
                       .copyWith(color: c.ink2, fontFeatures: _tabular)),
               if (pct != null)
@@ -256,7 +274,10 @@ class _VolumeTrend extends StatelessWidget {
                 for (final (i, bar) in bars.indexed)
                   Expanded(
                       child: _Bar(
-                          bar: bar, maxY: maxY, current: i == bars.length - 1)),
+                          bar: bar,
+                          timed: timed,
+                          maxY: maxY,
+                          current: i == bars.length - 1)),
               ],
             ),
           ),
@@ -268,8 +289,10 @@ class _VolumeTrend extends StatelessWidget {
 
 /// One period's bar: the current period is `ink`, the rest `track`.
 class _Bar extends StatelessWidget {
-  const _Bar({required this.bar, required this.maxY, required this.current});
+  const _Bar(
+      {required this.bar, required this.timed, required this.maxY, required this.current});
   final HistoryBar bar;
+  final bool timed;
   final double maxY;
   final bool current;
 
@@ -290,15 +313,19 @@ class _Bar extends StatelessWidget {
           child: current
               ? FittedBox(
                   fit: BoxFit.scaleDown,
-                  child: Text('${(bar.volumeKg / 1000).toStringAsFixed(1)}t',
-                      maxLines: 1, style: label),
+                  child: Text(
+                      timed
+                          ? '${bar.minutes} min'
+                          : '${(bar.volumeKg / 1000).toStringAsFixed(1)}t',
+                      maxLines: 1,
+                      style: label),
                 )
               : null,
         ),
         const SizedBox(height: Spacing.xs),
         Expanded(
           child: FractionallySizedBox(
-            heightFactor: (bar.volumeKg / maxY).clamp(_minBarShare, 1.0),
+            heightFactor: (bar.value(timed: timed) / maxY).clamp(_minBarShare, 1.0),
             alignment: Alignment.bottomCenter,
             child: Container(
               decoration: BoxDecoration(
@@ -404,6 +431,14 @@ String _sessionDetail(HistorySessionRow row) {
   final minutes = '${row.minutes} min';
   if (row.isCardio || row.volumeKg <= 0) return minutes;
   return '$minutes · ${(row.volumeKg / 1000).toStringAsFixed(1)} t';
+}
+
+/// "12.4 t", or "95 min · 12.4 km" for a timed-only range.
+String _barsTotal(List<HistoryBar> bars, {required bool timed}) {
+  if (timed) {
+    return formatTimed(bars.fold(0, (s, b) => s + b.minutes), bars.fold(0.0, (s, b) => s + b.km));
+  }
+  return '${(bars.fold<double>(0, (s, b) => s + b.volumeKg) / 1000).toStringAsFixed(1)} t';
 }
 
 /// Whole-hour:minute label for a duration in minutes, e.g. 1120 → "18:40".

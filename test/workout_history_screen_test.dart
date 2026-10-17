@@ -190,6 +190,36 @@ void main() {
     semantics.dispose();
   });
 
+  _historyTest('a timed-only range shows time and km instead of tonnes', (tester) async {
+    final started = _now.subtract(const Duration(days: 1));
+    await _pump(tester, [
+      Workout(
+        id: 'run',
+        name: 'Treadmill',
+        startedAt: started,
+        endedAt: started.add(const Duration(minutes: 30)),
+        sets: const [
+          SetLog(
+              id: 'run-1',
+              exerciseId: 'bench',
+              weightKg: 0,
+              reps: 0,
+              done: true,
+              minutes: 25,
+              distanceKm: 4.2),
+        ],
+      ),
+    ]);
+
+    expect(find.text('Time trend'), findsOneWidget);
+    expect(find.text('25 min · 4.2 km total'), findsOneWidget);
+    expect(find.text('25 min'), findsWidgets);
+    expect(find.text('Distance'), findsOneWidget);
+    expect(find.text('Volume'), findsNothing);
+    expect(find.text('Volume trend'), findsNothing);
+    expect(find.textContaining(' t total'), findsNothing);
+  });
+
   _historyTest('a session row opens its detail', (tester) async {
     await _pump(tester, workouts);
 

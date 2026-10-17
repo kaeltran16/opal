@@ -51,8 +51,27 @@ describe('Pal.agenda', () => {
       tag: 'Rituals', colorToken: 'rituals', icon: 'moon.stars.fill', approveIcon: 'play.fill', action: 'close_out',
       ritual: null, slot: null,
     })
-    expect(res.proposals[0].id).toBe('close_out-0')
+    expect(res.proposals[0].id).toBe('close_out')
     expect(res.streakDays).toBe(11)
+  })
+
+  it('names each proposal by kind and target, so a reordered agenda keeps its ids', async () => {
+    const proposals = [reschedule(3, 'w2'), addRitual('rt1', 'Journal'), { ...base, kind: 'close_out' }]
+    const first = await new Pal(draws({ proposals, autopilot: [] })).agenda(ctx, targets)
+    const reordered = await new Pal(draws({ proposals: [...proposals].reverse(), autopilot: [] })).agenda(ctx, targets)
+    const ids = (r: typeof first) => Object.fromEntries(r.proposals.map((p) => [p.action, p.id]))
+    expect(ids(first)).toEqual({
+      reschedule_workout: 'reschedule_workout:3:w2',
+      add_ritual: 'add_ritual:rt1:journal',
+      close_out: 'close_out',
+    })
+    expect(ids(reordered)).toEqual(ids(first))
+  })
+
+  it('keeps one proposal per id', async () => {
+    const res = await new Pal(draws({ proposals: [reschedule(3, 'w2'), { ...reschedule(3, 'w2'), title: 'Again' }], autopilot: [] }))
+      .agenda(ctx, targets)
+    expect(res.proposals.map((p) => p.title)).toEqual(['A title'])
   })
 
   it('returns a valid add_ritual with its payload', async () => {
@@ -936,7 +955,7 @@ describe('Pal.agenda amount agreement', () => {
     const res = await new Pal(client).agenda(ctx, { rituals: [], workouts: [], week: [] })
     expect(client.complete).toHaveBeenCalledTimes(2)
     expect(res.proposals.map((p) => p.title)).toEqual(['Close out tonight'])
-    expect(res.proposals[0].id).toBe('close_out-0')
+    expect(res.proposals[0].id).toBe('close_out')
   })
 })
 

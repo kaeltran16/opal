@@ -167,7 +167,11 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
   Widget build(BuildContext context) {
     final c = context.colors;
     final async = ref.watch(todayStateProvider);
+    // a routine or goals edit rebuilds today's state; showing loading then
+    // would stop watching the plan's stores, which auto-dispose and reload
+    // empty, so the day keeps its last state until the new one lands.
     return async.when(
+      skipLoadingOnReload: true,
       loading: () => Center(
         child: Text('…', style: AppType.body.copyWith(color: c.ink3)),
       ),
@@ -185,35 +189,15 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
 
   Widget _content(TodayState today) {
     final now = clock.now();
+    final rituals = ref.watch(ritualsControllerProvider);
+    final week = ref.watch(weeklyPlanControllerProvider);
+    final mood = ref.watch(moodControllerProvider);
+    final nutrition = ref.watch(nutritionControllerProvider);
     final agenda = ref.watch(palAgendaProvider);
-    final palAgenda = agenda.value ?? const PalAgenda();
-    final session = ref.watch(planSessionControllerProvider);
-    final plan = buildDayPlan(
-      agenda: palAgenda,
-      rituals: ref.watch(ritualsControllerProvider).value,
-      workout: ref.watch(weeklyPlanControllerProvider).value?.today,
-      lastCheckin: ref.watch(moodControllerProvider).value?.lastCheckin,
-      meals: ref.watch(nutritionControllerProvider).value?.meals ?? const [],
-      now: now,
-    );
-    // loading counts as online, so the label does not flicker on a cold start;
-    // a failed refresh still holds the old proposals but reads offline.
-    final online = !agenda.hasError;
-    final rules = LeadRules(
-      palOnline: online,
-      care: careAreas(today.glance, now),
-    );
-    final current = plan.current(session, now, rules);
-    final line = leadLine(
-      lead: current,
-      agenda: palAgenda,
-      online: online,
-      leadKey: current == null ? null : plan.factFor(current, session, now, rules).key,
-    );
-    final rows = plan.rows(session, now);
-    final progress = plan.progress(session);
+    // drawn before these load, the day would be partial (a check-in or a
+    // routine missing) and tappable; a store that failed counts as loaded.
+    final loaded = [rituals, week, mood, nutrition].every((s) => s.hasValue || s.hasError);
     final safe = MediaQuery.paddingOf(context);
-
     return SingleChildScrollView(
       // a short day still has to pull down to refresh.
       physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
@@ -242,25 +226,19 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
               spacing: Spacing.md,
               children: [
                 _Header(date: dateLine(now)),
-                _Lead(
-                  label: online ? _palOnline : _palOffline,
-                  text: line,
-                  onWhy: online && current != null
-                      ? () => _askWhy(current, plan.whyNote(current, session, now, rules))
-                      : null,
-                ),
-                _ActionCard(
-                  item: current,
-                  onAct: (item) => actOnPlanItem(context, ref, item),
-                  onSkip: _plan.putOff,
-                ),
-                if (rows.isNotEmpty)
-                  _YourDay(
-                    done: progress.done,
-                    total: progress.total,
-                    rows: [
-                      for (final row in rows) _PlanRow(row: row, onTap: _rowTap(row)),
-                    ],
+                if (loaded)
+                  ..._day(
+                    today,
+                    now,
+                    agenda,
+                    buildDayPlan(
+                      agenda: agenda.value ?? const PalAgenda(),
+                      rituals: rituals.value,
+                      workout: week.value?.today,
+                      lastCheckin: mood.value?.lastCheckin,
+                      meals: nutrition.value?.meals ?? const [],
+                      now: now,
+                    ),
                   ),
               ],
             ),
@@ -268,6 +246,50 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
         ],
       ),
     );
+  }
+
+  /// Pal's line, the action card and Your day, for [plan].
+  List<Widget> _day(TodayState today, DateTime now, AsyncValue<PalAgenda> agenda, DayPlan plan) {
+    final palAgenda = agenda.value ?? const PalAgenda();
+    final session = ref.watch(planSessionControllerProvider);
+    // loading counts as online, so the label does not flicker on a cold start;
+    // a failed refresh still holds the old proposals but reads offline.
+    final online = !agenda.hasError;
+    final rules = LeadRules(
+      palOnline: online,
+      care: careAreas(today.glance, now),
+    );
+    final current = plan.current(session, now, rules);
+    final line = leadLine(
+      lead: current,
+      agenda: palAgenda,
+      online: online,
+      leadKey: current == null ? null : plan.factFor(current, session, now, rules).key,
+    );
+    final rows = plan.rows(session, now);
+    final progress = plan.progress(session);
+    return [
+      _Lead(
+        label: online ? _palOnline : _palOffline,
+        text: line,
+        onWhy: online && current != null
+            ? () => _askWhy(current, plan.whyNote(current, session, now, rules))
+            : null,
+      ),
+      _ActionCard(
+        item: current,
+        onAct: (item) => actOnPlanItem(context, ref, item),
+        onSkip: _plan.putOff,
+      ),
+      if (rows.isNotEmpty)
+        _YourDay(
+          done: progress.done,
+          total: progress.total,
+          rows: [
+            for (final row in rows) _PlanRow(row: row, onTap: _rowTap(row)),
+          ],
+        ),
+    ];
   }
 
   /// An open row opens as the card's pill does; a put-off comes back; a done

@@ -36,4 +36,12 @@ class WeeklyPlanRepository {
             WeeklyPlanAssignment(weekday: weekday, routineId: routineId)
                 .toCompanion(),
           );
+
+  /// Assigns each weekday in [days] its routine (null = Rest) in one
+  /// transaction, so a move never lands half done.
+  Future<void> setDays(Map<int, String?> days) => _db.transaction(() async {
+        for (final MapEntry(key: weekday, value: routineId) in days.entries) {
+          await upsert(weekday, routineId);
+        }
+      });
 }
