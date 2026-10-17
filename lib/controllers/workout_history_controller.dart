@@ -6,8 +6,9 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../models/models.dart';
 import '../util/dates.dart';
+import '../util/format.dart' show formatKm;
 import 'providers.dart';
-import 'workout_detail_controller.dart' show buildWeeklyVolume;
+import 'workout_detail_controller.dart' show buildWeeklyTotals;
 
 // note: the .g.dart was hand-written to match riverpod_generator (authored
 // without a local SDK). regenerate before merging —
@@ -34,9 +35,10 @@ const Map<String, String> _groupToken = {
 
 // ─── Sub-view-models ─────────────────────────────────────────────────────────
 
-/// The four headline tiles: total volume (kg), session count, training minutes,
-/// and the number of lifts with a personal record in the range (the rows of
-/// [buildHistoryPrs], so the tile and the list never disagree).
+/// The headline tiles: total volume (kg), session count, training minutes,
+/// the minutes and km of timed sets, and the number of lifts with a personal
+/// record in the range (the rows of [buildHistoryPrs], so the tile and the
+/// list never disagree).
 @immutable
 class HistorySummary {
   const HistorySummary({
@@ -44,20 +46,30 @@ class HistorySummary {
     required this.sessionCount,
     required this.totalMinutes,
     required this.prCount,
+    this.timedMinutes = 0,
+    this.km = 0,
   });
 
   final double volumeKg;
   final int sessionCount;
   final int totalMinutes;
   final int prCount;
+  final int timedMinutes;
+  final double km;
 }
 
-/// One bar of the volume trend: its axis label and bucketed volume in kg.
+/// One bar of the trend: its axis label, bucketed volume in kg, and the
+/// minutes and km of its timed sets.
 @immutable
 class HistoryBar {
-  const HistoryBar({required this.label, required this.volumeKg});
+  const HistoryBar({required this.label, required this.volumeKg, this.minutes = 0, this.km = 0});
   final String label;
   final double volumeKg;
+  final int minutes;
+  final double km;
+
+  /// What the bar measures: minutes in a timed-only range, else volume.
+  double value({required bool timed}) => timed ? minutes.toDouble() : volumeKg;
 }
 
 /// One slice of the muscle-balance bar: the group, its accent token, and its
@@ -143,6 +155,7 @@ class HistorySessionRow {
 class WorkoutHistoryState {
   const WorkoutHistoryState({
     required this.range,
+    required this.timedOnly,
     required this.summary,
     required this.bars,
     required this.trendPct,
@@ -154,10 +167,15 @@ class WorkoutHistoryState {
   });
 
   final WorkoutHistoryRange range;
+
+  /// Every session in the range that logged a set logged only timed sets, so
+  /// the volume tile and bars read time instead of tonnes.
+  final bool timedOnly;
   final HistorySummary summary;
   final List<HistoryBar> bars;
 
-  /// Recent-half vs prior-half volume change, percent. Null without a baseline.
+  /// Recent-half vs prior-half change of what the bars measure, percent. Null
+  /// without a baseline.
   final int? trendPct;
   final List<HistoryGroupSlice> balance;
 
@@ -193,16 +211,29 @@ List<Workout> workoutsInRange(
 HistorySummary buildHistorySummary(List<Workout> inRange, {required int prCount}) {
   var volume = 0.0;
   var minutes = 0;
+  var timedMinutes = 0;
+  var km = 0.0;
   for (final w in inRange) {
     volume += w.totalVolumeKg;
     minutes += w.duration?.inMinutes ?? 0;
+    timedMinutes += w.totalMinutes;
+    km += w.totalKm;
   }
   return HistorySummary(
     volumeKg: volume,
     sessionCount: inRange.length,
     totalMinutes: minutes,
     prCount: prCount,
+    timedMinutes: timedMinutes,
+    km: km,
   );
+}
+
+/// Whether every session in [inRange] that logged a set logged only timed
+/// sets. A range with no logged set is not timed-only.
+bool isTimedOnly(List<Workout> inRange) {
+  final logged = inRange.where((w) => w.completedSetCount > 0);
+  return logged.isNotEmpty && logged.every((w) => w.isTimedSession);
 }
 
 // ─── Muscle balance ──────────────────────────────────────────────────────────
@@ -368,10 +399,10 @@ List<HistoryBar> buildVolumeBars(
     WorkoutHistoryRange range, List<Workout> workouts, DateTime now) {
   switch (range) {
     case WorkoutHistoryRange.eightWeeks:
-      final weeks = buildWeeklyVolume(workouts, now);
+      final weeks = buildWeeklyTotals(workouts, now);
       return [
-        for (var i = 0; i < weeks.length; i++)
-          HistoryBar(label: 'W${i + 1}', volumeKg: weeks[i].volumeKg),
+        for (final (i, w) in weeks.indexed)
+          HistoryBar(label: 'W${i + 1}', volumeKg: w.volumeKg, minutes: w.minutes, km: w.km),
       ];
     case WorkoutHistoryRange.sixMonths:
       return _monthlyBars(workouts, now, 6);
@@ -386,42 +417,46 @@ List<HistoryBar> _monthlyBars(
   final months = [
     for (var i = count - 1; i >= 0; i--) DateTime(now.year, now.month - i, 1),
   ];
-  final volume = {for (final m in months) m: 0.0};
-  for (final w in workouts) {
-    final key = DateTime(w.startedAt.year, w.startedAt.month, 1);
-    if (volume.containsKey(key)) {
-      volume[key] = volume[key]! + w.totalVolumeKg;
-    }
-  }
   return [
     for (final m in months)
-      HistoryBar(label: kMonthsShort[m.month - 1], volumeKg: volume[m]!),
+      _monthBar(m, workouts.where((w) => w.startedAt.year == m.year && w.startedAt.month == m.month)),
   ];
 }
 
-/// Recent-half vs prior-half volume change as a whole percent. Null when there
-/// are fewer than two bars or no prior-half baseline (avoids /0 and "+0%").
-int? historyTrendPct(List<HistoryBar> bars) {
+HistoryBar _monthBar(DateTime month, Iterable<Workout> inMonth) => HistoryBar(
+      label: kMonthsShort[month.month - 1],
+      volumeKg: inMonth.fold(0.0, (sum, w) => sum + w.totalVolumeKg),
+      minutes: inMonth.fold(0, (sum, w) => sum + w.totalMinutes),
+      km: inMonth.fold(0.0, (sum, w) => sum + w.totalKm),
+    );
+
+/// Recent-half vs prior-half change of what the bars measure (minutes when
+/// [timed], else volume) as a whole percent. Null when there are fewer than
+/// two bars or no prior-half baseline (avoids /0 and "+0%").
+int? historyTrendPct(List<HistoryBar> bars, {bool timed = false}) {
   if (bars.length < 2) return null;
   final half = bars.length ~/ 2;
-  final prior = bars.take(half).fold<double>(0, (s, b) => s + b.volumeKg);
-  final recent = bars.skip(half).fold<double>(0, (s, b) => s + b.volumeKg);
+  final prior = bars.take(half).fold<double>(0, (s, b) => s + b.value(timed: timed));
+  final recent = bars.skip(half).fold<double>(0, (s, b) => s + b.value(timed: timed));
   if (prior <= 0) return null;
   return (((recent - prior) / prior) * 100).round();
 }
 
 // ─── Composition + headline ──────────────────────────────────────────────────
 
-String _headline(WorkoutHistoryRange range, HistorySummary s) {
+String _headline(WorkoutHistoryRange range, HistorySummary s, {required bool timed}) {
   final period = switch (range) {
     WorkoutHistoryRange.eightWeeks => 'the last 8 weeks',
     WorkoutHistoryRange.sixMonths => 'the last 6 months',
     WorkoutHistoryRange.allTime => 'all time',
   };
+  final times = '${s.sessionCount} ${s.sessionCount == 1 ? 'time' : 'times'}';
+  if (timed) {
+    final distance = s.km > 0 ? ' and ${formatKm(s.km)} km' : '';
+    return 'You trained $times for ${s.timedMinutes} minutes$distance over $period.';
+  }
   final tonnes = (s.volumeKg / 1000).toStringAsFixed(1);
-  return 'You trained ${s.sessionCount} '
-      '${s.sessionCount == 1 ? 'time' : 'times'} and moved $tonnes tonnes over '
-      '$period.';
+  return 'You trained $times and moved $tonnes tonnes over $period.';
 }
 
 /// Composes the full [WorkoutHistoryState] for [range] from the pure builders.
@@ -437,16 +472,18 @@ WorkoutHistoryState buildWorkoutHistory(
   final summary = buildHistorySummary(inRange, prCount: prs.length);
   final bars = buildVolumeBars(range, inRange, now);
   final balance = buildGroupBalance(inRange, catalog);
+  final timed = isTimedOnly(inRange);
   return WorkoutHistoryState(
     range: range,
+    timedOnly: timed,
     summary: summary,
     bars: bars,
-    trendPct: historyTrendPct(bars),
+    trendPct: historyTrendPct(bars, timed: timed),
     balance: balance,
     balanceNudge: _balanceNudge(balance),
     prs: prs,
     sessions: buildHistorySessions(inRange, routines),
-    headline: _headline(range, summary),
+    headline: _headline(range, summary, timed: timed),
   );
 }
 

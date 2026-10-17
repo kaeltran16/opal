@@ -375,6 +375,20 @@ export function proposalValid(p: AgendaProposal, targets: AgendaTargets, currenc
   return true
 }
 
+// a proposal's id names its kind and target, never its position: the client
+// saves what the user approved or put off by id for the day, and a refetch
+// that reorders the agenda must not hand that state to another proposal.
+export function proposalId(kind: ProposalKind, p: Pick<AgendaProposal, 'ritual' | 'slot'>): string {
+  switch (kind) {
+    case 'reschedule_workout':
+      return `${kind}:${p.slot?.weekday}:${p.slot?.routineId}`
+    case 'add_ritual':
+      return `${kind}:${p.ritual?.routineId}:${p.ritual?.step.trim().toLowerCase()}`
+    case 'close_out':
+      return kind
+  }
+}
+
 // The wire shape the client decodes (icons/action resolved, streak echoed).
 export interface AgendaResult {
   proposals: Array<{
@@ -701,12 +715,17 @@ export class Pal {
     // a proposal that names a missing target, a no-op change or an amount it
     // never states is redrawn once; one still invalid after that is dropped.
     if (!parsed.proposals.every(valid)) parsed = await draw()
+    const seen = new Set<string>()
     return {
-      proposals: parsed.proposals.filter(valid).map((p, i) => {
+      proposals: parsed.proposals.filter(valid).flatMap((p) => {
         const kind = p.kind as ProposalKind
+        const id = proposalId(kind, p)
+        // the client keys what the user settled by id, so one id is one proposal.
+        if (seen.has(id)) return []
+        seen.add(id)
         const pres = PROPOSAL_PRESENTATION[kind]
-        return {
-          id: `${kind}-${i}`,
+        return [{
+          id,
           tag: pres.tag,
           colorToken: pres.colorToken,
           icon: pres.icon,
@@ -718,7 +737,7 @@ export class Pal {
           action: kind,
           ritual: kind === 'add_ritual' && p.ritual ? { routineId: p.ritual.routineId, step: p.ritual.step.trim() } : null,
           slot: kind === 'reschedule_workout' ? p.slot ?? null : null,
-        }
+        }]
       }),
       autopilot: agendaAutopilotKinds.flatMap((kind) => {
         const first = parsed.autopilot.find((a) => a.kind === kind)

@@ -25,14 +25,22 @@ class ExerciseSets {
   final List<SetLog> sets;
 }
 
-/// One bar of the 8-week volume trend: the week's Monday and its total volume
-/// in kilograms (0 for a week with no completed workouts).
+/// One bar of the 8-week trend: the week's Monday, its completed volume in
+/// kilograms, and the minutes and km of its completed timed sets (each 0 for a
+/// week with none).
 @immutable
-class WeekVolume {
-  const WeekVolume({required this.weekStart, required this.volumeKg});
+class WeekTotals {
+  const WeekTotals({
+    required this.weekStart,
+    required this.volumeKg,
+    this.minutes = 0,
+    this.km = 0,
+  });
 
   final DateTime weekStart;
   final double volumeKg;
+  final int minutes;
+  final double km;
 }
 
 /// The fully-computed Workout Detail view model. All derivation (per-exercise
@@ -43,7 +51,7 @@ class WorkoutDetailState {
   const WorkoutDetailState({
     required this.workout,
     required this.exercises,
-    required this.weeklyVolume,
+    required this.weeks,
   });
 
   final Workout workout;
@@ -51,29 +59,30 @@ class WorkoutDetailState {
   /// Per-exercise groups in first-seen set order.
   final List<ExerciseSets> exercises;
 
-  /// Trailing [_volumeWeeks] weekly volume buckets, oldest first.
-  final List<WeekVolume> weeklyVolume;
+  /// Trailing [_volumeWeeks] weekly buckets, oldest first.
+  final List<WeekTotals> weeks;
 }
 
-/// Buckets the completed-set volume of [workouts] into the trailing
-/// [_volumeWeeks] ISO weeks ending with the week of [now]. Weeks with no
-/// workout stay at 0. Extracted so it can be tested directly.
-List<WeekVolume> buildWeeklyVolume(List<Workout> workouts, DateTime now) {
+/// Buckets the completed volume and timed minutes and km of [workouts] into
+/// the trailing [_volumeWeeks] ISO weeks ending with the week of [now]. Weeks
+/// with no workout stay at 0. Extracted so it can be tested directly.
+List<WeekTotals> buildWeeklyTotals(List<Workout> workouts, DateTime now) {
   final thisWeek = startOfWeek(now);
-  final weeks = <DateTime, double>{
-    for (var i = _volumeWeeks - 1; i >= 0; i--)
-      thisWeek.subtract(Duration(days: 7 * i)): 0.0,
-  };
-  final oldest = thisWeek.subtract(const Duration(days: 7 * (_volumeWeeks - 1)));
-  for (final w in workouts) {
-    final ws = startOfWeek(w.startedAt);
-    if (ws.isBefore(oldest) || ws.isAfter(thisWeek)) continue;
-    weeks[ws] = (weeks[ws] ?? 0) + w.totalVolumeKg;
-  }
+  final starts = [
+    for (var i = _volumeWeeks - 1; i >= 0; i--) thisWeek.subtract(Duration(days: 7 * i)),
+  ];
   return [
-    for (final e in weeks.entries) WeekVolume(weekStart: e.key, volumeKg: e.value),
+    for (final start in starts)
+      _totals(start, workouts.where((w) => startOfWeek(w.startedAt) == start)),
   ];
 }
+
+WeekTotals _totals(DateTime weekStart, Iterable<Workout> week) => WeekTotals(
+      weekStart: weekStart,
+      volumeKg: week.fold(0.0, (sum, w) => sum + w.totalVolumeKg),
+      minutes: week.fold(0, (sum, w) => sum + w.totalMinutes),
+      km: week.fold(0.0, (sum, w) => sum + w.totalKm),
+    );
 
 /// Groups [workout]'s sets by exerciseId (first-seen order), resolving each
 /// name against [catalog]. Extracted for direct testing.
@@ -99,7 +108,7 @@ List<ExerciseSets> buildExerciseGroups(
 
 /// Streams the [WorkoutDetailState] for [workoutId]: the session aggregate, its
 /// per-exercise set groups (names resolved via the catalog), and the trailing
-/// 8-week volume buckets computed from all workouts. Re-emits when the workout
+/// 8-week buckets computed from all workouts. Re-emits when the workout
 /// store changes.
 @riverpod
 Stream<WorkoutDetailState> workoutDetail(Ref ref, String workoutId) async* {
@@ -115,7 +124,7 @@ Stream<WorkoutDetailState> workoutDetail(Ref ref, String workoutId) async* {
     yield WorkoutDetailState(
       workout: workout,
       exercises: buildExerciseGroups(workout, catalog),
-      weeklyVolume: buildWeeklyVolume(all, clock.now()),
+      weeks: buildWeeklyTotals(all, clock.now()),
     );
   }
 }

@@ -129,13 +129,13 @@ class AddedRitualStep extends PlanChange {
   final String stepId;
 }
 
-/// A weekly plan slot set, and the routine it held before (null for rest).
-class SetPlanSlot extends PlanChange {
-  const SetPlanSlot(this.weekday, this.priorRoutineId);
+/// Weekly plan slots set by a reschedule: the slot it planned and the one it
+/// cleared, each with the routine it held before (null for rest).
+class SetPlanSlots extends PlanChange {
+  const SetPlanSlots(this.prior);
 
-  /// 1=Mon..7=Sun.
-  final int weekday;
-  final String? priorRoutineId;
+  /// Weekday (1=Mon..7=Sun) to the routine it held before.
+  final Map<int, String?> prior;
 }
 
 /// One settled item: [label] is what Undo names, [change] what it reverses.
@@ -279,7 +279,7 @@ class DayPlan {
   /// The earliest routine still worth doing, untimed after timed, a missed
   /// one only when nothing else is open.
   PlanItem? _earliestRoutine(Iterable<PlanItem> routines, int nowMinute) => [
-        ..._timeOrder(routines.where((i) => !_missed(i, nowMinute)), untimedFirst: false),
+        ..._timeOrder(routines.where((i) => !_missed(i, nowMinute))),
         ...routines.where((i) => _missed(i, nowMinute)),
       ].firstOrNull;
 
@@ -339,20 +339,12 @@ class DayPlan {
           [LeadRules rules = const LeadRules()]) =>
       open(session, now, rules).firstOrNull;
 
-  /// The open items besides the lead, untimed first, then by time.
-  List<PlanItem> later(PlanSession session, DateTime now,
-      [LeadRules rules = const LeadRules()]) {
-    final cur = current(session, now, rules);
-    return _timeOrder(open(session, now, rules).where((i) => i != cur),
-        untimedFirst: true);
-  }
-
   /// Every item of the day, done and put off included: timed ones by minute,
   /// then untimed ones in build order.
   List<PlanRow> rows(PlanSession session, DateTime now) {
     final nowMinute = now.hour * 60 + now.minute;
     return [
-      for (final i in _timeOrder(items, untimedFirst: false))
+      for (final i in _timeOrder(items))
         PlanRow(item: i, state: switch (session.settled[i.id]) {
           _ when _isDone(i, session) => PlanRowState.done,
           false => PlanRowState.putOff,
@@ -401,13 +393,14 @@ class DayPlan {
           if (i.kind != PlanKind.proposal) factFor(i, session, now, rules),
       ];
 
-  /// [from] by minute, untimed items first or last; ties keep build order.
-  List<PlanItem> _timeOrder(Iterable<PlanItem> from, {required bool untimedFirst}) {
+  /// [from] by minute, then the untimed items; ties keep build order.
+  List<PlanItem> _timeOrder(Iterable<PlanItem> from) {
     final picked = from.toSet();
     final inBuildOrder = items.where(picked.contains);
-    final untimed = inBuildOrder.where((i) => i.minuteOfDay == null);
-    final timed = _byMinute(inBuildOrder.where((i) => i.minuteOfDay != null));
-    return untimedFirst ? [...untimed, ...timed] : [...timed, ...untimed];
+    return [
+      ..._byMinute(inBuildOrder.where((i) => i.minuteOfDay != null)),
+      ...inBuildOrder.where((i) => i.minuteOfDay == null),
+    ];
   }
 }
 

@@ -290,6 +290,47 @@ void main() {
     expect(pullup.deltaReps, 3);
   });
 
+  test('a range whose sessions log only timed sets is timed-only', () {
+    final now = DateTime(2026, 6, 10);
+    final run = workout('r', now, sets: [timed('run', 20, km: 3.2)]);
+    final lift = workout('l', now, sets: [set('bench', 100, 5)]);
+    final empty = workout('e', now);
+
+    expect(isTimedOnly([run]), isTrue);
+    expect(isTimedOnly([run, empty]), isTrue);
+    expect(isTimedOnly([run, lift]), isFalse);
+    expect(isTimedOnly([empty]), isFalse);
+    expect(isTimedOnly(const []), isFalse);
+  });
+
+  test('a timed-only range reads minutes and km in its headline, bars and trend', () {
+    final now = DateTime(2026, 6, 10);
+    final earlier = workout('a', now.subtract(const Duration(days: 35)),
+        sets: [timed('run', 20)]);
+    final recent = workout('b', now, sets: [timed('run', 25, km: 4), timed('run', 5)]);
+
+    final s = buildWorkoutHistory(
+        WorkoutHistoryRange.eightWeeks, [earlier, recent], catalog, const [], now);
+
+    expect(s.timedOnly, isTrue);
+    expect(s.summary.timedMinutes, 50);
+    expect(s.summary.km, 4);
+    expect(s.headline, 'You trained 2 times for 50 minutes and 4 km over the last 8 weeks.');
+    expect(s.bars.last.minutes, 30);
+    expect(s.trendPct, 50);
+  });
+
+  test('a mixed range keeps tonnes', () {
+    final now = DateTime(2026, 6, 10);
+    final s = buildWorkoutHistory(WorkoutHistoryRange.eightWeeks, [
+      workout('r', now, sets: [timed('run', 20)]),
+      workout('l', now, sets: [set('bench', 100, 5)]),
+    ], catalog, const [], now);
+
+    expect(s.timedOnly, isFalse);
+    expect(s.headline, 'You trained 2 times and moved 0.5 tonnes over the last 8 weeks.');
+  });
+
   test('volume tiles and bars count weighted volume only', () {
     final now = DateTime(2026, 6, 10);
     final w = workout('a', now, sets: [

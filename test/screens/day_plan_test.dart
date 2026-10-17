@@ -168,12 +168,10 @@ void main() {
     });
   });
 
-  group('current and later', () {
-    test('current is the first open item, later is the rest in order', () {
+  group('current', () {
+    test('current is the first open item', () {
       final plan = full();
       expect(plan.current(session, _now)!.id, 'routine:morning');
-      expect(_ids(plan.later(session, _now)),
-          ['proposal:rent', 'mood', 'meal', 'closeOut']);
     });
 
     test('current is the first open item under the lead rules too', () {
@@ -340,19 +338,6 @@ void main() {
       );
       final rules = LeadRules(palOnline: true, care: [DetailTracker.money]);
       expect(_ids(plan.open(session, _now, rules)), _ids(plan.open(session, _now, online)));
-    });
-
-    test('later puts untimed first, then by minute, and excludes the lead', () {
-      final plan = both();
-      expect(plan.current(session, _now, online)!.id, 'proposal:legs');
-      expect(_ids(plan.later(session, _now, online)), [
-        'proposal:rent',
-        'workout',
-        'mood',
-        'meal',
-        'routine:morning',
-        'closeOut',
-      ]);
     });
   });
 
@@ -675,6 +660,55 @@ void main() {
     });
   });
 
+  group('a refetched agenda', () {
+    // ids as the server names them: by kind and target, not position.
+    const legsFriday = PalProposal(
+      id: 'reschedule_workout:5:seed-routine-legs',
+      tag: 'Workout',
+      colorToken: 'move',
+      icon: 'figure.run',
+      title: 'Move Leg Day to Friday',
+      body: 'Friday is clear.',
+      approveLabel: 'Reschedule',
+      approveIcon: 'arrow.triangle.2.circlepath',
+      doneLabel: 'Moved',
+      action: 'reschedule_workout',
+      slot: (weekday: 5, routineId: 'seed-routine-legs'),
+    );
+    const pullSaturday = PalProposal(
+      id: 'reschedule_workout:6:seed-routine-pull-a',
+      tag: 'Workout',
+      colorToken: 'move',
+      icon: 'figure.run',
+      title: 'Move Pull Day A to Saturday',
+      body: 'Saturday is clear.',
+      approveLabel: 'Reschedule',
+      approveIcon: 'arrow.triangle.2.circlepath',
+      doneLabel: 'Moved',
+      action: 'reschedule_workout',
+      slot: (weekday: 6, routineId: 'seed-routine-pull-a'),
+    );
+
+    PlanRowState stateOf(DayPlan plan, PlanSession s, PalProposal p) =>
+        plan.rows(s, _now).firstWhere((r) => r.item.proposal?.id == p.id).state;
+
+    test('keeps each settled state on its own proposal when the order changes', () {
+      final first = _plan(agenda: const PalAgenda(proposals: [legsFriday, pullSaturday, _proposal]));
+      final settled = session
+          .settle(proposalItem(legsFriday).id, done: true, label: '')
+          .settle(proposalItem(_proposal).id, done: false, label: '');
+      final reordered = _plan(agenda: const PalAgenda(proposals: [_proposal, pullSaturday, legsFriday]));
+
+      for (final plan in [first, reordered]) {
+        expect(stateOf(plan, settled, legsFriday), PlanRowState.done);
+        expect(stateOf(plan, settled, pullSaturday), PlanRowState.open);
+        expect(stateOf(plan, settled, _proposal), PlanRowState.putOff);
+      }
+      expect(_ids(pendingProposals(const PalAgenda(proposals: [pullSaturday, legsFriday]), settled)),
+          ['proposal:${pullSaturday.id}']);
+    });
+  });
+
   group('PlanSession', () {
     test('settle names the change, offers Undo and keeps the day', () {
       final plan = full();
@@ -880,7 +914,6 @@ void main() {
       final settled = session.settle('mood', done: true, label: '').settle('meal', done: false, label: '');
       expect(plan.open(settled, _now), isEmpty);
       expect(plan.current(settled, _now), isNull);
-      expect(plan.later(settled, _now), isEmpty);
     });
 
     test('a check-in today makes the mood item done; one from yesterday leaves it open', () {

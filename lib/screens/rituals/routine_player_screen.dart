@@ -75,6 +75,10 @@ class _RoutinePlayerScreenState extends ConsumerState<RoutinePlayerScreen> {
 
   void _toRoutines() => context.go('/rituals');
 
+  // back to wherever the player was opened from (Today, an area page); a deep
+  // link has nothing under it, so it lands on the routines.
+  void _close() => context.canPop() ? context.pop() : _toRoutines();
+
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
@@ -92,7 +96,7 @@ class _RoutinePlayerScreenState extends ConsumerState<RoutinePlayerScreen> {
             body: 'Try again in a moment.',
             pill: 'Back to routines',
             onPill: _toRoutines,
-            onClose: _toRoutines,
+            onClose: _close,
           );
         },
         data: (state) {
@@ -105,7 +109,7 @@ class _RoutinePlayerScreenState extends ConsumerState<RoutinePlayerScreen> {
               body: 'It may have been deleted.',
               pill: 'Back to routines',
               onPill: _toRoutines,
-              onClose: _toRoutines,
+              onClose: _close,
             );
           }
           if (routine.steps.isEmpty) {
@@ -115,7 +119,7 @@ class _RoutinePlayerScreenState extends ConsumerState<RoutinePlayerScreen> {
               body: 'Add a step to ${routine.name} to start it.',
               pill: 'Manage routines',
               onPill: () => context.goNamed(AppRoute.areaManageRoutines.name),
-              onClose: _toRoutines,
+              onClose: _close,
             );
           }
           _seed(state, routine);
@@ -125,7 +129,8 @@ class _RoutinePlayerScreenState extends ConsumerState<RoutinePlayerScreen> {
             routine: routine,
             idx: _idx!,
             done: state.doneFor(routine.id),
-            onClose: _toRoutines,
+            onClose: _close,
+            onRoutines: _toRoutines,
             onBack: () => go(_idx! - 1),
             onSkip: () => go(_idx! + 1),
             onMarkDone: () {
@@ -214,6 +219,7 @@ class _Player extends StatelessWidget {
     required this.idx,
     required this.done,
     required this.onClose,
+    required this.onRoutines,
     required this.onBack,
     required this.onSkip,
     required this.onMarkDone,
@@ -223,6 +229,7 @@ class _Player extends StatelessWidget {
   final int idx;
   final Set<int> done;
   final VoidCallback onClose;
+  final VoidCallback onRoutines;
   final VoidCallback onBack;
   final VoidCallback onSkip;
   final VoidCallback onMarkDone;
@@ -242,7 +249,7 @@ class _Player extends StatelessWidget {
           const SizedBox(height: _footMinGap),
           _PrimaryPill(
             label: 'Back to routines',
-            onTap: onClose,
+            onTap: onRoutines,
           ),
         ],
       );

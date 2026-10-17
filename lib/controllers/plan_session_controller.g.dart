@@ -75,7 +75,7 @@ final class PlanSessionControllerProvider
 }
 
 String _$planSessionControllerHash() =>
-    r'870e200902bdc5a961eb234eaaaf407a2d1b66a0';
+    r'17c3bd40c5e1dbb71ccf5acec4b2d4dc19919364';
 
 /// What the user did with today's plan: Today's card and timeline, and You's
 /// Pal suggests, settle the same proposals here, so one approved or put off

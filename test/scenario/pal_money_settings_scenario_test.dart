@@ -282,7 +282,9 @@ void _expectChip(String label) =>
 
 // --- nutrition --------------------------------------------------------------
 
-const _linkedMeal = 'seed-meal-m3';
+// the cortado: logged at 8:30 with its expense, so it is on the scenarios'
+// 9:30 day, where the seed's lunch is still ahead.
+const _linkedMeal = 'seed-meal-m2';
 const _handMeal = 'seed-meal-m1';
 
 Finder _onDetail(Finder matching) =>
@@ -579,15 +581,13 @@ void main() {
     await _boot(tester, dark, prefs: {'settings.currency': Currency.vnd.code});
     await _go(tester, '/areas/nutrition/meal/$_linkedMeal');
 
-    expect(_onDetail(find.text('Tartine sandwich')), findsOneWidget);
-    expect(_onDetail(find.text('kcal, likely 560–820')), findsOneWidget);
+    expect(_onDetail(find.text('Verve cortado')), findsOneWidget);
+    expect(_onDetail(find.text('kcal, likely 60–120')), findsOneWidget);
     expect(_onDetail(find.text('Macros')), findsOneWidget);
-    expect(_onDetail(find.text('estimated from Tartine order')), findsOneWidget);
-    expect(_onDetail(find.text('from expense · high-carb')), findsOneWidget);
     await _reveal(tester, NutritionMealDetailScreen, _onDetail(find.text('Linked expense')));
-    expect(_onDetail(find.text('Tartine')), findsOneWidget);
+    expect(_onDetail(find.text('Verve Coffee')), findsOneWidget);
     // the user's currency: the dong sign, never a dollar.
-    expect(_onDetail(find.text(formatCurrency(16.20, Currency.vnd))), findsOneWidget);
+    expect(_onDetail(find.text(formatCurrency(5.75, Currency.vnd))), findsOneWidget);
     expect(_onDetail(find.textContaining(r'$')), findsNothing);
     await shot(tester, 'meal_detail_linked_${_theme(dark)}');
   });
