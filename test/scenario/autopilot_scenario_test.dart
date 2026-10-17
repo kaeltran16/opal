@@ -33,7 +33,7 @@ class _OfflinePal extends MockPalService {
   _OfflinePal() : super(latency: Duration.zero, seed: 0);
 
   @override
-  Future<PalAgenda> agenda({List<PlanFact> plan = const []}) async =>
+  Future<PalAgenda> agenda({List<PlanFact> plan = const [], bool fresh = false}) async =>
       throw StateError('scenario');
 }
 

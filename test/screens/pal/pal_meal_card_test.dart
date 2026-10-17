@@ -20,7 +20,7 @@ class _MealPal implements PalService {
           confidence: NutritionConfidence.med, slot: 'Lunch'),
       ]);
   @override
-  Future<PalAgenda> agenda({List<PlanFact> plan = const []}) async => const PalAgenda();
+  Future<PalAgenda> agenda({List<PlanFact> plan = const [], bool fresh = false}) async => const PalAgenda();
   @override
   Future<WorkoutSuggestion> suggestWorkout({bool another = false, String? excludeRoutineId}) =>
       Future.error(const PalException('unreachable'));

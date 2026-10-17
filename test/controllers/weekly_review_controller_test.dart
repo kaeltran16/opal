@@ -35,7 +35,7 @@ RitualRoutine _routine(String id, List<String> stepIds) => RitualRoutine(
 /// for. Other seams are unused no-ops.
 class _SequencedPal implements PalService {
   @override
-  Future<PalAgenda> agenda({List<PlanFact> plan = const []}) async => const PalAgenda();
+  Future<PalAgenda> agenda({List<PlanFact> plan = const [], bool fresh = false}) async => const PalAgenda();
 
   int _i = 0;
   final List<ReviewRange> reviewRanges = [];

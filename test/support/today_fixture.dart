@@ -52,7 +52,7 @@ class TodayPal extends MockPalService {
   }
 
   @override
-  Future<PalAgenda> agenda({List<PlanFact> plan = const []}) async {
+  Future<PalAgenda> agenda({List<PlanFact> plan = const [], bool fresh = false}) async {
     plans.add(plan);
     if (offline) throw Exception('offline');
     final byTitle = linesByTitle;

@@ -26,7 +26,7 @@ DateTime _thisMonthAt(int day, int hour) {
 /// call, so a Regenerate tap is guaranteed to swap the text.
 class _SequencedPalService implements PalService {
   @override
-  Future<PalAgenda> agenda({List<PlanFact> plan = const []}) async => const PalAgenda();
+  Future<PalAgenda> agenda({List<PlanFact> plan = const [], bool fresh = false}) async => const PalAgenda();
 
   @override
   Future<MealEstimate> estimateMeal(String description) async =>

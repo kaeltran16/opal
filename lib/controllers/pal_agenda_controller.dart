@@ -25,12 +25,40 @@ part 'pal_agenda_controller.g.dart';
 /// `.value ?? const PalAgenda()`.
 ///
 /// No retry: a failure held as loading reads as online on Today. Pull to
-/// refresh and resume fetch again.
+/// refresh and resume build it again.
+///
+/// A plain rebuild (first open, resume) may serve the service's cached reply
+/// for the day; [PalAgendaRefresh.fetchFresh] makes the next one fetch past it.
 @Riverpod(retry: noRetry)
 Future<PalAgenda> palAgenda(Ref ref) async {
+  final fresh = ref.read(palAgendaRefreshProvider)._take();
   final pal = ref.watch(palServiceProvider);
-  return pal.agenda(plan: await _planFacts(ref));
+  return pal.agenda(plan: await _planFacts(ref), fresh: fresh);
 }
+
+/// Refetches [palAgenda] past the cache, for when the cached reply is known
+/// stale: pull to refresh, a finished ritual.
+class PalAgendaRefresh {
+  PalAgendaRefresh(this._ref);
+  final Ref _ref;
+  // a plain field, not provider state: the build it triggers clears it, and a
+  // provider may not change another's state while building.
+  bool _pending = false;
+
+  void fetchFresh() {
+    _pending = true;
+    _ref.invalidate(palAgendaProvider);
+  }
+
+  bool _take() {
+    final pending = _pending;
+    _pending = false;
+    return pending;
+  }
+}
+
+@Riverpod(keepAlive: true)
+PalAgendaRefresh palAgendaRefresh(Ref ref) => PalAgendaRefresh(ref);
 
 /// The day's open local items, for Pal to word a line about each. Read, not
 /// watched, so logging a step does not call the model again; the line's key

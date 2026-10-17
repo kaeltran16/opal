@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:clock/clock.dart';
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -509,6 +510,106 @@ void main() {
 
     final next = finished.copyWith(startedAt: start.add(const Duration(days: 1)));
     expect(await service.postWorkoutNote(next), 'n2');
+  });
+
+  group('agenda cache', () {
+    final morning = DateTime(2026, 10, 18, 8);
+    late int calls;
+    late int status;
+    late Map<String, Object?> targets;
+    late int spent;
+    late HttpPalService service;
+
+    setUp(() {
+      calls = 0;
+      status = 200;
+      targets = {'rituals': <Object?>[], 'workouts': <Object?>[], 'week': <Object?>[]};
+      spent = 0;
+      service = HttpPalService(
+        baseUrl: 'https://pal.test',
+        httpClient: MockClient((req) async {
+          calls++;
+          return http.Response(
+              jsonEncode({
+                'streakDays': calls,
+                'proposals': <Object>[],
+                'autopilot': <Object>[],
+              }),
+              status);
+        }),
+        tokens: tokenProvider(),
+        context: PalContextSource(
+          // the chat context changes on every log; the key must not follow it.
+          chat: () async => {'spentToday': spent},
+          review: (_, _) async => const {},
+          insights: (_) async => const {},
+          suggest: (_, _) async => const {},
+          postWorkout: (_) async => const {},
+          resolveRoutineTitle: (_) async => null,
+          agendaTargets: () async => targets,
+        ),
+        cache: _MapCache(),
+      );
+    });
+
+    test('a same-day reopen is served from the cache', () async {
+      await withClock(Clock.fixed(morning), () async {
+        expect((await service.agenda(plan: const [fact])).streakDays, 1);
+        spent = 12;
+        final again = await withClock(Clock.fixed(morning.add(const Duration(hours: 9))),
+            () => service.agenda(plan: const [fact]));
+        expect(again.streakDays, 1);
+        expect(calls, 1);
+      });
+    });
+
+    test('a fresh fetch refetches and replaces the cached reply', () async {
+      await withClock(Clock.fixed(morning), () async {
+        await service.agenda(plan: const [fact]);
+        expect((await service.agenda(plan: const [fact], fresh: true)).streakDays, 2);
+        expect((await service.agenda(plan: const [fact])).streakDays, 2);
+        expect(calls, 2);
+      });
+    });
+
+    test('a new day misses', () async {
+      await withClock(Clock.fixed(morning), () => service.agenda(plan: const [fact]));
+      await withClock(Clock.fixed(morning.add(const Duration(days: 1))),
+          () => service.agenda(plan: const [fact]));
+      expect(calls, 2);
+    });
+
+    test('changed targets miss', () async {
+      await withClock(Clock.fixed(morning), () async {
+        await service.agenda(plan: const [fact]);
+        targets = {
+          ...targets,
+          'rituals': [
+            {'id': 'evening', 'name': 'Evening', 'steps': ['Read']}
+          ],
+        };
+        await service.agenda(plan: const [fact]);
+        expect(calls, 2);
+      });
+    });
+
+    test('a changed set of open items misses', () async {
+      await withClock(Clock.fixed(morning), () async {
+        await service.agenda(plan: const [fact]);
+        await service.agenda();
+        expect(calls, 2);
+      });
+    });
+
+    test('a failed miss is an error and caches nothing', () async {
+      await withClock(Clock.fixed(morning), () async {
+        status = 503;
+        await expectLater(service.agenda(plan: const [fact]), throwsA(isA<PalException>()));
+        status = 200;
+        expect((await service.agenda(plan: const [fact])).streakDays, 2);
+        expect(calls, 2);
+      });
+    });
   });
 }
 

@@ -29,9 +29,11 @@ class _SpyHaptics implements HapticsService {
 /// A [PalService] that counts agenda fetches; nothing else is used.
 class _CountingPal implements PalService {
   int agendaCalls = 0;
+  bool lastFresh = false;
   @override
-  Future<PalAgenda> agenda({List<PlanFact> plan = const []}) async {
+  Future<PalAgenda> agenda({List<PlanFact> plan = const [], bool fresh = false}) async {
     agendaCalls++;
+    lastFresh = fresh;
     return const PalAgenda();
   }
 
@@ -264,6 +266,7 @@ void main() {
     await notifier.completeStep(_morning, 1);
     await container.read(palAgendaProvider.future);
     expect(pal.agendaCalls, 2);
+    expect(pal.lastFresh, isTrue, reason: 'a cached agenda would still count the ritual open');
   });
 
   test('a routine-only edit re-emits even with no entry change', () async {

@@ -466,7 +466,7 @@ class MockPalService implements PalService {
   }
 
   @override
-  Future<PalAgenda> agenda({List<PlanFact> plan = const []}) async {
+  Future<PalAgenda> agenda({List<PlanFact> plan = const [], bool fresh = false}) async {
     await Future<void>.delayed(latency);
     final cur = currency();
     String money(double usd) => formatCurrency(usd * cur.budgetScale, cur);

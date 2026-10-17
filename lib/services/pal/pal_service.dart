@@ -733,8 +733,9 @@ abstract interface class PalService {
   /// `/agenda`: the Pal Home hub payload — cross-pillar [PalProposal]s to
   /// approve, the model's Autopilot lines, and the workout streak. Drives the
   /// agentic Pal Home screen. [plan] is the day's open items; the reply's
-  /// [PalAgenda.lines] words one sentence about each.
-  Future<PalAgenda> agenda({List<PlanFact> plan = const []});
+  /// [PalAgenda.lines] words one sentence about each. A reply may be served
+  /// from a cache; [fresh] fetches past it, for when it is known stale.
+  Future<PalAgenda> agenda({List<PlanFact> plan = const [], bool fresh = false});
 
   /// `/v1/suggestions`: Pal-generated, context-aware quick-pick chips for the
   /// given [surface]. Drives the composer starters, New Entry quick-picks, and

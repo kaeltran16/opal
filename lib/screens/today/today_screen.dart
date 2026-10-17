@@ -118,7 +118,8 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
   void initState() {
     super.initState();
     // today stays mounted in the shell's indexed stack, so a resume on any tab
-    // refetches and the day is current when the user comes back.
+    // rebuilds and the day is current when the user comes back; the agenda is
+    // served from today's cache unless its day or open items changed.
     _lifecycle = AppLifecycleListener(onResume: _resume);
     _scheduleTick();
   }
@@ -148,7 +149,7 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
 
   Future<void> _pull() async {
     try {
-      ref.invalidate(palAgendaProvider);
+      ref.read(palAgendaRefreshProvider).fetchFresh();
       await ref.read(palAgendaProvider.future);
     } catch (e) {
       // the provider holds the error, which Today reads as Pal offline.

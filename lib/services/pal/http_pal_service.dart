@@ -427,12 +427,20 @@ class HttpPalService implements PalService {
   }
 
   @override
-  Future<PalAgenda> agenda({List<PlanFact> plan = const []}) async {
-    final json = await _post('/v1/agenda', {
-      'context': await context.chat(),
-      'targets': await context.agendaTargets(),
-      'plan': [for (final f in plan) f.toJson()],
-    });
+  Future<PalAgenda> agenda({List<PlanFact> plan = const [], bool fresh = false}) async {
+    const kind = 'agenda', path = '/v1/agenda';
+    final ctx = await context.chat();
+    final targets = await context.agendaTargets();
+    final extra = {'targets': targets, 'plan': [for (final f in plan) f.toJson()]};
+    final key = _agendaCacheKey(targets, plan);
+    final Map<String, dynamic> json;
+    if (fresh) {
+      json = await _post(path, {'context': ctx, ...extra});
+      // stored under _cachedPost's key, so the next plain open serves it.
+      await cache.put('$kind:$key', jsonEncode(json));
+    } else {
+      json = await _cachedPost(kind, path, ctx, extra: extra, cacheKey: key);
+    }
     final sent = {for (final f in plan) f.key};
     List<T> mapList<T>(String key, T Function(Map<String, dynamic>) f) =>
         ((json[key] as List?) ?? const [])
@@ -456,6 +464,18 @@ class HttpPalService implements PalService {
             id: subtitle,
       },
     );
+  }
+
+  /// Coarse cache key for `/v1/agenda`, stable within a day. The chat context
+  /// changes on every log, so keying on it would call the model on every open;
+  /// the agenda is keyed on what should change it instead: the local day, the
+  /// targets a proposal may point at, and which items are still open. A
+  /// [agenda] call with `fresh` covers the rest (pull to refresh, a finished
+  /// ritual). The targets go in as their JSON, like the insights key's context.
+  static String _agendaCacheKey(Map<String, Object?> targets, List<PlanFact> plan) {
+    final now = clock.now();
+    final open = [for (final f in plan) f.key]..sort();
+    return '${now.year}-${now.month}-${now.day}:${jsonEncode(open)}:${jsonEncode(targets)}';
   }
 
   // an unknown action, or a payload missing its target, is dropped: the client

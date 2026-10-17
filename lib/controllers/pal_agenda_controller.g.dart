@@ -18,7 +18,10 @@ part of 'pal_agenda_controller.dart';
 /// `.value ?? const PalAgenda()`.
 ///
 /// No retry: a failure held as loading reads as online on Today. Pull to
-/// refresh and resume fetch again.
+/// refresh and resume build it again.
+///
+/// A plain rebuild (first open, resume) may serve the service's cached reply
+/// for the day; [PalAgendaRefresh.fetchFresh] makes the next one fetch past it.
 
 @ProviderFor(palAgenda)
 const palAgendaProvider = PalAgendaProvider._();
@@ -33,7 +36,10 @@ const palAgendaProvider = PalAgendaProvider._();
 /// `.value ?? const PalAgenda()`.
 ///
 /// No retry: a failure held as loading reads as online on Today. Pull to
-/// refresh and resume fetch again.
+/// refresh and resume build it again.
+///
+/// A plain rebuild (first open, resume) may serve the service's cached reply
+/// for the day; [PalAgendaRefresh.fetchFresh] makes the next one fetch past it.
 
 final class PalAgendaProvider
     extends
@@ -53,7 +59,10 @@ final class PalAgendaProvider
   /// `.value ?? const PalAgenda()`.
   ///
   /// No retry: a failure held as loading reads as online on Today. Pull to
-  /// refresh and resume fetch again.
+  /// refresh and resume build it again.
+  ///
+  /// A plain rebuild (first open, resume) may serve the service's cached reply
+  /// for the day; [PalAgendaRefresh.fetchFresh] makes the next one fetch past it.
   const PalAgendaProvider._()
     : super(
         from: null,
@@ -79,4 +88,50 @@ final class PalAgendaProvider
   }
 }
 
-String _$palAgendaHash() => r'86920f65c56e95e5c342cc70e53538b669fd101f';
+String _$palAgendaHash() => r'c45cadcf5a125533baeabe170b0665f153fd9fd6';
+
+@ProviderFor(palAgendaRefresh)
+const palAgendaRefreshProvider = PalAgendaRefreshProvider._();
+
+final class PalAgendaRefreshProvider
+    extends
+        $FunctionalProvider<
+          PalAgendaRefresh,
+          PalAgendaRefresh,
+          PalAgendaRefresh
+        >
+    with $Provider<PalAgendaRefresh> {
+  const PalAgendaRefreshProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'palAgendaRefreshProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$palAgendaRefreshHash();
+
+  @$internal
+  @override
+  $ProviderElement<PalAgendaRefresh> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  PalAgendaRefresh create(Ref ref) {
+    return palAgendaRefresh(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(PalAgendaRefresh value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<PalAgendaRefresh>(value),
+    );
+  }
+}
+
+String _$palAgendaRefreshHash() => r'3f1bac8f751ada116f5af162afb2d5496744e7e1';

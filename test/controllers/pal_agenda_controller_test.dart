@@ -25,10 +25,12 @@ class _ScriptedPal extends MockPalService {
 
   final List<Object> script;
   final plans = <List<PlanFact>>[];
+  final freshes = <bool>[];
 
   @override
-  Future<PalAgenda> agenda({List<PlanFact> plan = const []}) async {
+  Future<PalAgenda> agenda({List<PlanFact> plan = const [], bool fresh = false}) async {
     plans.add(plan);
+    freshes.add(fresh);
     final next = script.length > 1 ? script.removeAt(0) : script.single;
     if (next is PalAgenda) return next;
     throw next;
@@ -168,6 +170,20 @@ void main() {
     final state = c.read(palAgendaProvider);
     expect(state.hasError, isTrue);
     expect(state.value?.proposals, [_rent]);
+  });
+
+  test('only a requested refresh fetches past the cache, and only once', () async {
+    final pal = _ScriptedPal([const PalAgenda()]);
+    final c = _container(pal);
+    _listen(c);
+    await c.read(palAgendaProvider.future);
+
+    c.read(palAgendaRefreshProvider).fetchFresh();
+    await c.read(palAgendaProvider.future);
+    c.invalidate(palAgendaProvider); // a resume
+    await c.read(palAgendaProvider.future);
+
+    expect(pal.freshes, [false, true, false]);
   });
 
   test('the agenda receives the open local items as facts, in lead order', () async {

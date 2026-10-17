@@ -178,6 +178,6 @@ class RitualsController extends _$RitualsController {
         );
     ref.read(hapticsServiceProvider).light();
     // Pal's agenda counts finished routines; a stale one keeps saying "0 of 3".
-    if (finishes) ref.invalidate(palAgendaProvider);
+    if (finishes) ref.read(palAgendaRefreshProvider).fetchFresh();
   }
 }
