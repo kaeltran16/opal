@@ -162,6 +162,7 @@ class PlanSession {
   const PlanSession({
     required this.day,
     this.settled = const {},
+    this.declined = const {},
     this.history = const [],
     this.notice,
   });
@@ -169,6 +170,11 @@ class PlanSession {
   /// The start of the local day the session belongs to.
   final DateTime day;
   final Map<String, bool> settled;
+
+  /// The proposal item ids put off on an earlier day and still left out
+  /// ([declinedOn]); one put off today is in [settled] instead, so it can be
+  /// brought back.
+  final Set<String> declined;
   final List<PlanStep> history;
 
   /// A new instance per change, so the toast restarts.
@@ -179,6 +185,7 @@ class PlanSession {
       PlanSession(
         day: day,
         settled: {...settled, id: done},
+        declined: declined,
         history: [...history, PlanStep(id, label, change)],
         notice: PlanNotice(label: label, undoable: true),
       );
@@ -190,6 +197,7 @@ class PlanSession {
     return PlanSession(
       day: day,
       settled: {...settled}..remove(last.id),
+      declined: declined,
       history: history.sublist(0, history.length - 1),
     );
   }
@@ -199,11 +207,13 @@ class PlanSession {
   PlanSession bringBack(String id, {required String label}) => PlanSession(
         day: day,
         settled: {...settled}..remove(id),
+        declined: declined,
         history: [for (final c in history) if (c.id != id) c],
         notice: PlanNotice(label: label, undoable: false),
       );
 
-  PlanSession dismissNotice() => PlanSession(day: day, settled: settled, history: history);
+  PlanSession dismissNotice() =>
+      PlanSession(day: day, settled: settled, declined: declined, history: history);
 
   bool get canUndo => history.isNotEmpty;
 
@@ -445,11 +455,28 @@ PlanItem proposalItem(PalProposal p) => PlanItem(
     );
 
 /// Every proposal in [agenda] not yet approved or put off in [session], in
-/// the order Pal sent them. Unlike the day plan, nothing is folded or hidden.
+/// the order Pal sent them. Unlike the day plan, nothing is folded; only the
+/// ones put off on an earlier day are hidden.
 List<PlanItem> pendingProposals(PalAgenda agenda, PlanSession session) => [
-      for (final p in agenda.proposals)
-        if (!session.settled.containsKey(proposalItem(p).id)) proposalItem(p),
+      for (final item in agenda.proposals.map(proposalItem))
+        if (!session.settled.containsKey(item.id) && !session.declined.contains(item.id))
+          item,
     ];
+
+/// How many days a put-off proposal stays out of the plan, counting the day
+/// it was put off.
+const int declineDays = 7;
+
+/// The ids in [declined] (the day each was put off) still left out on [day]:
+/// put off before [day] and fewer than [declineDays] days before it. One put
+/// off on [day] itself is not here; the session holds it, with Bring back.
+Set<String> declinedOn(Map<String, DateTime> declined, DateTime day) => {
+      for (final MapEntry(key: id, value: on) in declined.entries)
+        if (on.isBefore(day) && day.isBefore(declineEnds(on))) id,
+    };
+
+/// The day a proposal put off on [on] shows again.
+DateTime declineEnds(DateTime on) => DateTime(on.year, on.month, on.day + declineDays);
 
 /// "3 steps" before any is done, then "2 of 4 steps".
 String _stepsDetail(int done, int total) => switch (done) {
@@ -465,7 +492,8 @@ bool _isToday(DateTime at, DateTime now) =>
 /// calls the model, so the plan stands when Pal is offline. The evening
 /// routine is the close-out row, and Pal's close-out proposal only lends it
 /// a sentence. Beside the close-out row, Pal's add-ritual proposals are left
-/// out; without one they are ordinary proposal rows.
+/// out; without one they are ordinary proposal rows. Proposals whose item id
+/// is in [declined] (put off on an earlier day) are left out entirely.
 DayPlan buildDayPlan({
   required PalAgenda agenda,
   required RitualsState? rituals,
@@ -473,16 +501,21 @@ DayPlan buildDayPlan({
   required MoodCheckin? lastCheckin,
   required List<NutritionMeal> meals,
   required DateTime now,
+  Set<String> declined = const {},
 }) {
   final routines = rituals?.routines ?? const <RitualRoutine>[];
   final evening = rituals?.evening;
   final closeOut = evening != null && evening.steps.isNotEmpty ? evening : null;
-  final closeOutSaid = agenda.proposals.where((p) => p.navigatesToCloseOut).firstOrNull?.body;
+  final proposals = [
+    for (final p in agenda.proposals)
+      if (!declined.contains(proposalItem(p).id)) p,
+  ];
+  final closeOutSaid = proposals.where((p) => p.navigatesToCloseOut).firstOrNull?.body;
   final checkedIn = lastCheckin != null && _isToday(lastCheckin.timestamp, now);
   final ateToday = meals.any((m) => _isToday(m.timestamp, now));
 
   return DayPlan([
-    for (final p in agenda.proposals)
+    for (final p in proposals)
       if (!p.navigatesToCloseOut && !(closeOut != null && p.addsRitual))
         proposalItem(p),
     for (final r in trackedRoutines(routines))

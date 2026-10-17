@@ -62,10 +62,10 @@ describe('memory-read pal routes', () => {
   it('POST /v1/agenda derives icon/action and echoes streakDays', async () => {
     const tok = await token()
     const canned = JSON.stringify({
-      proposals: [{ kind: 'close_out', colorToken: 'money', tag: 'Tonight', title: 'Wrap up', body: '...', approveLabel: 'Do it', doneLabel: 'Done' }],
+      proposals: [{ kind: 'close_out', colorToken: 'money', tag: 'Tonight', title: 'Wrap up', body: '...', reason: 'Evening open tonight', approveLabel: 'Do it', doneLabel: 'Done' }],
       autopilot: [],
     })
-    const res = await post(tok, '/v1/agenda', { context: CHAT_CTX }, stubPal({ text: canned }))
+    const res = await post(tok, '/v1/agenda', { context: { ...CHAT_CTX, hourOfDay: 21 } }, stubPal({ text: canned }))
     expect(res.status).toBe(200)
     const body = await res.json() as any
     expect(body.proposals[0].icon).toBe('moon.stars.fill') // derived from kind=close_out

@@ -110,6 +110,20 @@ void main() {
     expect(repo.dismissedFindings, isEmpty);
   });
 
+  test('declined proposals round-trip by day, and a corrupt value reads empty', () async {
+    SharedPreferences.setMockInitialValues({});
+    final repo = SettingsRepository(await SharedPreferences.getInstance());
+    expect(repo.declinedProposals, isEmpty);
+
+    await repo.setDeclinedProposals({'proposal:close_out': DateTime(2026, 10, 4, 23, 58)});
+
+    final reloaded = SettingsRepository(await SharedPreferences.getInstance());
+    expect(reloaded.declinedProposals, {'proposal:close_out': DateTime(2026, 10, 4)});
+
+    SharedPreferences.setMockInitialValues({'settings.pal.declinedProposals': 'not json'});
+    expect(SettingsRepository(await SharedPreferences.getInstance()).declinedProposals, isEmpty);
+  });
+
   group("today's plan", () {
     final day = DateTime(2026, 10, 4, 23, 58);
 

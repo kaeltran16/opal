@@ -53,6 +53,7 @@ class SettingsRepository {
   static const _kImportNotifications = 'settings.email.importNotifications';
   static const _kAutoCategorize = 'settings.email.autoCategorize';
   static const _kDismissedFindings = 'settings.pal.dismissedFindings';
+  static const _kDeclinedProposals = 'settings.pal.declinedProposals';
   static const _kPlanSettled = 'settings.today.planSettled';
 
   // --- Brightness ---------------------------------------------------------
@@ -184,6 +185,24 @@ class SettingsRepository {
   Future<void> addDismissedFindings(Iterable<String> ids) =>
       _prefs.setStringList(
           _kDismissedFindings, {...dismissedFindings, ...ids}.toList());
+
+  /// The day each Pal proposal was last put off, by plan item id. A value
+  /// that does not parse reads empty.
+  Map<String, DateTime> get declinedProposals {
+    final raw = _prefs.getString(_kDeclinedProposals);
+    if (raw == null) return const {};
+    try {
+      final stored = jsonDecode(raw) as Map<String, dynamic>;
+      return {for (final e in stored.entries) e.key: DateTime.parse(e.value as String)};
+    } on Object {
+      // a corrupt value only brings put-off proposals back early.
+      return const {};
+    }
+  }
+
+  Future<void> setDeclinedProposals(Map<String, DateTime> declined) =>
+      _prefs.setString(_kDeclinedProposals,
+          jsonEncode({for (final e in declined.entries) e.key: _dayKey(e.value)}));
 
   // --- Today's plan -------------------------------------------------------
 

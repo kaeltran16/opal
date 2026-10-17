@@ -28,12 +28,13 @@ final _nextMorning = Clock.fixed(DateTime(2026, 10, 5, 7, 30));
 final _thursday = Clock.fixed(DateTime(2026, 10, 15, 9));
 
 PalProposal _proposal({
+  String id = 'p',
   String action = addRitualAction,
   ({String routineId, String step})? ritual,
   ({int weekday, String routineId})? slot,
 }) =>
     PalProposal(
-      id: 'p',
+      id: id,
       tag: 'Rituals',
       colorToken: 'rituals',
       icon: 'sparkles',
@@ -254,6 +255,124 @@ void main() {
 
       expect(_session.lastStep?.label, 'Added $_step to $_evening');
       expect(_session.settled, {'proposal:p': true});
+    });
+  });
+
+  group('a put-off proposal stays out for a week', () {
+    final agenda = PalAgenda(proposals: [_addRitual().proposal!]);
+    Clock at(int day) => Clock.fixed(DateTime(2026, 10, day, 9));
+    List<String> pending(ProviderContainer c) =>
+        [for (final i in pendingProposals(agenda, _sessionOf(c))) i.id];
+    List<String> onToday(ProviderContainer c, DateTime now) => [
+          for (final i in buildDayPlan(
+            agenda: agenda,
+            rituals: null,
+            workout: null,
+            lastCheckin: null,
+            meals: const [],
+            now: now,
+            declined: _sessionOf(c).declined,
+          ).items)
+            if (i.proposal != null) i.id,
+        ];
+
+    Future<void> putOffOn(int day, {void Function(ProviderContainer)? then}) =>
+        withClock(at(day), () async {
+          final c = _launch();
+          _planOf(c).putOff(_addRitual());
+          then?.call(c);
+          await _flush();
+        });
+
+    test('hidden from the next day, shown again after seven days', () async {
+      await putOffOn(4);
+
+      for (final day in [5, 10]) {
+        await withClock(at(day), () async {
+          final c = _launch();
+          expect(pending(c), isEmpty, reason: 'Oct $day');
+          expect(onToday(c, clock.now()), isEmpty, reason: 'Oct $day');
+        });
+      }
+      await withClock(at(11), () async {
+        final c = _launch();
+        expect(pending(c), ['proposal:p']);
+        expect(onToday(c, clock.now()), ['proposal:p']);
+      });
+    });
+
+    test('the same day it stays on Today as put off, so it can be brought back', () async {
+      await withClock(at(4), () async {
+        final c = _launch();
+        _planOf(c).putOff(_addRitual());
+        await _flush();
+
+        final relaunched = _launch();
+        expect(_sessionOf(relaunched).declined, isEmpty);
+        expect(onToday(relaunched, clock.now()), ['proposal:p']);
+        expect(pending(relaunched), isEmpty);
+
+        _planOf(relaunched).bringBack(_addRitual());
+        expect(pending(relaunched), ['proposal:p']);
+      });
+    });
+
+    test('a same-day bring back forgets the put-off', () async {
+      await putOffOn(4, then: (c) => _planOf(c).bringBack(_addRitual()));
+
+      await withClock(at(5), () async {
+        expect(pending(_launch()), ['proposal:p']);
+      });
+    });
+
+    test('a same-day undo forgets the put-off', () async {
+      await withClock(at(4), () async {
+        final c = _launch();
+        _planOf(c).putOff(_addRitual());
+        await _flush();
+        await _planOf(c).undo();
+        await _flush();
+        expect(pending(c), ['proposal:p']);
+      });
+
+      await withClock(at(5), () async {
+        expect(pending(_launch()), ['proposal:p']);
+      });
+    });
+
+    test('a bring back on a later day leaves an earlier put-off standing', () async {
+      await putOffOn(4);
+      await withClock(at(5), () async {
+        _planOf(_launch()).bringBack(_addRitual());
+        await _flush();
+      });
+
+      await withClock(at(6), () async {
+        expect(_sessionOf(_launch()).declined, {'proposal:p'});
+      });
+    });
+
+    test('only proposals are remembered past the day', () async {
+      await withClock(at(4), () async {
+        _planOf(_launch()).putOff(_mood);
+        await _flush();
+      });
+
+      await withClock(at(5), () async {
+        expect(_sessionOf(_launch()).declined, isEmpty);
+      });
+      expect(SettingsRepository(_prefs).declinedProposals, isEmpty);
+    });
+
+    test('a put-off past its week leaves the store on the next save', () async {
+      await putOffOn(4);
+      await withClock(at(11), () async {
+        final other = _proposal(id: 'q', ritual: (routineId: 'evening', step: _step));
+        _planOf(_launch()).putOff(proposalItem(other));
+        await _flush();
+      });
+
+      expect(SettingsRepository(_prefs).declinedProposals, {'proposal:q': DateTime(2026, 10, 11)});
     });
   });
 

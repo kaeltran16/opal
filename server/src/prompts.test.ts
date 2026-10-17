@@ -533,6 +533,61 @@ describe('prompt examples do not anchor output', () => {
     expect(p).toContain('routine_reminders')
   })
 
+  it('the agenda states each planned day as done, missed or still to come', () => {
+    const p = agendaPrompt(thursdayEvening, undefined, {
+      rituals: [],
+      workouts: [{ id: 'w-push', name: 'Push' }, { id: 'w-legs', name: 'Legs' }],
+      week: [
+        { weekday: 1, routineId: 'w-push', done: true, trained: true },
+        { weekday: 2, routineId: 'w-legs', done: false, trained: false },
+        { weekday: 3, routineId: 'w-push', done: false, trained: true },
+        { weekday: 4, routineId: 'w-legs', done: false, trained: false },
+        { weekday: 5, routineId: 'w-push', done: false, trained: false },
+        { weekday: 6, routineId: null, done: false, trained: false },
+      ],
+    })
+    expect(p).toContain('Monday (1): Push, done')
+    expect(p).toContain('Tuesday (2): Legs, missed')
+    expect(p).toContain('Wednesday (3): Push, trained with another workout')
+    expect(p).toContain('Thursday (4, today): Legs, not done yet')
+    expect(p).toContain('Friday (5): Push, upcoming')
+    expect(p).toContain('Saturday (6): rest\n')
+    expect(p).toContain('a weekday number from 4 to 7')
+  })
+
+  it('the agenda states no week status an older client did not send', () => {
+    const p = agendaPrompt(thursdayEvening, undefined, {
+      rituals: [{ id: 'rt-evening', name: 'Evening', steps: ['Stretch'] }],
+      workouts: [{ id: 'w-legs', name: 'Legs' }],
+      week: [{ weekday: 2, routineId: 'w-legs' }],
+    })
+    expect(p).toContain('Tuesday (2): Legs\n')
+    expect(p).toContain('rt-evening: Evening (steps: Stretch)\n')
+  })
+
+  it('the agenda states how many days this week each ritual routine was finished', () => {
+    const p = agendaPrompt(thursdayEvening, undefined, {
+      rituals: [
+        { id: 'rt-evening', name: 'Evening', steps: ['Stretch', 'Read'], daysDone: 1 },
+        { id: 'rt-empty', name: 'Empty', steps: [], daysDone: 0 },
+      ],
+      workouts: [],
+      week: [],
+    })
+    expect(p).toContain('rt-evening: Evening (steps: Stretch, Read; finished 1 of 4 days this week, today included)')
+    expect(p).toContain('rt-empty: Empty (steps: none)\n')
+    expect(agendaPrompt({ ...thursdayEvening, weekday: 1 }, undefined, {
+      rituals: [{ id: 'rt-evening', name: 'Evening', steps: ['Stretch'], daysDone: 0 }], workouts: [], week: [],
+    })).toContain('finished 0 of 1 day this week')
+  })
+
+  it('the agenda asks for a grounded reason and allows no proposals', () => {
+    const p = agendaPrompt(thursdayEvening)
+    expect(p).toContain('"reason":string')
+    expect(p).toContain('An empty "proposals" list is better than an ungrounded one')
+    expect(p).toContain('only at local hour 21 or later')
+  })
+
   it('the composer chips name no example merchant or amount', () => {
     expect(suggestionsPrompt('composer', thursdayEvening)).not.toContain('Verve coffee, $5')
   })

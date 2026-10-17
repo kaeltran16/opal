@@ -10,6 +10,8 @@ const CHAT_CTX = {
   spentToday: 0, movedTodayKcal: 0, ritualsDoneToday: 0, weekSpent: 0, weekBudget: 700,
   weekMovedKcal: 0, weekRitualsDone: 0, weekRitualGoal: 21, moveStreakDays: 0, hourOfDay: 9, weekday: 1,
 }
+// the agenda's close-out is valid only from the evening close-out hour.
+const EVENING_CTX = { ...CHAT_CTX, hourOfDay: 21 }
 const SUGGEST_CTX = {
   recentWorkouts: [{ routineName: 'Push', date: '2026-07-20', muscles: 'chest' }],
   dayOfWeek: 'Monday',
@@ -24,7 +26,7 @@ const PLAN = [
   { key: 'legs|due|', title: 'Legs', when: '6:00 PM', status: 'due', steps: null, why: 'Planned for today.' },
 ]
 const AGENDA = JSON.stringify({
-  proposals: [{ kind: 'close_out', colorToken: 'rituals', tag: 'Routines', title: 'Stretch', body: 'A short stretch.', approveLabel: 'Add it', doneLabel: 'Added' }],
+  proposals: [{ kind: 'close_out', colorToken: 'rituals', tag: 'Routines', title: 'Stretch', body: 'A short stretch.', reason: 'Evening open tonight', approveLabel: 'Add it', doneLabel: 'Added' }],
   autopilot: [],
 })
 
@@ -92,9 +94,9 @@ describe('stateless pal routes', () => {
 
   it('POST /v1/agenda returns 200 with and without targets', async () => {
     const tok = await token()
-    const canned = JSON.stringify({ proposals: [{ kind: 'close_out', title: 't', body: 'b', approveLabel: 'Go', doneLabel: 'Went' }], autopilot: [] })
+    const canned = JSON.stringify({ proposals: [{ kind: 'close_out', title: 't', body: 'b', reason: 'r', approveLabel: 'Go', doneLabel: 'Went' }], autopilot: [] })
     const targets = { rituals: [], workouts: [{ id: 'w1', name: 'Push' }], week: [{ weekday: 1, routineId: null }] }
-    for (const body of [{ context: CHAT_CTX }, { context: CHAT_CTX, targets }]) {
+    for (const body of [{ context: EVENING_CTX }, { context: EVENING_CTX, targets }]) {
       const res = await post(tok, '/v1/agenda', body, stubPal({ text: canned }))
       expect(res.status).toBe(200)
       expect((await res.json() as any).proposals[0].action).toBe('close_out')
@@ -144,7 +146,7 @@ describe('stateless pal routes', () => {
   it('POST /v1/agenda with a plan returns the lines beside the proposals', async () => {
     const tok = await token()
     const client = agendaClient({ lines: JSON.stringify({ lines: [{ key: 'legs|due|', line: 'Legs are on the plan now.' }] }) })
-    const res = await post(tok, '/v1/agenda', { context: CHAT_CTX, plan: PLAN }, new Pal(client))
+    const res = await post(tok, '/v1/agenda', { context: EVENING_CTX, plan: PLAN }, new Pal(client))
     expect(res.status).toBe(200)
     const body = await res.json() as any
     expect(body.proposals.map((p: any) => p.title)).toEqual(['Stretch'])
@@ -154,7 +156,7 @@ describe('stateless pal routes', () => {
   it('POST /v1/agenda without a plan returns no lines and never sends the line prompt', async () => {
     const tok = await token()
     const client = agendaClient({})
-    const res = await post(tok, '/v1/agenda', { context: CHAT_CTX }, new Pal(client))
+    const res = await post(tok, '/v1/agenda', { context: EVENING_CTX }, new Pal(client))
     expect(res.status).toBe(200)
     expect((await res.json() as any).lines).toEqual([])
     expect(client.prompts).toHaveLength(1)
@@ -167,7 +169,7 @@ describe('stateless pal routes', () => {
     const spy = vi.spyOn(console, 'warn').mockImplementation((line: string) => { logs.push(line) })
     let res: Response
     try {
-      res = await post(tok, '/v1/agenda', { context: CHAT_CTX, plan: PLAN }, new Pal(agendaClient({ linesError: new OpenRouterError(502, 'boom') })))
+      res = await post(tok, '/v1/agenda', { context: EVENING_CTX, plan: PLAN }, new Pal(agendaClient({ linesError: new OpenRouterError(502, 'boom') })))
     } finally {
       spy.mockRestore()
     }

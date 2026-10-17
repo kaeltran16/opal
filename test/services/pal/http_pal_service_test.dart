@@ -125,6 +125,18 @@ void main() {
       expect(proposals.single.slot, (weekday: 5, routineId: 'seed-routine-legs'));
     });
 
+    test('a proposal carries its reason, empty when the server sends none', () async {
+      final svc = _service({
+        'proposals': [
+          {'id': 'a', 'title': 'Close out', 'action': 'close_out', 'reason': 'Evening open tonight'},
+          {'id': 'b', 'title': 'Close out', 'action': 'close_out'},
+        ],
+        'autopilot': const [],
+      });
+      final proposals = (await svc.agenda()).proposals;
+      expect(proposals.map((p) => p.reason), ['Evening open tonight', '']);
+    });
+
     test('autopilot decodes to subtitles by automation id', () async {
       final svc = _service({
         'proposals': const [],

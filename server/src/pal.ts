@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import {
   chatSystemPrompt, reviewPrompt, insightsPrompt, parsePrompt, suggestPrompt, postWorkoutPrompt, routinePrompt, agendaPrompt, suggestionsPrompt, memoryPatternsPrompt, nutritionEstimatePrompt, leadLinesPrompt,
+  CLOSE_OUT_HOUR, todayWeekday,
   type ChatContext, type ReviewContext, type InsightsContext, type SuggestContext, type PostWorkoutContext, type RoutineExercise, type AgendaTargets, type PlanFact,
 } from './prompts.js'
 import { MAX_PATTERNS, type MemoryOp, type MemoryDigest, type MemoryPattern } from './memory.js'
@@ -294,7 +295,6 @@ const PROPOSAL_PRESENTATION: Record<ProposalKind, { tag: string; colorToken: str
 
 const isProposalKind = (k: string): k is ProposalKind => (agendaProposalKinds as readonly string[]).includes(k)
 
-const WEEKDAY_MIN = 1
 const WEEKDAY_MAX = 7
 
 export const agendaModelSchema = z.object({
@@ -302,6 +302,8 @@ export const agendaModelSchema = z.object({
     kind: z.string(),
     title: prose,
     body: prose,
+    // missing is caught to '' so proposalValid drops that proposal, not the agenda.
+    reason: prose.catch(''),
     approveLabel: prose,
     doneLabel: prose,
     ritual: z.object({ routineId: z.string(), step: z.string() }).nullish().catch(null),
@@ -358,8 +360,11 @@ export function lineAgrees(line: string, fact: PlanFact): boolean {
 
 // the payload an approval acts on must name something that exists and would
 // change something: a duplicate step or an unchanged slot is a no-op approve.
-export function proposalValid(p: AgendaProposal, targets: AgendaTargets, currency?: CurrencyDescriptor): boolean {
-  if (!labelsAgree(p, currency)) return false
+// a proposal with no reason rests on no fact, and the day's clock bounds
+// when a close-out or a workout move can still happen.
+export function proposalValid(p: AgendaProposal, targets: AgendaTargets, ctx: Pick<ChatContext, 'weekday' | 'hourOfDay' | 'currency'>): boolean {
+  if (!p.reason.trim() || !labelsAgree(p, ctx.currency)) return false
+  if (p.kind === 'close_out') return ctx.hourOfDay >= CLOSE_OUT_HOUR
   if (p.kind === 'add_ritual') {
     const step = p.ritual?.step.trim().toLowerCase()
     const routine = targets.rituals.find((r) => r.id === p.ritual?.routineId)
@@ -367,12 +372,12 @@ export function proposalValid(p: AgendaProposal, targets: AgendaTargets, currenc
   }
   if (p.kind === 'reschedule_workout') {
     const slot = p.slot
-    if (!slot || !Number.isInteger(slot.weekday) || slot.weekday < WEEKDAY_MIN || slot.weekday > WEEKDAY_MAX) return false
+    if (!slot || !Number.isInteger(slot.weekday) || slot.weekday < todayWeekday(ctx) || slot.weekday > WEEKDAY_MAX) return false
     if (!targets.workouts.some((w) => w.id === slot.routineId)) return false
     const current = targets.week.find((d) => d.weekday === slot.weekday)?.routineId ?? null
     return current !== slot.routineId
   }
-  return true
+  return false
 }
 
 // a proposal's id names its kind and target, never its position: the client
@@ -392,7 +397,7 @@ export function proposalId(kind: ProposalKind, p: Pick<AgendaProposal, 'ritual' 
 // The wire shape the client decodes (icons/action resolved, streak echoed).
 export interface AgendaResult {
   proposals: Array<{
-    id: string; tag: string; colorToken: string; icon: string; title: string; body: string; approveLabel: string
+    id: string; tag: string; colorToken: string; icon: string; title: string; body: string; reason: string; approveLabel: string
     approveIcon: string; doneLabel: string; action: ProposalKind
     ritual: { routineId: string; step: string } | null; slot: { weekday: number; routineId: string } | null
   }>
@@ -710,7 +715,7 @@ export class Pal {
       const parsed = await this.completeJson(agendaPrompt(ctx, memory, targets), { maxTokens: INSIGHTS_MAX_TOKENS, temperature: 0 }, (j) => agendaModelSchema.parse(j))
       return { ...parsed, proposals: parsed.proposals.filter((p) => isProposalKind(p.kind)) }
     }
-    const valid = (p: AgendaProposal) => proposalValid(p, targets, ctx.currency)
+    const valid = (p: AgendaProposal) => proposalValid(p, targets, ctx)
     let parsed = await draw()
     // a proposal that names a missing target, a no-op change or an amount it
     // never states is redrawn once; one still invalid after that is dropped.
@@ -731,6 +736,7 @@ export class Pal {
           icon: pres.icon,
           title: p.title,
           body: p.body,
+          reason: p.reason.trim(),
           approveLabel: p.approveLabel,
           approveIcon: pres.approveIcon,
           doneLabel: p.doneLabel,

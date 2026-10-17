@@ -382,20 +382,45 @@ PalService palService(Ref ref) {
     },
     resolveRoutineTitle: (id) async => (await routines.getById(id))?.name,
     agendaTargets: () async {
-      final week = await weeklyPlan.getSchedule();
+      final now = clock.now();
+      final monday = startOfWeek(now);
+      final schedule = await weeklyPlan.getSchedule();
+      final workoutRoutines = await routines.getAll();
+      // the Weekly plan's own derivation, so Pal reads the week's done and
+      // missed days as the Workout tab shows them.
+      final plan = buildWeeklyPlan(
+        schedule: schedule,
+        routines: workoutRoutines,
+        exercisesById: {for (final e in await routines.getAllExercises()) e.id: e},
+        workouts: await workouts.getWorkouts(),
+        now: now,
+      );
+      final weekEntries = await entries.getEntriesInRange(
+        monday,
+        startOfDay(now).add(const Duration(days: 1)),
+      );
       return {
         'rituals': [
           for (final r in await ritualRoutines.getAll())
-            {'id': r.id, 'name': r.name, 'steps': [for (final s in r.steps) s.title]},
+            {
+              'id': r.id,
+              'name': r.name,
+              'steps': [for (final s in r.steps) s.title],
+              'daysDone': completedRoutinesInPeriod(weekEntries, [r],
+                  start: monday, days: now.weekday),
+            },
         ],
         'workouts': [
-          for (final r in await routines.getAll()) {'id': r.id, 'name': r.name},
+          for (final r in workoutRoutines) {'id': r.id, 'name': r.name},
         ],
         'week': [
-          for (var day = DateTime.monday; day <= DateTime.sunday; day++)
+          for (final (i, day) in plan.days.indexed)
             {
-              'weekday': day,
-              'routineId': week.where((a) => a.weekday == day).firstOrNull?.routineId,
+              'weekday': i + 1,
+              'routineId':
+                  schedule.where((a) => a.weekday == i + 1).firstOrNull?.routineId,
+              'done': day.done,
+              'trained': day.trained,
             },
         ],
       };

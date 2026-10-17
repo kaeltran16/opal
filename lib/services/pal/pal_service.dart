@@ -496,6 +496,7 @@ class PalProposal {
     required this.approveLabel,
     required this.approveIcon,
     required this.doneLabel,
+    this.reason = '',
     this.action,
     this.ritual,
     this.slot,
@@ -510,6 +511,10 @@ class PalProposal {
   final String approveLabel;
   final String approveIcon;
   final String doneLabel;
+
+  /// The one fact Pal's proposal rests on, e.g. "Legs missed Tue, Thu open".
+  /// Empty from a server that sends none.
+  final String reason;
   final String? action;
 
   /// The step an [addRitualAction] adds, to the ritual routine [ritual.routineId].
@@ -535,13 +540,14 @@ class PalProposal {
           other.approveLabel == approveLabel &&
           other.approveIcon == approveIcon &&
           other.doneLabel == doneLabel &&
+          other.reason == reason &&
           other.action == action &&
           other.ritual == ritual &&
           other.slot == slot;
 
   @override
   int get hashCode => Object.hash(id, tag, colorToken, icon, title, body,
-      approveLabel, approveIcon, doneLabel, action, ritual, slot);
+      approveLabel, approveIcon, doneLabel, reason, action, ritual, slot);
 }
 
 /// One durable fact the user told Pal (the `/v1/memory` facts list). Deletable

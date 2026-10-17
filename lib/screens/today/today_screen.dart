@@ -239,6 +239,7 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
                       lastCheckin: mood.value?.lastCheckin,
                       meals: nutrition.value?.meals ?? const [],
                       now: now,
+                      declined: ref.watch(planSessionControllerProvider).declined,
                     ),
                   ),
               ],

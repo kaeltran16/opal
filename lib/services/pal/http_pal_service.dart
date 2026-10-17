@@ -539,6 +539,7 @@ class HttpPalService implements PalService {
       approveLabel: p['approveLabel'] as String? ?? 'Approve',
       approveIcon: p['approveIcon'] as String? ?? 'checkmark',
       doneLabel: p['doneLabel'] as String? ?? 'Done',
+      reason: p['reason'] as String? ?? '',
       action: action,
       ritual: ritual,
       slot: slot,

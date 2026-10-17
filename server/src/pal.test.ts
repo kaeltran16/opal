@@ -29,7 +29,7 @@ describe('Pal.agenda', () => {
     userName: 'Mira', todayEntries: [], dailyBudget: 85, moveGoalKcal: 60, ritualGoal: 5,
     spentToday: 60, movedTodayKcal: 66, ritualsDoneToday: 4,
     weekSpent: 435, weekBudget: 595, weekMovedKcal: 296, weekRitualsDone: 26, weekRitualGoal: 35,
-    moveStreakDays: 11, hourOfDay: 8, weekday: 6,
+    moveStreakDays: 11, hourOfDay: 21, weekday: 1,
   }
   const targets = {
     rituals: [{ id: 'rt1', name: 'Evening', steps: ['Stretch', 'Read'] }],
@@ -40,7 +40,7 @@ describe('Pal.agenda', () => {
     const queue = replies.map((r) => JSON.stringify(r))
     return { complete: vi.fn(async () => queue.shift() ?? ''), completeWithTools: vi.fn() }
   }
-  const base = { title: 'A title', body: 'A body.', approveLabel: 'Do it', doneLabel: 'Done' }
+  const base = { title: 'A title', body: 'A body.', reason: 'Legs missed Mon, Wed open', approveLabel: 'Do it', doneLabel: 'Done' }
   const addRitual = (routineId: string, step: string) => ({ ...base, kind: 'add_ritual', ritual: { routineId, step } })
   const reschedule = (weekday: number, routineId: string) => ({ ...base, kind: 'reschedule_workout', slot: { weekday, routineId } })
 
@@ -106,11 +106,36 @@ describe('Pal.agenda', () => {
     ['a reschedule onto the weekday\'s current routine', reschedule(2, 'w1')],
     ['a reschedule to an unknown routine', reschedule(3, 'nope')],
     ['a reschedule to a bad weekday', reschedule(8, 'w2')],
-  ])('redraws once and drops add_ritual / reschedule with %s', async (_why, bad) => {
+    ['a reschedule into a weekday before today', reschedule(3, 'w2'), { ...ctx, weekday: 4 }],
+    ['no reason', { ...addRitual('rt1', 'Journal'), reason: undefined }],
+    ['a blank reason', { ...reschedule(3, 'w2'), reason: '  ' }],
+  ])('redraws once and drops a proposal with %s', async (_why, bad, at = ctx) => {
     const client = draws({ proposals: [bad, { ...base, kind: 'close_out' }], autopilot: [] }, { proposals: [bad, { ...base, kind: 'close_out' }], autopilot: [] })
-    const res = await new Pal(client).agenda(ctx, targets)
+    const res = await new Pal(client).agenda(at, targets)
     expect(client.complete).toHaveBeenCalledTimes(2)
     expect(res.proposals.map((p) => p.action)).toEqual(['close_out'])
+  })
+
+  it('keeps a reschedule into today or later in the week', async () => {
+    const thursday = { ...ctx, weekday: 4 }
+    const res = await new Pal(draws({ proposals: [reschedule(4, 'w2'), reschedule(6, 'w1')], autopilot: [] })).agenda(thursday, targets)
+    expect(res.proposals.map((p) => p.slot?.weekday)).toEqual([4, 6])
+  })
+
+  it('drops close_out before the evening close-out hour and keeps it from then', async () => {
+    const closeOut = { ...base, kind: 'close_out' }
+    const early = draws({ proposals: [closeOut, addRitual('rt1', 'Journal')], autopilot: [] }, { proposals: [closeOut, addRitual('rt1', 'Journal')], autopilot: [] })
+    const before = await new Pal(early).agenda({ ...ctx, hourOfDay: 20 }, targets)
+    expect(early.complete).toHaveBeenCalledTimes(2)
+    expect(before.proposals.map((p) => p.action)).toEqual(['add_ritual'])
+
+    const evening = await new Pal(draws({ proposals: [closeOut], autopilot: [] })).agenda({ ...ctx, hourOfDay: 21 }, targets)
+    expect(evening.proposals.map((p) => p.action)).toEqual(['close_out'])
+  })
+
+  it("sends each proposal's reason, trimmed", async () => {
+    const res = await new Pal(draws({ proposals: [{ ...reschedule(3, 'w2'), reason: ' Legs missed Mon, Wed open ' }], autopilot: [] })).agenda(ctx, targets)
+    expect(res.proposals[0].reason).toBe('Legs missed Mon, Wed open')
   })
 
   it('keeps the redraw when it fixes the proposal', async () => {
@@ -922,10 +947,10 @@ describe('Pal.agenda amount agreement', () => {
     userName: 'Kael', todayEntries: [], dailyBudget: 85, moveGoalKcal: 500, ritualGoal: 3,
     spentToday: 85.15, movedTodayKcal: 0, ritualsDoneToday: 0,
     weekSpent: 85.15, weekBudget: 595, weekMovedKcal: 0, weekRitualsDone: 0, weekRitualGoal: 21,
-    moveStreakDays: 0, hourOfDay: 20, weekday: 4,
+    moveStreakDays: 0, hourOfDay: 21, weekday: 4,
   }
   const proposal = (approveLabel: string, title = 'Cover the $0.15 overage') => ({
-    kind: 'close_out', title, body: 'Today is over by $0.15.', approveLabel, doneLabel: 'Held',
+    kind: 'close_out', title, body: 'Today is over by $0.15.', reason: 'Over by $0.15 today', approveLabel, doneLabel: 'Held',
   })
   const draws = (...replies: unknown[]): CompletionClient => {
     const queue = replies.map((r) => JSON.stringify(r))

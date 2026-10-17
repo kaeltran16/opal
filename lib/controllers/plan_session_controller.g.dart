@@ -19,6 +19,10 @@ part of 'plan_session_controller.dart';
 /// Kept alive so it outlives either screen. The settled map is saved for the
 /// day, so a relaunch keeps the day's put-offs; the undo history is not, as
 /// the toast that offers it is gone after a relaunch anyway.
+///
+/// A put-off proposal is also saved with its day, so Pal suggesting it again
+/// leaves it out for [declineDays] days; bringing it back or undoing the
+/// put-off that day forgets it.
 
 @ProviderFor(PlanSessionController)
 const planSessionControllerProvider = PlanSessionControllerProvider._();
@@ -34,6 +38,10 @@ const planSessionControllerProvider = PlanSessionControllerProvider._();
 /// Kept alive so it outlives either screen. The settled map is saved for the
 /// day, so a relaunch keeps the day's put-offs; the undo history is not, as
 /// the toast that offers it is gone after a relaunch anyway.
+///
+/// A put-off proposal is also saved with its day, so Pal suggesting it again
+/// leaves it out for [declineDays] days; bringing it back or undoing the
+/// put-off that day forgets it.
 final class PlanSessionControllerProvider
     extends $NotifierProvider<PlanSessionController, PlanSession> {
   /// What the user did with today's plan: Today's card and timeline, and You's
@@ -47,6 +55,10 @@ final class PlanSessionControllerProvider
   /// Kept alive so it outlives either screen. The settled map is saved for the
   /// day, so a relaunch keeps the day's put-offs; the undo history is not, as
   /// the toast that offers it is gone after a relaunch anyway.
+  ///
+  /// A put-off proposal is also saved with its day, so Pal suggesting it again
+  /// leaves it out for [declineDays] days; bringing it back or undoing the
+  /// put-off that day forgets it.
   const PlanSessionControllerProvider._()
     : super(
         from: null,
@@ -75,7 +87,7 @@ final class PlanSessionControllerProvider
 }
 
 String _$planSessionControllerHash() =>
-    r'17c3bd40c5e1dbb71ccf5acec4b2d4dc19919364';
+    r'098b8cd9f29e89f5659279d0a4955fcb2af105bb';
 
 /// What the user did with today's plan: Today's card and timeline, and You's
 /// Pal suggests, settle the same proposals here, so one approved or put off
@@ -88,6 +100,10 @@ String _$planSessionControllerHash() =>
 /// Kept alive so it outlives either screen. The settled map is saved for the
 /// day, so a relaunch keeps the day's put-offs; the undo history is not, as
 /// the toast that offers it is gone after a relaunch anyway.
+///
+/// A put-off proposal is also saved with its day, so Pal suggesting it again
+/// leaves it out for [declineDays] days; bringing it back or undoing the
+/// put-off that day forgets it.
 
 abstract class _$PlanSessionController extends $Notifier<PlanSession> {
   PlanSession build();

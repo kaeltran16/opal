@@ -102,11 +102,16 @@ export const planFact = z.object({
 })
 
 // The Pal Home agenda reuses the chat context (today + week + goals + streak).
-// what an approval may act on: the ids the model must pick from.
+// what an approval may act on: the ids the model must pick from. the week's
+// status is optional: an older client sends none and the prompt states none.
 export const agendaTargets = z.object({
-  rituals: z.array(z.object({ id: z.string(), name: z.string(), steps: z.array(z.string()) })).default([]),
+  rituals: z.array(z.object({
+    id: z.string(), name: z.string(), steps: z.array(z.string()), daysDone: z.number().int().min(0).max(7).optional(),
+  })).default([]),
   workouts: z.array(z.object({ id: z.string(), name: z.string() })).default([]),
-  week: z.array(z.object({ weekday: z.number(), routineId: z.string().nullable() })).default([]),
+  week: z.array(z.object({
+    weekday: z.number(), routineId: z.string().nullable(), done: z.boolean().optional(), trained: z.boolean().optional(),
+  })).default([]),
 })
 // an older client sends no plan and gets no lines.
 export const agendaBody = z.object({

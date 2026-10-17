@@ -79,11 +79,18 @@ export interface PostWorkoutContext {
   km?: number | null
 }
 
+// the week's status is absent from an older client, which then states none.
 export interface AgendaTargets {
-  rituals: Array<{ id: string; name: string; steps: string[] }>
+  // daysDone: the days this week, today included, the routine was finished
+  rituals: Array<{ id: string; name: string; steps: string[]; daysDone?: number }>
   workouts: Array<{ id: string; name: string }>
-  week: Array<{ weekday: number; routineId: string | null }>
+  // done: the day's planned routine was finished that date; trained: any workout was
+  week: Array<{ weekday: number; routineId: string | null; done?: boolean; trained?: boolean }>
 }
+
+// the hour the app's evening close-out falls in (lib/screens/today/day_plan.dart
+// closeOutMinute, 9:30 PM). the context carries whole hours only.
+export const CLOSE_OUT_HOUR = 21
 
 // DESIGN.md: emphasis comes from size, never bold. every Pal surface renders
 // the model's text as plain text, so markdown would show as raw asterisks.
@@ -134,12 +141,15 @@ const ROUTINE_STEPS_NOTE = 'A routine count is whole routines finished, never st
 const routinesState = (done: number, goal: number, when: string) =>
   goal === 0 ? 'no routines set up' : `${done} of ${goal} routines finished ${when}${done === 0 ? ', none yet' : ''}`
 
+// today's weekday, 1 = Monday to 7 = Sunday, whatever the client sent.
+export const todayWeekday = (c: Pick<ChatContext, 'weekday'>): number => Math.min(Math.max(Math.round(c.weekday), 1), 7)
+
 // the day and week as explicit state (over/under and by how much, which days the
 // week's spend fell on, routines finished of total) so the model states facts
 // instead of inferring them. shared by every prompt built from ChatContext.
 export function dayFacts(c: ChatContext): string {
   const cur = c.currency
-  const day = Math.min(Math.max(Math.round(c.weekday), 1), 7)
+  const day = todayWeekday(c)
   const earlier = roundMoney(c.weekSpent - c.spentToday, cur)
   const split = earlier > 0 ? `${money(c.spentToday, cur)} today and ${money(earlier, cur)} on earlier days` : 'all of it today'
   const span = day === 1 ? 'Monday only, 1 of 7 days' : `Monday to ${WEEKDAYS[day - 1]}, ${day} of 7 days`
@@ -292,19 +302,40 @@ Today is ${c.dayOfWeek}.${plan}${trainedToday} Pick ONE routine from ${available
 No prose. Output only the JSON object.`
 }
 
+// a planned day as the week stands: a past day is done or missed, never
+// open, so the model cannot read it as a slot still to fill.
+function plannedDayState(d: AgendaTargets['week'][number], today: number): string | null {
+  if (d.done === undefined && d.trained === undefined) return null
+  if (d.done) return 'done'
+  if (d.trained) return 'trained with another workout'
+  if (d.weekday < today) return 'missed'
+  return d.weekday === today ? 'not done yet' : 'upcoming'
+}
+
+function ritualLine(r: AgendaTargets['rituals'][number], today: number): string {
+  const kept = r.daysDone === undefined || r.steps.length === 0
+    ? ''
+    : `; finished ${r.daysDone} of ${today} ${today === 1 ? 'day' : 'days'} this week, today included`
+  return `${r.id}: ${r.name} (steps: ${r.steps.join(', ') || 'none'}${kept})`
+}
+
 // The Pal Home agenda reuses the chat context (today + week + goals + streak).
 export function agendaPrompt(c: ChatContext, memory?: MemoryDigest, targets: AgendaTargets = { rituals: [], workouts: [], week: [] }): string {
   const entries = c.todayEntries.length ? c.todayEntries.join('\n') : '(none yet)'
   const name = c.userName || 'the user'
   const mem = memoryBlock(memory)
-  const shape = `{"proposals":[{"kind":"reschedule_workout"|"close_out"|"add_ritual","title":string,"body":string,"approveLabel":string,"doneLabel":string,"ritual":{"routineId":string,"step":string}|null,"slot":{"weekday":number,"routineId":string}|null}],"autopilot":[{"kind":"spend_nudge"|"routine_reminders","subtitle":string}]}`
-  const rituals = targets.rituals.length
-    ? targets.rituals.map((r) => `${r.id}: ${r.name} (steps: ${r.steps.join(', ') || 'none'})`).join('\n')
-    : '(none)'
+  const today = todayWeekday(c)
+  const shape = `{"proposals":[{"kind":"reschedule_workout"|"close_out"|"add_ritual","title":string,"body":string,"reason":string,"approveLabel":string,"doneLabel":string,"ritual":{"routineId":string,"step":string}|null,"slot":{"weekday":number,"routineId":string}|null}],"autopilot":[{"kind":"spend_nudge"|"routine_reminders","subtitle":string}]}`
+  const rituals = targets.rituals.length ? targets.rituals.map((r) => ritualLine(r, today)).join('\n') : '(none)'
   const workouts = targets.workouts.length ? targets.workouts.map((w) => `${w.id}: ${w.name}`).join('\n') : '(none)'
   const names = new Map(targets.workouts.map((w) => [w.id, w.name] as const))
   const week = targets.week.length
-    ? targets.week.map((d) => `${WEEKDAYS[d.weekday - 1] ?? d.weekday} (${d.weekday}): ${(d.routineId && names.get(d.routineId)) || 'rest'}`).join('\n')
+    ? targets.week.map((d) => {
+      const name = d.routineId && names.get(d.routineId)
+      const state = name ? plannedDayState(d, today) : null
+      const label = `${WEEKDAYS[d.weekday - 1] ?? d.weekday} (${d.weekday}${d.weekday === today ? ', today' : ''})`
+      return `${label}: ${name || 'rest'}${state ? `, ${state}` : ''}`
+    }).join('\n')
     : '(no plan)'
   return `You are Pal, a calm, specific coach in ${PRODUCT_FRAMING}. Build today's agenda for ${name}.
 
@@ -313,17 +344,17 @@ ${entries}
 
 ${dayFacts(c)}
 
-Ritual routines (id: name, steps):
+Ritual routines (id: name, steps, this week so far):
 ${rituals}
 
 Workout routines (id: name):
 ${workouts}
 
-Weekly plan (weekday number 1 = Monday to 7 = Sunday):
+Weekly plan (weekday number 1 = Monday to 7 = Sunday; today is ${today}):
 ${week}
 
 Produce two lists:
-- "proposals": up to 4 concrete actions you can take FOR them, each needing one approval. "kind" is one of: "reschedule_workout" (move a workout routine into a weekday; set "slot" to the weekday number and a workout routine id from the list, one that is not already that weekday's routine), "close_out" (start tonight's wind-down), or "add_ritual" (add one new step to a ritual routine; set "ritual" to a ritual routine id from the list and a short new "step" that routine does not already have). Set "ritual" or "slot" to null when the kind does not use it. Propose only what the lists above allow. "approveLabel" is a short verb phrase for the button, two to four words; "doneLabel" is its past-tense confirmation. Keep "body" to one or two specific sentences grounded in the numbers above. An amount in "approveLabel" or "doneLabel" must be one the title or body states, written the same way.
+- "proposals": up to 4 concrete actions you can take FOR them, each needing one approval. "kind" is one of: "reschedule_workout" (move a workout routine into today or a later weekday, never an earlier one; set "slot" to a weekday number from ${today} to 7 and a workout routine id from the list, one that is not already that weekday's routine), "close_out" (start tonight's wind-down; only at local hour ${CLOSE_OUT_HOUR} or later), or "add_ritual" (add one new step to a ritual routine; set "ritual" to a ritual routine id from the list and a short new "step" that routine does not already have). Set "ritual" or "slot" to null when the kind does not use it. Propose only what the lists above allow. Ground a reschedule in the plan's done and missed days, and an added step in how often that routine was finished this week. "approveLabel" is a short verb phrase for the button, two to four words; "doneLabel" is its past-tense confirmation. Keep "body" to one or two specific sentences grounded in the numbers above. An amount in "approveLabel" or "doneLabel" must be one the title or body states, written the same way. "reason" is the one fact from the data above that the proposal rests on, a few words naming the routine and its days or count, in the form "<routine> missed <weekday>, <weekday> open". Every proposal needs a reason; one you cannot ground in a fact above is filler, so leave it out. An empty "proposals" list is better than an ungrounded one.
 - "autopilot": one "subtitle" per automation, saying what it is watching today, never whether it is on or off. The automations are "spend_nudge" (alerts when today's spending passes the daily budget) and "routine_reminders" (a daily reminder to do the routines).
 
 Calm and specific. No hype words ("amazing", "crushed it"). ${PLAIN_TEXT}

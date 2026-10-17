@@ -25,13 +25,19 @@ const String _addedStepIcon = 'sparkles';
 /// Kept alive so it outlives either screen. The settled map is saved for the
 /// day, so a relaunch keeps the day's put-offs; the undo history is not, as
 /// the toast that offers it is gone after a relaunch anyway.
+///
+/// A put-off proposal is also saved with its day, so Pal suggesting it again
+/// leaves it out for [declineDays] days; bringing it back or undoing the
+/// put-off that day forgets it.
 @Riverpod(keepAlive: true)
 class PlanSessionController extends _$PlanSessionController {
   @override
   PlanSession build() => _load(startOfDay(clock.now()));
 
-  void putOff(PlanItem item) =>
-      _apply(state.settle(item.id, done: false, label: 'Put off until tomorrow: ${item.title}'));
+  void putOff(PlanItem item) {
+    _apply(state.settle(item.id, done: false, label: 'Put off until tomorrow: ${item.title}'));
+    if (item.proposal != null) _saveDeclined({..._liveDeclined(), item.id: state.day}).ignore();
+  }
 
   /// Performs [item]'s proposal, then settles it as done.
   Future<void> approve(PlanItem item) async {
@@ -44,8 +50,10 @@ class PlanSessionController extends _$PlanSessionController {
     _apply(state.settle(item.id, done: true, label: label, change: change));
   }
 
-  void bringBack(PlanItem item) =>
-      _apply(state.bringBack(item.id, label: '${item.title} is back on today'));
+  void bringBack(PlanItem item) {
+    _apply(state.bringBack(item.id, label: '${item.title} is back on today'));
+    _forgetDeclined(item.id).ignore();
+  }
 
   /// Reverses the last change's write, then reopens its item once that is
   /// saved, so a failed write or save leaves the change for the toast to retry.
@@ -64,6 +72,7 @@ class PlanSessionController extends _$PlanSessionController {
     final next = state.undo();
     await _save(next);
     state = next;
+    if (last != null) _forgetDeclined(last.id).ignore();
   }
 
   void dismissNotice() => state = state.dismissNotice();
@@ -75,8 +84,14 @@ class PlanSessionController extends _$PlanSessionController {
     if (day != state.day) state = _load(day);
   }
 
-  PlanSession _load(DateTime day) =>
-      PlanSession(day: day, settled: ref.read(settingsRepositoryProvider).planSettled(day));
+  PlanSession _load(DateTime day) {
+    final settings = ref.read(settingsRepositoryProvider);
+    return PlanSession(
+      day: day,
+      settled: settings.planSettled(day),
+      declined: declinedOn(settings.declinedProposals, day),
+    );
+  }
 
   void _apply(PlanSession next) {
     state = next;
@@ -89,6 +104,30 @@ class PlanSessionController extends _$PlanSessionController {
       await ref.read(settingsRepositoryProvider).setPlanSettled(session.day, session.settled);
     } catch (e) {
       debugPrint("plan session: couldn't save the plan for ${session.day}: $e");
+      rethrow;
+    }
+  }
+
+  /// The saved put-offs not yet over, so the store never outgrows a week.
+  Map<String, DateTime> _liveDeclined() => {
+        for (final MapEntry(key: id, value: on)
+            in ref.read(settingsRepositoryProvider).declinedProposals.entries)
+          if (state.day.isBefore(declineEnds(on))) id: on,
+      };
+
+  /// Forgets [id]'s put-off when it was today's, the one Bring back or Undo
+  /// reverses; an earlier day's stands.
+  Future<void> _forgetDeclined(String id) async {
+    final declined = _liveDeclined();
+    if (declined[id] != state.day) return;
+    await _saveDeclined(declined..remove(id));
+  }
+
+  Future<void> _saveDeclined(Map<String, DateTime> declined) async {
+    try {
+      await ref.read(settingsRepositoryProvider).setDeclinedProposals(declined);
+    } catch (e) {
+      debugPrint("plan session: couldn't save the put-off proposals: $e");
       rethrow;
     }
   }
