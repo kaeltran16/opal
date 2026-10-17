@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:clock/clock.dart';
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:http/http.dart' as http;
 
 import '../../models/models.dart';
@@ -84,6 +85,9 @@ class HttpPalService implements PalService {
   final PalResponseCache cache;
   final Duration timeout;
 
+  /// Keys with a background refresh in flight, so repeat opens don't stack them.
+  final Set<String> _refreshing = {};
+
   /// POSTs [path] with [ctx], serving from / storing into [cache] keyed by the
   /// context. A changed (open) period produces a new key and refetches; a stable
   /// (closed) one hits. [kind] namespaces keys across endpoints.
@@ -91,25 +95,48 @@ class HttpPalService implements PalService {
   /// [cacheKey] overrides the context-derived key for endpoints whose context
   /// is not period-stable — see [_suggestionsCacheKey]. The request still
   /// carries the full [ctx]; only what counts as "the same request" changes.
+  ///
+  /// [serveStale] answers a miss with the last reply for [kind], if any, and
+  /// refreshes behind it, so the next request gets the fresh one.
   Future<Map<String, dynamic>> _cachedPost(
     String kind,
     String path,
     Map<String, Object?> ctx, {
     Map<String, Object?> extra = const {},
     String? cacheKey,
+    bool serveStale = false,
   }) async {
     final key = '$kind:${cacheKey ?? jsonEncode(ctx)}';
-    final hit = await cache.get(key);
-    if (hit != null) {
-      try {
-        return jsonDecode(hit) as Map<String, dynamic>;
-      } catch (_) {
-        // corrupt entry — fall through and refetch.
-      }
+    final latestKey = serveStale ? '$kind:latest' : null;
+    Future<Map<String, dynamic>> fetch() async {
+      final json = await _post(path, {'context': ctx, ...extra});
+      final encoded = jsonEncode(json);
+      await cache.put(key, encoded);
+      if (latestKey != null) await cache.put(latestKey, encoded);
+      return json;
     }
-    final json = await _post(path, {'context': ctx, ...extra});
-    await cache.put(key, jsonEncode(json));
-    return json;
+
+    final hit = await _cached(key);
+    if (hit != null) return hit;
+    final stale = latestKey == null ? null : await _cached(latestKey);
+    if (stale == null) return fetch();
+    if (_refreshing.add(key)) {
+      unawaited(fetch()
+          .then((_) {}, onError: (Object e) => debugPrint('pal $kind refresh failed: $e'))
+          .whenComplete(() => _refreshing.remove(key)));
+    }
+    return stale;
+  }
+
+  /// The cached reply under [key], or null on a miss or a corrupt entry.
+  Future<Map<String, dynamic>?> _cached(String key) async {
+    final hit = await cache.get(key);
+    if (hit == null) return null;
+    try {
+      return jsonDecode(hit) as Map<String, dynamic>;
+    } catch (_) {
+      return null;
+    }
   }
 
   Future<Map<String, dynamic>> _post(String path, Map<String, Object?> body) =>
@@ -533,7 +560,9 @@ class HttpPalService implements PalService {
         : await context.chat();
     final json = await _cachedPost('suggestions:$wire', '/v1/suggestions', ctx,
         extra: {'surface': wire},
-        cacheKey: _suggestionsCacheKey(surface, ctx));
+        cacheKey: _suggestionsCacheKey(surface, ctx),
+        // chips that lag one log behind beat a skeleton on every open after a log.
+        serveStale: true);
     return ((json['suggestions'] as List?) ?? const [])
         .cast<Map<String, dynamic>>()
         .map(_suggestionFromWire)

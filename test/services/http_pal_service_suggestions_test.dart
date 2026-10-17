@@ -89,7 +89,73 @@ void main() {
     await svc.suggestions(SuggestionSurface.composer);
     ctx = _ctx(entries: const ['coffee', 'lunch'], spentToday: 20);
     await svc.suggestions(SuggestionSurface.composer);
+    await pumpEventQueue();
 
     expect(calls, 2, reason: 'a new entry should produce fresh chips');
+  });
+
+  test('a new bucket serves the last chips at once and refreshes behind', () async {
+    var label = 'Verve coffee';
+    var calls = 0;
+    final client = MockClient((req) async {
+      calls++;
+      return http.Response(
+        jsonEncode({
+          'suggestions': [
+            {'label': label, 'colorToken': 'money'},
+          ],
+        }),
+        200,
+      );
+    });
+    final cache = _MemCache();
+    var ctx = _ctx(entries: const ['coffee'], spentToday: 5);
+    final svc = _service(client, cache, () async => ctx);
+
+    await svc.suggestions(SuggestionSurface.composer);
+    label = 'Lunch at Sweetgreen';
+    ctx = _ctx(entries: const ['coffee', 'lunch'], spentToday: 20);
+
+    final stale = await svc.suggestions(SuggestionSurface.composer);
+    expect(stale.single.label, 'Verve coffee', reason: 'no wait on the miss');
+
+    await pumpEventQueue();
+    final fresh = await svc.suggestions(SuggestionSurface.composer);
+    expect(fresh.single.label, 'Lunch at Sweetgreen');
+    expect(calls, 2, reason: 'one refresh, then a hit');
+  });
+
+  test('a failed refresh keeps serving the last chips', () async {
+    var fail = false;
+    final client = MockClient((req) async => fail
+        ? http.Response('boom', 500)
+        : http.Response(
+            jsonEncode({
+              'suggestions': [
+                {'label': 'Verve coffee', 'colorToken': 'money'},
+              ],
+            }),
+            200,
+          ));
+    final cache = _MemCache();
+    var ctx = _ctx(entries: const ['coffee'], spentToday: 5);
+    final svc = _service(client, cache, () async => ctx);
+
+    await svc.suggestions(SuggestionSurface.composer);
+    fail = true;
+    ctx = _ctx(entries: const ['coffee', 'lunch'], spentToday: 20);
+
+    final out = await svc.suggestions(SuggestionSurface.composer);
+    await pumpEventQueue();
+    expect(out.single.label, 'Verve coffee');
+    expect(await svc.suggestions(SuggestionSurface.composer), hasLength(1));
+  });
+
+  test('with nothing cached a miss still waits for Pal', () async {
+    final client = MockClient((req) async => http.Response('boom', 500));
+    final svc = _service(client, _MemCache(),
+        () async => _ctx(entries: const [], spentToday: 0));
+
+    await expectLater(svc.suggestions(SuggestionSurface.composer), throwsA(isA<PalException>()));
   });
 }

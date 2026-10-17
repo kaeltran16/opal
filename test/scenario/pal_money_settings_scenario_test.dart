@@ -320,6 +320,11 @@ BudgetsData _month(List<EnvelopeSpend> envelopes) => BudgetsData(
 Finder _onBudgets(Finder matching) =>
     find.descendant(of: find.byType(BudgetsScreen), matching: matching);
 
+// the seed logs Verve Coffee this morning, which would hide the static coffee
+// starter these scenarios check.
+Override _noHabits() =>
+    composerHabitsProvider.overrideWith((ref) => Stream.value((picks: const [], logged: const {})));
+
 const _habit = HabitPick(title: 'Blue Bottle', averageAmount: 4.5, occurrences: 4, category: 'Food & Drink');
 
 Finder _onEntry(Finder matching) =>
@@ -373,7 +378,7 @@ void main() {
 
   scenarioTest('composer chips', (tester, dark) async {
     final theme = _theme(dark);
-    await _boot(tester, dark);
+    await _boot(tester, dark, overrides: [_noHabits()]);
 
     // composer_idle_workout
     await _tab(tester, 'Workout');
@@ -442,7 +447,8 @@ void main() {
   });
 
   scenarioTest('composer starters fallback', (tester, dark) async {
-    await _boot(tester, dark, pal: _ScenarioPal(starters: _Starters.none));
+    await _boot(tester, dark,
+        pal: _ScenarioPal(starters: _Starters.none), overrides: [_noHabits()]);
     await _ask(tester);
 
     expect(find.byKey(const Key('starter-skeleton')), findsNothing);
@@ -458,7 +464,8 @@ void main() {
     // starter shows and logs locally.
     await _boot(tester, dark,
         prefs: {'settings.currency': Currency.vnd.code},
-        pal: _ScenarioPal(starters: _Starters.none));
+        pal: _ScenarioPal(starters: _Starters.none),
+        overrides: [_noHabits()]);
     await _ask(tester);
 
     // composer_starter_vnd

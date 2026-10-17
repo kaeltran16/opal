@@ -67,4 +67,58 @@ final class SpendHabitsProvider
   }
 }
 
-String _$spendHabitsHash() => r'3a4f1e7ac9659771de7182d3dc03a96af66cef7c';
+String _$spendHabitsHash() => r'd21c4b372572105a97c162ae629281e6489e841c';
+
+/// The composer's predicted logs: [spendHabits]' picks minus those already
+/// logged this daypart, plus the [logged] titles themselves so the composer can
+/// drop a Pal chip for them too (Pal's chips may be a cached reply from before
+/// the log).
+
+@ProviderFor(composerHabits)
+const composerHabitsProvider = ComposerHabitsProvider._();
+
+/// The composer's predicted logs: [spendHabits]' picks minus those already
+/// logged this daypart, plus the [logged] titles themselves so the composer can
+/// drop a Pal chip for them too (Pal's chips may be a cached reply from before
+/// the log).
+
+final class ComposerHabitsProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<({Set<String> logged, List<sh.HabitPick> picks})>,
+          ({Set<String> logged, List<sh.HabitPick> picks}),
+          Stream<({Set<String> logged, List<sh.HabitPick> picks})>
+        >
+    with
+        $FutureModifier<({Set<String> logged, List<sh.HabitPick> picks})>,
+        $StreamProvider<({Set<String> logged, List<sh.HabitPick> picks})> {
+  /// The composer's predicted logs: [spendHabits]' picks minus those already
+  /// logged this daypart, plus the [logged] titles themselves so the composer can
+  /// drop a Pal chip for them too (Pal's chips may be a cached reply from before
+  /// the log).
+  const ComposerHabitsProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'composerHabitsProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$composerHabitsHash();
+
+  @$internal
+  @override
+  $StreamProviderElement<({Set<String> logged, List<sh.HabitPick> picks})>
+  $createElement($ProviderPointer pointer) => $StreamProviderElement(pointer);
+
+  @override
+  Stream<({Set<String> logged, List<sh.HabitPick> picks})> create(Ref ref) {
+    return composerHabits(ref);
+  }
+}
+
+String _$composerHabitsHash() => r'1447748fd86a1cd1234c28f00f61844f8833de08';

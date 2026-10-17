@@ -145,3 +145,18 @@ List<HabitPick> habitPicksForNow(
       ),
   ];
 }
+
+/// Titles (trimmed, lowercased) of entries of any kind logged today in the
+/// daypart [now] falls in: what is already done for now, so a prediction of it
+/// would be a second log.
+Set<String> titlesLoggedThisDaypart(List<Entry> entries, {required DateTime now}) {
+  final daypart = daypartFor(now.hour);
+  return {
+    for (final e in entries)
+      if (e.timestamp.year == now.year &&
+          e.timestamp.month == now.month &&
+          e.timestamp.day == now.day &&
+          daypartFor(e.timestamp.hour) == daypart)
+        e.title.trim().toLowerCase(),
+  };
+}

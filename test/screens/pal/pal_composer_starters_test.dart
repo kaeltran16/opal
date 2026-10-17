@@ -5,8 +5,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:opal/analysis/spend_habits.dart';
 import 'package:opal/controllers/pal_suggestions_controller.dart';
 import 'package:opal/controllers/providers.dart';
+import 'package:opal/controllers/spend_habits_controller.dart';
 import 'package:opal/controllers/weekly_plan_controller.dart';
 import 'package:opal/data/db/database.dart';
 import 'package:opal/data/repositories/entry_repository.dart';
@@ -38,6 +40,7 @@ Future<Widget> _app(
   FutureOr<List<PalSuggestion>> Function() suggestions, {
   Currency currency = Currency.usd,
   LoopDatabase? db,
+  ({List<HabitPick> picks, Set<String> logged})? habits,
 }) async {
   SharedPreferences.setMockInitialValues({});
   final prefs = await SharedPreferences.getInstance();
@@ -52,6 +55,9 @@ Future<Widget> _app(
       weeklyPlanControllerProvider.overrideWith((ref) => Stream.value(const WeeklyPlan(days: []))),
       palSuggestionsProvider(SuggestionSurface.composer)
           .overrideWith((ref) async => suggestions()),
+      // the real habits read the database, which most of these tests never open.
+      composerHabitsProvider
+          .overrideWith((ref) => Stream.value(habits ?? (picks: const [], logged: const {}))),
     ],
     child: MaterialApp(
       theme: ThemeData(useMaterial3: true, extensions: [colors]),
@@ -129,5 +135,57 @@ void main() {
 
     expect(find.text(_vndLabel), findsOneWidget);
     expect(find.text(_staticLabel), findsNothing);
+  });
+
+  testWidgets('habit picks lead the starters, priced from the history', (tester) async {
+    await tester.pumpWidget(await _app(
+      () => const [PalSuggestion(label: 'How’s my week?', icon: 'sparkles', colorToken: 'accent')],
+      habits: (
+        picks: const [
+          HabitPick(title: 'Bread', averageAmount: 5, occurrences: 6, category: 'Food & Drink'),
+          HabitPick(title: 'Bus', averageAmount: 2.5, occurrences: 5),
+          HabitPick(title: 'Gum', averageAmount: 1, occurrences: 2),
+        ],
+        logged: const {},
+      ),
+    ));
+    await tester.pumpAndSettle();
+
+    final bread = tester.getTopLeft(find.text('Bread, \$5')).dy;
+    final bus = tester.getTopLeft(find.text('Bus, \$2.50')).dy;
+    final pal = tester.getTopLeft(find.text('How’s my week?')).dy;
+    expect(bread, lessThan(bus));
+    expect(bus, lessThan(pal), reason: 'predictions come before Pal’s chips');
+    expect(find.text('Gum, \$1'), findsNothing, reason: 'two predictions at most');
+  });
+
+  testWidgets('drops Pal chips for what is predicted or already logged', (tester) async {
+    await tester.pumpWidget(await _app(
+      () => const [
+        PalSuggestion(
+          label: 'Bread again',
+          icon: 'sparkles',
+          colorToken: 'money',
+          entry: StarterEntry(type: EntryType.money, title: 'bread', amount: -5),
+        ),
+        PalSuggestion(
+          label: 'Verve coffee, \$5',
+          icon: 'sparkles',
+          colorToken: 'money',
+          entry: StarterEntry(type: EntryType.money, title: 'Verve coffee', amount: -5),
+        ),
+        PalSuggestion(label: 'How’s my week?', icon: 'sparkles', colorToken: 'accent'),
+      ],
+      habits: (
+        picks: const [HabitPick(title: 'Bread', averageAmount: 5, occurrences: 6)],
+        logged: const {'verve coffee'},
+      ),
+    ));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Bread, \$5'), findsOneWidget);
+    expect(find.text('Bread again'), findsNothing);
+    expect(find.text('Verve coffee, \$5'), findsNothing, reason: 'logged this daypart');
+    expect(find.text('How’s my week?'), findsOneWidget, reason: 'open prompts stay');
   });
 }

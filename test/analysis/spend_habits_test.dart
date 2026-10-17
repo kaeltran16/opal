@@ -186,4 +186,32 @@ void main() {
       expect(_picks(entries).single.averageAmount, 5.33);
     });
   });
+
+  group('titlesLoggedThisDaypart', () {
+    test('holds what was logged today in this daypart, of any kind', () {
+      final entries = [
+        _expense(DateTime(2026, 6, 24, 7), 5, title: ' Bread '),
+        Entry(
+          id: 'r1',
+          timestamp: DateTime(2026, 6, 24, 6),
+          type: EntryType.rituals,
+          title: 'Morning pages',
+          source: EntrySource.manual,
+        ),
+      ];
+
+      expect(titlesLoggedThisDaypart(entries, now: _now), {'bread', 'morning pages'});
+    });
+
+    test('ignores yesterday and another daypart today', () {
+      final entries = [
+        _expense(DateTime(2026, 6, 23, 8), 5, title: 'Bread'),
+        // 23:00 the night before is the night daypart, a day earlier.
+        _expense(DateTime(2026, 6, 23, 23), 5, title: 'Late snack'),
+        _expense(DateTime(2026, 6, 24, 12), 9, title: 'Lunch'),
+      ];
+
+      expect(titlesLoggedThisDaypart(entries, now: _now), isEmpty);
+    });
+  });
 }

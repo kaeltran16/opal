@@ -5,9 +5,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../analysis/area.dart';
+import '../../analysis/spend_habits.dart' show HabitPick;
 import '../../controllers/pal_composer_controller.dart';
 import '../../controllers/pal_suggestions_controller.dart';
 import '../../controllers/providers.dart';
+import '../../controllers/spend_habits_controller.dart';
 import '../../controllers/start_workout_controller.dart';
 import '../../controllers/weekly_plan_controller.dart';
 import '../../models/models.dart';
@@ -34,6 +36,7 @@ const double _sendSize = 44;
 const double _sendGlyph = 20;
 const double _pillPadV = 10;
 const double _skeletonLine = 15;
+const int _maxHabitStarters = 2;
 const Duration _resize = Duration(milliseconds: 260);
 const Duration _scroll = Duration(milliseconds: 250);
 const Cubic _resizeCurve = Cubic(0.22, 1, 0.36, 1);
@@ -361,8 +364,9 @@ class _ContextChip extends StatelessWidget {
   }
 }
 
-/// What you could ask: Pal's pick to start, then Pal's starters, or the
-/// static ones when Pal has none. Shown until anything is sent.
+/// What you could ask: Pal's pick to start, then the expenses you habitually
+/// log around now, then Pal's starters, or the static ones when Pal has none.
+/// Shown until anything is sent.
 class _IdleBody extends ConsumerWidget {
   const _IdleBody({required this.onStartWorkout, required this.onSendStarter});
 
@@ -401,6 +405,26 @@ class _IdleBody extends ConsumerWidget {
       orElse: () => null,
     );
     final loading = suggestions.isLoading && palStarters == null;
+    final habits = ref.watch(composerHabitsProvider).asData?.value;
+    final predicted = [
+      for (final h in (habits?.picks ?? const <HabitPick>[]).take(_maxHabitStarters))
+        _Starter(
+          '${h.title}, ${formatCurrency(h.averageAmount, currency)}',
+          payload: StarterEntry(
+            type: EntryType.money,
+            title: h.title,
+            amount: -h.averageAmount, // negative = expense
+            category: h.category,
+          ),
+        ),
+    ];
+    // what is already logged or predicted, so no chip offers it twice.
+    final taken = {
+      ...?habits?.logged,
+      for (final s in predicted) s.payload!.title.toLowerCase(),
+    };
+    bool untaken(_Starter s) =>
+        s.payload == null || !taken.contains(s.payload!.title.trim().toLowerCase());
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -414,10 +438,12 @@ class _IdleBody extends ConsumerWidget {
             label: pick == null ? 'Start a workout' : 'Start ${pick.title}',
             onTap: onStartWorkout,
           ),
+          for (final starter in predicted)
+            _Pill(label: starter.label, onTap: () => onSendStarter(starter)),
           if (loading)
             const _StarterSkeletons(key: Key('starter-skeleton'))
           else
-            for (final starter in palStarters ?? _starters(currency))
+            for (final starter in (palStarters ?? _starters(currency)).where(untaken))
               _Pill(label: starter.label, onTap: () => onSendStarter(starter)),
         ],
       ),
