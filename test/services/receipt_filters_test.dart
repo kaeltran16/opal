@@ -40,9 +40,52 @@ void main() {
     });
 
     test('is idempotent, so the worker re-applying it is safe', () {
-      const dirty = 'user@example.com paid 4111111111111111';
+      const dirty = 'user@example.com paid 4111111111111111\n'
+          'Kính gửi: TRẦN CAO KHANG\nGiao đến 12 Lê Lợi\nATM 9816';
       final once = redactPii(dirty);
       expect(redactPii(once), once);
+    });
+
+    test('masks the name after a recipient label, in any case', () {
+      expect(redactPii('Người dùng Trần Khang\nMã đơn hàng A-9VW'),
+          'Người dùng [name]\nMã đơn hàng A-9VW');
+      expect(redactPii('Kính gửi: TRẦN CAO KHANG'), 'Kính gửi: [name]');
+      expect(redactPii('Dear John Smith, thanks'), 'Dear [name], thanks');
+      expect(redactPii('Hi Khang, your order'), 'Hi [name], your order');
+    });
+
+    test('leaves the merchant and uncapitalised words after labels', () {
+      const body = 'Đặt từ MACHIYA BENTO\nHi there\n'
+          'Đến tài khoản CTCP TM BÁCH HÓA XANH';
+      expect(redactPii(body), body);
+    });
+
+    test('masks the rest of an address line', () {
+      expect(redactPii('Địa chỉ nhận hàng: 12 Nguyễn Huệ, Q1\nTổng 45.000đ'),
+          'Địa chỉ nhận hàng: [address]\nTổng 45.000đ');
+      expect(redactPii('Giao đến 12 Lê Lợi'), 'Giao đến [address]');
+      expect(redactPii('Shipping address: 1 Main St'),
+          'Shipping address: [address]');
+    });
+
+    test('masks the last four digits of a card', () {
+      expect(redactPii('Bạn trả bằng: ATM 9816'), 'Bạn trả bằng: ATM [card]');
+      expect(redactPii('Visa ending in 4242.'), 'Visa ending in [card].');
+      expect(redactPii('card **** 1234'), 'card **** [card]');
+    });
+
+    test('reaches a value one line below its label (table cells)', () {
+      expect(
+        redactPii('Người dùng\nTrần Khang\nMã đơn hàng\nA-9VW\n'
+            'Bạn trả bằng:\nATM\n9816\nGiao đến\nWork'),
+        'Người dùng\n[name]\nMã đơn hàng\nA-9VW\n'
+        'Bạn trả bằng:\nATM\n[card]\nGiao đến\n[address]',
+      );
+    });
+
+    test('leaves an amount after a card word', () {
+      const body = 'Phí thẻ 2000đ, card 1500 VND, thẻ 1.500.000';
+      expect(redactPii(body), body);
     });
   });
 

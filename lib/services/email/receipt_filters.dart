@@ -31,16 +31,71 @@ final _phone = RegExp(r'(?:\+\d{1,3}[ .-]?)?\(?\d{3}\)?[ .-]\d{3}[ .-]\d{4}\b');
 // so they never form a run this long.
 final _longNumber = RegExp(r'\b\d{9,}\b');
 
+// `(?:[^\S\n]*\n)?[^\S\n]*` below: spaces with at most one line break, since
+// receipt tables put a label and its value in separate cells (separate lines).
+
+// a card's last four after a card word or mask (`ATM 9816`, `**** 4242`); not
+// when a currency follows, so `thẻ 2000đ` stays an amount.
+final _cardTail = RegExp(
+  r'((?<!\p{L})(?:atm|visa|mastercard|jcb|amex|thẻ|card|ending in)'
+  r'[^\S\n]*[:#]?(?:[^\S\n]*\n)?[^\S\n]*|[*x•]{2,}[ -]?)'
+  r'\d{4}(?!\d|[.,]\d|[^\S\n]*(?:đ|₫|vnd|usd))',
+  caseSensitive: false,
+  unicode: true,
+);
+
+// labels that address the account holder. Beneficiary labels (`Người nhận`,
+// `Chủ tài khoản`) are left out: in a transfer they name the merchant.
+final _nameLabel = RegExp(
+  r'(?<!\p{L})(?:kính gửi|người dùng|xin chào|chào|khách hàng|họ và tên|họ tên'
+  r'|dear|hello|hi)(?!\p{L})[^\S\n]*[:,]?(?:[^\S\n]*\n)?[^\S\n]*',
+  caseSensitive: false,
+  unicode: true,
+);
+
+// up to five Capitalised words, all on one line. Case-sensitive, apart from
+// the label: with case folding, \p{Lu} would match lowercase too.
+final _name = RegExp(
+  r"\p{Lu}[\p{L}\p{M}'’.-]*(?:[^\S\n]+\p{Lu}[\p{L}\p{M}'’.-]*){0,4}",
+  unicode: true,
+);
+
+final _address = RegExp(
+  r'((?<!\p{L})(?:địa chỉ[^:\n]{0,30}:|(?:shipping|delivery|billing) address:?'
+  r'|ship to:|giao đến)(?:[^\S\n]*\n)?[^\S\n]*)[^\n]*\S',
+  caseSensitive: false,
+  unicode: true,
+);
+
 /// Masks personal identifiers in free-form email text.
 ///
 /// Amounts, merchant names and dates are deliberately left intact — the
-/// extractor needs them. Order matters: cards win the `[card]` label before the
-/// generic long-number rule. Idempotent.
-String redactPii(String input) => input
+/// extractor needs them. Names and addresses are masked only after a label
+/// that marks them as the account holder's. Order matters: cards win the
+/// `[card]` label before the generic long-number rule. Idempotent.
+String redactPii(String input) => _redactNames(input
     .replaceAll(_email, '[email]')
     .replaceAll(_card, '[card]')
+    .replaceAllMapped(_cardTail, (m) => '${m[1]}[card]')
     .replaceAll(_phone, '[phone]')
-    .replaceAll(_longNumber, '[number]');
+    .replaceAll(_longNumber, '[number]')
+    .replaceAllMapped(_address, (m) => '${m[1]}[address]'));
+
+String _redactNames(String input) {
+  final out = StringBuffer();
+  var last = 0;
+  for (final label in _nameLabel.allMatches(input)) {
+    if (label.start < last) continue;
+    final name = _name.matchAsPrefix(input, label.end);
+    if (name == null) continue;
+    out
+      ..write(input.substring(last, label.end))
+      ..write('[name]');
+    last = name.end;
+  }
+  out.write(input.substring(last));
+  return out.toString();
+}
 
 // Subjects/bodies that are NEVER a completed purchase regardless of body
 // content. Deliberately narrow so a real receipt is never dropped — in
