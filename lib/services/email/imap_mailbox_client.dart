@@ -2,6 +2,7 @@ import 'package:clock/clock.dart';
 import 'package:enough_mail/enough_mail.dart';
 
 import 'mailbox_client.dart';
+import 'receipt_filters.dart';
 
 /// [MailboxClient] over `enough_mail`'s high-level `MailClient` (migration
 /// phase 4B). Replaces the server's `ImapFlowClient`.
@@ -14,9 +15,9 @@ class ImapMailboxClient implements MailboxClient {
   /// Bounds the handshake so a wrong host cannot hang a sync.
   final Duration timeout;
 
-  // mirrors the server's BODY_MAX_BYTES. A mail larger than this returns
-  // headers only; a plain receipt is far smaller, and skipping a multi-megabyte
-  // attachment thread is the point.
+  // mirrors the server's BODY_MAX_BYTES. enough_mail fetches only the envelope
+  // of a mail at or above this size; receipts with inline logos (Grab) are, so
+  // fetchSince follows up with their text parts alone, never the images.
   static const _downloadSizeLimit = 64 * 1024;
 
   MailClient _client(ImapCreds creds) => MailClient(
@@ -69,7 +70,14 @@ class ImapMailboxClient implements MailboxClient {
       for (final m in messages) {
         final date = m.decodeDate();
         if (date != null && date.isBefore(since)) continue;
-        out.add(_toRawEmail(m, date));
+        final full = (m.size ?? 0) < _downloadSizeLimit
+            ? m
+            : await client.fetchMessageContents(
+                m,
+                maxSize: _downloadSizeLimit,
+                includedInlineTypes: [MediaToptype.text],
+              );
+        out.add(_toRawEmail(full, date));
       }
       return out;
     } catch (err) {
@@ -89,7 +97,8 @@ class ImapMailboxClient implements MailboxClient {
       fromName: sender?.personalName ?? '',
       subject: m.decodeSubject() ?? '',
       date: date ?? clock.now().toUtc(),
-      text: m.decodeTextPlainPart() ?? m.decodeTextHtmlPart() ?? '',
+      text: m.decodeTextPlainPart() ??
+          htmlToText(m.decodeTextHtmlPart() ?? ''),
     );
   }
 

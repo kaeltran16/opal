@@ -151,4 +151,38 @@ void main() {
       expect(boundText(long, kMaxBodyChars).length, kMaxBodyChars);
     });
   });
+
+  group('htmlToText', () {
+    test('drops head, style and script so the receipt fits the body bound', () {
+      const html =
+          '<!DOCTYPE html><html><head><title>t</title>'
+          '<style>.a{color:red}</style></head><body>'
+          '<script>track()</script><p>Total 45.000đ</p></body></html>';
+      expect(htmlToText(html), 'Total 45.000đ');
+    });
+
+    test('keeps block boundaries as line breaks', () {
+      const html =
+          '<table><tr><td>GrabFood</td><td>45.000đ</td></tr>'
+          '<tr><td>Delivery</td></tr></table><div>Paid</div>line<br>next';
+      expect(htmlToText(html), 'GrabFood 45.000đ\nDelivery\nPaid\nline\nnext');
+    });
+
+    test('decodes named and numeric entities', () {
+      expect(
+        htmlToText(
+          '<p>A&nbsp;&amp;&nbsp;B &lt;x&gt; &quot;q&quot; '
+          '&#39;s&#39; &#8363; &#x20AB;</p>',
+        ),
+        'A & B <x> "q" \'s\' ₫ ₫',
+      );
+    });
+
+    test('drops comments, including conditional ones', () {
+      expect(
+        htmlToText('<!--[if mso]><p>x</p><![endif]--><p>Paid</p>'),
+        'Paid',
+      );
+    });
+  });
 }

@@ -158,3 +158,53 @@ String? senderDomain(String address) {
 /// Truncates to [max] characters, or returns [value] unchanged when shorter.
 String boundText(String value, int max) =>
     value.length <= max ? value : value.substring(0, max);
+
+final _htmlDropped = RegExp(
+  r'<!--.*?-->|<(head|style|script)\b.*?</\1\s*>',
+  caseSensitive: false,
+  dotAll: true,
+);
+final _htmlBreak = RegExp(
+  r'<br\s*/?>|</(p|div|tr|li|h[1-6]|table)\s*>',
+  caseSensitive: false,
+);
+final _htmlTag = RegExp(r'<[^>]*>');
+final _numericEntity = RegExp(r'&#(x[0-9a-f]+|\d+);', caseSensitive: false);
+const _namedEntities = {
+  '&nbsp;': ' ',
+  '&lt;': '<',
+  '&gt;': '>',
+  '&quot;': '"',
+  '&apos;': "'",
+};
+
+/// Plain text of an HTML email body, so the extractor sees the receipt rather
+/// than markup. An HTML-only receipt otherwise spends the [kMaxBodyChars]
+/// budget on its `<head>` and styles before any amount appears.
+///
+/// Mirrors what the old server got from mailparser's `text`: block ends become
+/// line breaks, cells on one row stay on one line. Not a full HTML parser —
+/// enough for receipt templates.
+String htmlToText(String html) {
+  final text = html
+      .replaceAll(_htmlDropped, '')
+      .replaceAll(_htmlBreak, '\n')
+      .replaceAll(_htmlTag, ' ')
+      .replaceAllMapped(_numericEntity, (m) {
+        final code = m[1]!;
+        return String.fromCharCode(
+          code[0].toLowerCase() == 'x'
+              ? int.parse(code.substring(1), radix: 16)
+              : int.parse(code),
+        );
+      });
+  // &amp; last, so an escaped entity (`&amp;lt;`) is not decoded twice
+  final decoded = _namedEntities.entries
+      .fold(text, (s, e) => s.replaceAll(e.key, e.value))
+      .replaceAll('&amp;', '&');
+  return decoded
+      .split('\n')
+      .map((line) => line.replaceAll(RegExp(r'\s+'), ' ').trim())
+      .where((line) => line.isNotEmpty)
+      .join('\n');
+}
