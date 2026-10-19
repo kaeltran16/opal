@@ -1,7 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:opal/controllers/budgets_controller.dart';
-import 'package:opal/controllers/insights_money_controller.dart';
 import 'package:opal/controllers/recap_controller.dart';
 import 'package:opal/data/seed/seed_data.dart';
 import 'package:opal/models/models.dart';
@@ -29,14 +28,12 @@ void main() {
     _expense(38.40, 'Groceries', DateTime(2026, 6, 20, 19)),
   ];
 
-  test('Budgets, Insights and Recap agree on the month total', () {
+  test('Budgets and Recap agree on the month total', () {
     final budgets = buildBudgetsData(envelopes, entries, now: now);
-    final insights = buildInsightsData(entries, envelopes, now: now);
     final recap = buildRecapData(InsightRange.month, entries, const Goals(),
         monthlyBudget: monthCap, now: now);
 
     expect(budgets.totalSpent, closeTo(60.35, 1e-9));
-    expect(insights.currentTotal, closeTo(60.35, 1e-9));
     expect(recap.spent, closeTo(60.35, 1e-9));
   });
 
@@ -84,23 +81,5 @@ void main() {
 
   test('envelope categories are exactly the canonical list', () {
     expect(envelopes.map((e) => e.category).toList(), kSpendCategories);
-  });
-
-  test('category deltas are null without a prior month, set with one', () {
-    // current-month-only entries: no baseline to compare against, so every
-    // category delta is null and the "Change shown vs. last month" footer
-    // would have nothing to show (and must therefore stay hidden).
-    final noPrior = buildInsightsData(entries, envelopes, now: now);
-    expect(noPrior.categories, isNotEmpty);
-    expect(noPrior.categories.every((c) => c.deltaPct == null), isTrue);
-
-    // a May expense gives June's Groceries a prior-month baseline → real delta.
-    final withPrior = [
-      ...entries,
-      _expense(20, 'Groceries', DateTime(2026, 5, 15, 19)),
-    ];
-    final data = buildInsightsData(withPrior, envelopes, now: now);
-    final groceries = data.categories.firstWhere((c) => c.label == 'Groceries');
-    expect(groceries.deltaPct, isNotNull);
   });
 }

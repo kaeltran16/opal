@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../analysis/area_state.dart';
 import '../../controllers/providers.dart';
 import '../../controllers/today_controller.dart';
 import '../../models/models.dart';
@@ -143,7 +144,7 @@ class _LogTurn extends ConsumerWidget {
               ? '${formatCurrency(now, currency)} · over by ${formatCurrency(now - goal, currency)}'
               : '${formatCurrency(now, currency)} of ${formatCurrency(goal, currency)}',
           fraction: share(now, goal),
-          off: over,
+          off: over ? AreaState.care : null,
         );
       case EntryType.move:
         final now = today.moveKcal;

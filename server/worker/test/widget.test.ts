@@ -70,4 +70,21 @@ describe('widget routes', () => {
   it('rejects an empty states list with 400', async () => {
     expect((await post({ ...SNAP, money: { ...SNAP.money, states: [] } })).status).toBe(400)
   })
+
+  it('rejects an unknown key, such as a fraction on money, with 400', async () => {
+    expect((await post({ ...SNAP, money: { ...SNAP.money, fraction: 0.5 } })).status).toBe(400)
+    expect((await post({ ...SNAP, extra: 1 })).status).toBe(400)
+    const word = { ...SNAP.move.states[0], color: 'red' }
+    expect((await post({ ...SNAP, move: { ...SNAP.move, states: [word] } })).status).toBe(400)
+  })
+
+  it('rejects states out of at order, or one at or after until, with 400', async () => {
+    const [first, second] = SNAP.routines.states
+    const swapped = { ...SNAP, routines: { ...SNAP.routines, states: [second, first] } }
+    expect((await post(swapped)).status).toBe(400)
+    const twice = { ...SNAP, routines: { ...SNAP.routines, states: [first, first] } }
+    expect((await post(twice)).status).toBe(400)
+    const late = { ...SNAP, money: { ...SNAP.money, states: [{ ...SNAP.money.states[0], at: SNAP.until }] } }
+    expect((await post(late)).status).toBe(400)
+  })
 })

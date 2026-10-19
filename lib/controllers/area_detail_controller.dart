@@ -26,7 +26,7 @@ class Contributor {
     required this.label,
     required this.value,
     required this.fraction,
-    this.off = false,
+    this.off,
   });
 
   final String label;
@@ -35,8 +35,9 @@ class Contributor {
   /// 0..1, for the row's bar.
   final double fraction;
 
-  /// True when this row is what puts the area off track.
-  final bool off;
+  /// The state this row puts the area in when it is what puts the area off
+  /// track; null otherwise.
+  final AreaState? off;
 }
 
 /// One day of the area page's week chart.
@@ -46,7 +47,7 @@ class WeekBar {
     required this.day,
     required this.value,
     this.today = false,
-    this.off = false,
+    this.off,
   });
 
   /// Single-letter weekday label.
@@ -58,8 +59,9 @@ class WeekBar {
 
   final bool today;
 
-  /// A past day that missed the goal. Today is never off: it is not over yet.
-  final bool off;
+  /// How a past day that missed the goal leaves its area; null when it did
+  /// not. Today is never off: it is not over yet, unless the page judges it.
+  final AreaState? off;
 }
 
 /// One routine under "Today's routines" on the Routines page.
@@ -268,7 +270,7 @@ AreaDetail? buildSleepDetail(List<SleepNight> nights, DateTime now) {
     // last night is over, so today's bar is judged like the rest.
     judgesToday: true,
   );
-  final short = week.where((b) => b.off).length;
+  final short = week.where((b) => b.off != null).length;
 
   final String palLine;
   if (last == null) {
@@ -358,6 +360,8 @@ AreaDetail _money(DetailData data, Currency currency, DateTime now) {
     now: now,
     valueOf: (day) => totals[day] ?? 0,
     isOff: (v) => hasBudget && v > budget,
+    // over budget is Needs care by the money rule (DESIGN.md section 11).
+    offState: AreaState.care,
     judgesToday: true,
   );
 
@@ -372,7 +376,7 @@ AreaDetail _money(DetailData data, Currency currency, DateTime now) {
         label: 'Spent today',
         value: hasBudget ? '${fmt(spent)} of ${fmt(budget)}' : fmt(spent),
         fraction: hasBudget ? (spent / budget).clamp(0.0, 1.0) : 0,
-        off: over,
+        off: over ? AreaState.care : null,
       ),
       for (final c in data.categories.take(_topCategories))
         Contributor(label: c.label, value: fmt(c.amount), fraction: c.fraction),
@@ -547,11 +551,13 @@ Map<DateTime, double> _dayTotals(DetailData data) => {
 
 /// [judgesToday] lets today be off before it ends: true where the value only
 /// grows past the line (spend over budget), false where the rest of the day
-/// can still reach a goal.
+/// can still reach a goal. An off day is [offState]: a missed goal is worth
+/// watching unless the area's rule says more.
 List<WeekBar> _weekBars({
   required DateTime now,
   required double? Function(DateTime day) valueOf,
   required bool Function(double value) isOff,
+  AreaState offState = AreaState.watch,
   bool judgesToday = false,
 }) {
   final monday = startOfWeek(now);
@@ -567,13 +573,13 @@ List<WeekBar> _weekBars({
       day: label,
       value: value,
       today: isToday,
-      off: (!isToday || judgesToday) && value != null && isOff(value),
+      off: (!isToday || judgesToday) && value != null && isOff(value) ? offState : null,
     );
   });
 }
 
 String _weekNote(List<WeekBar> week, String offNoun) {
-  final offDays = week.where((b) => b.off).length;
+  final offDays = week.where((b) => b.off != null).length;
   if (offDays == 0) return 'Every day on track';
   return '$offDays ${offDays == 1 ? 'day' : 'days'} $offNoun';
 }

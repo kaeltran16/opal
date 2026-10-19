@@ -24,7 +24,6 @@ const double _hairline = 1;
 const double _rowIcon = 20;
 const double _optionsIcon = 20;
 const double _barHeight = 4;
-const double _rowLineHeight = 22 / 16;
 const List<FontFeature> _tabular = [FontFeature.tabularFigures()];
 
 /// Money: this month's budget. What is left leads, then each envelope as a
@@ -158,7 +157,7 @@ class _Body extends ConsumerWidget {
                   const SizedBox(width: Spacing.md),
                   Expanded(
                     child: Text('New envelope',
-                        style: AppType.callout.copyWith(color: c.ink, height: _rowLineHeight)),
+                        style: AppType.callout.copyWith(color: c.ink)),
                   ),
                 ],
               ),
@@ -220,7 +219,7 @@ class _EnvelopeRow extends StatelessWidget {
                   const SizedBox(width: Spacing.md),
                   Expanded(
                     child: Text(env.category,
-                        style: AppType.callout.copyWith(color: c.ink, height: _rowLineHeight)),
+                        style: AppType.callout.copyWith(color: c.ink)),
                   ),
                   const SizedBox(width: Spacing.md),
                   Flexible(
@@ -405,7 +404,7 @@ class _Row extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(title,
-                        style: AppType.callout.copyWith(color: c.ink, height: _rowLineHeight)),
+                        style: AppType.callout.copyWith(color: c.ink)),
                     if (subtitle != null)
                       Text(subtitle, style: AppType.subhead.copyWith(color: c.ink3)),
                   ],

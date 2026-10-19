@@ -2,12 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opal/theme/theme.dart';
 import 'package:opal/widgets/contributor_bar.dart';
+import 'package:opal/analysis/area_state.dart';
 
 const _value = r'$38 of $60';
 
 final _colors = AppColors.light();
 
-Future<void> _pump(WidgetTester tester, {required double fraction, bool off = false}) =>
+Future<void> _pump(WidgetTester tester, {required double fraction, AreaState? off}) =>
     tester.pumpWidget(MaterialApp(
       theme: ThemeData(useMaterial3: true, extensions: [_colors]),
       home: Scaffold(
@@ -39,11 +40,14 @@ void main() {
     expect(style.fontSize, AppType.subhead.fontSize);
   });
 
-  testWidgets('off colours the value and the bar', (tester) async {
-    await _pump(tester, fraction: 0.5, off: true);
-
+  testWidgets('off colours the value and the bar in its state', (tester) async {
+    await _pump(tester, fraction: 0.5, off: AreaState.watch);
     expect(tester.widget<Text>(find.text(_value)).style?.color, _colors.watchInk);
     expect(_barColor(tester), _colors.watch);
+
+    await _pump(tester, fraction: 0.5, off: AreaState.care);
+    expect(tester.widget<Text>(find.text(_value)).style?.color, _colors.careInk);
+    expect(_barColor(tester), _colors.care);
   });
 
   testWidgets('a fraction outside 0 to 1 is clamped', (tester) async {

@@ -400,6 +400,26 @@ void main() {
           contains("Pal proposed it, and Pal's proposals lead while Pal is online."));
     });
 
+    test("a proposal's lead carries the fact Pal said it rests on", () {
+      const grounded = PalProposal(
+        id: 'legs',
+        tag: 'Workout',
+        colorToken: 'move',
+        icon: 'figure.strengthtraining.traditional',
+        title: 'Move Legs to Friday',
+        body: 'Friday is open.',
+        approveLabel: 'Move it',
+        approveIcon: 'checkmark',
+        doneLabel: 'Moved',
+        reason: 'Legs missed Tue, Thu open',
+      );
+      final plan = _plan(agenda: const PalAgenda(proposals: [grounded]));
+      final lead = plan.current(session, _now, online)!;
+      expect(plan.whyNote(lead, session, _now, online),
+          contains("Pal's proposals lead while Pal is online. "
+              'Pal based it on: Legs missed Tue, Thu open.'));
+    });
+
     test('reads the same as before reasonFor was pulled out', () {
       final evening = DateTime(2026, 10, 4, 20, 6);
       final plan = _plan(
@@ -482,7 +502,8 @@ void main() {
     });
 
     test('a put-off row reads Put off until tomorrow and brings it back', () {
-      final r = row(_plan(), 'meal', session.settle('meal', done: false, label: ''));
+      final planned = _plan(agenda: const PalAgenda(proposals: [_proposal]));
+      final r = row(planned, 'meal', session.settle('meal', done: false, label: ''));
       expect(r.state, PlanRowState.putOff);
       expect(r.detail, 'Put off until tomorrow');
       expect(r.verb, 'Bring back');
@@ -907,13 +928,20 @@ void main() {
       }
     });
 
-    test('empty inputs leave only mood and Log a meal open; settling both ends the day', () {
+    test('with nothing planned the mood check-in is the one item; checking in ends the day', () {
       final plan = _plan();
-      expect(_ids(plan.open(session, _now)), ['mood', 'meal']);
+      expect(_ids(plan.items), ['mood']);
+      expect(plan.progress(session), (done: 0, total: 1));
 
-      final settled = session.settle('mood', done: true, label: '').settle('meal', done: false, label: '');
-      expect(plan.open(settled, _now), isEmpty);
-      expect(plan.current(settled, _now), isNull);
+      final checkedIn = _plan(lastCheckin: _checkin(DateTime(2026, 10, 4, 8, 15)));
+      expect(checkedIn.open(session, _now), isEmpty);
+      expect(checkedIn.current(session, _now), isNull);
+      expect(checkedIn.progress(session), (done: 1, total: 1));
+    });
+
+    test('the meal nudge rides along a planned day', () {
+      final plan = _plan(agenda: const PalAgenda(proposals: [_proposal]));
+      expect(_ids(plan.items), ['proposal:rent', 'mood', 'meal']);
     });
 
     test('a check-in today makes the mood item done; one from yesterday leaves it open', () {
@@ -927,13 +955,19 @@ void main() {
     });
 
     test('a meal logged today removes Log a meal', () {
-      final plan = _plan(meals: [_meal('a', DateTime(2026, 10, 4, 12, 30))]);
-      expect(_ids(plan.items), ['mood']);
+      final plan = _plan(
+        agenda: const PalAgenda(proposals: [_proposal]),
+        meals: [_meal('a', DateTime(2026, 10, 4, 12, 30))],
+      );
+      expect(_ids(plan.items), ['proposal:rent', 'mood']);
     });
 
     test('a meal from yesterday does not count as logged today', () {
-      final plan = _plan(meals: [_meal('a', _yesterday)]);
-      expect(_ids(plan.items), ['mood', 'meal']);
+      final plan = _plan(
+        agenda: const PalAgenda(proposals: [_proposal]),
+        meals: [_meal('a', _yesterday)],
+      );
+      expect(_ids(plan.items), ['proposal:rent', 'mood', 'meal']);
     });
 
   });

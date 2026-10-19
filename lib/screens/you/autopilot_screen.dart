@@ -19,7 +19,7 @@ class AutopilotScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final c = context.colors;
-    final quiet = AppType.subhead.copyWith(color: c.ink3, height: 20 / 15);
+    final quiet = AppType.subhead.copyWith(color: c.ink3);
     final agenda = ref.watch(palAgendaProvider).asData?.value;
     final reminderTime = ref.watch(settingsRepositoryProvider).reminderTime;
 
@@ -73,7 +73,7 @@ class _AutopilotRow extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(automation.title,
-                        style: AppType.callout.copyWith(color: c.ink, height: 22 / 16)),
+                        style: AppType.callout.copyWith(color: c.ink)),
                     const SizedBox(height: Spacing.xxs),
                     Text(subtitle, style: AppType.subhead.copyWith(color: c.ink3)),
                   ],

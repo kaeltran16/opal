@@ -129,65 +129,70 @@ class _EnvelopeEditorScreenState extends ConsumerState<EnvelopeEditorScreen> {
         : '$count ${count == 1 ? 'envelope' : 'envelopes'} · '
             '${formatCurrency(total, currency)} a month';
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        const SizedBox(height: Spacing.sm),
-        Text(summary, style: quiet),
-        if (_listFailed) ...[
-          const SizedBox(height: Spacing.lg),
-          const FailureNote(),
-        ],
-        const SizedBox(height: Spacing.xxl),
-        if (envelopes.isEmpty)
-          _HairTop(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: Spacing.md),
-              child: Text('No envelopes yet. Add one, or use a suggested cap below.',
-                  style: quiet),
+    // each line and button is its own stop: otherwise the summary merges into
+    // whichever single button is left beside it (New envelope, or the last Use).
+    return Semantics(
+      explicitChildNodes: true,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const SizedBox(height: Spacing.sm),
+          Text(summary, style: quiet),
+          if (_listFailed) ...[
+            const SizedBox(height: Spacing.lg),
+            const FailureNote(),
+          ],
+          const SizedBox(height: Spacing.xxl),
+          if (envelopes.isEmpty)
+            _HairTop(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: Spacing.md),
+                child: Text('No envelopes yet. Add one, or use a suggested cap below.',
+                    style: quiet),
+              ),
+            )
+          else
+            ReorderableListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              buildDefaultDragHandles: false,
+              itemCount: envelopes.length,
+              onReorderItem: (oldIndex, newIndex) => _reorder(envelopes, oldIndex, newIndex),
+              proxyDecorator: (child, _, _) => ColoredBox(color: c.surface2, child: child),
+              itemBuilder: (context, i) {
+                final envelope = envelopes[i];
+                return _EnvelopeRow(
+                  key: ValueKey(envelope.id),
+                  index: i,
+                  envelope: envelope,
+                  cap: formatCurrency(envelope.cap, currency),
+                  onTap: () => showEnvelopeCapSheet(context, ref, envelope, onEdit: _clearListNote),
+                );
+              },
             ),
-          )
-        else
-          ReorderableListView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            buildDefaultDragHandles: false,
-            itemCount: envelopes.length,
-            onReorderItem: (oldIndex, newIndex) => _reorder(envelopes, oldIndex, newIndex),
-            proxyDecorator: (child, _, _) => ColoredBox(color: c.surface2, child: child),
-            itemBuilder: (context, i) {
-              final envelope = envelopes[i];
-              return _EnvelopeRow(
-                key: ValueKey(envelope.id),
-                index: i,
-                envelope: envelope,
-                cap: formatCurrency(envelope.cap, currency),
-                onTap: () => showEnvelopeCapSheet(context, ref, envelope, onEdit: _clearListNote),
-              );
-            },
-          ),
-        _HairTop(
-          child: PressScale(
-            onTap: () => showNewEnvelopeSheet(context, ref, onEdit: _clearListNote),
-            semanticLabel: 'New envelope',
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(minHeight: _rowHeight),
-              child: Row(
-                children: [
-                  AppIcon('plus', size: _rowGlyph, color: c.ink2),
-                  const SizedBox(width: _rowGlyphGap),
-                  Text('New envelope', style: AppType.body.copyWith(color: c.ink)),
-                ],
+          _HairTop(
+            child: PressScale(
+              onTap: () => showNewEnvelopeSheet(context, ref, onEdit: _clearListNote),
+              semanticLabel: 'New envelope',
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(minHeight: _rowHeight),
+                child: Row(
+                  children: [
+                    AppIcon('plus', size: _rowGlyph, color: c.ink2),
+                    const SizedBox(width: _rowGlyphGap),
+                    Text('New envelope', style: AppType.body.copyWith(color: c.ink)),
+                  ],
+                ),
               ),
             ),
           ),
-        ),
-        if (envelopes.isNotEmpty) ...[
-          const SizedBox(height: Spacing.sm),
-          Text('Tap an envelope to change its cap. Drag to reorder.', style: quiet),
+          if (envelopes.isNotEmpty) ...[
+            const SizedBox(height: Spacing.sm),
+            Text('Tap an envelope to change its cap. Drag to reorder.', style: quiet),
+          ],
+          _Suggestions(currency: currency, onUse: _apply),
         ],
-        _Suggestions(currency: currency, onUse: _apply),
-      ],
+      ),
     );
   }
 }

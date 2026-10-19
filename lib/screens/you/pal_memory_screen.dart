@@ -94,7 +94,7 @@ class _PalMemoryScreenState extends ConsumerState<PalMemoryScreen> {
           Text(
             "As we talk, I'll note facts you mention and patterns I learn here. "
             'You can delete anything.',
-            style: AppType.subhead.copyWith(color: c.ink3, height: 20 / 15),
+            style: AppType.subhead.copyWith(color: c.ink3),
           ),
         ],
         if (facts.isNotEmpty) ...[
@@ -105,7 +105,7 @@ class _PalMemoryScreenState extends ConsumerState<PalMemoryScreen> {
               minHeight: _factMinHeight,
               closeLabel: 'Forget: ${f.text}',
               onClose: () => _forget(f),
-              child: Text(f.text, style: AppType.callout.copyWith(color: c.ink, height: 22 / 16)),
+              child: Text(f.text, style: AppType.callout.copyWith(color: c.ink)),
             ),
         ],
         if (findings.isNotEmpty) ...[
@@ -115,7 +115,7 @@ class _PalMemoryScreenState extends ConsumerState<PalMemoryScreen> {
             padding: const EdgeInsets.only(top: Spacing.xxs, bottom: Spacing.xs),
             child: Text(
               'The same patterns as Pal noticed on You. Dismiss one and it leaves both.',
-              style: AppType.caption.copyWith(color: c.ink3, height: 16 / 12, letterSpacing: 0.3),
+              style: AppType.caption.copyWith(color: c.ink3),
             ),
           ),
           for (final f in findings)
@@ -149,7 +149,7 @@ class _Heading extends StatelessWidget {
   Widget build(BuildContext context) => Semantics(
         header: true,
         child: Text(text,
-            style: AppType.headline.copyWith(color: context.colors.ink, height: 22 / 17)),
+            style: AppType.headline.copyWith(color: context.colors.ink)),
       );
 }
 
@@ -168,11 +168,11 @@ class _PatternText extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(finding.line, style: AppType.callout.copyWith(color: c.ink, height: 22 / 16)),
+          Text(finding.line, style: AppType.callout.copyWith(color: c.ink)),
           if (meta.isNotEmpty) ...[
             const SizedBox(height: Spacing.xxs),
             Text(meta,
-                style: AppType.caption.copyWith(color: c.ink3, height: 16 / 12, letterSpacing: 0.3)),
+                style: AppType.caption.copyWith(color: c.ink3)),
           ],
         ],
       ),
@@ -254,7 +254,7 @@ class _ClearRow extends StatelessWidget {
             ? [
                 Expanded(
                   child: Text('Clear everything Pal remembers?',
-                      style: AppType.subhead.copyWith(color: c.ink2, height: 20 / 15)),
+                      style: AppType.subhead.copyWith(color: c.ink2)),
                 ),
                 const SizedBox(width: Spacing.sm),
                 _TextButton('Cancel',

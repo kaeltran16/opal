@@ -96,8 +96,10 @@ and no colour:
 - Loading: `…` in `body`, `ink3`, centred.
 - Error: one centred sentence in `subhead`, `ink3` (`Couldn't load today. Try again in a
   moment.` on Today; the area page keeps its current copy).
-- Empty day on Today: the board's all-done card (`All done` / `That's the day`, no
-  buttons), lead `Nothing is left. Rest up.`, and no timeline rail.
+- Empty day on Today (nothing planned): the mood check-in is the day's one item
+  (`0 of 1 done`); the meal nudge rides along a planned day only. Once checked in (or put
+  off), the board's all-done card (`All done` / `That's the day`, no buttons) and lead
+  `Nothing is left. Rest up.` (User's call, 10-19.)
 - No entries on an area page: `Nothing logged yet.` in `subhead`, `ink3`, in place of the
   list.
 - No goal set: plain amounts, On track, no goal line and no goal caption.

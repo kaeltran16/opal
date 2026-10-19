@@ -29,7 +29,8 @@ void main() {
     await bootToday(tester, dark: dark, day: _checkedIn);
 
     expect(_row(), findsOneWidget);
-    expect(_onCard(find.text('Log a meal')), findsWidgets);
+    // nothing else is planned, so the check-in was the day's one item.
+    expect(_onCard(find.text('All done')), findsOneWidget);
     await shot(tester, 'mood_again_timeline_${_theme(dark)}');
 
     await tester.tap(_row());
@@ -46,8 +47,8 @@ void main() {
     await tester.tap(find.bySemanticsLabel('Log mood'));
     await tester.pumpAndSettle();
 
-    // the card keeps the meal; the mood row stays done and reads the new word.
-    expect(_onCard(find.text('Log a meal')), findsWidgets);
+    // the day stays done; the mood row stays done and reads the new word.
+    expect(_onCard(find.text('All done')), findsOneWidget);
     expect(_row(), findsOneWidget);
     await shot(tester, 'mood_after_checking_in_again_${_theme(dark)}');
   });

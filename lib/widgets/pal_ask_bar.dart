@@ -5,12 +5,30 @@ import 'app_icon.dart';
 import 'glass_surface.dart';
 import 'press_scale.dart';
 
+const String _anything = 'Tell Pal anything';
+const String _patterns = 'Ask about your patterns';
+const String _youPath = '/you';
+
+/// What the ask bar and the idle composer invite, for the screen at [path]:
+/// You and its sub-screens ask about patterns, everywhere else anything.
+String palPlaceholderFor(String? path) => isYouPath(path) ? _patterns : _anything;
+
+/// Whether [path] is You or one of its sub-screens.
+bool isYouPath(String? path) {
+  final p = Uri.tryParse(path ?? '')?.path ?? '';
+  return p == _youPath || p.startsWith('$_youPath/');
+}
+
 /// Glass capsule on every tab that opens the Pal composer. It looks like a
 /// field but is a button: typing happens in the composer sheet it opens.
 class PalAskBar extends StatelessWidget {
-  const PalAskBar({super.key, required this.onAsk, required this.onMic});
+  const PalAskBar({
+    super.key,
+    required this.onAsk,
+    required this.onMic,
+    this.placeholder = _anything,
+  });
 
-  static const String _placeholder = 'Tell Pal anything';
   static const double height = 52;
   static const double _micSize = 44;
   static const double _micGlyph = 20;
@@ -18,6 +36,7 @@ class PalAskBar extends StatelessWidget {
 
   final VoidCallback onAsk;
   final VoidCallback onMic;
+  final String placeholder;
 
   @override
   Widget build(BuildContext context) {
@@ -31,13 +50,13 @@ class PalAskBar extends StatelessWidget {
             Expanded(
               child: PressScale(
                 onTap: onAsk,
-                semanticLabel: _placeholder,
+                semanticLabel: placeholder,
                 child: Container(
                   height: height,
                   padding: const EdgeInsets.only(left: Spacing.xl),
                   alignment: Alignment.centerLeft,
                   child: Text(
-                    _placeholder,
+                    placeholder,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: AppType.callout.copyWith(color: c.ink3),

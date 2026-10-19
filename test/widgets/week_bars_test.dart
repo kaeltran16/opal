@@ -2,11 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opal/theme/theme.dart';
 import 'package:opal/widgets/week_bars.dart';
+import 'package:opal/analysis/area_state.dart';
 
 const _label = 'Money this week: 1 day over budget. \$60 daily budget';
 const _chartHeight = 64.0;
 const _stub = 2.0;
-const _noneOff = [false, false, false, false, false, false, false];
+const List<AreaState?> _noneOff = [null, null, null, null, null, null, null];
 const List<double?> _empty = [null, null, null, null, null, null, null];
 
 final _colors = AppColors.light();
@@ -14,7 +15,7 @@ final _colors = AppColors.light();
 Future<void> _pump(
   WidgetTester tester, {
   required List<double?> values,
-  List<bool> off = _noneOff,
+  List<AreaState?> off = _noneOff,
   int todayIndex = 3,
   double goal = 60,
 }) =>
@@ -56,11 +57,12 @@ void main() {
     await _pump(
       tester,
       values: [48, 61, 35, 20, null, null, null],
-      off: [false, true, false, false, false, false, false],
+      off: [null, AreaState.watch, AreaState.care, null, null, null, null],
     );
 
     expect(_fill(tester, 0), _colors.ink3);
     expect(_fill(tester, 1), _colors.watch);
+    expect(_fill(tester, 2), _colors.care);
     expect(_fill(tester, 3), _colors.ink);
     expect(_fill(tester, 4), _colors.track);
 

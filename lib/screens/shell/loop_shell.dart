@@ -162,7 +162,11 @@ class _LoopShellState extends ConsumerState<LoopShell> {
             left: askLeft,
             right: GlassTabBar.sideInset,
             bottom: askBottom,
-            child: PalAskBar(onAsk: _openComposer, onMic: () => _openComposer(dictate: true)),
+            child: PalAskBar(
+              onAsk: _openComposer,
+              onMic: () => _openComposer(dictate: true),
+              placeholder: palPlaceholderFor(GoRouterState.of(context).uri.path),
+            ),
           ),
         ],
       ),

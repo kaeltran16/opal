@@ -7,6 +7,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:opal/analysis/pal_findings.dart';
+import 'package:opal/controllers/pal_findings_controller.dart';
 import 'package:opal/controllers/pal_suggestions_controller.dart';
 import 'package:opal/controllers/providers.dart';
 import 'package:opal/controllers/weekly_plan_controller.dart';
@@ -31,12 +33,16 @@ class _Pal implements PalService {
   final bool fails;
   final List<PalAction> actions;
 
+  /// Each chat message as Pal received it.
+  final List<String> received = [];
+
   @override
   Future<WorkoutSuggestion> suggestWorkout({bool another = false, String? excludeRoutineId}) =>
       pick?.call() ?? Future.error(const PalException('unreachable'));
 
   @override
   Future<PalChatResult> chat(List<PalMessage> history, String message) async {
+    received.add(message);
     if (fails) throw const PalException('unreachable');
     return PalChatResult(reply: 'Done.', actions: actions);
   }
@@ -87,6 +93,7 @@ Future<GoRouter> _open(
   bool trainedToday = false,
   SpeechService speech = const NoopSpeechService(),
   bool dictate = false,
+  List<PalFinding> findings = const [],
 }) async {
   SharedPreferences.setMockInitialValues({});
   final prefs = await SharedPreferences.getInstance();
@@ -108,6 +115,7 @@ Future<GoRouter> _open(
       palServiceProvider.overrideWithValue(pal ?? _Pal()),
       speechServiceProvider.overrideWithValue(speech),
       palSuggestionsProvider(SuggestionSurface.composer).overrideWith((ref) async => suggestions),
+      palFindingsControllerProvider.overrideWith(() => _Findings(findings)),
       weeklyPlanControllerProvider.overrideWith((ref) => Stream.value(WeeklyPlan(days: [
             WeekPlanDay(day: 'Thu', date: 15, type: 'Legs', routine: 'Leg Day', colorKey: 'move',
                 icon: 'dumbbell.fill', trained: trainedToday, today: true),
@@ -127,6 +135,22 @@ Future<GoRouter> _open(
   await tester.pumpAndSettle();
   return router;
 }
+
+class _Findings extends PalFindingsController {
+  _Findings(this.list);
+  final List<PalFinding> list;
+
+  @override
+  Future<List<PalFinding>> build() async => list;
+}
+
+const _finding = PalFinding(
+  id: 'corr:sleep-money:+',
+  areas: ['Sleep', 'Money'],
+  line: 'Short nights cost you about \$18 the next day.',
+  evidence: 'Seen after 9 of 11 short nights',
+  question: 'Why do short nights cost money?',
+);
 
 Finder _inSheet(Finder f) => find.descendant(of: find.byType(PalComposerSheet), matching: f);
 
@@ -163,6 +187,44 @@ void main() {
       await flushProviderTimers(tester);
     });
   }
+
+  for (final from in ['/you', '/you/memory']) {
+    testWidgets('opened from $from it asks about patterns with the findings as starters',
+        (tester) async {
+      final pal = _Pal();
+      await _open(tester, from: from, pal: pal, findings: const [_finding]);
+
+      expect(_inSheet(find.text('Ask about your patterns')), findsOneWidget);
+      expect(_inSheet(find.text(_startWorkout)), findsNothing);
+      expect(_inSheet(find.text(_staticStarters.first)), findsNothing);
+
+      await tester.tap(_inSheet(find.text(_finding.question)));
+      await tester.pumpAndSettle();
+      // the finding's facts ride along for Pal; the bubble is the question alone.
+      expect(pal.received.single, startsWith(_finding.question));
+      expect(pal.received.single, contains(_finding.palNote));
+
+      await flushProviderTimers(tester);
+    });
+  }
+
+  testWidgets('opened from You with no findings it offers the usual starters', (tester) async {
+    await _open(tester, from: '/you');
+
+    expect(_inSheet(find.text('Ask about your patterns')), findsOneWidget);
+    expect(_inSheet(find.text(_staticStarters.first)), findsOneWidget);
+
+    await flushProviderTimers(tester);
+  });
+
+  testWidgets('opened from elsewhere it reads Tell Pal anything', (tester) async {
+    await _open(tester, from: '/today', findings: const [_finding]);
+
+    expect(_inSheet(find.text('Tell Pal anything')), findsOneWidget);
+    expect(_inSheet(find.text(_finding.question)), findsNothing);
+
+    await flushProviderTimers(tester);
+  });
 
   testWidgets("the first pill starts Pal's pick", (tester) async {
     await _open(tester,

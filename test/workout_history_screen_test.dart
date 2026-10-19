@@ -78,6 +78,14 @@ Future<void> _pump(WidgetTester tester, List<Workout> workouts,
   await tester.pumpAndSettle();
 }
 
+/// Brings [target] to the middle of the view, clear of the pinned header: a
+/// lazy list builds rows ahead of the viewport, so being found is not being
+/// on screen.
+Future<void> _centre(WidgetTester tester, Finder target) async {
+  await Scrollable.ensureVisible(tester.element(target), alignment: 0.5);
+  await tester.pumpAndSettle();
+}
+
 Finder _stat(String value) => find.descendant(
     of: find.byType(StatRow).first, matching: find.text(value));
 
@@ -226,6 +234,7 @@ void main() {
     final row = find.text('Pull A');
     await tester.scrollUntilVisible(row, 200,
         scrollable: find.byType(Scrollable).first);
+    await _centre(tester, row);
     await tester.tap(row);
     await tester.pumpAndSettle();
     expect(find.text('detail w2'), findsOneWidget);
@@ -257,6 +266,7 @@ void main() {
     expect(tester.takeException(), isNull);
 
     await tester.scrollUntilVisible(find.text('All time'), -200, scrollable: list);
+    await _centre(tester, find.text('All time'));
     await tester.tap(find.text('All time'));
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(find.text('Legs A'), 200, scrollable: list);

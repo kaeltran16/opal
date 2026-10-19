@@ -6,10 +6,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:opal/theme/theme.dart';
 import 'package:opal/widgets/contributor_bar.dart';
 import 'package:opal/widgets/week_bars.dart';
+import 'package:opal/analysis/area_state.dart';
 
 import 'scenario_harness.dart';
 
-const _noneOff = [false, false, false, false, false, false, false];
+const List<AreaState?> _noneOff = [null, null, null, null, null, null, null];
 
 Future<void> _pump(WidgetTester tester, bool dark, List<Widget> children) {
   final colors = dark ? AppColors.dark() : AppColors.light();
@@ -41,12 +42,12 @@ void main() {
         label: 'Held for rent',
         value: r'$40 of $22',
         fraction: 40 / 22,
-        off: true,
+        off: AreaState.care,
       ),
       const SizedBox(height: Spacing.xxxl),
       const WeekBars(
         values: [48, 72, 35, 38, null, null, null],
-        off: [false, true, false, false, false, false, false],
+        off: [null, AreaState.care, null, null, null, null, null],
         todayIndex: 3,
         goal: 60,
         semanticLabel: r'Money this week: 1 day over budget. $60 daily budget',

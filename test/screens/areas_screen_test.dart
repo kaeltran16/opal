@@ -206,6 +206,39 @@ void main() {
     await flushProviderTimers(tester);
   });
 
+  testWidgets('a dot at either end of its range sits on the bar', (tester) async {
+    final s = _summary();
+    AreaSummary at(AreaSummary a, double progress) => AreaSummary(
+          area: a.area,
+          state: a.state,
+          number: a.number,
+          unit: a.unit,
+          progress: progress,
+          usual: a.usual,
+          semanticLabel: a.semanticLabel,
+        );
+    await _boot(tester,
+        summary: AreasSummary([
+          for (final a in s.areas)
+            switch (a.area) {
+              Area.nutrition => at(a, 1),
+              Area.mood => at(a, 0),
+              _ => a,
+            },
+        ]));
+
+    final dots = _onAreas(find.byKey(const ValueKey('todayDot')));
+    expect(dots, findsNWidgets(3));
+    for (var i = 0; i < 3; i++) {
+      final dot = tester.getRect(dots.at(i));
+      final bar = tester.getRect(find.ancestor(of: dots.at(i), matching: find.byType(Stack)).first);
+      expect(dot.left, greaterThanOrEqualTo(bar.left));
+      expect(dot.right, lessThanOrEqualTo(bar.right));
+    }
+
+    await flushProviderTimers(tester);
+  });
+
   testWidgets('with short history the cards leave out the band', (tester) async {
     await _boot(tester, summary: _summary(historyDays: 6));
 
@@ -230,6 +263,16 @@ void main() {
 
     expect(_onAreas(find.text('spent today')), findsOneWidget);
     expect(_onAreas(find.byKey(const ValueKey('todayDot'))), findsNWidgets(2));
+
+    await flushProviderTimers(tester);
+  });
+
+  testWidgets('a ring past its goal shows no state word', (tester) async {
+    await _boot(tester, summary: _summary(moveKcal: 650, routinesDone: 4));
+
+    expect(find.bySemanticsLabel('Move, 650 of 500 kcal. Open Move'), findsOneWidget);
+    expect(find.bySemanticsLabel('Routines, 4 of 4 done. Open Routines'), findsOneWidget);
+    expect(_onAreas(find.text(AreaState.thriving.word)), findsNothing);
 
     await flushProviderTimers(tester);
   });

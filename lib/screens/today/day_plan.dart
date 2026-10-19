@@ -305,14 +305,22 @@ class DayPlan {
     return switch (item.minuteOfDay) {
       _ when care != null =>
         '${_areaNames[care]} needs care, and an area in Needs care always leads.',
-      _ when rules.palOnline && item.kind == PlanKind.proposal =>
-        "Pal proposed it, and Pal's proposals lead while Pal is online.",
+      _ when rules.palOnline && item.kind == PlanKind.proposal => _proposalReason(item),
       null => 'It has no set time, and nothing timed was due in the last $_overdueLeadSpan.',
       final m when m > nowMinute => 'It is the next thing on the clock, at ${clockLabel(m)}.',
       final m when _missed(item, nowMinute) =>
         'It was due at ${clockLabel(m)} and nothing else is open.',
       final m => 'It was due at ${clockLabel(m)}, under $_overdueLeadSpan ago, and is still open.',
     };
+  }
+
+  /// The lead rule for a proposal, then the one fact Pal said it rests on.
+  static String _proposalReason(PlanItem item) {
+    final fact = item.proposal?.reason.trim() ?? '';
+    return [
+      "Pal proposed it, and Pal's proposals lead while Pal is online.",
+      if (fact.isNotEmpty) 'Pal based it on: ${fact.endsWith('.') ? fact : '$fact.'}',
+    ].join(' ');
   }
 
   /// Why [item] leads and what else is open, for Pal's Why thread.
@@ -493,7 +501,9 @@ bool _isToday(DateTime at, DateTime now) =>
 /// routine is the close-out row, and Pal's close-out proposal only lends it
 /// a sentence. Beside the close-out row, Pal's add-ritual proposals are left
 /// out; without one they are ordinary proposal rows. Proposals whose item id
-/// is in [declined] (put off on an earlier day) are left out entirely.
+/// is in [declined] (put off on an earlier day) are left out entirely. The
+/// meal nudge rides along a planned day only: with nothing planned, the mood
+/// check-in is the day's one item.
 DayPlan buildDayPlan({
   required PalAgenda agenda,
   required RitualsState? rituals,
@@ -514,7 +524,7 @@ DayPlan buildDayPlan({
   final checkedIn = lastCheckin != null && _isToday(lastCheckin.timestamp, now);
   final ateToday = meals.any((m) => _isToday(m.timestamp, now));
 
-  return DayPlan([
+  final planned = [
     for (final p in proposals)
       if (!p.navigatesToCloseOut && !(closeOut != null && p.addsRitual))
         proposalItem(p),
@@ -544,6 +554,10 @@ DayPlan buildDayPlan({
         done: workout.settled,
         area: DetailTracker.move,
       ),
+  ];
+
+  return DayPlan([
+    ...planned,
     PlanItem(
       id: 'mood',
       kind: PlanKind.mood,
@@ -553,7 +567,7 @@ DayPlan buildDayPlan({
       actionLabel: 'Check in',
       done: checkedIn,
     ),
-    if (!ateToday)
+    if (!ateToday && (planned.isNotEmpty || closeOut != null))
       const PlanItem(
         id: 'meal',
         kind: PlanKind.meal,

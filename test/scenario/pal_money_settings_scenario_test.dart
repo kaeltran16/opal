@@ -263,7 +263,9 @@ Finder get _sheet => find.byType(PalComposerSheet);
 
 Finder _inSheet(Finder matching) => find.descendant(of: _sheet, matching: matching);
 
-Future<void> _ask(WidgetTester tester) => _tap(tester, find.bySemanticsLabel(_askLabel));
+// on You the ask bar asks about patterns instead.
+Future<void> _ask(WidgetTester tester) =>
+    _tap(tester, find.bySemanticsLabel(RegExp('^($_askLabel|Ask about your patterns)\$')));
 
 Future<void> _close(WidgetTester tester) async {
   await _tap(tester, _inSheet(find.bySemanticsLabel('Close')));

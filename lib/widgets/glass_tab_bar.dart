@@ -52,6 +52,11 @@ class GlassTabBar extends StatelessWidget {
   static const double _dotSize = 8;
   static const double _dotRing = 2;
   static const double _dotTop = -1;
+  // the bar's height is fixed, so the label grows only as far as the room
+  // under the icon, as an iOS tab bar's does.
+  static final double _maxLabelScale =
+      (expandedHeight - 2 * _inset - _iconSize - _gap) /
+          (AppType.caption.fontSize! * AppType.caption.height!);
   static const double _dotRight = -4;
   static const Duration _transition = Duration(milliseconds: 240);
 
@@ -181,13 +186,16 @@ class _TabButton extends StatelessWidget {
                 spacing: Spacing.xxs,
                 children: [
                   _DottedIcon(tab: tab, color: color),
-                  Text(
-                    tab.label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: AppType.caption.copyWith(
-                      fontWeight: active ? FontWeight.w600 : FontWeight.w400,
-                      color: color,
+                  MediaQuery.withClampedTextScaling(
+                    maxScaleFactor: GlassTabBar._maxLabelScale,
+                    child: Text(
+                      tab.label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppType.caption.copyWith(
+                        fontWeight: active ? FontWeight.w600 : FontWeight.w400,
+                        color: color,
+                      ),
                     ),
                   ),
                 ],

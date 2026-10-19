@@ -278,7 +278,7 @@ void main() {
     expect(_onPage(find.textContaining(RegExp('^over .* today\$'))), findsOneWidget);
     expect(
       tester.widgetList<ContributorBar>(_onPage(find.byType(ContributorBar))).first.off,
-      isTrue,
+      AreaState.care,
     );
     await shot(tester, 'area_money_over_budget_${_theme(dark)}');
   });

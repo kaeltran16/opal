@@ -20,6 +20,7 @@ import '../../util/format.dart';
 import '../../widgets/app_icon.dart';
 import '../../widgets/contributor_bar.dart';
 import '../../widgets/day_scene.dart';
+import '../../widgets/failure_note.dart' show deleteFailedCopy;
 import '../../widgets/pal_label.dart';
 import '../../widgets/press_scale.dart';
 import '../../widgets/state_colors.dart';
@@ -39,19 +40,16 @@ const double _dateTracking = 1.2;
 const double _heroTop = Spacing.xl;
 const double _palTop = 28;
 const double _palMaxWidth = 320;
-const double _palLineHeight = 24 / 17;
 const double _contributorTop = 10;
 const double _trailingMaxWidth = 160;
 const double _hairline = 1;
 const double _listRowHeight = 48;
-const double _listRowLineHeight = 22 / 16;
 const double _mealTimeWidth = 56; // fits "12:00 PM" in caption
 const double _mealGap = 10;
 const double _mealDisc = 28;
 const double _mealIcon = 18;
 // Add a meal lines up with the meal names: time, gap, disc, gap.
 const double _addMealInset = _mealTimeWidth + _mealGap + _mealDisc + _mealGap;
-const double _captionTracking = 0.3;
 const double _chevron = 16;
 const List<FontFeature> _tabular = [FontFeature.tabularFigures()];
 
@@ -249,7 +247,7 @@ class _SleepBody extends StatelessWidget {
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: _palMaxWidth),
                   child: Text('Sleep needs a data source, and none is connected yet.',
-                      style: AppType.body.copyWith(color: c.ink2, height: _palLineHeight)),
+                      style: AppType.body.copyWith(color: c.ink2)),
                 ),
               ),
             ],
@@ -325,7 +323,7 @@ class _AreaBody extends ConsumerWidget {
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: _palMaxWidth),
                   child: Text(detail.palLine,
-                      style: AppType.body.copyWith(color: c.ink, height: _palLineHeight)),
+                      style: AppType.body.copyWith(color: c.ink)),
                 ),
               ),
             ],
@@ -453,8 +451,7 @@ class _MealRow extends StatelessWidget {
             ConstrainedBox(
               constraints: const BoxConstraints(minWidth: _mealTimeWidth),
               child: Text(meal.time,
-                  style: AppType.caption.copyWith(
-                      color: c.ink3, letterSpacing: _captionTracking, fontFeatures: _tabular)),
+                  style: AppType.caption.copyWith(color: c.ink3, fontFeatures: _tabular)),
             ),
             const SizedBox(width: _mealGap),
             Container(
@@ -501,7 +498,7 @@ class _RoutinesSection extends StatelessWidget {
               children: [
                 Expanded(
                   child: Text('Manage routines',
-                      style: AppType.callout.copyWith(color: c.ink, height: _listRowLineHeight)),
+                      style: AppType.callout.copyWith(color: c.ink)),
                 ),
                 const SizedBox(width: Spacing.md),
                 AppIcon('chevron.right', size: _chevron, color: c.ink3),
@@ -528,7 +525,7 @@ class _RoutineItem extends StatelessWidget {
           Expanded(
             child: Text(row.name,
                 style: AppType.callout
-                    .copyWith(color: row.done ? c.ink3 : c.ink, height: _listRowLineHeight)),
+                    .copyWith(color: row.done ? c.ink3 : c.ink)),
           ),
           const SizedBox(width: Spacing.md),
           Text(row.detail,
@@ -596,7 +593,8 @@ class _Heading extends StatelessWidget {
   }
 }
 
-/// One recent entry. Swiping it away deletes it, after a confirm.
+/// One recent entry. Swiping it away deletes it, after a confirm; a failed
+/// delete slides it back and says so.
 class _EntryRow extends StatelessWidget {
   const _EntryRow({
     required this.entry,
@@ -619,8 +617,7 @@ class _EntryRow extends StatelessWidget {
     return Dismissible(
       key: ValueKey(entry.id),
       direction: DismissDirection.endToStart,
-      confirmDismiss: (_) => _confirmDelete(context),
-      onDismissed: (_) => onDelete(),
+      confirmDismiss: (_) => _confirmAndDelete(context),
       background: Container(
         color: c.red,
         alignment: Alignment.centerRight,
@@ -655,6 +652,23 @@ class _EntryRow extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  /// Deletes the entry once the user confirms. Returns true only when the
+  /// delete landed, so a failed one leaves the row in place.
+  Future<bool> _confirmAndDelete(BuildContext context) async {
+    if (!await _confirmDelete(context)) return false;
+    try {
+      await onDelete();
+      return true;
+    } catch (e, st) {
+      debugPrint('area page: deleting entry ${entry.id} failed: $e\n$st');
+      if (context.mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text(deleteFailedCopy)));
+      }
+      return false;
+    }
   }
 
   /// iOS confirm dialog before a swipe actually deletes the entry. Returns true
