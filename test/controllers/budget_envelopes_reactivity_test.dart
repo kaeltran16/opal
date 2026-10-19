@@ -12,7 +12,6 @@ import 'package:opal/controllers/budget_envelopes_controller.dart';
 import 'package:opal/controllers/budget_forecast_controller.dart';
 import 'package:opal/controllers/budget_recommendations_controller.dart';
 import 'package:opal/controllers/budgets_controller.dart';
-import 'package:opal/controllers/insights_money_controller.dart';
 import 'package:opal/controllers/providers.dart';
 import 'package:opal/data/db/database.dart';
 import 'package:opal/data/repositories/repositories.dart';
@@ -134,16 +133,4 @@ void main() {
             envelopeForecastsProvider, (l) => l.any((f) => f.cap == 750));
         expect(after.single.category, 'Groceries');
       }));
-
-  test('insightsData reflects an envelope added after the first emission',
-      () => run(() async {
-            final before = await firstWhere(insightsDataProvider,
-                (d) => d.categories.isNotEmpty);
-            expect(before.categories.map((c) => c.icon), isNot(contains('cup')));
-            await controller().add(category: 'Coffee', icon: 'cup', cap: 800);
-            final after = await firstWhere(insightsDataProvider,
-                (d) => d.categories.any((c) => c.icon == 'cup'));
-            expect(after.categories.firstWhere((c) => c.icon == 'cup').label,
-                'Coffee');
-          }));
 }

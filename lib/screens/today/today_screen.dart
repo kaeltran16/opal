@@ -363,22 +363,27 @@ class _Lead extends StatelessWidget {
                       if (onWhy != null)
                         ConstrainedBox(
                           constraints: BoxConstraints(maxWidth: box.maxWidth * _sideShare),
-                          child: PressScale(
-                            onTap: onWhy,
-                            child: Padding(
-                              padding: const EdgeInsets.only(left: Spacing.sm),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                spacing: Spacing.xxs,
-                                children: [
-                                  Flexible(
-                                    child: Text(_why,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: AppType.label.copyWith(color: c.ink3)),
-                                  ),
-                                  AppIcon('chevron.right', size: _whyIcon, color: c.ink3),
-                                ],
+                          // its own stop: inside the lead's container it would
+                          // read Pal's label and line as its own.
+                          child: Semantics(
+                            container: true,
+                            child: PressScale(
+                              onTap: onWhy,
+                              child: Padding(
+                                padding: const EdgeInsets.only(left: Spacing.sm),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  spacing: Spacing.xxs,
+                                  children: [
+                                    Flexible(
+                                      child: Text(_why,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: AppType.label.copyWith(color: c.ink3)),
+                                    ),
+                                    AppIcon('chevron.right', size: _whyIcon, color: c.ink3),
+                                  ],
+                                ),
                               ),
                             ),
                           ),

@@ -46,7 +46,7 @@ void main() {
         macros: macrosFromCal(const IntRange(500, 700))));
 
     // keep the autodispose stream provider alive while we await its first
-    // emit (matches pal_inbox_controller_test) — otherwise it disposes mid-load.
+    // emit, otherwise it disposes mid-load.
     container.listen(nutritionControllerProvider, (_, _) {});
     final state = await container.read(nutritionControllerProvider.future);
     expect(state.day.cal.lo, 800);

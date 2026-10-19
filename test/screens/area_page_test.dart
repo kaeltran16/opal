@@ -1,6 +1,7 @@
 import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 
@@ -9,6 +10,7 @@ import 'package:opal/analysis/area_state.dart';
 import 'package:opal/app.dart';
 import 'package:opal/controllers/area_detail_controller.dart';
 import 'package:opal/controllers/providers.dart';
+import 'package:opal/data/repositories/entry_repository.dart';
 import 'package:opal/models/models.dart';
 import 'package:opal/screens/areas/areas_screen.dart';
 import 'package:opal/screens/detail/detail_screen.dart';
@@ -22,6 +24,7 @@ import 'package:opal/widgets/day_scene.dart';
 import 'package:opal/widgets/glass_tab_bar.dart';
 import 'package:opal/widgets/pal_label.dart';
 import 'package:opal/widgets/week_bars.dart';
+import 'package:opal/widgets/failure_note.dart' show deleteFailedCopy;
 
 import '../support/flush_provider_timers.dart';
 import '../support/golden_harness.dart' show appRouter;
@@ -54,11 +57,20 @@ Future<void> _boot(
   WidgetTester tester, {
   TodayDay day = const TodayDay(),
   bool strictLayout = false,
+  List<Override> overrides = const [],
 }) async {
   tester.view.physicalSize = const Size(390, 2400);
   tester.view.devicePixelRatio = 1.0;
   addTearDown(tester.view.reset);
-  await bootToday(tester, day: day, strictLayout: strictLayout);
+  await bootToday(tester, day: day, strictLayout: strictLayout, overrides: overrides);
+}
+
+/// Entries that can never be deleted.
+class _FailingDeletes extends EntryRepository {
+  _FailingDeletes(super.db);
+
+  @override
+  Future<void> deleteById(String id) => Future.error(StateError('disk full'));
 }
 
 /// Opens [area]'s page from the Areas tab.
@@ -428,8 +440,9 @@ void main() {
     final word = tester.widget<Text>(_onPage(find.text('Needs care')));
     expect(word.style!.color, tester.element(find.byType(DetailScreen)).colors.careInk);
     final bars = tester.widgetList<ContributorBar>(_onPage(find.byType(ContributorBar)));
-    expect(bars.first.off, isTrue);
-    expect(bars.skip(1).any((b) => b.off), isFalse);
+    // over budget is Needs care, so the bar says so in the same red as the word.
+    expect(bars.first.off, AreaState.care);
+    expect(bars.skip(1).any((b) => b.off != null), isFalse);
   });
 
   for (final area in Area.values.where((a) => a.hasStateRule)) {
@@ -463,5 +476,23 @@ void main() {
     final title = _onPage(find.text(_longTitle));
     expect(title, findsOneWidget);
     expect(tester.getSize(title).width, lessThan(390));
+  });
+
+  _pageTest('a swipe whose delete fails keeps the entry and says so', (tester) async {
+    await _boot(tester, overrides: [
+      entryRepositoryProvider
+          .overrideWith((ref) => _FailingDeletes(ref.watch(loopDatabaseProvider))),
+    ]);
+    appRouter(tester).go('/areas/money');
+    await tester.pumpAndSettle();
+
+    await tester.drag(_onPage(find.text(receiptTitle)), const Offset(-500, 0));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Delete'));
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(_onPage(find.text(receiptTitle)), findsOneWidget);
+    expect(find.text(deleteFailedCopy), findsOneWidget);
   });
 }

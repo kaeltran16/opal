@@ -6,11 +6,11 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../models/models.dart';
 import '../services/pal/pal_service.dart' show InsightRange;
+import '../util/dates.dart' show startOfWeek;
 import '../util/format.dart';
 import 'pal_memory_controller.dart';
 import 'providers.dart';
 import 'today_controller.dart' show goalsStreamProvider;
-import 'weekly_review_controller.dart' show weekStartFor;
 
 part 'recap_controller.g.dart';
 
@@ -160,7 +160,7 @@ int _periodDays(InsightRange range, DateTime now) => switch (range) {
 /// 00:00 of the first day of the period containing [now] for [range].
 DateTime _periodStart(InsightRange range, DateTime now) => switch (range) {
       InsightRange.day => DateTime(now.year, now.month, now.day),
-      InsightRange.week => weekStartFor(now),
+      InsightRange.week => startOfWeek(now),
       InsightRange.month => DateTime(now.year, now.month),
     };
 

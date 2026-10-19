@@ -54,6 +54,21 @@ GlassTabBar _bar({
 }
 
 void main() {
+  testWidgets('at text scale 2.0 on a 390-wide surface the labels fit the bar',
+      (tester) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    tester.platformDispatcher.textScaleFactorTestValue = 2.0;
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+
+    await tester.pumpWidget(_app(_bar()));
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('Nutrition'), findsOneWidget);
+  });
+
   testWidgets('renders every tab label and reports taps by id', (tester) async {
     final tapped = <String>[];
     await tester.pumpWidget(_app(_bar(onTab: tapped.add)));

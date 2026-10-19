@@ -12,6 +12,7 @@ import 'package:opal/analysis/area_state.dart';
 import 'package:opal/controllers/pal_composer_controller.dart';
 import 'package:opal/controllers/spending_controller.dart' show DetailTracker;
 import 'package:opal/controllers/today_controller.dart';
+import 'package:opal/data/seed/seed_data.dart';
 import 'package:opal/screens/pal/pal_composer_screen.dart';
 import 'package:opal/screens/reflect/evening_close_out_screen.dart';
 import 'package:opal/screens/rituals/routine_player_screen.dart';
@@ -346,8 +347,10 @@ void main() {
   scenarioTest('today rest', (tester, dark) async {
     await bootToday(tester, dark: dark, day: const TodayDay.empty());
 
-    // nothing is set up, so the mood check-in and a meal are all that is asked.
-    await _tap(tester, _skip);
+    // nothing is planned, so the mood check-in is the day's one item.
+    expect(_card('Mood check-in'), findsOneWidget);
+    expect(find.text('· 0 of 1 done'), findsOneWidget);
+    await shot(tester, 'today_empty_${_theme(dark)}');
     await _tap(tester, _skip);
 
     expect(_card('All done'), findsOneWidget);
@@ -355,7 +358,7 @@ void main() {
     expect(_lead('Nothing is left. Rest up.'), findsOneWidget);
     expect(_skip, findsNothing);
     expect(_whyButton(), findsNothing);
-    expect(find.bySemanticsLabel(RegExp(r'^Bring back: ')), findsNWidgets(2));
+    expect(find.bySemanticsLabel(RegExp(r'^Bring back: ')), findsOneWidget);
     // let the put-off's toast leave, so the shot is the rested screen.
     await tester.pump(planToastDuration);
     await tester.pumpAndSettle();
@@ -481,7 +484,9 @@ void main() {
       () => [find.byType(BottomSheet)],
     ),
     'meal': (
-      const TodayDay(routines: [], workout: false, mood: true),
+      // the meal nudge rides along a planned day: here a routine already done.
+      TodayDay(routines: [SeedData.ritualRoutines().first], workout: false, mood: true,
+          firstRoutineDone: true),
       null,
       'Log a meal',
       () => [find.byType(PalComposerSheet)],

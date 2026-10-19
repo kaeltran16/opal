@@ -157,24 +157,39 @@ export const healthDayQuery = z.object({
 
 // display-ready rows the app pushes for the iOS widget to read back; the widget
 // never computes a state, it walks the schedule of changes until local midnight.
+// strict throughout: a key the widget does not know (a fraction on money) is
+// a producer bug, rejected here rather than dropped.
 const stateChange = z.object({
   at: z.number().int(),
   state: z.enum(['thriving', 'good', 'watch', 'care']),
   word: z.string().min(1).max(32),
-})
+}).strict()
 // one entry per minute from midnight to midnight is the most a schedule can hold.
 const widgetStates = z.array(stateChange).min(1).max(1441)
+  .refine((states) => states.every((s, i) => i === 0 || states[i - 1].at < s.at), {
+    message: 'states must be in strictly increasing at order',
+  })
 const widgetValue = z.string().min(1).max(64)
 const ringRow = z.object({
   fraction: z.number().finite().min(0).max(1),
   value: widgetValue,
   states: widgetStates,
-})
-const moneyRow = z.object({ value: widgetValue, states: widgetStates })
+}).strict()
+const moneyRow = z.object({ value: widgetValue, states: widgetStates }).strict()
 
 export const widgetSnapshotBody = z.object({
   until: z.number().int(),
   move: ringRow,
   routines: ringRow,
   money: moneyRow,
+}).strict().superRefine((snap, ctx) => {
+  for (const row of ['move', 'routines', 'money'] as const) {
+    if (snap[row].states.some((s) => s.at >= snap.until)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: [row, 'states'],
+        message: 'every state must begin before until',
+      })
+    }
+  }
 })

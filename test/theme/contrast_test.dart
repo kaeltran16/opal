@@ -27,14 +27,15 @@ void main() {
     final mode = c.brightness.name;
     final grounds = {'bg': c.bg, 'surface': c.surface, 'surface2': c.surface2};
 
+    // every pair below the bar, so one run names them all.
     void expectOnGrounds(Map<String, Color> colors, double min) {
-      colors.forEach((name, color) {
-        grounds.forEach((groundName, ground) {
-          final ratio = contrastRatio(color, ground);
-          expect(ratio, greaterThanOrEqualTo(min),
-              reason: '$name on $groundName is ${ratio.toStringAsFixed(2)}');
-        });
-      });
+      final short = [
+        for (final MapEntry(key: name, value: color) in colors.entries)
+          for (final MapEntry(key: groundName, value: ground) in grounds.entries)
+            if (contrastRatio(color, ground) < min)
+              '$name on $groundName is ${contrastRatio(color, ground).toStringAsFixed(2)}',
+      ];
+      expect(short, isEmpty);
     }
 
     test('$mode: state inks reach 4.5:1 on every ground', () {
@@ -73,11 +74,12 @@ void main() {
       test('$mode: ink reaches 4.5:1 on the ${phase.name} sky and hills', () {
         final p = scenePalette(phase, c.brightness);
         expect(p.sky.length, p.skyStops.length);
-        for (final ground in [...p.sky, p.far, p.mid, p.near]) {
-          final ratio = contrastRatio(c.ink, ground);
-          expect(ratio, greaterThanOrEqualTo(_text),
-              reason: '$ground is ${ratio.toStringAsFixed(2)}');
-        }
+        final short = [
+          for (final ground in [...p.sky, p.far, p.mid, p.near])
+            if (contrastRatio(c.ink, ground) < _text)
+              '$ground is ${contrastRatio(c.ink, ground).toStringAsFixed(2)}',
+        ];
+        expect(short, isEmpty);
       });
     }
   }

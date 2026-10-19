@@ -2,7 +2,9 @@ import 'dart:math' as math;
 
 import 'package:flutter/widgets.dart';
 
+import '../analysis/area_state.dart';
 import '../theme/theme.dart';
+import 'state_colors.dart';
 
 const int _days = 7;
 const List<String> _letters = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
@@ -13,7 +15,8 @@ const double _dash = 3;
 const double _dashGap = 3;
 
 /// A week of daily values against a goal, Monday first. A null value is a day
-/// with nothing recorded, which includes the days still to come.
+/// with nothing recorded, which includes the days still to come. A day's [off]
+/// state colours its bar; null while it is on track.
 class WeekBars extends StatelessWidget {
   const WeekBars({
     super.key,
@@ -25,7 +28,7 @@ class WeekBars extends StatelessWidget {
   });
 
   final List<double?> values;
-  final List<bool> off;
+  final List<AreaState?> off;
   final int todayIndex;
   final double goal;
   final String semanticLabel;
@@ -41,7 +44,8 @@ class WeekBars extends StatelessWidget {
     Color fill(int i) {
       if (values[i] == null) return c.track;
       if (i == todayIndex) return c.ink;
-      return off[i] ? c.watch : c.ink3;
+      final state = off[i];
+      return state == null ? c.ink3 : c.arcFor(state);
     }
 
     return Semantics(

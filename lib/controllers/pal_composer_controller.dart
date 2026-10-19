@@ -127,26 +127,27 @@ class PalComposerController extends _$PalComposerController {
   /// structured [payload] and Pal is unreachable, logs the entry locally
   /// (exactly like the New Entry sheet) instead of just failing — so the
   /// composer's quick-logs work offline. Open-prompt chips ([payload] null)
-  /// fall back to the graceful failure message.
-  Future<void> sendStarter(String label, StarterEntry? payload) async {
+  /// fall back to the graceful failure message. [about] rides on the message
+  /// for Pal only, as a seed's does.
+  Future<void> sendStarter(String label, StarterEntry? payload, {String? about}) async {
     final trimmed = label.trim();
     if (trimmed.isEmpty || state.isLoading) return;
 
     final history = state.messages;
+    final note = about?.trim();
+    final message = PalMessage(
+      role: PalRole.user,
+      text: trimmed,
+      timestamp: clock.now(),
+      note: note == null || note.isEmpty ? null : note,
+    );
     state = state.copyWith(
-      messages: [
-        ...history,
-        PalMessage(
-          role: PalRole.user,
-          text: trimmed,
-          timestamp: clock.now(),
-        ),
-      ],
+      messages: [...history, message],
       isLoading: true,
       expanded: true,
     );
 
-    await _reply(history, trimmed, payload: payload);
+    await _reply(history, message.modelText, payload: payload);
   }
 
   /// Calls [PalService.chat] with [history] + [message] and appends the reply.

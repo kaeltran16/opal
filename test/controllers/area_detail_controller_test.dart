@@ -186,7 +186,7 @@ void main() {
           ['${_usd(38)} of ${_usd(60)}', _usd(20), _usd(12), _usd(4)]);
       expect(d.contributors[0].fraction, closeTo(38 / 60, 1e-9));
       expect(d.contributors[1].fraction, closeTo(20 / 38, 1e-9));
-      expect(d.contributors.any((c) => c.off), isFalse);
+      expect(d.contributors.any((c) => c.off != null), isFalse);
       expect(d.days.single.entries, hasLength(4));
     });
 
@@ -214,7 +214,7 @@ void main() {
       expect(d.unit, 'over ${_usd(60)} today');
       expect(d.state, AreaState.care);
       expect(d.palLine, 'Over budget. Hold spending for the rest of today.');
-      expect(d.contributors.first.off, isTrue);
+      expect(d.contributors.first.off, AreaState.care);
       expect(d.contributors.first.fraction, 1);
       expect(d.contributors.first.value, '${_usd(65)} of ${_usd(60)}');
     });
@@ -250,9 +250,10 @@ void main() {
       expect(d.week.map((b) => b.value), [48, 61, 35, 65, null, null, null]);
       expect(d.week.map((b) => b.today),
           [false, false, false, true, false, false, false]);
-      // spend only grows, so today over budget stays over
-      expect(d.week.map((b) => b.off),
-          [false, true, false, true, false, false, false]);
+      // spend only grows, so today over budget stays over; over budget is
+      // Needs care, as the hero's state word says.
+      const care = AreaState.care;
+      expect(d.week.map((b) => b.off), [null, care, null, care, null, null, null]);
       expect(d.weekNote, '2 days over budget');
     });
 
@@ -297,8 +298,8 @@ void main() {
       expect(d.contributors[1].fraction, 0);
 
       expect(d.week.map((b) => b.value), [520, 380, 200, 310, null, null, null]);
-      expect(d.week.map((b) => b.off),
-          [false, true, true, false, false, false, false]);
+      const watch = AreaState.watch;
+      expect(d.week.map((b) => b.off), [null, watch, watch, null, null, null, null]);
       expect(d.weekNote, '2 days under goal');
     });
 
@@ -423,7 +424,7 @@ void main() {
       expect(d.contributors.map((c) => (c.label, c.value)),
           [('In bed', '7h 30m'), ('Deep', '1h 4m'), ('REM', '1h 38m')]);
       expect(d.week.map((b) => b.value), [null, 450, 355, 432, null, null, null]);
-      expect(d.week.map((b) => b.off), [false, false, true, false, false, false, false]);
+      expect(d.week.map((b) => b.off), [null, null, AreaState.watch, null, null, null, null]);
       expect(d.weekNote, '1 short night');
     });
 
@@ -565,8 +566,8 @@ void main() {
       );
 
       expect(d.week.map((b) => b.value), [4, 2, 0, 1, null, null, null]);
-      expect(d.week.map((b) => b.off),
-          [false, true, true, false, false, false, false]);
+      const watch = AreaState.watch;
+      expect(d.week.map((b) => b.off), [null, watch, watch, null, null, null, null]);
       expect(d.weekNote, '2 days missed');
     });
 
@@ -683,10 +684,10 @@ void main() {
         closeTo(568 / 1097, 1e-9),
         closeTo(297 / 1097, 1e-9),
       ]);
-      expect(d.contributors.any((c) => c.off), isFalse);
+      expect(d.contributors.any((c) => c.off != null), isFalse);
 
       expect(d.week.map((b) => b.value), [0, 1200, 0, 1070, null, null, null]);
-      expect(d.week.any((b) => b.off), isFalse);
+      expect(d.week.any((b) => b.off != null), isFalse);
       expect(d.goal, 0);
       expect(d.goalLabel, '');
       expect(d.weekNote, 'Kcal eaten each day');
@@ -735,7 +736,7 @@ void main() {
       );
       expect(d.week.map((b) => b.value),
           [null, null, closeTo(0.4, 1e-9), closeTo(0.7, 1e-9), null, null, null]);
-      expect(d.week.any((b) => b.off), isFalse);
+      expect(d.week.any((b) => b.off != null), isFalse);
       expect(d.goal, 0);
       expect(d.goalLabel, '');
       expect(d.weekNote, 'Average of each day');

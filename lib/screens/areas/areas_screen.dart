@@ -37,7 +37,6 @@ const double _palTop = Spacing.sm;
 const double _palIcon = 16;
 // lines the icon up with the first line of the text beside it.
 const double _palIconTop = 2;
-const double _palLineHeight = 20 / 15;
 const double _alsoTrackedTop = Spacing.xl;
 
 const double _cardPadding = 14;
@@ -46,7 +45,6 @@ const double _cardIcon = 16;
 const double _cardNumberSize = 28;
 const double _cardNumberLine = 34;
 const double _cardNumberTracking = -0.6;
-const double _cardWordLine = 16 / 12;
 const double _hairline = 1;
 
 const double _barTop = 6;
@@ -54,8 +52,6 @@ const double _barHeight = 10;
 const double _barTrack = 4;
 const double _barDot = 10;
 const double _dotRing = 2;
-const double _captionTracking = 0.3;
-const double _captionLineHeight = 16 / 12;
 const List<FontFeature> _tabular = [FontFeature.tabularFigures()];
 
 /// The ruled areas drawn as rings, outer first. The rest are `Also tracked`.
@@ -222,7 +218,7 @@ class _AreasBody extends StatelessWidget {
               const SizedBox(width: _labelGap),
               Expanded(
                 child: Text(summary.palLine,
-                    style: AppType.subhead.copyWith(color: c.ink2, height: _palLineHeight)),
+                    style: AppType.subhead.copyWith(color: c.ink2)),
               ),
             ],
           ),
@@ -239,8 +235,7 @@ class _AreasBody extends StatelessWidget {
           children: [for (final a in vitals) _VitalCard(summary: a)],
         ),
         Text(_caption,
-            style: AppType.caption.copyWith(
-                color: c.ink3, letterSpacing: _captionTracking, height: _captionLineHeight)),
+            style: AppType.caption.copyWith(color: c.ink3)),
       ],
     );
   }
@@ -248,9 +243,10 @@ class _AreasBody extends StatelessWidget {
 
 String _value(AreaSummary a) => a.number == null ? a.unit : '${a.number} ${a.unit}';
 
-/// The state word a ring's legend shows: none while simply on track.
+/// The state word a ring's legend shows: only when the area is off track. A
+/// ring past its goal says so by its arc, as the canvas draws it.
 String? _legendWord(AreaState? state) =>
-    state == null || state == AreaState.good ? null : state.word;
+    state == AreaState.watch || state == AreaState.care ? state!.word : null;
 
 /// Opens [area]'s page. go, not push: the page sits under /areas, so back
 /// pops here.
@@ -347,8 +343,7 @@ class _VitalCard extends StatelessWidget {
                 Expanded(child: Text(summary.area.title, style: label)),
                 if (state != null)
                   Text(state.word,
-                      style: AppType.caption.copyWith(
-                          color: c.wordInkFor(state), height: _cardWordLine)),
+                      style: AppType.caption.copyWith(color: c.wordInkFor(state))),
               ],
             ),
             if (number == null)
@@ -407,7 +402,10 @@ class _RangeBar extends StatelessWidget {
       height: _barHeight,
       child: LayoutBuilder(
         builder: (context, box) {
-          final w = box.maxWidth;
+          // positions run between the dot's half-widths, so a dot at either
+          // end sits on the bar instead of hanging past it.
+          final span = box.maxWidth - _barDot;
+          double x(double f) => _barDot / 2 + span * f.clamp(0.0, 1.0);
           return Stack(
             clipBehavior: Clip.none,
             children: [
@@ -415,15 +413,15 @@ class _RangeBar extends StatelessWidget {
               if (usual != null)
                 Positioned(
                   key: const ValueKey('usualBand'),
-                  left: w * usual.low,
-                  width: w * (usual.high - usual.low),
+                  left: x(usual.low),
+                  width: x(usual.high) - x(usual.low),
                   top: trackTop,
                   height: _barTrack,
                   child: pill(c.ink3),
                 ),
               Positioned(
                 key: const ValueKey('todayDot'),
-                left: w * at.clamp(0.0, 1.0) - _barDot / 2,
+                left: x(at) - _barDot / 2,
                 top: 0,
                 width: _barDot,
                 height: _barDot,

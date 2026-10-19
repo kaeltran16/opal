@@ -189,7 +189,7 @@ class _Heading extends StatelessWidget {
         header: true,
         child: Text(text,
             style: AppType.headline
-                .copyWith(color: context.colors.ink, height: 22 / 17)),
+                .copyWith(color: context.colors.ink)),
       );
 }
 
@@ -201,7 +201,7 @@ class _Findings extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final c = context.colors;
-    final quiet = AppType.subhead.copyWith(color: c.ink3, height: 20 / 15);
+    final quiet = AppType.subhead.copyWith(color: c.ink3);
     final async = ref.watch(palFindingsControllerProvider);
     if (async.hasError) {
       debugPrint('you: loading Pal findings failed: ${async.error}');
@@ -322,7 +322,7 @@ class _Lead extends StatelessWidget {
                         Expanded(
                           child: Text(f.evidence,
                               style: AppType.caption.copyWith(
-                                  color: c.ink3, height: 16 / 12, letterSpacing: 0.3)),
+                                  color: c.ink3)),
                         ),
                         const SizedBox(width: Spacing.xs),
                         AppIcon('chevron.right', size: _chevron, color: c.ink3),
@@ -363,7 +363,7 @@ class _SideBar extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(side.label,
-                    style: AppType.subhead.copyWith(color: c.ink2, height: 20 / 15)),
+                    style: AppType.subhead.copyWith(color: c.ink2)),
               ),
               const SizedBox(width: Spacing.md),
               _Value(
@@ -372,7 +372,6 @@ class _SideBar extends StatelessWidget {
                 style: AppType.subhead.copyWith(
                     color: c.ink,
                     fontWeight: FontWeight.w600,
-                    height: 20 / 15,
                     fontFeatures: const [FontFeature.tabularFigures()]),
               ),
             ],
@@ -441,11 +440,11 @@ class _AlsoSeenRow extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(f.line,
-                                style: AppType.callout.copyWith(color: c.ink, height: 22 / 16)),
+                                style: AppType.callout.copyWith(color: c.ink)),
                             const SizedBox(height: Spacing.xs),
                             Text(areas.isEmpty ? f.evidence : '$areas · ${f.evidence}',
                                 style: AppType.caption.copyWith(
-                                    color: c.ink3, height: 16 / 12, letterSpacing: 0.3)),
+                                    color: c.ink3)),
                           ],
                         ),
                       ),
@@ -512,7 +511,7 @@ class _Learning extends StatelessWidget {
           ),
           const SizedBox(height: Spacing.md),
           Text(learningBody(days, clock.now()),
-              style: AppType.subhead.copyWith(color: c.ink2, height: 20 / 15)),
+              style: AppType.subhead.copyWith(color: c.ink2)),
           const SizedBox(height: Spacing.md + Spacing.sm),
           Semantics(
             container: true,
@@ -525,7 +524,7 @@ class _Learning extends StatelessWidget {
                 const SizedBox(height: Spacing.sm),
                 Text('$shown of $kMinPairedDays days',
                     style: AppType.caption
-                        .copyWith(color: c.ink3, height: 16 / 12, letterSpacing: 0.3)),
+                        .copyWith(color: c.ink3)),
               ],
             ),
           ),
@@ -586,10 +585,10 @@ class _SuggestionRow extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(item.title, style: AppType.callout.copyWith(color: c.ink, height: 22 / 16)),
+          Text(item.title, style: AppType.callout.copyWith(color: c.ink)),
           if (said != null && said.isNotEmpty) ...[
             const SizedBox(height: Spacing.xs),
-            Text(said, style: AppType.subhead.copyWith(color: c.ink2, height: 20 / 15)),
+            Text(said, style: AppType.subhead.copyWith(color: c.ink2)),
           ],
           Wrap(
             spacing: Spacing.xl,
@@ -671,7 +670,7 @@ class _LinkRow extends StatelessWidget {
               children: [
                 Expanded(
                   child: Text(title,
-                      style: AppType.callout.copyWith(color: c.ink, height: 22 / 16)),
+                      style: AppType.callout.copyWith(color: c.ink)),
                 ),
                 if (value.isNotEmpty) ...[
                   const SizedBox(width: Spacing.md),

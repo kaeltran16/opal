@@ -226,7 +226,8 @@ Oura's faces are licensed and are not bundled. Substitutes:
 - Nested, 152px, 16px stroke, radii 68 and 48, round caps, starting at 12 o'clock. Colours per
   section 3.
 - A legend beside the rings, one row per ring: swatch, area name in `label` `ink2`, the state
-  word when off track or ahead, then the value in `headline` weight 400 (`310 of 500 kcal`).
+  word only when Worth watching or Needs care (a ring past its goal shows no word; its arc
+  says so), then the value in `headline` weight 400 (`310 of 500 kcal`).
   Each row opens that area's page.
 - The arc always draws the same fraction the value states.
 - Under the rings, one `subhead` line from Pal naming what is off ("Money and sleep are worth
@@ -343,8 +344,9 @@ Applied in `lib/theme/`. Each row names what was done.
      sending you there, and every other path costs more than one tap. Nutrition is the one
      contender: it stays off the bar unless logging through the composer proves slow in use.
    - Where everything else lives:
-     - **Today:** the day plan. The routine player and the evening close-out open from the
-       action card; Sleep and Mood from their timeline rows.
+     - **Today:** the day plan. The routine player, the evening close-out and the mood
+       logger open from the action card and from their Your day rows. Today has no Sleep
+       row; Sleep and Mood pages open from Areas.
      - **Areas:** a page per area (Money, Move, Routines, Nutrition, Sleep, Mood). Nutrition's
        page lists today's meals, each opening a meal detail, with "Add a meal". Routines'
        page lists today's routines and ends with "Manage routines". Spending detail sits

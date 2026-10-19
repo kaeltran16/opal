@@ -267,6 +267,9 @@ const _home = 'home';
 const _palLatency = Duration(seconds: 1);
 
 /// Pumps the detail screen as a route pushed over [_home], so it can pop.
+/// The mock Pal's note latency, and a little more.
+const _noteLatency = Duration(seconds: 1);
+
 Future<void> _pumpDetail(WidgetTester tester, LoopDatabase db,
     {String workoutId = _workoutId}) async {
   SharedPreferences.setMockInitialValues({});
@@ -323,6 +326,8 @@ Future<bool> _stillThere(WidgetTester tester, LoopDatabase db) async {
 /// Unmounts and flushes drift's zero-duration stream cleanup timer so the
 /// teardown timer check passes.
 Future<void> _unmount(WidgetTester tester) async {
+  // a scroll can build the Pal note's section late; let its latency run out.
+  await tester.pump(_noteLatency);
   await tester.pumpWidget(const SizedBox());
   await tester.pump(Duration.zero);
 }

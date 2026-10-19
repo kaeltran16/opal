@@ -8,14 +8,16 @@ import 'app_text.dart';
 class AppType {
   AppType._();
 
-  static final TextStyle caption = AppFonts.sf(size: 12);
-  static final TextStyle subhead = AppFonts.sf(size: 15, letterSpacing: -0.23);
-  static final TextStyle callout = AppFonts.sf(size: 16);
-  static final TextStyle body = AppFonts.sf(size: 17, letterSpacing: -0.43);
-  static final TextStyle headline =
-      AppFonts.sf(size: 17, weight: FontWeight.w600, letterSpacing: -0.43);
-
   // DESIGN.md section 4. large numbers are light; emphasis comes from size.
+  static final TextStyle caption =
+      AppFonts.sf(size: 12, letterSpacing: 0.3, height: 16 / 12);
+  static final TextStyle subhead =
+      AppFonts.sf(size: 15, letterSpacing: -0.23, height: 20 / 15);
+  static final TextStyle callout = AppFonts.sf(size: 16, height: 22 / 16);
+  static final TextStyle body =
+      AppFonts.sf(size: 17, letterSpacing: -0.43, height: 24 / 17);
+  static final TextStyle headline = AppFonts.sf(
+      size: 17, weight: FontWeight.w600, letterSpacing: -0.43, height: 22 / 17);
   static final TextStyle display = AppFonts.sf(
       size: 64, weight: FontWeight.w300, letterSpacing: -1.6, height: 68 / 64, tabular: true);
   static final TextStyle score = AppFonts.sf(

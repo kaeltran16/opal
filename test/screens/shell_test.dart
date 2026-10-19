@@ -248,6 +248,22 @@ void main() {
     await flushProviderTimers(tester);
   });
 
+  testWidgets('on You the ask bar asks about patterns, and back on Today it does not',
+      (tester) async {
+    await bootApp(tester);
+    await tester.tap(_tab('You'));
+    await tester.pumpAndSettle();
+
+    expect(find.bySemanticsLabel('Ask about your patterns'), findsOneWidget);
+    expect(find.bySemanticsLabel('Tell Pal anything'), findsNothing);
+
+    await tester.tap(_tab('Today'));
+    await tester.pumpAndSettle();
+    expect(find.bySemanticsLabel('Tell Pal anything'), findsOneWidget);
+
+    await flushProviderTimers(tester);
+  });
+
   testWidgets('the Areas tab shows a watch dot when Money is worth watching',
       (tester) async {
     await _bootWith(tester, Stream.value(_areas(spent: 50)));

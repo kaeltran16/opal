@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import '../../analysis/area.dart';
 import '../../analysis/spend_habits.dart' show HabitPick;
 import '../../controllers/pal_composer_controller.dart';
+import '../../controllers/pal_findings_controller.dart';
 import '../../controllers/pal_suggestions_controller.dart';
 import '../../controllers/providers.dart';
 import '../../controllers/spend_habits_controller.dart';
@@ -18,6 +19,7 @@ import '../../services/services.dart';
 import '../../theme/theme.dart';
 import '../../util/format.dart';
 import '../../widgets/app_icon.dart';
+import '../../widgets/pal_ask_bar.dart' show isYouPath, palPlaceholderFor;
 import '../../widgets/pal_label.dart';
 import '../../widgets/press_scale.dart';
 import 'pal_composer_turns.dart';
@@ -37,6 +39,7 @@ const double _sendGlyph = 20;
 const double _pillPadV = 10;
 const double _skeletonLine = 15;
 const int _maxHabitStarters = 2;
+const int _maxFindingStarters = 3;
 const Duration _resize = Duration(milliseconds: 260);
 const Duration _scroll = Duration(milliseconds: 250);
 const Cubic _resizeCurve = Cubic(0.22, 1, 0.36, 1);
@@ -166,7 +169,7 @@ class _PalComposerSheetState extends ConsumerState<PalComposerSheet> {
   }
 
   void _sendStarter(_Starter starter) {
-    _controller.sendStarter(starter.label, starter.payload);
+    _controller.sendStarter(starter.label, starter.payload, about: starter.about);
     _scrollToBottomSoon();
   }
 
@@ -255,6 +258,7 @@ class _PalComposerSheetState extends ConsumerState<PalComposerSheet> {
                   else
                     Flexible(
                       child: _IdleBody(
+                        onYou: isYouPath(widget.from),
                         onStartWorkout: _startWorkout,
                         onSendStarter: _sendStarter,
                       ),
@@ -267,7 +271,7 @@ class _PalComposerSheetState extends ConsumerState<PalComposerSheet> {
                         ? 'Allow the mic and speech recognition in Settings'
                         : expanded
                             ? 'Ask a follow-up'
-                            : 'Tell Pal anything',
+                            : palPlaceholderFor(widget.from),
                     canSend: !state.isLoading && _inputCtrl.text.trim().isNotEmpty,
                     enabled: !state.isLoading,
                     onSend: () => _send(_inputCtrl.text),
@@ -368,8 +372,11 @@ class _ContextChip extends StatelessWidget {
 /// log around now, then Pal's starters, or the static ones when Pal has none.
 /// Shown until anything is sent.
 class _IdleBody extends ConsumerWidget {
-  const _IdleBody({required this.onStartWorkout, required this.onSendStarter});
+  const _IdleBody({required this.onYou, required this.onStartWorkout, required this.onSendStarter});
 
+  /// Opened from You or a sub-screen of it, where the starters are Pal's
+  /// findings' own questions while there are any.
+  final bool onYou;
   final VoidCallback onStartWorkout;
   final ValueChanged<_Starter> onSendStarter;
 
@@ -389,7 +396,16 @@ class _IdleBody extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final c = context.colors;
+    final findings = onYou ? ref.watch(palFindingsControllerProvider).asData?.value : null;
+    if (findings != null && findings.isNotEmpty) {
+      return _StarterList(children: [
+        for (final f in findings.take(_maxFindingStarters))
+          _Pill(
+            label: f.question,
+            onTap: () => onSendStarter(_Starter(f.question, about: f.palNote)),
+          ),
+      ]);
+    }
     final currency = ref.watch(appSettingsControllerProvider.select((s) => s.currency));
     // once today's workout is settled, Pal's pick would be a second session.
     final settled =
@@ -425,6 +441,30 @@ class _IdleBody extends ConsumerWidget {
     };
     bool untaken(_Starter s) =>
         s.payload == null || !taken.contains(s.payload!.title.trim().toLowerCase());
+    return _StarterList(children: [
+      _Pill(
+        label: pick == null ? 'Start a workout' : 'Start ${pick.title}',
+        onTap: onStartWorkout,
+      ),
+      for (final starter in predicted)
+        _Pill(label: starter.label, onTap: () => onSendStarter(starter)),
+      if (loading)
+        const _StarterSkeletons(key: Key('starter-skeleton'))
+      else
+        for (final starter in (palStarters ?? _starters(currency)).where(untaken))
+          _Pill(label: starter.label, onTap: () => onSendStarter(starter)),
+    ]);
+  }
+}
+
+/// `You could ask`, then the starters.
+class _StarterList extends StatelessWidget {
+  const _StarterList({required this.children});
+
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -432,19 +472,9 @@ class _IdleBody extends ConsumerWidget {
         children: [
           Padding(
             padding: const EdgeInsets.only(bottom: Spacing.xs),
-            child: Text('You could ask', style: AppType.label.copyWith(color: c.ink3)),
+            child: Text('You could ask', style: AppType.label.copyWith(color: context.colors.ink3)),
           ),
-          _Pill(
-            label: pick == null ? 'Start a workout' : 'Start ${pick.title}',
-            onTap: onStartWorkout,
-          ),
-          for (final starter in predicted)
-            _Pill(label: starter.label, onTap: () => onSendStarter(starter)),
-          if (loading)
-            const _StarterSkeletons(key: Key('starter-skeleton'))
-          else
-            for (final starter in (palStarters ?? _starters(currency)).where(untaken))
-              _Pill(label: starter.label, onTap: () => onSendStarter(starter)),
+          ...children,
         ],
       ),
     );
@@ -452,9 +482,12 @@ class _IdleBody extends ConsumerWidget {
 }
 
 class _Starter {
-  const _Starter(this.label, {this.payload});
+  const _Starter(this.label, {this.payload, this.about});
 
   final String label;
+
+  /// Context for Pal only, as a seed's [PalComposerSheet.about] is.
+  final String? about;
 
   /// Logged locally when Pal is offline. Null for open prompts, which have
   /// nothing to log.

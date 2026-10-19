@@ -19,7 +19,6 @@ const double _rowMinHeight = 48;
 const double _hairline = 1;
 const double _rowIcon = 20;
 const double _stepIcon = 16;
-const double _rowLineHeight = 22 / 16;
 const double _disabledOpacity = 0.4;
 const int _moveStep = 50;
 const int _moveMax = 5000;
@@ -199,7 +198,7 @@ class _StepperRow extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(label,
-                      style: AppType.callout.copyWith(color: c.ink, height: _rowLineHeight)),
+                      style: AppType.callout.copyWith(color: c.ink)),
                   Text(value,
                       style: AppType.subhead.copyWith(color: c.ink2, fontFeatures: _tabular)),
                 ],

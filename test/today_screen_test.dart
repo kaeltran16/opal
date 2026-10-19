@@ -17,7 +17,7 @@ import 'package:opal/screens/rituals/routine_player_screen.dart';
 import 'package:opal/screens/shell/plan_undo_toast.dart';
 import 'package:opal/screens/today/today_screen.dart';
 import 'package:opal/models/models.dart'
-    show RitualRoutine, RitualTone;
+    show Goals, RitualRoutine, RitualTone;
 import 'package:opal/screens/workout/start_workout_screen.dart';
 import 'package:opal/services/pal/pal_service.dart';
 import 'package:opal/theme/theme.dart';
@@ -498,7 +498,11 @@ void main() {
     });
 
     _todayTest('a meal', (tester) async {
-      await _boot(tester, day: const TodayDay(routines: [], workout: false, mood: true));
+      // the meal nudge rides along a planned day, so a put-off proposal plans it.
+      await _boot(tester,
+          day: const TodayDay(routines: [], workout: false, mood: true),
+          pal: TodayPal(proposals: [proposal('a', 'Rent auto-pays')]));
+      await _tap(tester, _onCard(find.text('Not now')));
 
       // the card's title and its pill read the same.
       await _tap(tester, _onCard(find.text('Log a meal')).last);
@@ -567,12 +571,35 @@ void main() {
     });
   });
 
-  _todayTest('an empty day ends on the all-done card with no buttons or Why, the put-offs listed',
+  _todayTest('an empty day asks only for the mood check-in', (tester) async {
+    await _boot(tester, day: const TodayDay.empty());
+
+    expect(_card('Mood check-in'), findsOneWidget);
+    expect(find.text('· 0 of 1 done'), findsOneWidget);
+    expect(_row('Log a meal'), findsNothing);
+  });
+
+  _todayTest('an empty day with the check-in done is all done, 1 of 1', (tester) async {
+    await _boot(tester,
+        day: const TodayDay(
+          goals: Goals(dailyBudget: 0, dailyMoveKcal: 0, dailyRitualTarget: 0),
+          routines: [],
+          workout: false,
+          receipt: false,
+          sleep: false,
+          moveKcal: 0,
+          mood: true,
+        ));
+
+    expect(_card('All done'), findsOneWidget);
+    expect(find.text('· 1 of 1 done'), findsOneWidget);
+    expect(_lead('Nothing is left. Rest up.'), findsOneWidget);
+  });
+
+  _todayTest('an empty day ends on the all-done card with no buttons or Why, the put-off listed',
       (tester) async {
     await _boot(tester, day: const TodayDay.empty());
 
-    // with nothing set up, the mood check-in and a meal are all that is asked.
-    await _tap(tester, _onCard(find.text('Not today')));
     await _tap(tester, _onCard(find.text('Not today')));
 
     expect(_card('All done'), findsOneWidget);
@@ -581,7 +608,7 @@ void main() {
     expect(tester.widget<AppIcon>(_onCard(find.byType(AppIcon))).name, 'checkmark');
     expect(_lead('Nothing is left. Rest up.'), findsOneWidget);
     expect(_onCard(find.text('Not today')), findsNothing);
-    expect(find.bySemanticsLabel(RegExp(r'^Bring back: ')), findsNWidgets(2));
+    expect(find.bySemanticsLabel(RegExp(r'^Bring back: ')), findsOneWidget);
     expect(_why(), findsNothing);
     expect(tester.takeException(), isNull);
   });
@@ -635,13 +662,6 @@ void main() {
       (tester) async {
     tester.platformDispatcher.textScaleFactorTestValue = 2.0;
     addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
-    // only Today's own layout is under test; the shell's tab bar is not.
-    final inner = FlutterError.onError;
-    FlutterError.onError = (details) {
-      final overflow = details.exception.toString().contains('A RenderFlex overflowed');
-      if (overflow && !details.toString().contains('today_screen.dart')) return;
-      inner?.call(details);
-    };
     const longLine = 'Rent is due Monday and forty dollars short, so hold it now and '
         'the evening stays clear for the long walk and an early night.';
     await _boot(

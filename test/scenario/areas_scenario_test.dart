@@ -212,10 +212,10 @@ void main() {
     expect(_onAreas(find.text('Money is worth a look.')), findsOneWidget);
     _expectTabDot(tester, AreaState.care);
     _expectBars(3, 3);
-    // over budget, nothing is left: the dot sits at the bar's start.
+    // over budget, nothing is left: the dot sits at the bar's start, on it.
     final moneyDot = find.descendant(
         of: _card('Money'), matching: find.byKey(const ValueKey('todayDot')));
-    expect(tester.getCenter(moneyDot).dx, closeTo(tester.getTopLeft(_card('Money')).dx, 1));
+    expect(tester.getTopLeft(moneyDot).dx, closeTo(tester.getTopLeft(_card('Money')).dx, 1));
     await shot(tester, 'areas_money_over_budget_${_theme(dark)}');
   });
 

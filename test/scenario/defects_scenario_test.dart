@@ -12,7 +12,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:opal/analysis/area_state.dart';
 import 'package:opal/app.dart';
 import 'package:opal/controllers/plan_session_controller.dart';
 import 'package:opal/controllers/providers.dart';
@@ -326,7 +325,7 @@ void main() {
     await bootToday(tester, dark: dark, day: _fullAndEmpty);
     await _toAreas(tester);
     final card =
-        find.bySemanticsLabel('Routines, 1 of 1 done, ${AreaState.thriving.word}. Open Routines');
+        find.bySemanticsLabel('Routines, 1 of 1 done. Open Routines');
     await _settle(tester, card);
     expect(card, findsOneWidget);
     await _openRoutinesArea(tester);

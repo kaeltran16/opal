@@ -39,10 +39,6 @@ const _pillHeight = 48.0;
 const _skipTop = 4.0;
 const _skipHeight = 48.0;
 const _ritualTarget = 5;
-const _captionTracking = 0.3;
-const _bodyLeading = 24 / 17;
-const _nameLeading = 22 / 16;
-const _detailLeading = 20 / 15;
 const List<FontFeature> _tabular = [FontFeature.tabularFigures()];
 
 const _stepCount = 4;
@@ -161,8 +157,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text('${step + 1} of $_stepCount',
-                style: AppType.caption.copyWith(
-                    color: c.ink3, letterSpacing: _captionTracking, fontFeatures: _tabular)),
+                style: AppType.caption.copyWith(color: c.ink3, fontFeatures: _tabular)),
             const SizedBox(height: _barGap),
             ProgressBar(value: (step + 1) / _stepCount, color: c.ink),
             Expanded(
@@ -271,7 +266,7 @@ class _Lead extends StatelessWidget {
               child: Text(title, style: AppType.lead.copyWith(color: c.ink)),
             ),
           ),
-          Text(body, style: AppType.body.copyWith(color: c.ink2, height: _bodyLeading)),
+          Text(body, style: AppType.body.copyWith(color: c.ink2)),
         ],
       ),
     );
@@ -375,11 +370,11 @@ class _RoutineRow extends StatelessWidget {
                 spacing: _rowTextGap,
                 children: [
                   Text(routine.name,
-                      style: AppType.callout.copyWith(color: c.ink, height: _nameLeading)),
+                      style: AppType.callout.copyWith(color: c.ink)),
                   Text(
                     '${routine.time} · ${_stepCountLabel(routine.steps.length)}',
                     style: AppType.subhead.copyWith(
-                        color: c.ink3, height: _detailLeading, fontFeatures: _tabular),
+                        color: c.ink3, fontFeatures: _tabular),
                   ),
                 ],
               ),

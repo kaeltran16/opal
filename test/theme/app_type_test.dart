@@ -32,16 +32,12 @@ void _expectRole(
 }
 
 void main() {
-  test('the kept roles keep their sizes', () {
-    expect(AppType.caption.fontSize, 12);
-    expect(AppType.subhead.fontSize, 15);
-    expect(AppType.callout.fontSize, 16);
-    expect(AppType.body.fontSize, 17);
-    expect(AppType.headline.fontSize, 17);
-    expect(AppType.headline.fontWeight, FontWeight.w600);
-  });
-
-  test('the DESIGN.md section 4 roles have the exact metrics', () {
+  test('every DESIGN.md section 4 role has the exact metrics', () {
+    _expectRole(AppType.caption, size: 12, line: 16, weight: FontWeight.w400, tracking: 0.3);
+    _expectRole(AppType.subhead, size: 15, line: 20, weight: FontWeight.w400, tracking: -0.23);
+    _expectRole(AppType.callout, size: 16, line: 22, weight: FontWeight.w400, tracking: 0);
+    _expectRole(AppType.body, size: 17, line: 24, weight: FontWeight.w400, tracking: -0.43);
+    _expectRole(AppType.headline, size: 17, line: 22, weight: FontWeight.w600, tracking: -0.43);
     _expectRole(AppType.display, size: 64, line: 68, weight: FontWeight.w300, tracking: -1.6);
     _expectRole(AppType.score, size: 40, line: 44, weight: FontWeight.w300, tracking: -0.8);
     _expectRole(AppType.lead, size: 30, line: 36, weight: FontWeight.w300, tracking: -0.6);
