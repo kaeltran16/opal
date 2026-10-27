@@ -46,6 +46,8 @@
 	<string>????</string>
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Opal listens while you dictate to Pal.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
