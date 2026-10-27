@@ -52,9 +52,6 @@ jobs:
 
       - name: Write API key and export options
         run: |
-          # a fresh runner lacks this dir and xcodebuild won't create it, so the
-          # profiles it fetches never land and the archive can't find them
-          mkdir -p "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles"
           printf '%s\n' "$ASC_KEY_P8" > "$RUNNER_TEMP/AuthKey.p8"
           cat > "$RUNNER_TEMP/ExportOptions.plist" <<EOF
           <?xml version="1.0" encoding="UTF-8"?>
@@ -69,6 +66,20 @@ jobs:
           </dict>
           </plist>
           EOF
+
+      # on a fresh runner the archive provisions Runner and OpalWidgets at once;
+      # the second fetch replaces the team profile the first one picked, so the
+      # widget points at a deleted file. signing the widget alone first leaves a
+      # valid profile on disk for the archive to reuse.
+      - name: Fetch signing profile
+        run: |
+          xcodebuild build \
+            -project ios/Runner.xcodeproj -target OpalWidgets -configuration Release -sdk iphoneos \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$RUNNER_TEMP/AuthKey.p8" \
+            -authenticationKeyID "$ASC_KEY_ID" \
+            -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
+            DEVELOPMENT_TEAM="$APPLE_TEAM_ID"
 
       # the version flags apply to every target so the widget's
       # CFBundleShortVersionString/CFBundleVersion match the app's
