@@ -1,0 +1,94 @@
+name: opal-ios testflight
+
+# Builds a signed release and uploads it to TestFlight, using an App Store
+# Connect API key on a borrowed Individual developer account. The key's role
+# must be Admin: xcodebuild creates the signing certificates and the profiles
+# for Runner and OpalWidgets through it (-allowProvisioningUpdates).
+#
+# The upload goes straight to App Store Connect, so unlike ios.yml there is no
+# public artifact to encrypt. The app record (bundle ID com.opal.opal) must
+# exist in App Store Connect before the upload step can succeed.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  testflight:
+    # the deployment target is iOS 26.0, so the image's Xcode must be 26+
+    runs-on: macos-26
+    timeout-minutes: 60
+    env:
+      PAL_BASE_URL: ${{ secrets.PAL_BASE_URL }}
+      PAL_PROVISIONING_KEY: ${{ secrets.PAL_PROVISIONING_KEY }}
+      ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+      ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+      ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      # testflight rejects a build number it has already seen
+      BUILD_NUMBER: ${{ github.run_number }}
+    steps:
+      - name: Require secrets
+        run: |
+          for name in PAL_BASE_URL PAL_PROVISIONING_KEY ASC_KEY_P8 ASC_KEY_ID ASC_ISSUER_ID APPLE_TEAM_ID; do
+            [[ -n "${!name}" ]] || { echo "::error::repo secret $name is not set"; exit 1; }
+          done
+
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          # same pin as app.yml
+          flutter-version: 3.44.1
+          channel: stable
+          cache: true
+
+      - run: xcodebuild -version
+
+      # reuses the AltStore script for the dart-defines, the widget xcconfig and
+      # pod install; the unsigned build it also does leaves Generated.xcconfig
+      # (with DART_DEFINES) in place for the signed archive below
+      - run: ./scripts/build_ipa.sh
+
+      - name: Write API key and export options
+        run: |
+          printf '%s\n' "$ASC_KEY_P8" > "$RUNNER_TEMP/AuthKey.p8"
+          cat > "$RUNNER_TEMP/ExportOptions.plist" <<EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key><string>app-store-connect</string>
+            <key>destination</key><string>upload</string>
+            <key>teamID</key><string>$APPLE_TEAM_ID</string>
+            <key>signingStyle</key><string>automatic</string>
+            <key>manageAppVersionAndBuildNumber</key><false/>
+          </dict>
+          </plist>
+          EOF
+
+      # the version flags apply to every target so the widget's
+      # CFBundleShortVersionString/CFBundleVersion match the app's
+      - name: Archive
+        run: |
+          BUILD_NAME="$(grep -E '^version:' pubspec.yaml | sed -E 's/version: *([^+]+).*/\1/')"
+          xcodebuild archive \
+            -workspace ios/Runner.xcworkspace -scheme Runner -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath "$RUNNER_TEMP/Runner.xcarchive" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$RUNNER_TEMP/AuthKey.p8" \
+            -authenticationKeyID "$ASC_KEY_ID" \
+            -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
+            DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
+            FLUTTER_BUILD_NAME="$BUILD_NAME" MARKETING_VERSION="$BUILD_NAME" \
+            FLUTTER_BUILD_NUMBER="$BUILD_NUMBER" CURRENT_PROJECT_VERSION="$BUILD_NUMBER"
+
+      - name: Export and upload to TestFlight
+        run: |
+          xcodebuild -exportArchive \
+            -archivePath "$RUNNER_TEMP/Runner.xcarchive" \
+            -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" \
+            -exportPath "$RUNNER_TEMP/export" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$RUNNER_TEMP/AuthKey.p8" \
+            -authenticationKeyID "$ASC_KEY_ID" \
+            -authenticationKeyIssuerID "$ASC_ISSUER_ID"
