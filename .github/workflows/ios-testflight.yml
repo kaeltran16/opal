@@ -16,6 +16,8 @@ jobs:
   testflight:
     # the deployment target is iOS 26.0, so the image's Xcode must be 26+
     runs-on: macos-26
+    # the ASC_* and APPLE_TEAM_ID secrets live in this environment, not at repo level
+    environment: ASC_KEY_P8
     timeout-minutes: 60
     env:
       PAL_BASE_URL: ${{ secrets.PAL_BASE_URL }}
