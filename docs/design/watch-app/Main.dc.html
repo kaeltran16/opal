@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Opal on Apple Watch: Pal logging</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;background:#101418}
+button{font-family:inherit;cursor:pointer}
+</style>
+</helmet>
+<div style="width: 1424px; height: 1200px; box-sizing: border-box; padding: 56px; background: #101418; color: #F7F1E8; font-family: -apple-system, 'SF Pro Text', 'Segoe UI Variable Text', system-ui, sans-serif; display: flex; flex-direction: column; gap: 40px">
+<header style="display: flex; flex-direction: column; gap: 6px">
+<h1 style="margin: 0; font-size: 28px; line-height: 34px; font-weight: 500; letter-spacing: -0.4px">Pal logging on Apple Watch SE 3</h1>
+<p style="margin: 0; font-size: 15px; line-height: 20px; color: #A8A5A0">44 mm screen, 184 × 224 pt, drawn at 1.5×. Every result screen has the same shape: what happened, the thing itself, its detail, then the one action in the same spot at the bottom.</p>
+</header>
+
+<div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 56px 48px">
+
+<figure style="margin: 0; width: 292px; display: flex; flex-direction: column; gap: 14px">
+<div style="position: relative; width: 292px; height: 352px">
+<div style="position: absolute; right: -7px; top: 96px; width: 10px; height: 38px; border-radius: 4px; background: #2C2C2E"></div>
+<div style="position: absolute; right: -4px; top: 176px; width: 6px; height: 50px; border-radius: 3px; background: #2C2C2E"></div>
+<div style="position: relative; width: 292px; height: 352px; box-sizing: border-box; padding: 8px; border-radius: 66px; background: #1C1C1E">
+<div style="width: 276px; height: 336px; border-radius: 58px; background: #000000; overflow: hidden">
+<div style="width: 184px; height: 224px; transform: scale(1.5); transform-origin: 0 0; box-sizing: border-box; padding: 8px 14px 14px; display: flex; flex-direction: column">
+<div style="display: flex; justify-content: space-between; align-items: center; height: 20px; font-size: 15px; font-weight: 600; color: #F7F1E8">Pal<span style="color: #D3D1CE; font-weight: 500; font-variant-numeric: tabular-nums">9:41</span></div>
+<div style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px">
+<button aria-label="Dictate to Pal" style="width: 88px; height: 88px; border-radius: 999px; border: none; padding: 0; background: #F7F1E8; display: flex; align-items: center; justify-content: center">
+<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#101418" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5 11a7 7 0 0 0 14 0"></path><path d="M12 18v3"></path></svg>
+</button>
+<div style="font-size: 13px; line-height: 18px; color: #A8A5A0">Tell Pal anything</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<figcaption style="font-size: 14px; line-height: 20px; color: #A8A5A0"><span style="color: #F7F1E8; font-weight: 600">1 · Ready.</span> One tap starts dictation. A complication on the watch face can open straight here.</figcaption>
+</figure>
+
+<figure style="margin: 0; width: 292px; display: flex; flex-direction: column; gap: 14px">
+<div style="position: relative; width: 292px; height: 352px">
+<div style="position: absolute; right: -7px; top: 96px; width: 10px; height: 38px; border-radius: 4px; background: #2C2C2E"></div>
+<div style="position: absolute; right: -4px; top: 176px; width: 6px; height: 50px; border-radius: 3px; background: #2C2C2E"></div>
+<div style="position: relative; width: 292px; height: 352px; box-sizing: border-box; padding: 8px; border-radius: 66px; background: #1C1C1E">
+<div style="width: 276px; height: 336px; border-radius: 58px; background: #000000; overflow: hidden">
+<div style="width: 184px; height: 224px; transform: scale(1.5); transform-origin: 0 0; box-sizing: border-box; padding: 8px 14px 14px; display: flex; flex-direction: column">
+<div style="display: flex; justify-content: space-between; align-items: center; height: 20px; font-size: 15px; font-weight: 600; color: #F7F1E8">Pal<span style="color: #D3D1CE; font-weight: 500; font-variant-numeric: tabular-nums">9:41</span></div>
+<div style="flex-grow: 1; margin-top: 8px; box-sizing: border-box; border: 1px dashed #5A5958; border-radius: 16px; padding: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; text-align: center">
+<div style="font-size: 15px; line-height: 20px; color: #D3D1CE">Apple's dictation</div>
+<div style="font-size: 12px; line-height: 16px; color: #A8A5A0">watchOS draws this screen. Opal gets the text once you finish.</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<figcaption style="font-size: 14px; line-height: 20px; color: #A8A5A0"><span style="color: #F7F1E8; font-weight: 600">2 · Dictation.</span> System UI, not ours to style. Shown so the flow reads end to end.</figcaption>
+</figure>
+
+<figure style="margin: 0; width: 292px; display: flex; flex-direction: column; gap: 14px">
+<div style="position: relative; width: 292px; height: 352px">
+<div style="position: absolute; right: -7px; top: 96px; width: 10px; height: 38px; border-radius: 4px; background: #2C2C2E"></div>
+<div style="position: absolute; right: -4px; top: 176px; width: 6px; height: 50px; border-radius: 3px; background: #2C2C2E"></div>
+<div style="position: relative; width: 292px; height: 352px; box-sizing: border-box; padding: 8px; border-radius: 66px; background: #1C1C1E">
+<div style="width: 276px; height: 336px; border-radius: 58px; background: #000000; overflow: hidden">
+<div style="width: 184px; height: 224px; transform: scale(1.5); transform-origin: 0 0; box-sizing: border-box; padding: 8px 14px 14px; display: flex; flex-direction: column">
+<div style="display: flex; justify-content: space-between; align-items: center; height: 20px; font-size: 15px; font-weight: 600; color: #F7F1E8">Pal<span style="color: #D3D1CE; font-weight: 500; font-variant-numeric: tabular-nums">9:41</span></div>
+<div style="margin-top: 8px; display: flex; align-items: center; gap: 6px; height: 20px; font-size: 12px; color: #A8A5A0">You said</div>
+<div style="margin-top: 4px; font-size: 17px; line-height: 22px; color: #F7F1E8">Coffee with Minh, 4.50</div>
+<div style="margin-top: auto; height: 38px; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 13px; color: #A8A5A0">
+<svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="#39424A" stroke-width="3"></circle><path d="M12 3a9 9 0 0 1 9 9" fill="none" stroke="#F7F1E8" stroke-width="3" stroke-linecap="round"></path></svg>
+Logging on your iPhone
+</div>
+</div>
+</div>
+</div>
+</div>
+<figcaption style="font-size: 14px; line-height: 20px; color: #A8A5A0"><span style="color: #F7F1E8; font-weight: 600">3 · Sending.</span> Your words stay on screen. The progress sits where Undo will land, so nothing jumps when it arrives.</figcaption>
+</figure>
+
+<figure style="margin: 0; width: 292px; display: flex; flex-direction: column; gap: 14px">
+<div style="position: relative; width: 292px; height: 352px">
+<div style="position: absolute; right: -7px; top: 96px; width: 10px; height: 38px; border-radius: 4px; background: #2C2C2E"></div>
+<div style="position: absolute; right: -4px; top: 176px; width: 6px; height: 50px; border-radius: 3px; background: #2C2C2E"></div>
+<div style="position: relative; width: 292px; height: 352px; box-sizing: border-box; padding: 8px; border-radius: 66px; background: #1C1C1E">
+<div style="width: 276px; height: 336px; border-radius: 58px; background: #000000; overflow: hidden">
+<div style="width: 184px; height: 224px; transform: scale(1.5); transform-origin: 0 0; box-sizing: border-box; padding: 8px 14px 14px; display: flex; flex-direction: column">
+<div style="display: flex; justify-content: space-between; align-items: center; height: 20px; font-size: 15px; font-weight: 600; color: #F7F1E8">Pal<span style="color: #D3D1CE; font-weight: 500; font-variant-numeric: tabular-nums">9:41</span></div>
+<div style="margin-top: 8px; display: flex; align-items: center; gap: 6px; height: 20px; font-size: 12px; color: #A8A5A0"><span style="width: 20px; height: 20px; border-radius: 999px; background: #242A30; display: flex; align-items: center; justify-content: center"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#F7F1E8" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></span>Logged</div>
+<div style="margin-top: 4px; font-size: 17px; line-height: 22px; font-weight: 600; color: #F7F1E8">Coffee</div>
+<div style="font-size: 28px; line-height: 32px; font-weight: 300; letter-spacing: -0.6px; font-variant-numeric: tabular-nums; color: #F7F1E8">−$4.50</div>
+<div style="margin-top: 6px; display: flex; flex-direction: column">
+<div style="font-size: 12px; line-height: 16px; color: #A8A5A0">Spending today</div>
+<div style="font-size: 13px; line-height: 17px; color: #D3D1CE; font-variant-numeric: tabular-nums">$18.50 of $60</div>
+<div style="margin-top: 5px; height: 4px; border-radius: 999px; background: #39424A"><div style="width: 31%; height: 4px; border-radius: 999px; background: #F7F1E8"></div></div>
+</div>
+<button style="margin-top: auto; flex-shrink: 0; height: 38px; border-radius: 999px; border: none; background: #242A30; color: #F7F1E8; font-size: 16px; font-weight: 600">Undo</button>
+</div>
+</div>
+</div>
+</div>
+<figcaption style="font-size: 14px; line-height: 20px; color: #A8A5A0"><span style="color: #F7F1E8; font-weight: 600">4 · Logged.</span> Readable in a wrist raise: a check, what, how much, then the day's spending. Undo is one tap; Edit stays on the phone.</figcaption>
+</figure>
+
+<figure style="margin: 0; width: 292px; display: flex; flex-direction: column; gap: 14px">
+<div style="position: relative; width: 292px; height: 352px">
+<div style="position: absolute; right: -7px; top: 96px; width: 10px; height: 38px; border-radius: 4px; background: #2C2C2E"></div>
+<div style="position: absolute; right: -4px; top: 176px; width: 6px; height: 50px; border-radius: 3px; background: #2C2C2E"></div>
+<div style="position: relative; width: 292px; height: 352px; box-sizing: border-box; padding: 8px; border-radius: 66px; background: #1C1C1E">
+<div style="width: 276px; height: 336px; border-radius: 58px; background: #000000; overflow: hidden">
+<div style="width: 184px; height: 224px; transform: scale(1.5); transform-origin: 0 0; box-sizing: border-box; padding: 8px 14px 14px; display: flex; flex-direction: column">
+<div style="display: flex; justify-content: space-between; align-items: center; height: 20px; font-size: 15px; font-weight: 600; color: #F7F1E8">Pal<span style="color: #D3D1CE; font-weight: 500; font-variant-numeric: tabular-nums">12:34</span></div>
+<div style="margin-top: 8px; display: flex; align-items: center; gap: 6px; height: 20px; font-size: 12px; color: #A8A5A0"><span style="width: 20px; height: 20px; border-radius: 999px; background: #242A30; display: flex; align-items: center; justify-content: center"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#F7F1E8" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></span>Logged · Lunch</div>
+<div style="margin-top: 4px; font-size: 17px; line-height: 22px; font-weight: 600; color: #F7F1E8">2 eggs</div>
+<div style="display: flex; align-items: baseline; gap: 4px; font-variant-numeric: tabular-nums"><span style="font-size: 28px; line-height: 32px; font-weight: 300; letter-spacing: -0.6px; color: #F7F1E8">140–160</span><span style="font-size: 15px; color: #D3D1CE">kcal</span></div>
+<div style="margin-top: 6px; display: flex; align-items: center; gap: 6px; font-size: 12px; line-height: 16px; color: #A8A5A0"><span style="display: flex; align-items: flex-end; gap: 2px; height: 12px" aria-hidden="true"><span style="width: 3px; height: 6px; border-radius: 1px; background: #D3D1CE"></span><span style="width: 3px; height: 9px; border-radius: 1px; background: #D3D1CE"></span><span style="width: 3px; height: 12px; border-radius: 1px; background: #39424A"></span></span>fair estimate</div>
+<button style="margin-top: auto; height: 38px; border-radius: 999px; border: none; background: #242A30; color: #F7F1E8; font-size: 16px; font-weight: 600">Undo</button>
+</div>
+</div>
+</div>
+</div>
+<figcaption style="font-size: 14px; line-height: 20px; color: #A8A5A0"><span style="color: #F7F1E8; font-weight: 600">5 · Meal logged.</span> Same shape. The kcal range leads; the confidence bars and words are the phone's own.</figcaption>
+</figure>
+
+<figure style="margin: 0; width: 292px; display: flex; flex-direction: column; gap: 14px">
+<div style="position: relative; width: 292px; height: 352px">
+<div style="position: absolute; right: -7px; top: 96px; width: 10px; height: 38px; border-radius: 4px; background: #2C2C2E"></div>
+<div style="position: absolute; right: -4px; top: 176px; width: 6px; height: 50px; border-radius: 3px; background: #2C2C2E"></div>
+<div style="position: relative; width: 292px; height: 352px; box-sizing: border-box; padding: 8px; border-radius: 66px; background: #1C1C1E">
+<div style="width: 276px; height: 336px; border-radius: 58px; background: #000000; overflow: hidden">
+<div style="width: 184px; height: 224px; transform: scale(1.5); transform-origin: 0 0; box-sizing: border-box; padding: 8px 14px 14px; display: flex; flex-direction: column">
+<div style="display: flex; justify-content: space-between; align-items: center; height: 20px; font-size: 15px; font-weight: 600; color: #F7F1E8">Pal<span style="color: #D3D1CE; font-weight: 500; font-variant-numeric: tabular-nums">9:41</span></div>
+<div style="margin-top: 8px; display: flex; align-items: center; gap: 6px; height: 20px; font-size: 12px; color: #A8A5A0"><span style="width: 20px; height: 20px; border-radius: 999px; background: #242A30; display: flex; align-items: center; justify-content: center"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#A8A5A0" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14L4 9l5-5"></path><path d="M4 9h10a6 6 0 0 1 0 12h-3"></path></svg></span>Undone</div>
+<div style="margin-top: 4px; font-size: 17px; line-height: 22px; font-weight: 600; color: #A8A5A0; text-decoration: line-through">Coffee</div>
+<div style="font-size: 28px; line-height: 32px; font-weight: 300; letter-spacing: -0.6px; font-variant-numeric: tabular-nums; color: #A8A5A0; text-decoration: line-through">−$4.50</div>
+<button aria-label="Dictate to Pal" style="margin-top: auto; height: 38px; border-radius: 999px; border: none; background: #F7F1E8; color: #101418; font-size: 16px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 6px">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#101418" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5 11a7 7 0 0 0 14 0"></path><path d="M12 18v3"></path></svg>Say it again
+</button>
+</div>
+</div>
+</div>
+</div>
+<figcaption style="font-size: 14px; line-height: 20px; color: #A8A5A0"><span style="color: #F7F1E8; font-weight: 600">6 · Undone.</span> The entry stays in view, struck through, so you see what went. The bottom spot becomes a retry.</figcaption>
+</figure>
+
+<figure style="margin: 0; width: 292px; display: flex; flex-direction: column; gap: 14px">
+<div style="position: relative; width: 292px; height: 352px">
+<div style="position: absolute; right: -7px; top: 96px; width: 10px; height: 38px; border-radius: 4px; background: #2C2C2E"></div>
+<div style="position: absolute; right: -4px; top: 176px; width: 6px; height: 50px; border-radius: 3px; background: #2C2C2E"></div>
+<div style="position: relative; width: 292px; height: 352px; box-sizing: border-box; padding: 8px; border-radius: 66px; background: #1C1C1E">
+<div style="width: 276px; height: 336px; border-radius: 58px; background: #000000; overflow: hidden">
+<div style="width: 184px; height: 224px; transform: scale(1.5); transform-origin: 0 0; box-sizing: border-box; padding: 8px 14px 14px; display: flex; flex-direction: column">
+<div style="display: flex; justify-content: space-between; align-items: center; height: 20px; font-size: 15px; font-weight: 600; color: #F7F1E8">Pal<span style="color: #D3D1CE; font-weight: 500; font-variant-numeric: tabular-nums">18:05</span></div>
+<div style="margin-top: 8px; display: flex; align-items: center; height: 20px; font-size: 12px; color: #A8A5A0">How much have I spent today?</div>
+<div style="margin-top: 4px; font-size: 17px; line-height: 22px; color: #F7F1E8">$18.50 of $60 so far. Dinner fits.</div>
+</div>
+</div>
+</div>
+</div>
+<figcaption style="font-size: 14px; line-height: 20px; color: #A8A5A0"><span style="color: #F7F1E8; font-weight: 600">7 · Pal answered.</span> A question logs nothing, so there's no Undo. Longer replies scroll with the Crown.</figcaption>
+</figure>
+
+<figure style="margin: 0; width: 292px; display: flex; flex-direction: column; gap: 14px">
+<div style="position: relative; width: 292px; height: 352px">
+<div style="position: absolute; right: -7px; top: 96px; width: 10px; height: 38px; border-radius: 4px; background: #2C2C2E"></div>
+<div style="position: absolute; right: -4px; top: 176px; width: 6px; height: 50px; border-radius: 3px; background: #2C2C2E"></div>
+<div style="position: relative; width: 292px; height: 352px; box-sizing: border-box; padding: 8px; border-radius: 66px; background: #1C1C1E">
+<div style="width: 276px; height: 336px; border-radius: 58px; background: #000000; overflow: hidden">
+<div style="width: 184px; height: 224px; transform: scale(1.5); transform-origin: 0 0; box-sizing: border-box; padding: 8px 14px 14px; display: flex; flex-direction: column">
+<div style="display: flex; justify-content: space-between; align-items: center; height: 20px; font-size: 15px; font-weight: 600; color: #F7F1E8">Pal<span style="color: #D3D1CE; font-weight: 500; font-variant-numeric: tabular-nums">9:41</span></div>
+<div style="margin-top: 8px; display: flex; align-items: center; gap: 6px; height: 20px; font-size: 12px; color: #A8A5A0"><span style="width: 20px; height: 20px; border-radius: 999px; background: #242A30; display: flex; align-items: center; justify-content: center"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#A8A5A0" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="7" y="2" width="10" height="20" rx="2"></rect><path d="M3 3l18 18"></path></svg></span>Not logged</div>
+<div style="margin-top: 4px; font-size: 17px; line-height: 22px; font-weight: 600; color: #F7F1E8">Your iPhone is out of reach</div>
+<div style="margin-top: 2px; font-size: 13px; line-height: 18px; color: #A8A5A0">“Coffee with Minh, 4.50”</div>
+<button style="margin-top: auto; height: 38px; border-radius: 999px; border: none; background: #F7F1E8; color: #101418; font-size: 16px; font-weight: 600">Try again</button>
+</div>
+</div>
+</div>
+</div>
+<figcaption style="font-size: 14px; line-height: 20px; color: #A8A5A0"><span style="color: #F7F1E8; font-weight: 600">8 · No iPhone.</span> Your words are kept on screen so Try again needs no re-dictation. Open: also hold it until the iPhone is back?</figcaption>
+</figure>
+
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1424,"height":1200}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>
