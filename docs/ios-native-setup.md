@@ -27,7 +27,7 @@ Team is available. That decides what can be verified:
   `OpalLiveActivityBridge`, `OpalAppIntents`, `OpalIntentsBridge`) are in Runner's
   compile sources.
 - A new **`OpalWidgets`** app-extension target (bundle id
-  `com.opal.opal.OpalWidgets`, iOS 26.0, Swift 5.0) builds the Live Activity:
+  `com.kael.opal.OpalWidgets`, iOS 26.0, Swift 5.0) builds the Live Activity:
   members `OpalWorkoutLiveActivity.swift`, `OpalWidgetsBundle.swift` (the `@main`
   WidgetBundle), and the shared `OpalWorkoutAttributes.swift`. Its `Info.plist`
   declares the `com.apple.widgetkit-extension` point.

@@ -6,7 +6,7 @@ name: opal-ios testflight
 # for Runner and OpalWidgets through it (-allowProvisioningUpdates).
 #
 # The upload goes straight to App Store Connect, so unlike ios.yml there is no
-# public artifact to encrypt. The app record (bundle ID com.opal.opal) must
+# public artifact to encrypt. The app record (bundle ID com.kael.opal) must
 # exist in App Store Connect before the upload step can succeed.
 
 on:

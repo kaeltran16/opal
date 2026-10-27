@@ -14,7 +14,7 @@
 require 'xcodeproj'
 
 PROJECT_PATH = File.join(__dir__, 'Runner.xcodeproj')
-RUNNER_BUNDLE_ID = 'com.opal.opal'
+RUNNER_BUNDLE_ID = 'com.kael.opal'
 WIDGET_NAME = 'OpalWidgets'
 WIDGET_BUNDLE_ID = "#{RUNNER_BUNDLE_ID}.#{WIDGET_NAME}"
 DEPLOYMENT_TARGET = '26.0'
