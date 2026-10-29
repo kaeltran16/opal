@@ -1,4 +1,4 @@
-/// Today's health metrics read from the server (populated by the iOS Shortcut).
+/// One day's health totals from Apple Health.
 class HealthDay {
   const HealthDay({required this.activeEnergyKcal, required this.steps});
   final int activeEnergyKcal; // 0 when absent
@@ -29,9 +29,9 @@ class HealthSleep {
 }
 
 abstract interface class HealthService {
-  /// GET /v1/health/day?date=YYYY-MM-DD
+  /// Totals for the local calendar [day].
   Future<HealthDay> fetchDay(DateTime day);
 
-  /// GET /v1/health/sleep?from=YYYY-MM-DD&to=YYYY-MM-DD — nights in [from, to).
+  /// Nights in [from, to), keyed by the evening each night starts.
   Future<List<HealthSleep>> fetchSleep(DateTime from, DateTime to);
 }

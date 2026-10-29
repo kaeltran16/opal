@@ -48,6 +48,8 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
+	<key>NSHealthShareUsageDescription</key>
+	<string>Opal reads your steps, active energy and sleep from Apple Health to fill your move ring and sleep.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Opal listens while you dictate to Pal.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>

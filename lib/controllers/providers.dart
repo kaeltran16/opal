@@ -439,23 +439,15 @@ PalService palService(Ref ref) {
   );
 }
 
-/// Real [HttpHealthService] when `PAL_BASE_URL` is set; [MockHealthService]
-/// otherwise (tests, backend-less preview). Shares the proxy's http client +
-/// device-token store with [palService]. Drives [HealthSyncController].
+/// [HealthKitHealthService] on iOS, reading Apple Health on the device;
+/// [MockHealthService] elsewhere (tests, web, the Windows preview). Drives
+/// [HealthSyncController] and [SleepSyncController].
 @Riverpod(keepAlive: true)
 HealthService healthService(Ref ref) {
-  if (_palBaseUrl.isEmpty) return const MockHealthService();
-
-  final httpClient = _HttpClientHolder.instance;
-  final tokens = TokenProvider(
-    token: () => _deviceTokens(httpClient).token(),
-    clear: () => _deviceTokens(httpClient).clear(),
-  );
-  return HttpHealthService(
-    baseUrl: _palBaseUrl,
-    httpClient: httpClient,
-    tokens: tokens,
-  );
+  if (!kIsWeb && defaultTargetPlatform == TargetPlatform.iOS) {
+    return HealthKitHealthService();
+  }
+  return const MockHealthService();
 }
 
 /// Native on-device IMAP sync (migration phase 4B) when `PAL_BASE_URL` is set;

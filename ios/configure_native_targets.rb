@@ -3,10 +3,8 @@
 #   * add the four Runner-target Swift files to Runner's compile sources
 #   * create the OpalWidgets widget-extension target (Live Activity) + embed it
 #
-# NOTE: the HealthKit entitlement (U27) is deliberately NOT added — it cannot be
-# provisioned by a free Apple Personal Team, so adding it breaks device signing.
-# HealthKitService degrades gracefully without it; revisit when a paid Apple
-# Developer account is available.
+# The HealthKit entitlement lives in Runner/Runner.entitlements; the TestFlight
+# workflow's automatic signing turns the capability on for the App ID.
 #
 # Driven with the `xcodeproj` gem (the library CocoaPods itself uses) rather than
 # hand-editing the pbxproj. Idempotent: re-running skips work already done.
@@ -67,6 +65,10 @@ add_source(project, intents_group, 'OpalIntentsBridge.swift', runner)
 # Rings-widget sync bridge (Runner side; the `opal/widget_sync` channel).
 widgets_group = group_at(runner_group, 'Widgets')
 add_source(project, widgets_group, 'OpalWidgetSyncBridge.swift', runner)
+
+# Apple Health bridge (Runner side; the `opal/health` channel).
+health_group = group_at(runner_group, 'Health')
+add_source(project, health_group, 'OpalHealthBridge.swift', runner)
 
 # ---------------------------------------------------------------------------
 # B2 — create the OpalWidgets app-extension target (the Live Activity widget).

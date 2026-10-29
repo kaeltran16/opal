@@ -8,7 +8,7 @@ import 'providers.dart';
 
 part 'health_sync_controller.g.dart';
 
-/// Pulls today's active energy from the server and upserts ONE health-sourced
+/// Pulls today's active energy from Health and upserts ONE health-sourced
 /// move [Entry] so it feeds the move ring.
 ///
 /// The entry id is deterministic (`health:move:<date>`) so a re-sync overwrites

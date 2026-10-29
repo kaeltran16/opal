@@ -17,6 +17,7 @@ export 'email/native_email_sync_service.dart';
 export 'email/unavailable_email_sync_service.dart';
 export 'haptics/haptics_service.dart';
 export 'health/health_service.dart';
+export 'health/healthkit_health_service.dart';
 export 'health/http_health_service.dart';
 export 'health/mock_health_service.dart';
 export 'haptics/platform_haptics_service.dart';

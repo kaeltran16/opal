@@ -4,5 +4,7 @@
 <!-- No App Group: a free Apple team can't provision one. The app POSTs the widget
      snapshot to the proxy instead (see HttpWidgetSyncService). -->
 <dict>
+	<key>com.apple.developer.healthkit</key>
+	<true/>
 </dict>
 </plist>
