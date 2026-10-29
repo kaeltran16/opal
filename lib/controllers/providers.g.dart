@@ -988,7 +988,7 @@ final class HealthServiceProvider
   }
 }
 
-String _$healthServiceHash() => r'06754b758929c0ec6678354ee640ade2d04654e7';
+String _$healthServiceHash() => r'118c2a7b7150cfc4df4ae64b8c09ac0e6d848c50';
 
 /// Native on-device IMAP sync (migration phase 4B) when `PAL_BASE_URL` is set;
 /// [MockEmailSyncService] otherwise (tests, backend-less preview).

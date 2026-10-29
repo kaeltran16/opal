@@ -8,7 +8,7 @@ part of 'health_sync_controller.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
-/// Pulls today's active energy from the server and upserts ONE health-sourced
+/// Pulls today's active energy from Health and upserts ONE health-sourced
 /// move [Entry] so it feeds the move ring.
 ///
 /// The entry id is deterministic (`health:move:<date>`) so a re-sync overwrites
@@ -18,7 +18,7 @@ part of 'health_sync_controller.dart';
 @ProviderFor(HealthSyncController)
 const healthSyncControllerProvider = HealthSyncControllerProvider._();
 
-/// Pulls today's active energy from the server and upserts ONE health-sourced
+/// Pulls today's active energy from Health and upserts ONE health-sourced
 /// move [Entry] so it feeds the move ring.
 ///
 /// The entry id is deterministic (`health:move:<date>`) so a re-sync overwrites
@@ -26,7 +26,7 @@ const healthSyncControllerProvider = HealthSyncControllerProvider._();
 /// (see `app.dart`); `fireImmediately` syncs on launch.
 final class HealthSyncControllerProvider
     extends $NotifierProvider<HealthSyncController, void> {
-  /// Pulls today's active energy from the server and upserts ONE health-sourced
+  /// Pulls today's active energy from Health and upserts ONE health-sourced
   /// move [Entry] so it feeds the move ring.
   ///
   /// The entry id is deterministic (`health:move:<date>`) so a re-sync overwrites
@@ -62,7 +62,7 @@ final class HealthSyncControllerProvider
 String _$healthSyncControllerHash() =>
     r'b010c25023ee4e59d009c15041966fabcbd5ada1';
 
-/// Pulls today's active energy from the server and upserts ONE health-sourced
+/// Pulls today's active energy from Health and upserts ONE health-sourced
 /// move [Entry] so it feeds the move ring.
 ///
 /// The entry id is deterministic (`health:move:<date>`) so a re-sync overwrites
