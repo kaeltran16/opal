@@ -32,6 +32,14 @@
 		E9C12AE94FF2D1A02DEF47E5 /* OpalWorkoutAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6EA884984D00A57860286D6F /* OpalWorkoutAttributes.swift */; };
 		F5C7ED3E4A930292B7A1C680 /* OpalLiveActivityBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E77ABB9E9F46DA1A6B5CB68 /* OpalLiveActivityBridge.swift */; };
 		FB1DCB3C5D9C916F8C232529 /* OpalRingsWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91843632A66BFDC3904709C4 /* OpalRingsWidget.swift */; };
+		C378FB4D7D8312C26F61F4CA /* OpalWatchApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A1F461828C7DC630495C8C4 /* OpalWatchApp.swift */; };
+		E0BADC2680C8D9E65DC390C4 /* OpalWatchLink.swift in Sources */ = {isa = PBXBuildFile; fileRef = E23DA7F3906A90701FF9BE3C /* OpalWatchLink.swift */; };
+		2F73DF523B4C6B7FCE5EFF75 /* OpalWatchMessage.swift in Sources */ = {isa = PBXBuildFile; fileRef = ECF253DC250890B81AC479D9 /* OpalWatchMessage.swift */; };
+		737588763F5614A7B5370761 /* OpalWatchMessage.swift in Sources */ = {isa = PBXBuildFile; fileRef = ECF253DC250890B81AC479D9 /* OpalWatchMessage.swift */; };
+		C25914B7B0FFCDA9AFA1B8BC /* OpalWatchSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC29005B54EEAC12C0D6B11A /* OpalWatchSession.swift */; };
+		D93D6B3BB6D2B3A6A56E4FC7 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 86B8B33F5AFCA845225B7C20 /* Assets.xcassets */; };
+		816636BF0793E57494153308 /* OpalWatch.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 907B7B119A4B2C1747473E31 /* OpalWatch.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		7C80757770ACA7F0E10AF326 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = EB6E5C64A706531A052BC7D4 /* Foundation.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -48,6 +56,13 @@
 			proxyType = 1;
 			remoteGlobalIDString = D982BC08712D69DD43FDA4EB;
 			remoteInfo = OpalWidgets;
+		};
+		DD2EC808EDAA8D126AAB0464 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 97C146E61CF9000F007C117D /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = AF2B5C914A88EE225EA4EA74;
+			remoteInfo = OpalWatch;
 		};
 /* End PBXContainerItemProxy section */
 
@@ -71,6 +86,17 @@
 				4DAD41273F0BE5A6459AC0CC /* OpalWidgets.appex in Embed App Extensions */,
 			);
 			name = "Embed App Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		1A33538F9A9BB9C72FEABA1D /* Embed Watch Content */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "$(CONTENTS_FOLDER_PATH)/Watch";
+			dstSubfolderSpec = 16;
+			files = (
+				816636BF0793E57494153308 /* OpalWatch.app in Embed Watch Content */,
+			);
+			name = "Embed Watch Content";
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXCopyFilesBuildPhase section */
@@ -115,6 +141,14 @@
 		E5160FAC68BACCB0E68EAD93 /* OpalAppIntents.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = OpalAppIntents.swift; sourceTree = "<group>"; };
 		E80AC2FD855A8D78A4635FF2 /* OpalWidgetsBundle.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = OpalWidgetsBundle.swift; sourceTree = "<group>"; };
 		FCE516EA60789813A353DAF4 /* Pods-RunnerTests.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RunnerTests.debug.xcconfig"; path = "Target Support Files/Pods-RunnerTests/Pods-RunnerTests.debug.xcconfig"; sourceTree = "<group>"; };
+		2A1F461828C7DC630495C8C4 /* OpalWatchApp.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = OpalWatchApp.swift; sourceTree = "<group>"; };
+		E23DA7F3906A90701FF9BE3C /* OpalWatchLink.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = OpalWatchLink.swift; sourceTree = "<group>"; };
+		ECF253DC250890B81AC479D9 /* OpalWatchMessage.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = OpalWatchMessage.swift; sourceTree = "<group>"; };
+		FC29005B54EEAC12C0D6B11A /* OpalWatchSession.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = OpalWatchSession.swift; sourceTree = "<group>"; };
+		0C28A5CCB66B6DFC8D0A82F8 /* Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		86B8B33F5AFCA845225B7C20 /* Assets.xcassets */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		907B7B119A4B2C1747473E31 /* OpalWatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = OpalWatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		EB6E5C64A706531A052BC7D4 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/WatchOS.platform/Developer/SDKs/WatchOS11.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -143,6 +177,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		E6F84B6667E19F3431DB409A /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				7C80757770ACA7F0E10AF326 /* Foundation.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -168,6 +210,7 @@
 				C75B617C22B89E263DEAF8C9 /* Pods_Runner.framework */,
 				9390AE165F43CFDF33CD9725 /* Pods_RunnerTests.framework */,
 				16633BE8D25153ADE30210EE /* iOS */,
+				2B06904FBFF9B3DE6AB8CD51 /* watchOS */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -236,6 +279,7 @@
 				D55DDC2CD0CF6B2A72D55395 /* Pods */,
 				4273E2DB513333AF7C0EF1C0 /* Frameworks */,
 				7CFF6A276CB2BDC164F64841 /* OpalWidgets */,
+				A804B45849A9AD1258C1795D /* OpalWatch */,
 			);
 			sourceTree = "<group>";
 		};
@@ -245,6 +289,7 @@
 				97C146EE1CF9000F007C117D /* Runner.app */,
 				331C8081294A63A400263BE5 /* RunnerTests.xctest */,
 				8C91445606E57A3FDD4DF1A6 /* OpalWidgets.appex */,
+				907B7B119A4B2C1747473E31 /* OpalWatch.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -265,6 +310,7 @@
 				B6F41099477B7BE74D0476AD /* Intents */,
 				6259BA70741399A85B7AD4B3 /* Widgets */,
 				5D8EC411371DD91FEF342C36 /* Health */,
+				CF91A1EA2AE561D26C0D069D /* Watch */,
 			);
 			path = Runner;
 			sourceTree = "<group>";
@@ -291,6 +337,36 @@
 			);
 			name = Pods;
 			path = Pods;
+			sourceTree = "<group>";
+		};
+		A804B45849A9AD1258C1795D /* OpalWatch */ = {
+			isa = PBXGroup;
+			children = (
+				2A1F461828C7DC630495C8C4 /* OpalWatchApp.swift */,
+				E23DA7F3906A90701FF9BE3C /* OpalWatchLink.swift */,
+				0C28A5CCB66B6DFC8D0A82F8 /* Info.plist */,
+				86B8B33F5AFCA845225B7C20 /* Assets.xcassets */,
+			);
+			name = OpalWatch;
+			path = OpalWatch;
+			sourceTree = "<group>";
+		};
+		CF91A1EA2AE561D26C0D069D /* Watch */ = {
+			isa = PBXGroup;
+			children = (
+				ECF253DC250890B81AC479D9 /* OpalWatchMessage.swift */,
+				FC29005B54EEAC12C0D6B11A /* OpalWatchSession.swift */,
+			);
+			name = Watch;
+			path = Watch;
+			sourceTree = "<group>";
+		};
+		2B06904FBFF9B3DE6AB8CD51 /* watchOS */ = {
+			isa = PBXGroup;
+			children = (
+				EB6E5C64A706531A052BC7D4 /* Foundation.framework */,
+			);
+			name = watchOS;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -326,6 +402,7 @@
 				97C146EC1CF9000F007C117D /* Resources */,
 				9705A1C41CF9048500538489 /* Embed Frameworks */,
 				F6AB38A2E7D8F441625D9291 /* Embed App Extensions */,
+				1A33538F9A9BB9C72FEABA1D /* Embed Watch Content */,
 				3B06AD1E1E4923F5004D2608 /* Thin Binary */,
 				C90CC9E04BD5D5F07032DE35 /* [CP] Embed Pods Frameworks */,
 			);
@@ -333,6 +410,7 @@
 			);
 			dependencies = (
 				0A31E4BEDC897DBA71DEC061 /* PBXTargetDependency */,
+				84BDC28487048F112865BC23 /* PBXTargetDependency */,
 			);
 			name = Runner;
 			packageProductDependencies = (
@@ -359,6 +437,23 @@
 			productReference = 8C91445606E57A3FDD4DF1A6 /* OpalWidgets.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
+		AF2B5C914A88EE225EA4EA74 /* OpalWatch */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 505121A74A209E284DE871E6 /* Build configuration list for PBXNativeTarget "OpalWatch" */;
+			buildPhases = (
+				78094F67B5DF45FC790A98A2 /* Sources */,
+				E6F84B6667E19F3431DB409A /* Frameworks */,
+				40B44FC854A4C9FB199C3C16 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = OpalWatch;
+			productName = OpalWatch;
+			productReference = 907B7B119A4B2C1747473E31 /* OpalWatch.app */;
+			productType = "com.apple.product-type.application";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -378,6 +473,9 @@
 						LastSwiftMigration = 1100;
 					};
 					D982BC08712D69DD43FDA4EB = {
+						CreatedOnToolsVersion = 26.5;
+					};
+					AF2B5C914A88EE225EA4EA74 = {
 						CreatedOnToolsVersion = 26.5;
 					};
 				};
@@ -401,6 +499,7 @@
 				97C146ED1CF9000F007C117D /* Runner */,
 				331C8080294A63A400263BE5 /* RunnerTests */,
 				D982BC08712D69DD43FDA4EB /* OpalWidgets */,
+				AF2B5C914A88EE225EA4EA74 /* OpalWatch */,
 			);
 		};
 /* End PBXProject section */
@@ -428,6 +527,14 @@
 				3B3967161E833CAA004F5970 /* AppFrameworkInfo.plist in Resources */,
 				97C146FE1CF9000F007C117D /* Assets.xcassets in Resources */,
 				97C146FC1CF9000F007C117D /* Main.storyboard in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		40B44FC854A4C9FB199C3C16 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D93D6B3BB6D2B3A6A56E4FC7 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -551,6 +658,8 @@
 				3B8617E3DB5DE4A350E7AFE5 /* OpalWidgetSyncBridge.swift in Sources */,
 				80C690049F10FD0A4C94AD16 /* OpalRingsSnapshot.swift in Sources */,
 				547448FBFBB282112FED8204 /* OpalHealthBridge.swift in Sources */,
+				737588763F5614A7B5370761 /* OpalWatchMessage.swift in Sources */,
+				C25914B7B0FFCDA9AFA1B8BC /* OpalWatchSession.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -563,6 +672,16 @@
 				1E931D4F91C400BA98165991 /* OpalWorkoutAttributes.swift in Sources */,
 				FB1DCB3C5D9C916F8C232529 /* OpalRingsWidget.swift in Sources */,
 				5394C52912242A1FF145C44B /* OpalRingsSnapshot.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		78094F67B5DF45FC790A98A2 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C378FB4D7D8312C26F61F4CA /* OpalWatchApp.swift in Sources */,
+				E0BADC2680C8D9E65DC390C4 /* OpalWatchLink.swift in Sources */,
+				2F73DF523B4C6B7FCE5EFF75 /* OpalWatchMessage.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -579,6 +698,12 @@
 			isa = PBXTargetDependency;
 			target = 97C146ED1CF9000F007C117D /* Runner */;
 			targetProxy = 331C8085294A63A400263BE5 /* PBXContainerItemProxy */;
+		};
+		84BDC28487048F112865BC23 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = OpalWatch;
+			target = AF2B5C914A88EE225EA4EA74 /* OpalWatch */;
+			targetProxy = DD2EC808EDAA8D126AAB0464 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -974,6 +1099,92 @@
 			};
 			name = Release;
 		};
+		426FFF67FF4B97351E2AB47F /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 9740EEB31CF90195004384FC /* Generated.xcconfig */;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = OpalWatch/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.kael.opal.watchkitapp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "watchos watchsimulator";
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				VALIDATE_PRODUCT = YES;
+				WATCHOS_DEPLOYMENT_TARGET = 26.0;
+			};
+			name = Release;
+		};
+		73FC4AD6636AD7C751323720 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 9740EEB31CF90195004384FC /* Generated.xcconfig */;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = OpalWatch/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.kael.opal.watchkitapp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "watchos watchsimulator";
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 26.0;
+			};
+			name = Debug;
+		};
+		DFF927E89E458B1712DEBB68 /* Profile */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 9740EEB31CF90195004384FC /* Generated.xcconfig */;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = OpalWatch/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.kael.opal.watchkitapp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "watchos watchsimulator";
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				VALIDATE_PRODUCT = YES;
+				WATCHOS_DEPLOYMENT_TARGET = 26.0;
+			};
+			name = Profile;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -1013,6 +1224,16 @@
 				97C147061CF9000F007C117D /* Debug */,
 				97C147071CF9000F007C117D /* Release */,
 				249021D4217E4FDB00AE95B9 /* Profile */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		505121A74A209E284DE871E6 /* Build configuration list for PBXNativeTarget "OpalWatch" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				426FFF67FF4B97351E2AB47F /* Release */,
+				73FC4AD6636AD7C751323720 /* Debug */,
+				DFF927E89E458B1712DEBB68 /* Profile */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

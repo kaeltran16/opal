@@ -2,6 +2,7 @@
 # U25/U26 — wire the staged native code into the Xcode project:
 #   * add the four Runner-target Swift files to Runner's compile sources
 #   * create the OpalWidgets widget-extension target (Live Activity) + embed it
+#   * create the OpalWatch watchOS app target + embed it (Runner.app/Watch)
 #
 # The HealthKit entitlement lives in Runner/Runner.entitlements; the TestFlight
 # workflow's automatic signing turns the capability on for the App ID.
@@ -15,6 +16,10 @@ PROJECT_PATH = File.join(__dir__, 'Runner.xcodeproj')
 RUNNER_BUNDLE_ID = 'com.kael.opal'
 WIDGET_NAME = 'OpalWidgets'
 WIDGET_BUNDLE_ID = "#{RUNNER_BUNDLE_ID}.#{WIDGET_NAME}"
+# the target name must match its folder: flutter build ios finds the watch app
+# through ios/<target>/Info.plist and only then stops forcing -sdk iphoneos
+WATCH_NAME = 'OpalWatch'
+WATCH_BUNDLE_ID = "#{RUNNER_BUNDLE_ID}.watchkitapp"
 DEPLOYMENT_TARGET = '26.0'
 SWIFT_VERSION = '5.0'
 
@@ -69,6 +74,11 @@ add_source(project, widgets_group, 'OpalWidgetSyncBridge.swift', runner)
 # Apple Health bridge (Runner side; the `opal/health` channel).
 health_group = group_at(runner_group, 'Health')
 add_source(project, health_group, 'OpalHealthBridge.swift', runner)
+
+# Phone end of the Watch link. The message keys are shared with OpalWatch below.
+watch_link_group = group_at(runner_group, 'Watch')
+message_ref = add_source(project, watch_link_group, 'OpalWatchMessage.swift', runner)
+add_source(project, watch_link_group, 'OpalWatchSession.swift', runner)
 
 # ---------------------------------------------------------------------------
 # B2 — create the OpalWidgets app-extension target (the Live Activity widget).
@@ -161,22 +171,92 @@ unless embed_phase.files_references.include?(widget.product_reference)
   bf.settings = { 'ATTRIBUTES' => ['RemoveHeadersOnCopy'] }
 end
 
+# ---------------------------------------------------------------------------
+# B3 — create the OpalWatch watchOS app (SwiftUI, companion of Runner).
+# ---------------------------------------------------------------------------
+watch = project.targets.find { |t| t.name == WATCH_NAME }
+unless watch
+  watch = project.new_target(
+    :application, WATCH_NAME, :watchos, DEPLOYMENT_TARGET, project.products_group, :swift
+  )
+end
+
+watch_group = group_at(project.main_group, WATCH_NAME)
+add_source(project, watch_group, 'OpalWatchApp.swift', watch)
+add_source(project, watch_group, 'OpalWatchLink.swift', watch)
+# Shared message keys: member of BOTH targets.
+watch.source_build_phase.add_file_reference(message_ref) unless
+  watch.source_build_phase.files_references.include?(message_ref)
+unless watch_group.files.any? { |f| f.path == 'Info.plist' }
+  watch_group.new_reference('Info.plist')
+end
+assets_ref = watch_group.files.find { |f| f.path == 'Assets.xcassets' } ||
+             watch_group.new_reference('Assets.xcassets')
+watch.resources_build_phase.add_file_reference(assets_ref) unless
+  watch.resources_build_phase.files_references.include?(assets_ref)
+
+# Info.plist takes its version from FLUTTER_BUILD_NAME/NUMBER like Runner's
+# (Xcode rejects a watch app whose version differs from its companion's), so
+# the target reads them from Generated.xcconfig.
+generated_ref = flutter_group.files.find { |f| f.path == 'Flutter/Generated.xcconfig' }
+raise 'Flutter/Generated.xcconfig reference not found' unless generated_ref
+watch.build_configurations.each do |config|
+  config.base_configuration_reference = generated_ref
+  s = config.build_settings
+  s['PRODUCT_NAME'] = '$(TARGET_NAME)'
+  s['PRODUCT_BUNDLE_IDENTIFIER'] = WATCH_BUNDLE_ID
+  s['INFOPLIST_FILE'] = 'OpalWatch/Info.plist'
+  s['GENERATE_INFOPLIST_FILE'] = 'NO'
+  s['ASSETCATALOG_COMPILER_APPICON_NAME'] = 'AppIcon'
+  s['CURRENT_PROJECT_VERSION'] = '$(FLUTTER_BUILD_NUMBER)'
+  # the project-level settings are iOS-only; override them for the watch
+  s['SDKROOT'] = 'watchos'
+  s['SUPPORTED_PLATFORMS'] = 'watchos watchsimulator'
+  s['TARGETED_DEVICE_FAMILY'] = '4'
+  s['WATCHOS_DEPLOYMENT_TARGET'] = DEPLOYMENT_TARGET
+  s['SWIFT_VERSION'] = SWIFT_VERSION
+  # embedded in Runner.app, so archive must not also install it at top level
+  s['SKIP_INSTALL'] = 'YES'
+  s['CODE_SIGN_STYLE'] = 'Automatic'
+  s['SWIFT_EMIT_LOC_STRINGS'] = 'YES'
+  s['LD_RUNPATH_SEARCH_PATHS'] = ['$(inherited)', '@executable_path/Frameworks']
+  s['SWIFT_OPTIMIZATION_LEVEL'] = config.name == 'Debug' ? '-Onone' : '-O'
+  s['SWIFT_ACTIVE_COMPILATION_CONDITIONS'] ||= (config.name == 'Debug' ? 'DEBUG' : '')
+end
+
+# Embed the watch app into Runner (dependency + Embed Watch Content).
+runner.add_dependency(watch) unless runner.dependencies.any? { |d| d.target == watch }
+
+watch_embed_phase = runner.copy_files_build_phases.find { |p| p.name == 'Embed Watch Content' }
+unless watch_embed_phase
+  watch_embed_phase = runner.new_copy_files_build_phase('Embed Watch Content')
+  watch_embed_phase.symbol_dst_subfolder_spec = :products_directory # 16
+  watch_embed_phase.dst_path = '$(CONTENTS_FOLDER_PATH)/Watch'
+end
+unless watch_embed_phase.files_references.include?(watch.product_reference)
+  bf = watch_embed_phase.add_file_reference(watch.product_reference)
+  bf.settings = { 'ATTRIBUTES' => ['RemoveHeadersOnCopy'] }
+end
+
 # Resolve the Xcode build cycle (ExtractAppIntentsMetadata <-> embed appex):
 # the extension must be embedded BEFORE Flutter's "Thin Binary" script phase,
 # otherwise the appex copy and the app's Info.plist processing form a loop.
+# The watch app is embedded the same way, so it goes there too.
 phases = runner.build_phases
-thin_idx = phases.index { |p| p.respond_to?(:display_name) && p.display_name == 'Thin Binary' }
-if thin_idx
-  phases.delete(embed_phase)
+[embed_phase, watch_embed_phase].each do |phase|
+  next unless phases.any? { |p| p.respond_to?(:display_name) && p.display_name == 'Thin Binary' }
+  phases.delete(phase)
   thin_idx = phases.index { |p| p.respond_to?(:display_name) && p.display_name == 'Thin Binary' }
-  phases.insert(thin_idx, embed_phase)
+  phases.insert(thin_idx, phase)
 end
 
-# Register the new widget target in the project attributes (signing UI defaults).
+# Register the new targets in the project attributes (signing UI defaults).
 attrs = project.root_object.attributes
 attrs['TargetAttributes'] ||= {}
-attrs['TargetAttributes'][widget.uuid] ||= {}
-attrs['TargetAttributes'][widget.uuid]['CreatedOnToolsVersion'] = '26.5'
+[widget, watch].each do |t|
+  attrs['TargetAttributes'][t.uuid] ||= {}
+  attrs['TargetAttributes'][t.uuid]['CreatedOnToolsVersion'] = '26.5'
+end
 
 project.save
 
@@ -184,4 +264,5 @@ puts 'OK — saved Runner.xcodeproj'
 puts "Targets now: #{project.targets.map(&:name).join(', ')}"
 puts "Runner sources: #{runner.source_build_phase.files_references.map(&:display_name).sort.join(', ')}"
 puts "Widget sources: #{widget.source_build_phase.files_references.map(&:display_name).sort.join(', ')}"
+puts "Watch sources: #{watch.source_build_phase.files_references.map(&:display_name).sort.join(', ')}"
 puts "Runner copy phases: #{runner.copy_files_build_phases.map(&:name).join(', ')}"

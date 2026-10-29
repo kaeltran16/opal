@@ -3,7 +3,7 @@ name: opal-ios testflight
 # Builds a signed release and uploads it to TestFlight, using an App Store
 # Connect API key on a borrowed Individual developer account. The key's role
 # must be Admin: xcodebuild creates the signing certificates and the profiles
-# for Runner and OpalWidgets through it (-allowProvisioningUpdates).
+# for Runner, OpalWidgets and OpalWatch through it (-allowProvisioningUpdates).
 #
 # The upload goes straight to App Store Connect, so unlike ios.yml there is no
 # public artifact to encrypt. The app record (bundle ID com.kael.opal) must
@@ -67,22 +67,26 @@ jobs:
           </plist>
           EOF
 
-      # on a fresh runner the archive provisions Runner and OpalWidgets at once;
-      # the second fetch replaces the team profile the first one picked, so the
-      # widget points at a deleted file. signing the widget alone first leaves a
-      # valid profile on disk for the archive to reuse.
-      - name: Fetch signing profile
+      # on a fresh runner the archive provisions Runner and its embedded targets
+      # at once; the second fetch replaces the team profile the first one picked,
+      # so the widget points at a deleted file. signing each embedded target
+      # alone first leaves valid profiles on disk for the archive to reuse.
+      - name: Fetch signing profiles
         run: |
-          xcodebuild build \
-            -project ios/Runner.xcodeproj -target OpalWidgets -configuration Release -sdk iphoneos \
-            -allowProvisioningUpdates \
-            -authenticationKeyPath "$RUNNER_TEMP/AuthKey.p8" \
-            -authenticationKeyID "$ASC_KEY_ID" \
-            -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
-            DEVELOPMENT_TEAM="$APPLE_TEAM_ID"
+          fetch() {
+            xcodebuild build \
+              -project ios/Runner.xcodeproj -target "$1" -configuration Release -sdk "$2" \
+              -allowProvisioningUpdates \
+              -authenticationKeyPath "$RUNNER_TEMP/AuthKey.p8" \
+              -authenticationKeyID "$ASC_KEY_ID" \
+              -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
+              DEVELOPMENT_TEAM="$APPLE_TEAM_ID"
+          }
+          fetch OpalWidgets iphoneos
+          fetch OpalWatch watchos
 
-      # the version flags apply to every target so the widget's
-      # CFBundleShortVersionString/CFBundleVersion match the app's
+      # the version flags apply to every target so the widget's and the watch
+      # app's CFBundleShortVersionString/CFBundleVersion match the app's
       - name: Archive
         run: |
           BUILD_NAME="$(grep -E '^version:' pubspec.yaml | sed -E 's/version: *([^+]+).*/\1/')"

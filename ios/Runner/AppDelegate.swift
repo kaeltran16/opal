@@ -9,6 +9,9 @@ import UIKit
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
+    // at launch, not with the engine: a Watch message that wakes the app in the
+    // background is delivered only once the session has a delegate
+    OpalWatchSession.shared.activate()
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
 
