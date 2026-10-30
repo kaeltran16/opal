@@ -50,6 +50,8 @@
 	<false/>
 	<key>NSHealthShareUsageDescription</key>
 	<string>Opal reads your steps, active energy and sleep from Apple Health to fill your move ring and sleep.</string>
+	<key>NSHealthUpdateUsageDescription</key>
+	<string>Opal saves the workouts you record on Apple Watch to Apple Health.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Opal listens while you dictate to Pal.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
