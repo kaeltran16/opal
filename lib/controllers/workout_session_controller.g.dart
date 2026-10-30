@@ -18,7 +18,9 @@ part of 'workout_session_controller.dart';
 /// and re-snapshot; persistence on [finish] is U14's concern (plan SF-5).
 ///
 /// The session outlives its screen (minimise, browse other tabs, Resume) until
-/// [finish] releases it.
+/// [finish] releases it. A paired Watch mirrors it: the session opens the Watch
+/// app with its workout running, and every content change is pushed there as a
+/// snapshot ([WatchWorkout] runs the Watch's commands).
 
 @ProviderFor(WorkoutSessionController)
 const workoutSessionControllerProvider = WorkoutSessionControllerFamily._();
@@ -33,7 +35,9 @@ const workoutSessionControllerProvider = WorkoutSessionControllerFamily._();
 /// and re-snapshot; persistence on [finish] is U14's concern (plan SF-5).
 ///
 /// The session outlives its screen (minimise, browse other tabs, Resume) until
-/// [finish] releases it.
+/// [finish] releases it. A paired Watch mirrors it: the session opens the Watch
+/// app with its workout running, and every content change is pushed there as a
+/// snapshot ([WatchWorkout] runs the Watch's commands).
 final class WorkoutSessionControllerProvider
     extends
         $AsyncNotifierProvider<WorkoutSessionController, ActiveSessionState> {
@@ -47,7 +51,9 @@ final class WorkoutSessionControllerProvider
   /// and re-snapshot; persistence on [finish] is U14's concern (plan SF-5).
   ///
   /// The session outlives its screen (minimise, browse other tabs, Resume) until
-  /// [finish] releases it.
+  /// [finish] releases it. A paired Watch mirrors it: the session opens the Watch
+  /// app with its workout running, and every content change is pushed there as a
+  /// snapshot ([WatchWorkout] runs the Watch's commands).
   const WorkoutSessionControllerProvider._({
     required WorkoutSessionControllerFamily super.from,
     required String super.argument,
@@ -86,7 +92,7 @@ final class WorkoutSessionControllerProvider
 }
 
 String _$workoutSessionControllerHash() =>
-    r'812eaec106b0b3203baa0f07e76329efecf3a640';
+    r'0f44deb578e6d8e783667263ad033937ad835fd2';
 
 /// Wraps the pure [WorkoutSession] engine in a Riverpod Notifier for screen 09.
 ///
@@ -98,7 +104,9 @@ String _$workoutSessionControllerHash() =>
 /// and re-snapshot; persistence on [finish] is U14's concern (plan SF-5).
 ///
 /// The session outlives its screen (minimise, browse other tabs, Resume) until
-/// [finish] releases it.
+/// [finish] releases it. A paired Watch mirrors it: the session opens the Watch
+/// app with its workout running, and every content change is pushed there as a
+/// snapshot ([WatchWorkout] runs the Watch's commands).
 
 final class WorkoutSessionControllerFamily extends $Family
     with
@@ -128,7 +136,9 @@ final class WorkoutSessionControllerFamily extends $Family
   /// and re-snapshot; persistence on [finish] is U14's concern (plan SF-5).
   ///
   /// The session outlives its screen (minimise, browse other tabs, Resume) until
-  /// [finish] releases it.
+  /// [finish] releases it. A paired Watch mirrors it: the session opens the Watch
+  /// app with its workout running, and every content change is pushed there as a
+  /// snapshot ([WatchWorkout] runs the Watch's commands).
 
   WorkoutSessionControllerProvider call(String routineId) =>
       WorkoutSessionControllerProvider._(argument: routineId, from: this);
@@ -147,7 +157,9 @@ final class WorkoutSessionControllerFamily extends $Family
 /// and re-snapshot; persistence on [finish] is U14's concern (plan SF-5).
 ///
 /// The session outlives its screen (minimise, browse other tabs, Resume) until
-/// [finish] releases it.
+/// [finish] releases it. A paired Watch mirrors it: the session opens the Watch
+/// app with its workout running, and every content change is pushed there as a
+/// snapshot ([WatchWorkout] runs the Watch's commands).
 
 abstract class _$WorkoutSessionController
     extends $AsyncNotifier<ActiveSessionState> {
