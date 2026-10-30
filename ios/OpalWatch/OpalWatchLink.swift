@@ -7,6 +7,10 @@
 //  publishes the screen to show. Nothing is queued: with the iPhone out of
 //  reach the log is dropped and the words stay on screen for Try again.
 //
+//  It is the one WCSession delegate, so workout traffic (snapshots the phone
+//  pushes, its request to end the workout) passes through to OpalWatchWorkout,
+//  which sends its commands with `transmit`.
+//
 
 import Foundation
 import WatchConnectivity
@@ -39,6 +43,12 @@ struct PalReply {
   }
 }
 
+/// How a message to the phone went.
+enum PhoneOutcome {
+  case reply([String: Any])
+  case failed(String)
+}
+
 enum PalScreen {
   case ready
   case sending(text: String)
@@ -59,13 +69,11 @@ final class OpalWatchLink: NSObject, ObservableObject, WCSessionDelegate {
   /// Bumped on every new screen, so a late reply can't replace a newer one.
   private var generation = 0
 
-  private enum Outcome {
-    case reply([String: Any])
-    case failed(String)
-  }
+  let workout = OpalWatchWorkout()
 
   override init() {
     super.init()
+    workout.transmit = { [weak self] message, done in self?.transmit(message, done: done) }
     WCSession.default.delegate = self
     WCSession.default.activate()
   }
@@ -119,13 +127,18 @@ final class OpalWatchLink: NSObject, ObservableObject, WCSessionDelegate {
   }
 
   /// Sends [message] and calls [done] on main, unless the screen moved on.
-  private func send(_ message: [String: Any], done: @escaping (Outcome) -> Void) {
+  private func send(_ message: [String: Any], done: @escaping (PhoneOutcome) -> Void) {
     let sentFor = generation
-    let deliver: (Outcome) -> Void = { outcome in
-      DispatchQueue.main.async { [weak self] in
-        guard let self, self.generation == sentFor else { return }
-        done(outcome)
-      }
+    transmit(message) { [weak self] outcome in
+      guard let self, self.generation == sentFor else { return }
+      done(outcome)
+    }
+  }
+
+  /// Sends [message] to the phone and calls [done] on main with its reply.
+  func transmit(_ message: [String: Any], done: @escaping (PhoneOutcome) -> Void) {
+    let deliver: (PhoneOutcome) -> Void = { outcome in
+      DispatchQueue.main.async { done(outcome) }
     }
     WCSession.default.sendMessage(
       message,
@@ -159,6 +172,37 @@ final class OpalWatchLink: NSObject, ObservableObject, WCSessionDelegate {
   ) {
     if let error {
       NSLog("OpalWatchLink: activation failed — \(error.localizedDescription)")
+    }
+  }
+
+  // MARK: - workout traffic from the phone
+
+  func session(_ session: WCSession, didReceiveMessage message: [String: Any]) {
+    receiveSnapshot(message)
+  }
+
+  func session(
+    _ session: WCSession,
+    didReceiveMessage message: [String: Any],
+    replyHandler: @escaping ([String: Any]) -> Void
+  ) {
+    guard message[OpalWatchMessage.typeKey] as? String == OpalWatchMessage.workoutEnd else {
+      replyHandler([OpalWatchMessage.errorKey: "unknown message"])
+      return
+    }
+    DispatchQueue.main.async { [weak self] in
+      replyHandler(self?.workout.endFromPhone() ?? [:])
+    }
+  }
+
+  func session(_ session: WCSession, didReceiveApplicationContext applicationContext: [String: Any]) {
+    receiveSnapshot(applicationContext)
+  }
+
+  private func receiveSnapshot(_ message: [String: Any]) {
+    guard message[OpalWatchMessage.typeKey] as? String == OpalWatchMessage.workout else { return }
+    DispatchQueue.main.async { [weak self] in
+      self?.workout.receive(message)
     }
   }
 }

@@ -282,6 +282,25 @@ void main() {
       expect(all.map((w) => w.sets.single.id), ['newer-s1', 'older-s1']);
     });
 
+    test('keeps the Watch heart rate and energy, and none without a Watch', () async {
+      final repo = WorkoutRepository(db);
+      await repo.insert(Workout(
+        id: 'watched',
+        name: 'Push',
+        startedAt: DateTime(2026, 6, 9, 17),
+        avgHeartRate: 128,
+        activeKcal: 412,
+      ));
+      await repo.insert(Workout(id: 'phone', name: 'Pull', startedAt: DateTime(2026, 6, 8, 17)));
+
+      final watched = await repo.getById('watched');
+      expect(watched!.avgHeartRate, 128);
+      expect(watched.activeKcal, 412);
+      final phone = await repo.getById('phone');
+      expect(phone!.avgHeartRate, isNull);
+      expect(phone.activeKcal, isNull);
+    });
+
     test('deleteById removes the workout\'s move entry and nothing else', () async {
       final repo = WorkoutRepository(db);
       final entries = EntryRepository(db);

@@ -25,6 +25,8 @@ class Workout {
     required this.startedAt,
     this.endedAt,
     this.sets = const [],
+    this.avgHeartRate,
+    this.activeKcal,
   });
 
   /// Caller-supplied id (never self-generated).
@@ -43,6 +45,14 @@ class Workout {
 
   /// Ordered set logs for this session.
   final List<SetLog> sets;
+
+  /// Average heart rate (bpm) the Watch measured over the session; null when
+  /// no Watch workout ran alongside it.
+  final int? avgHeartRate;
+
+  /// Active energy (kcal) the Watch measured over the session. Kept off the
+  /// linked move entry: the day's Health active energy already counts it.
+  final int? activeKcal;
 
   /// Sum of `weight × reps` over completed ([SetLog.done]) sets only. Timed
   /// sets add nothing ([SetLog.volumeKg] is 0 for them).
@@ -89,6 +99,8 @@ class Workout {
     DateTime? startedAt,
     DateTime? endedAt,
     List<SetLog>? sets,
+    int? avgHeartRate,
+    int? activeKcal,
   }) {
     return Workout(
       id: id ?? this.id,
@@ -97,6 +109,8 @@ class Workout {
       startedAt: startedAt ?? this.startedAt,
       endedAt: endedAt ?? this.endedAt,
       sets: sets ?? this.sets,
+      avgHeartRate: avgHeartRate ?? this.avgHeartRate,
+      activeKcal: activeKcal ?? this.activeKcal,
     );
   }
 
@@ -109,6 +123,8 @@ class Workout {
           other.name == name &&
           other.startedAt == startedAt &&
           other.endedAt == endedAt &&
+          other.avgHeartRate == avgHeartRate &&
+          other.activeKcal == activeKcal &&
           _listEquals(other.sets, sets);
 
   @override
@@ -119,6 +135,8 @@ class Workout {
         startedAt,
         endedAt,
         Object.hashAll(sets),
+        avgHeartRate,
+        activeKcal,
       );
 
   @override

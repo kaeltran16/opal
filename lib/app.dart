@@ -11,7 +11,9 @@ import 'controllers/health_sync_controller.dart';
 import 'controllers/notification_reconcile_controller.dart';
 import 'controllers/providers.dart';
 import 'controllers/sleep_sync_controller.dart';
+import 'controllers/watch_workout.dart';
 import 'controllers/widget_sync_controller.dart';
+import 'models/models.dart' show Workout;
 import 'router.dart';
 import 'theme/app_colors.dart';
 import 'theme/app_text.dart';
@@ -37,6 +39,7 @@ class _LoopAppState extends ConsumerState<LoopApp> {
   /// (`/session/:routineId`), both delivered over the `opal/intents` channel by
   /// the native bridge. No-op stream off iOS.
   StreamSubscription<String>? _deepLinkSub;
+  StreamSubscription<Workout>? _watchFinishSub;
   String? _lastDeepLink;
   DateTime? _lastDeepLinkAt;
 
@@ -45,6 +48,8 @@ class _LoopAppState extends ConsumerState<LoopApp> {
     super.initState();
     final siri = ref.read(siriShortcutsServiceProvider);
     _deepLinkSub = siri.deepLinks.listen(_handleDeepLink);
+    _watchFinishSub =
+        ref.read(watchWorkoutProvider).finishedOnWatch.listen(_openSummary);
     // Start the rings-widget sync loop (listens to todayState internally). iOS
     // only: the home-screen widget exists nowhere else, so there's no reason to
     // hold a live todayState subscription on other platforms.
@@ -92,6 +97,17 @@ class _LoopAppState extends ConsumerState<LoopApp> {
     }
   }
 
+  /// A workout finished from the Watch: its summary opens here, in place of
+  /// the session screen when that is showing, to be saved as from the phone.
+  void _openSummary(Workout workout) {
+    final location = _router.routerDelegate.currentConfiguration.uri.path;
+    if (location.startsWith('/session/')) {
+      _router.pushReplacementNamed(AppRoute.postWorkout.name, extra: workout);
+    } else {
+      _router.pushNamed(AppRoute.postWorkout.name, extra: workout);
+    }
+  }
+
   /// Whether [path] targets a route presented above the shell (its own page on
   /// the root navigator). Compares the path only, ignoring any query string.
   bool _isOverlayRoute(String path) {
@@ -113,6 +129,7 @@ class _LoopAppState extends ConsumerState<LoopApp> {
   @override
   void dispose() {
     _deepLinkSub?.cancel();
+    _watchFinishSub?.cancel();
     super.dispose();
   }
 

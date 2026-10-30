@@ -25,6 +25,10 @@
 	<string>$(FLUTTER_BUILD_NAME)</string>
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
+	<key>NSHealthShareUsageDescription</key>
+	<string>Opal shows your heart rate during a workout and adds it, with the energy you burned and the distance you covered, to the workout on your iPhone.</string>
+	<key>NSHealthUpdateUsageDescription</key>
+	<string>Opal saves the workouts you record on Apple Watch to Apple Health.</string>
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
@@ -32,6 +36,10 @@
 	</array>
 	<key>WKApplication</key>
 	<true/>
+	<key>WKBackgroundModes</key>
+	<array>
+		<string>workout-processing</string>
+	</array>
 	<key>WKCompanionAppBundleIdentifier</key>
 	<string>com.kael.opal</string>
 </dict>

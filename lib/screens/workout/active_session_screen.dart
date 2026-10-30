@@ -241,11 +241,13 @@ class _ActiveSessionScreenState extends ConsumerState<ActiveSessionScreen> {
       builder: (ctx) => _FinishSheet(logged: logged, total: state.sets.length),
     );
     if (confirmed != true || !context.mounted) return;
-    _finish(context);
+    await _finish(context);
   }
 
-  void _finish(BuildContext context) {
-    final workout = _controller.finish();
+  Future<void> _finish(BuildContext context) async {
+    // waits a few seconds at most, for the Watch's heart rate and energy
+    final workout = await _controller.finish();
+    if (!context.mounted) return;
     context.pushReplacementNamed(AppRoute.postWorkout.name, extra: workout);
   }
 }

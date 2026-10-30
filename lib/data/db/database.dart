@@ -39,7 +39,7 @@ class LoopDatabase extends _$LoopDatabase {
   LoopDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 12;
+  int get schemaVersion => 13;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -142,6 +142,10 @@ class LoopDatabase extends _$LoopDatabase {
             await customStatement(
                 'UPDATE exercises SET pr_weight_kg = NULL, pr_reps = NULL '
                 'WHERE timed = 1');
+          }
+          if (from < 13) {
+            await m.addColumn(workouts, workouts.avgHeartRate);
+            await m.addColumn(workouts, workouts.activeKcal);
           }
         },
         beforeOpen: (details) async {

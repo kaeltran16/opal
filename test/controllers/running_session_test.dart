@@ -71,7 +71,7 @@ void main() {
     await _settle();
     expect(container.read(runningSessionProvider), _routineId);
 
-    final workout = notifier.finish();
+    final workout = await notifier.finish();
     expect(workout.endedAt, isNotNull);
     expect(workout.sets.where((s) => s.done).length, 1);
     expect(container.read(runningSessionProvider), isNull);

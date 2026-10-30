@@ -10,13 +10,15 @@
 
 import SwiftUI
 
-private enum Palette {
+// shared with the workout screens (OpalWatchWorkoutViews)
+enum Palette {
   static let ink = Color(hex: 0xF7F1E8)
   static let muted = Color(hex: 0xA8A5A0)
   static let soft = Color(hex: 0xD3D1CE)
   static let chip = Color(hex: 0x242A30)
   static let track = Color(hex: 0x39424A)
   static let onInk = Color(hex: 0x101418)
+  static let ahead = Color(hex: 0x7FB0F5)
 }
 
 private enum Metrics {
@@ -32,7 +34,7 @@ private enum Metrics {
 }
 
 extension Color {
-  fileprivate init(hex: UInt32) {
+  init(hex: UInt32) {
     self.init(
       red: Double((hex >> 16) & 0xFF) / 255,
       green: Double((hex >> 8) & 0xFF) / 255,
@@ -326,7 +328,7 @@ private struct ScreenLayout<Content: View, Action: View>: View {
   }
 }
 
-private struct PillStyle: ButtonStyle {
+struct PillStyle: ButtonStyle {
   let filled: Bool
 
   func makeBody(configuration: Configuration) -> some View {
@@ -337,7 +339,7 @@ private struct PillStyle: ButtonStyle {
 }
 
 extension View {
-  fileprivate func pill(filled: Bool) -> some View {
+  func pill(filled: Bool) -> some View {
     font(.callout.weight(.semibold))
       .foregroundStyle(filled ? Palette.onInk : Palette.ink)
       .frame(maxWidth: .infinity, minHeight: Metrics.actionHeight)

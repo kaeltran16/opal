@@ -180,6 +180,10 @@ class _Lead extends StatelessWidget {
             Stat(value: '${w.completedSetCount}', unit: 'of ${w.sets.length}', label: 'Sets'),
             Stat(value: '${w.prCount}', label: 'Records'),
           ]),
+          if (watchStats(w) case final watch when watch.isNotEmpty) ...[
+            const SizedBox(height: _blockGap),
+            StatRow(stats: watch),
+          ],
         ],
       ),
     );

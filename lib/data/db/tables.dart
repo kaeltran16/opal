@@ -127,6 +127,11 @@ class Workouts extends Table {
   DateTimeColumn get startedAt => dateTime()();
   DateTimeColumn get endedAt => dateTime().nullable()();
 
+  /// Average heart rate (bpm) and active energy (kcal) the Watch measured
+  /// during the session (v13); null when no Watch workout ran.
+  IntColumn get avgHeartRate => integer().nullable()();
+  IntColumn get activeKcal => integer().nullable()();
+
   @override
   Set<Column> get primaryKey => {id};
 }

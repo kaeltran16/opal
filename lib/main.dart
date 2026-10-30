@@ -15,6 +15,7 @@ import 'app.dart';
 import 'controllers/providers.dart';
 import 'controllers/today_controller.dart';
 import 'controllers/watch_log.dart';
+import 'controllers/watch_workout.dart';
 import 'controllers/widget_sync_controller.dart';
 import 'data/seed/seeder.dart';
 import 'services/services.dart' show bindWatchChannel;
@@ -62,13 +63,15 @@ Future<void> main() async {
   }
 
   // the Watch logs through this engine while it runs (OpalWatchRelay); a
-  // write the headless engine made meanwhile reaches these streams by `changed`
+  // write the headless engine made meanwhile reaches these streams by `changed`.
+  // Workout commands come only here: the session lives in this engine.
   if (!kIsWeb && defaultTargetPlatform == TargetPlatform.iOS) {
     final db = container.read(loopDatabaseProvider);
     final watch = container.read(watchLogProvider);
     unawaited(bindWatchChannel(
       log: watch.log,
       undo: watch.undo,
+      workout: container.read(watchWorkoutProvider).handle,
       onChanged: () => db.markTablesUpdated([
         db.entries,
         db.nutritionMeals,

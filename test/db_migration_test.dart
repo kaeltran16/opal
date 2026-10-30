@@ -151,6 +151,20 @@ void _timedSetsMigration() {
     expect(plank.isTimed, isFalse);
   });
 
+  test('old workouts gain an empty Watch heart rate and energy (v13)', () async {
+    final db = LoopDatabase.forTesting(NativeDatabase.memory(setup: _v10Schema));
+    addTearDown(db.close);
+
+    final w = await WorkoutRepository(db).getById('w1');
+    expect(w!.avgHeartRate, isNull);
+    expect(w.activeKcal, isNull);
+    final row = await db
+        .customSelect('SELECT avg_heart_rate, active_kcal FROM workouts')
+        .getSingle();
+    expect(row.read<int?>('avg_heart_rate'), isNull);
+    expect(row.read<int?>('active_kcal'), isNull);
+  });
+
   test('a freshly seeded demo database has no plank PR', () async {
     final db = LoopDatabase.forTesting(NativeDatabase.memory());
     addTearDown(db.close);

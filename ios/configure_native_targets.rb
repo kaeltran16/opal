@@ -4,8 +4,9 @@
 #   * create the OpalWidgets widget-extension target (Live Activity) + embed it
 #   * create the OpalWatch watchOS app target + embed it (Runner.app/Watch)
 #
-# The HealthKit entitlement lives in Runner/Runner.entitlements; the TestFlight
-# workflow's automatic signing turns the capability on for the App ID.
+# The HealthKit entitlement lives in Runner/Runner.entitlements and, for the
+# Watch's workout session, OpalWatch/OpalWatch.entitlements; the TestFlight
+# workflow's automatic signing turns the capability on for each App ID.
 #
 # Driven with the `xcodeproj` gem (the library CocoaPods itself uses) rather than
 # hand-editing the pbxproj. Idempotent: re-running skips work already done.
@@ -187,6 +188,9 @@ watch_group = group_at(project.main_group, WATCH_NAME)
 add_source(project, watch_group, 'OpalWatchApp.swift', watch)
 add_source(project, watch_group, 'OpalWatchLink.swift', watch)
 add_source(project, watch_group, 'OpalWatchViews.swift', watch)
+# The workout remote: HKWorkoutSession + the phone's snapshots, and its screens.
+add_source(project, watch_group, 'OpalWatchWorkout.swift', watch)
+add_source(project, watch_group, 'OpalWatchWorkoutViews.swift', watch)
 # Shared message keys: member of BOTH targets.
 watch.source_build_phase.add_file_reference(message_ref) unless
   watch.source_build_phase.files_references.include?(message_ref)
@@ -209,6 +213,7 @@ watch.build_configurations.each do |config|
   s['PRODUCT_NAME'] = '$(TARGET_NAME)'
   s['PRODUCT_BUNDLE_IDENTIFIER'] = WATCH_BUNDLE_ID
   s['INFOPLIST_FILE'] = 'OpalWatch/Info.plist'
+  s['CODE_SIGN_ENTITLEMENTS'] = 'OpalWatch/OpalWatch.entitlements'
   s['GENERATE_INFOPLIST_FILE'] = 'NO'
   s['ASSETCATALOG_COMPILER_APPICON_NAME'] = 'AppIcon'
   s['CURRENT_PROJECT_VERSION'] = '$(FLUTTER_BUILD_NUMBER)'

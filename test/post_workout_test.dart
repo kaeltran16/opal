@@ -246,6 +246,29 @@ void main() {
     await unmount(tester);
   });
 
+  testWidgets('the Watch heart rate and energy show only when the Watch measured them',
+      (tester) async {
+    final watched = prWorkout().copyWith(avgHeartRate: 128, activeKcal: 412);
+    await pumpSummary(tester, watched, overrides: [
+      postWorkoutNoteProvider(watched).overrideWith((ref) async => 'Steady.'),
+    ]);
+
+    expect(find.text('128 bpm', findRichText: true), findsOneWidget);
+    expect(find.text('Avg heart rate'), findsOneWidget);
+    expect(find.text('412 kcal', findRichText: true), findsOneWidget);
+    expect(find.text('Active energy'), findsOneWidget);
+    await unmount(tester);
+
+    final phoneOnly = prWorkout();
+    await pumpSummary(tester, phoneOnly, overrides: [
+      postWorkoutNoteProvider(phoneOnly).overrideWith((ref) async => 'Steady.'),
+    ]);
+
+    expect(find.text('Avg heart rate'), findsNothing);
+    expect(find.text('Active energy'), findsNothing);
+    await unmount(tester);
+  });
+
   Workout treadmillWorkout() => Workout(
         id: 'active',
         name: 'Treadmill intervals',

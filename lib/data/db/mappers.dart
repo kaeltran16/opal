@@ -126,6 +126,8 @@ extension WorkoutModelMapper on Workout {
         name: Value(name),
         startedAt: Value(startedAt),
         endedAt: Value(endedAt),
+        avgHeartRate: Value(avgHeartRate),
+        activeKcal: Value(activeKcal),
       );
 }
 
@@ -136,6 +138,8 @@ Workout workoutFromRow(WorkoutRow row, List<SetLog> sets) => Workout(
       name: row.name,
       startedAt: row.startedAt,
       endedAt: row.endedAt,
+      avgHeartRate: row.avgHeartRate,
+      activeKcal: row.activeKcal,
       sets: sets,
     );
 

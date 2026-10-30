@@ -7,6 +7,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../models/models.dart';
 import '../services/services.dart';
 import 'providers.dart';
+import 'watch_workout.dart';
 import 'workout_session.dart';
 
 part 'workout_session_controller.g.dart';
@@ -83,7 +84,9 @@ class ActiveSessionState {
 /// and re-snapshot; persistence on [finish] is U14's concern (plan SF-5).
 ///
 /// The session outlives its screen (minimise, browse other tabs, Resume) until
-/// [finish] releases it.
+/// [finish] releases it. A paired Watch mirrors it: the session opens the Watch
+/// app with its workout running, and every content change is pushed there as a
+/// snapshot ([WatchWorkout] runs the Watch's commands).
 @riverpod
 class WorkoutSessionController extends _$WorkoutSessionController {
   WorkoutSession? _session;
@@ -105,11 +108,25 @@ class WorkoutSessionController extends _$WorkoutSessionController {
   LiveActivityService? _liveActivity;
   String? _activityId;
 
+  late WatchWorkoutService _watch;
+  WatchReply? _watchSnapshot;
+  int _watchRev = 0;
+
+  /// When the running rest ends, in wall-clock time. The engine counts rest in
+  /// ticks, and a suspended app's timer doesn't fire, so after a suspension the
+  /// engine is ticked up to this before anything reads or changes the rest.
+  DateTime? _restEndsAt;
+
+  /// The finish in progress, so a second Finish (phone and Watch at once, or a
+  /// double tap) gets the same workout.
+  Future<Workout>? _finishing;
+
   @override
   Future<ActiveSessionState> build(String routineId) async {
     _keepAlive = ref.keepAlive();
     final liveActivity = ref.read(liveActivityServiceProvider);
     _liveActivity = liveActivity;
+    _watch = ref.read(watchWorkoutServiceProvider);
     ref.onDispose(() {
       _timer?.cancel();
       final id = _activityId;
@@ -142,8 +159,53 @@ class WorkoutSessionController extends _$WorkoutSessionController {
           startedAt: session.activeWorkout.startedAt,
         )
         .then((id) => _activityId = id));
+    unawaited(_watch.start(cardio: routine.tag == RoutineTag.cardio));
+    _pushWatch();
 
     return _snapshot();
+  }
+
+  /// The snapshot last sent to the Watch, which is also the answer to its
+  /// command.
+  WatchReply watchSnapshot() => _watchSnapshot ?? noWorkout;
+
+  void _pushWatch({bool ended = false}) {
+    final s = _session;
+    if (s == null) return;
+    final snapshot = buildWatchSnapshot(
+      _snapshot(),
+      rev: ++_watchRev,
+      restSeconds: s.restSeconds,
+      restEndsAt: _restEndsAt,
+      ended: ended,
+    );
+    _watchSnapshot = snapshot;
+    unawaited(_watch.push(snapshot));
+  }
+
+  /// Live Activity and Watch, on every content change.
+  void _syncRemotes() {
+    _syncLiveActivity();
+    _pushWatch();
+  }
+
+  void _catchUpRest() {
+    final s = _session;
+    final endsAt = _restEndsAt;
+    if (s == null || endsAt == null) return;
+    final left = (endsAt.difference(clock.now()).inMilliseconds / 1000).ceil();
+    while (s.isResting && s.restRemaining > left) {
+      s.tick();
+    }
+  }
+
+  /// Re-reads the rest deadline after a command that started, ended or
+  /// extended the rest.
+  void _markRest() {
+    final s = _session;
+    if (s == null) return;
+    _restEndsAt =
+        s.isResting ? clock.now().add(Duration(seconds: s.restRemaining)) : null;
   }
 
   /// Pushes the current session state onto the Live Activity. The island timer
@@ -200,9 +262,11 @@ class WorkoutSessionController extends _$WorkoutSessionController {
   void _onTick() {
     final s = _session;
     if (s == null) return;
-    s.tick();
+    final before = s.restRemaining;
+    _catchUpRest();
 
-    if (s.restRemaining == 10 && !_tenSecondCueFired) {
+    // on crossing rather than at exactly 10: a catch-up can step past it
+    if (before > 10 && s.restRemaining <= 10 && s.isResting && !_tenSecondCueFired) {
       _tenSecondCueFired = true;
       ref.read(hapticsServiceProvider).medium();
     }
@@ -210,8 +274,9 @@ class WorkoutSessionController extends _$WorkoutSessionController {
       // rest just hit 0 — success cue, stop the clock, switch the island back
       // to the elapsed timer.
       ref.read(hapticsServiceProvider).success();
+      _restEndsAt = null;
       _syncTimer();
-      _syncLiveActivity();
+      _syncRemotes();
     }
     _emit();
   }
@@ -231,8 +296,9 @@ class WorkoutSessionController extends _$WorkoutSessionController {
     } else {
       haptics.light();
     }
+    _markRest();
     _syncTimer();
-    _syncLiveActivity();
+    _syncRemotes();
     _emit();
   }
 
@@ -244,8 +310,9 @@ class WorkoutSessionController extends _$WorkoutSessionController {
     _tenSecondCueFired = false;
     s.logCurrentTimedSet(minutes: minutes, distanceKm: distanceKm);
     ref.read(hapticsServiceProvider).light();
+    _markRest();
     _syncTimer();
-    _syncLiveActivity();
+    _syncRemotes();
     _emit();
   }
 
@@ -253,7 +320,9 @@ class WorkoutSessionController extends _$WorkoutSessionController {
   void addSet() {
     final s = _session;
     if (s == null) return;
+    _catchUpRest();
     s.addSet();
+    _pushWatch();
     _emit();
   }
 
@@ -263,8 +332,9 @@ class WorkoutSessionController extends _$WorkoutSessionController {
     final s = _session;
     if (s == null) return;
     s.skipExercise();
+    _markRest();
     _syncTimer();
-    _syncLiveActivity();
+    _syncRemotes();
     _emit();
   }
 
@@ -273,8 +343,9 @@ class WorkoutSessionController extends _$WorkoutSessionController {
     final s = _session;
     if (s == null) return;
     s.skipRest();
+    _markRest();
     _syncTimer();
-    _syncLiveActivity();
+    _syncRemotes();
     _emit();
   }
 
@@ -282,29 +353,44 @@ class WorkoutSessionController extends _$WorkoutSessionController {
   void addRestTime() {
     final s = _session;
     if (s == null) return;
+    _catchUpRest();
     s.addRestTime(30);
+    _markRest();
     _syncTimer();
-    _syncLiveActivity();
+    _syncRemotes();
     _emit();
   }
 
   /// Finalizes the session and returns the completed [Workout]. Does NOT persist
   /// — saving the workout + linked move entry is U14's job (plan SF-5). Clears
   /// the running session and releases this one, so the next start is fresh.
-  Workout finish() {
+  ///
+  /// The Watch's heart rate and energy go onto the workout: a Finish from the
+  /// Watch brings them as [fromWatch]; a Finish here asks the Watch to end its
+  /// workout, waiting a few seconds at most (no Watch, no numbers).
+  Future<Workout> finish({WatchWorkoutStats? fromWatch}) =>
+      _finishing ??= _finish(fromWatch);
+
+  Future<Workout> _finish(WatchWorkoutStats? fromWatch) async {
     final s = _session;
     if (s == null) {
       throw StateError('finish() called before the session loaded');
     }
     _timer?.cancel();
     _timer = null;
-    final workout = s.finish();
+    final endedAt = clock.now();
+    final stats = fromWatch ?? await _watch.end();
+    final workout = s
+        .finish(endedAt: endedAt)
+        .copyWith(avgHeartRate: stats?.heartRate, activeKcal: stats?.kcal);
     // U25 — tear down the Live Activity now the session is over.
     final id = _activityId;
     if (id != null) {
       _liveActivity?.end(id);
       _activityId = null;
     }
+    _restEndsAt = null;
+    _pushWatch(ended: true);
     _emit();
     ref.read(runningSessionProvider.notifier).clear();
     _keepAlive?.close();

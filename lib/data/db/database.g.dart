@@ -2636,6 +2636,28 @@ class $WorkoutsTable extends Workouts
     type: DriftSqlType.dateTime,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _avgHeartRateMeta = const VerificationMeta(
+    'avgHeartRate',
+  );
+  @override
+  late final GeneratedColumn<int> avgHeartRate = GeneratedColumn<int>(
+    'avg_heart_rate',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _activeKcalMeta = const VerificationMeta(
+    'activeKcal',
+  );
+  @override
+  late final GeneratedColumn<int> activeKcal = GeneratedColumn<int>(
+    'active_kcal',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -2643,6 +2665,8 @@ class $WorkoutsTable extends Workouts
     name,
     startedAt,
     endedAt,
+    avgHeartRate,
+    activeKcal,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -2689,6 +2713,21 @@ class $WorkoutsTable extends Workouts
         endedAt.isAcceptableOrUnknown(data['ended_at']!, _endedAtMeta),
       );
     }
+    if (data.containsKey('avg_heart_rate')) {
+      context.handle(
+        _avgHeartRateMeta,
+        avgHeartRate.isAcceptableOrUnknown(
+          data['avg_heart_rate']!,
+          _avgHeartRateMeta,
+        ),
+      );
+    }
+    if (data.containsKey('active_kcal')) {
+      context.handle(
+        _activeKcalMeta,
+        activeKcal.isAcceptableOrUnknown(data['active_kcal']!, _activeKcalMeta),
+      );
+    }
     return context;
   }
 
@@ -2718,6 +2757,14 @@ class $WorkoutsTable extends Workouts
         DriftSqlType.dateTime,
         data['${effectivePrefix}ended_at'],
       ),
+      avgHeartRate: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}avg_heart_rate'],
+      ),
+      activeKcal: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}active_kcal'],
+      ),
     );
   }
 
@@ -2733,12 +2780,19 @@ class WorkoutRow extends DataClass implements Insertable<WorkoutRow> {
   final String name;
   final DateTime startedAt;
   final DateTime? endedAt;
+
+  /// Average heart rate (bpm) and active energy (kcal) the Watch measured
+  /// during the session (v13); null when no Watch workout ran.
+  final int? avgHeartRate;
+  final int? activeKcal;
   const WorkoutRow({
     required this.id,
     this.routineId,
     required this.name,
     required this.startedAt,
     this.endedAt,
+    this.avgHeartRate,
+    this.activeKcal,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -2751,6 +2805,12 @@ class WorkoutRow extends DataClass implements Insertable<WorkoutRow> {
     map['started_at'] = Variable<DateTime>(startedAt);
     if (!nullToAbsent || endedAt != null) {
       map['ended_at'] = Variable<DateTime>(endedAt);
+    }
+    if (!nullToAbsent || avgHeartRate != null) {
+      map['avg_heart_rate'] = Variable<int>(avgHeartRate);
+    }
+    if (!nullToAbsent || activeKcal != null) {
+      map['active_kcal'] = Variable<int>(activeKcal);
     }
     return map;
   }
@@ -2766,6 +2826,12 @@ class WorkoutRow extends DataClass implements Insertable<WorkoutRow> {
       endedAt: endedAt == null && nullToAbsent
           ? const Value.absent()
           : Value(endedAt),
+      avgHeartRate: avgHeartRate == null && nullToAbsent
+          ? const Value.absent()
+          : Value(avgHeartRate),
+      activeKcal: activeKcal == null && nullToAbsent
+          ? const Value.absent()
+          : Value(activeKcal),
     );
   }
 
@@ -2780,6 +2846,8 @@ class WorkoutRow extends DataClass implements Insertable<WorkoutRow> {
       name: serializer.fromJson<String>(json['name']),
       startedAt: serializer.fromJson<DateTime>(json['startedAt']),
       endedAt: serializer.fromJson<DateTime?>(json['endedAt']),
+      avgHeartRate: serializer.fromJson<int?>(json['avgHeartRate']),
+      activeKcal: serializer.fromJson<int?>(json['activeKcal']),
     );
   }
   @override
@@ -2791,6 +2859,8 @@ class WorkoutRow extends DataClass implements Insertable<WorkoutRow> {
       'name': serializer.toJson<String>(name),
       'startedAt': serializer.toJson<DateTime>(startedAt),
       'endedAt': serializer.toJson<DateTime?>(endedAt),
+      'avgHeartRate': serializer.toJson<int?>(avgHeartRate),
+      'activeKcal': serializer.toJson<int?>(activeKcal),
     };
   }
 
@@ -2800,12 +2870,16 @@ class WorkoutRow extends DataClass implements Insertable<WorkoutRow> {
     String? name,
     DateTime? startedAt,
     Value<DateTime?> endedAt = const Value.absent(),
+    Value<int?> avgHeartRate = const Value.absent(),
+    Value<int?> activeKcal = const Value.absent(),
   }) => WorkoutRow(
     id: id ?? this.id,
     routineId: routineId.present ? routineId.value : this.routineId,
     name: name ?? this.name,
     startedAt: startedAt ?? this.startedAt,
     endedAt: endedAt.present ? endedAt.value : this.endedAt,
+    avgHeartRate: avgHeartRate.present ? avgHeartRate.value : this.avgHeartRate,
+    activeKcal: activeKcal.present ? activeKcal.value : this.activeKcal,
   );
   WorkoutRow copyWithCompanion(WorkoutsCompanion data) {
     return WorkoutRow(
@@ -2814,6 +2888,12 @@ class WorkoutRow extends DataClass implements Insertable<WorkoutRow> {
       name: data.name.present ? data.name.value : this.name,
       startedAt: data.startedAt.present ? data.startedAt.value : this.startedAt,
       endedAt: data.endedAt.present ? data.endedAt.value : this.endedAt,
+      avgHeartRate: data.avgHeartRate.present
+          ? data.avgHeartRate.value
+          : this.avgHeartRate,
+      activeKcal: data.activeKcal.present
+          ? data.activeKcal.value
+          : this.activeKcal,
     );
   }
 
@@ -2824,13 +2904,23 @@ class WorkoutRow extends DataClass implements Insertable<WorkoutRow> {
           ..write('routineId: $routineId, ')
           ..write('name: $name, ')
           ..write('startedAt: $startedAt, ')
-          ..write('endedAt: $endedAt')
+          ..write('endedAt: $endedAt, ')
+          ..write('avgHeartRate: $avgHeartRate, ')
+          ..write('activeKcal: $activeKcal')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, routineId, name, startedAt, endedAt);
+  int get hashCode => Object.hash(
+    id,
+    routineId,
+    name,
+    startedAt,
+    endedAt,
+    avgHeartRate,
+    activeKcal,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -2839,7 +2929,9 @@ class WorkoutRow extends DataClass implements Insertable<WorkoutRow> {
           other.routineId == this.routineId &&
           other.name == this.name &&
           other.startedAt == this.startedAt &&
-          other.endedAt == this.endedAt);
+          other.endedAt == this.endedAt &&
+          other.avgHeartRate == this.avgHeartRate &&
+          other.activeKcal == this.activeKcal);
 }
 
 class WorkoutsCompanion extends UpdateCompanion<WorkoutRow> {
@@ -2848,6 +2940,8 @@ class WorkoutsCompanion extends UpdateCompanion<WorkoutRow> {
   final Value<String> name;
   final Value<DateTime> startedAt;
   final Value<DateTime?> endedAt;
+  final Value<int?> avgHeartRate;
+  final Value<int?> activeKcal;
   final Value<int> rowid;
   const WorkoutsCompanion({
     this.id = const Value.absent(),
@@ -2855,6 +2949,8 @@ class WorkoutsCompanion extends UpdateCompanion<WorkoutRow> {
     this.name = const Value.absent(),
     this.startedAt = const Value.absent(),
     this.endedAt = const Value.absent(),
+    this.avgHeartRate = const Value.absent(),
+    this.activeKcal = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   WorkoutsCompanion.insert({
@@ -2863,6 +2959,8 @@ class WorkoutsCompanion extends UpdateCompanion<WorkoutRow> {
     required String name,
     required DateTime startedAt,
     this.endedAt = const Value.absent(),
+    this.avgHeartRate = const Value.absent(),
+    this.activeKcal = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        name = Value(name),
@@ -2873,6 +2971,8 @@ class WorkoutsCompanion extends UpdateCompanion<WorkoutRow> {
     Expression<String>? name,
     Expression<DateTime>? startedAt,
     Expression<DateTime>? endedAt,
+    Expression<int>? avgHeartRate,
+    Expression<int>? activeKcal,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -2881,6 +2981,8 @@ class WorkoutsCompanion extends UpdateCompanion<WorkoutRow> {
       if (name != null) 'name': name,
       if (startedAt != null) 'started_at': startedAt,
       if (endedAt != null) 'ended_at': endedAt,
+      if (avgHeartRate != null) 'avg_heart_rate': avgHeartRate,
+      if (activeKcal != null) 'active_kcal': activeKcal,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -2891,6 +2993,8 @@ class WorkoutsCompanion extends UpdateCompanion<WorkoutRow> {
     Value<String>? name,
     Value<DateTime>? startedAt,
     Value<DateTime?>? endedAt,
+    Value<int?>? avgHeartRate,
+    Value<int?>? activeKcal,
     Value<int>? rowid,
   }) {
     return WorkoutsCompanion(
@@ -2899,6 +3003,8 @@ class WorkoutsCompanion extends UpdateCompanion<WorkoutRow> {
       name: name ?? this.name,
       startedAt: startedAt ?? this.startedAt,
       endedAt: endedAt ?? this.endedAt,
+      avgHeartRate: avgHeartRate ?? this.avgHeartRate,
+      activeKcal: activeKcal ?? this.activeKcal,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -2921,6 +3027,12 @@ class WorkoutsCompanion extends UpdateCompanion<WorkoutRow> {
     if (endedAt.present) {
       map['ended_at'] = Variable<DateTime>(endedAt.value);
     }
+    if (avgHeartRate.present) {
+      map['avg_heart_rate'] = Variable<int>(avgHeartRate.value);
+    }
+    if (activeKcal.present) {
+      map['active_kcal'] = Variable<int>(activeKcal.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -2935,6 +3047,8 @@ class WorkoutsCompanion extends UpdateCompanion<WorkoutRow> {
           ..write('name: $name, ')
           ..write('startedAt: $startedAt, ')
           ..write('endedAt: $endedAt, ')
+          ..write('avgHeartRate: $avgHeartRate, ')
+          ..write('activeKcal: $activeKcal, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -9897,6 +10011,8 @@ typedef $$WorkoutsTableCreateCompanionBuilder =
       required String name,
       required DateTime startedAt,
       Value<DateTime?> endedAt,
+      Value<int?> avgHeartRate,
+      Value<int?> activeKcal,
       Value<int> rowid,
     });
 typedef $$WorkoutsTableUpdateCompanionBuilder =
@@ -9906,6 +10022,8 @@ typedef $$WorkoutsTableUpdateCompanionBuilder =
       Value<String> name,
       Value<DateTime> startedAt,
       Value<DateTime?> endedAt,
+      Value<int?> avgHeartRate,
+      Value<int?> activeKcal,
       Value<int> rowid,
     });
 
@@ -9940,6 +10058,16 @@ class $$WorkoutsTableFilterComposer
 
   ColumnFilters<DateTime> get endedAt => $composableBuilder(
     column: $table.endedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get avgHeartRate => $composableBuilder(
+    column: $table.avgHeartRate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get activeKcal => $composableBuilder(
+    column: $table.activeKcal,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -9977,6 +10105,16 @@ class $$WorkoutsTableOrderingComposer
     column: $table.endedAt,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<int> get avgHeartRate => $composableBuilder(
+    column: $table.avgHeartRate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get activeKcal => $composableBuilder(
+    column: $table.activeKcal,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$WorkoutsTableAnnotationComposer
@@ -10002,6 +10140,16 @@ class $$WorkoutsTableAnnotationComposer
 
   GeneratedColumn<DateTime> get endedAt =>
       $composableBuilder(column: $table.endedAt, builder: (column) => column);
+
+  GeneratedColumn<int> get avgHeartRate => $composableBuilder(
+    column: $table.avgHeartRate,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get activeKcal => $composableBuilder(
+    column: $table.activeKcal,
+    builder: (column) => column,
+  );
 }
 
 class $$WorkoutsTableTableManager
@@ -10040,6 +10188,8 @@ class $$WorkoutsTableTableManager
                 Value<String> name = const Value.absent(),
                 Value<DateTime> startedAt = const Value.absent(),
                 Value<DateTime?> endedAt = const Value.absent(),
+                Value<int?> avgHeartRate = const Value.absent(),
+                Value<int?> activeKcal = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => WorkoutsCompanion(
                 id: id,
@@ -10047,6 +10197,8 @@ class $$WorkoutsTableTableManager
                 name: name,
                 startedAt: startedAt,
                 endedAt: endedAt,
+                avgHeartRate: avgHeartRate,
+                activeKcal: activeKcal,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -10056,6 +10208,8 @@ class $$WorkoutsTableTableManager
                 required String name,
                 required DateTime startedAt,
                 Value<DateTime?> endedAt = const Value.absent(),
+                Value<int?> avgHeartRate = const Value.absent(),
+                Value<int?> activeKcal = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => WorkoutsCompanion.insert(
                 id: id,
@@ -10063,6 +10217,8 @@ class $$WorkoutsTableTableManager
                 name: name,
                 startedAt: startedAt,
                 endedAt: endedAt,
+                avgHeartRate: avgHeartRate,
+                activeKcal: activeKcal,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

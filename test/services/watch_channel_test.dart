@@ -3,7 +3,8 @@ import 'dart:async';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:opal/services/services.dart' show WatchKeys, WatchReply, bindWatchChannel;
+import 'package:opal/services/services.dart'
+    show ChannelWatchWorkoutService, WatchKeys, WatchReply, WatchWorkoutStats, bindWatchChannel, noWorkout;
 
 const _channel = MethodChannel('opal/watch.test');
 
@@ -137,5 +138,100 @@ void main() {
     await relayCalls('changed');
 
     expect(refreshed, 1);
+  });
+
+  group('workout', () {
+    final command = {WatchKeys.type: WatchKeys.workout, WatchKeys.command: WatchKeys.state};
+
+    test('goes to the workout handler, with no follow-up or idle', () async {
+      Map<Object?, Object?>? got;
+      await bindWatchChannel(
+        log: logged,
+        undo: undone,
+        workout: (message) async {
+          got = message;
+          return {WatchKeys.type: WatchKeys.workout, WatchKeys.phase: WatchKeys.phaseSet};
+        },
+        afterChange: () async => sent.add('afterChange'),
+        channel: _channel,
+      );
+
+      final reply = await relayCalls(WatchKeys.workout, command);
+      await pumpEventQueue();
+
+      expect(got, command);
+      expect((reply as Map)[WatchKeys.phase], WatchKeys.phaseSet);
+      expect(sent, ['ready']);
+    });
+
+    test('an engine without the session says no workout is running', () async {
+      await bindWatchChannel(log: logged, undo: undone, channel: _channel);
+
+      expect(await relayCalls(WatchKeys.workout, command), noWorkout);
+    });
+
+    test('a workout handler that throws answers with an error', () async {
+      await bindWatchChannel(
+        log: logged,
+        undo: undone,
+        workout: (_) async => throw StateError('no session'),
+        channel: _channel,
+      );
+
+      final reply = await relayCalls(WatchKeys.workout, command);
+
+      expect((reply as Map)[WatchKeys.error], isA<String>());
+    });
+  });
+
+  group('ChannelWatchWorkoutService', () {
+    late List<MethodCall> calls;
+    late Object? Function(MethodCall call) answer;
+    const service = ChannelWatchWorkoutService(
+      channel: _channel,
+      endTimeout: Duration(milliseconds: 50),
+    );
+
+    setUp(() {
+      calls = [];
+      answer = (_) => null;
+      messenger.setMockMethodCallHandler(_channel, (call) async {
+        calls.add(call);
+        final reply = answer(call);
+        return reply is Future ? await reply : reply;
+      });
+    });
+
+    test('start and push reach the native side with their arguments', () async {
+      await service.start(cardio: true);
+      await service.push({WatchKeys.rev: 3});
+
+      expect(calls.map((c) => c.method), ['startWorkout', 'pushWorkout']);
+      expect(calls[0].arguments, {'cardio': true});
+      expect(calls[1].arguments, {WatchKeys.rev: 3});
+    });
+
+    test('end returns what the Watch measured', () async {
+      answer = (_) => {WatchKeys.heartRate: 127.6, WatchKeys.kcal: 401};
+
+      expect(await service.end(), const WatchWorkoutStats(heartRate: 128, kcal: 401));
+    });
+
+    test('end gives up on a Watch that is slow, unreachable or says nothing', () async {
+      answer = (_) => Future<Object?>.delayed(const Duration(seconds: 1));
+      expect(await service.end(), isNull);
+
+      answer = (_) => throw PlatformException(code: 'unreachable');
+      expect(await service.end(), isNull);
+
+      answer = (_) => <String, Object?>{};
+      expect(await service.end(), isNull);
+    });
+
+    test('a failing push does not throw', () async {
+      answer = (_) => throw PlatformException(code: 'inactive');
+
+      await service.push({WatchKeys.rev: 1});
+    });
   });
 }

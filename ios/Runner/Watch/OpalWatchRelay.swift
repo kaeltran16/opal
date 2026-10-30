@@ -2,14 +2,18 @@
 //  OpalWatchRelay.swift
 //  Runner
 //
-//  Hands a Watch log or undo to Dart over the `opal/watch` MethodChannel and
-//  sends Dart's reply back to the Watch; the Dart end is `bindWatchChannel`.
+//  Hands a Watch log, undo or workout command to Dart over the `opal/watch`
+//  MethodChannel and sends Dart's reply back to the Watch; the Dart end is
+//  `bindWatchChannel`. Dart's own workout calls on the channel (start the
+//  Watch workout, push a snapshot, end it) go on to OpalWatchSession.
 //
 //  Which engine: the app's own while it exists, so only one engine opens the
 //  database. When a message wakes the app with no scene (so no app engine), a
 //  headless engine runs the `watchMain` entrypoint and is stopped once Dart
 //  says it is idle. If the app opens meanwhile, the headless engine finishes
 //  what it has and the app engine is told to refresh after each write.
+//  Workout commands go to the app engine only: the session lives in its
+//  memory, so without one there is no workout to drive.
 //
 //  Timing: iOS gives a woken app a short, unpromised stretch, so the relay
 //  holds a background task while anything is in flight and answers the Watch
@@ -78,6 +82,10 @@ final class OpalWatchRelay {
 
   /// Main thread only, like every method here.
   func forward(_ message: [String: Any], reply: @escaping Reply) {
+    if message[OpalWatchMessage.typeKey] as? String == OpalWatchMessage.workout, app == nil {
+      reply(OpalWatchMessage.noWorkout)
+      return
+    }
     holdBackgroundTime()
     let request = Request(message: message)
     waiting[request.id] = reply
@@ -103,6 +111,8 @@ final class OpalWatchRelay {
         self.ready(endpoint)
       case "idle":
         self.stopHeadlessIfIdle(endpoint)
+      case "startWorkout", "pushWorkout", "endWorkout":
+        return OpalWatchSession.shared.handleWorkoutCall(call, result: result)
       default:
         return result(FlutterMethodNotImplemented)
       }

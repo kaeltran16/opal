@@ -1,5 +1,6 @@
 import 'package:flutter/widgets.dart';
 
+import '../models/workout.dart';
 import '../theme/theme.dart';
 
 const double _hairline = 1;
@@ -17,6 +18,15 @@ class Stat {
   final String? unit;
   final String label;
 }
+
+/// What the Watch measured over [workout]: average heart rate and active
+/// energy, each only when present. Empty when no Watch workout ran.
+List<Stat> watchStats(Workout workout) => [
+      if (workout.avgHeartRate case final bpm?)
+        Stat(value: '$bpm', unit: 'bpm', label: 'Avg heart rate'),
+      if (workout.activeKcal case final kcal?)
+        Stat(value: '$kcal', unit: 'kcal', label: 'Active energy'),
+    ];
 
 /// Equal columns of light numbers, split by a hairline.
 class StatRow extends StatelessWidget {

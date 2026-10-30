@@ -229,7 +229,7 @@ class _Stats extends StatelessWidget {
     // show seconds for a sub-minute session so it doesn't read "0 min".
     final dur = workout.duration;
     final subMinute = dur != null && dur.inMinutes < 1;
-    return StatRow(stats: [
+    final row = StatRow(stats: [
       Stat(
         value: subMinute ? '${dur.inSeconds}' : '${dur?.inMinutes ?? 0}',
         unit: subMinute ? 'sec' : 'min',
@@ -238,6 +238,14 @@ class _Stats extends StatelessWidget {
       Stat(value: '$done', unit: 'of ${workout.sets.length}', label: 'Sets'),
       Stat(value: '${workout.prCount}', label: 'Records'),
     ]);
+    final watch = watchStats(workout);
+    if (watch.isEmpty) return row;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      spacing: Spacing.xl,
+      children: [row, StatRow(stats: watch)],
+    );
   }
 }
 
