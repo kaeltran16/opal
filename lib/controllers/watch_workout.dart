@@ -118,7 +118,7 @@ class WatchWorkout {
 
     switch (message[WatchKeys.command]) {
       case WatchKeys.complete when onSet:
-        _complete(session, set!, message[WatchKeys.distanceKm]);
+        _complete(session, set, message[WatchKeys.distanceKm]);
       case WatchKeys.addSet when onSet:
         session.addSet();
       case WatchKeys.skipExercise when onSet:
