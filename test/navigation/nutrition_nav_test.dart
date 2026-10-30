@@ -18,6 +18,7 @@ import 'package:opal/services/pal/mock_pal_service.dart';
 import 'package:opal/widgets/glass_tab_bar.dart';
 
 import '../support/flush_provider_timers.dart';
+import '../support/seeded_clock.dart';
 
 String _path(WidgetTester tester) =>
     GoRouter.of(tester.element(find.byType(GlassTabBar)))
@@ -55,7 +56,7 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('a meal opens its detail under the Areas Nutrition page',
+  testWidgetsSeeded('a meal opens its detail under the Areas Nutrition page',
       (tester) async {
     await bootApp(tester);
 

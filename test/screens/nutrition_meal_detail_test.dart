@@ -18,6 +18,7 @@ import 'package:opal/theme/app_colors.dart';
 import 'package:opal/theme/app_type.dart';
 
 import '../support/flush_provider_timers.dart';
+import '../support/seeded_clock.dart';
 
 const _home = 'Nutrition page';
 const _note = 'You said: extra chicken, no sour cream.';
@@ -228,7 +229,7 @@ void main() {
     await flushProviderTimers(tester);
   });
 
-  testWidgets('Delete removes the meal and returns', (tester) async {
+  testWidgetsSeeded('Delete removes the meal and returns', (tester) async {
     final (db, seeded) = await _pump(tester);
     expect(find.byType(NutritionMealDetailScreen), findsOneWidget);
     expect(find.text('Meal not found.'), findsNothing);

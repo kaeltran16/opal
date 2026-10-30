@@ -17,6 +17,7 @@ import 'package:opal/theme/app_colors.dart';
 import 'package:opal/theme/app_type.dart';
 
 import '../support/flush_provider_timers.dart';
+import '../support/seeded_clock.dart';
 
 /// Task 13 smoke test — opens the add sheet from the Nutrition area page's Add a
 /// meal, taps a quick pick, saves; asserts the new meal name appears in the
@@ -74,7 +75,7 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('add sheet: tap quick pick + Save adds meal to landing',
+  testWidgetsSeeded('add sheet: tap quick pick + Save adds meal to landing',
       (tester) async {
     await openAddSheet(tester);
 
@@ -110,7 +111,7 @@ void main() {
     await flushProviderTimers(tester);
   });
 
-  testWidgets('estimate keeps the typed name (no title-cased overwrite)',
+  testWidgetsSeeded('estimate keeps the typed name (no title-cased overwrite)',
       (tester) async {
     await openAddSheet(tester);
 
@@ -133,7 +134,7 @@ void main() {
     await flushProviderTimers(tester);
   });
 
-  testWidgets('Start over returns to the quick-pick grid', (tester) async {
+  testWidgetsSeeded('Start over returns to the quick-pick grid', (tester) async {
     await openAddSheet(tester);
     expect(find.text(_pickLabel), findsOneWidget);
 
@@ -158,7 +159,7 @@ void main() {
     await flushProviderTimers(tester);
   });
 
-  testWidgets('slot pills select with semantics selected', (tester) async {
+  testWidgetsSeeded('slot pills select with semantics selected', (tester) async {
     await openAddSheet(tester);
 
     await tester.tap(find.bySemanticsLabel('Dinner'));
@@ -174,7 +175,7 @@ void main() {
     await flushProviderTimers(tester);
   });
 
-  testWidgets('Estimate fills the result with a score number', (tester) async {
+  testWidgetsSeeded('Estimate fills the result with a score number', (tester) async {
     await openAddSheet(tester);
 
     await tester.enterText(find.byType(TextField).last, 'pho');
@@ -192,7 +193,7 @@ void main() {
     await flushProviderTimers(tester);
   });
 
-  testWidgets('edit-mode Save updates the meal in place', (tester) async {
+  testWidgetsSeeded('edit-mode Save updates the meal in place', (tester) async {
     final page = await bootPage(tester);
     final container = ProviderScope.containerOf(tester.element(page));
     final before = container.read(areaDetailProvider(Area.nutrition)).requireValue.meals;

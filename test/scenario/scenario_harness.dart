@@ -64,7 +64,8 @@ Future<void> _loadSans() async {
   final dir = Directory('$flutterRoot/bin/cache/artifacts/material_fonts');
   final faces = [
     for (final file in dir.listSync().whereType<File>())
-      if (RegExp(r'[\\/]roboto-[a-z]+\.ttf$').hasMatch(file.path))
+      // the sdk ships Roboto-Regular.ttf; RobotoCondensed has no hyphen here.
+      if (RegExp(r'[\\/]roboto-[a-z]+\.ttf$', caseSensitive: false).hasMatch(file.path))
         ByteData.sublistView(file.readAsBytesSync()),
   ];
   if (faces.isEmpty) {
