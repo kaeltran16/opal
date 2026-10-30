@@ -32,4 +32,5 @@ export 'pal/mock_pal_service.dart';
 export 'pal/pal_context_builder.dart';
 export 'pal/pal_service.dart';
 export 'pal/prefs_pal_cache.dart';
+export 'watch/watch_channel.dart';
 export 'widget_sync/widget_sync_service.dart';

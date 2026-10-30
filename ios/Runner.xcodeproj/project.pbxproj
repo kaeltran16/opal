@@ -37,6 +37,8 @@
 		2F73DF523B4C6B7FCE5EFF75 /* OpalWatchMessage.swift in Sources */ = {isa = PBXBuildFile; fileRef = ECF253DC250890B81AC479D9 /* OpalWatchMessage.swift */; };
 		737588763F5614A7B5370761 /* OpalWatchMessage.swift in Sources */ = {isa = PBXBuildFile; fileRef = ECF253DC250890B81AC479D9 /* OpalWatchMessage.swift */; };
 		C25914B7B0FFCDA9AFA1B8BC /* OpalWatchSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC29005B54EEAC12C0D6B11A /* OpalWatchSession.swift */; };
+		21FB894287147D843680FF04 /* OpalWatchRelay.swift in Sources */ = {isa = PBXBuildFile; fileRef = FCDC9EE7BF465A48676FD2A2 /* OpalWatchRelay.swift */; };
+		01A3C83A2E97290DF1FEDD52 /* OpalWatchViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = C421212D4EA53A235099C392 /* OpalWatchViews.swift */; };
 		D93D6B3BB6D2B3A6A56E4FC7 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 86B8B33F5AFCA845225B7C20 /* Assets.xcassets */; };
 		816636BF0793E57494153308 /* OpalWatch.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 907B7B119A4B2C1747473E31 /* OpalWatch.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		7C80757770ACA7F0E10AF326 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = EB6E5C64A706531A052BC7D4 /* Foundation.framework */; };
@@ -145,6 +147,8 @@
 		E23DA7F3906A90701FF9BE3C /* OpalWatchLink.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = OpalWatchLink.swift; sourceTree = "<group>"; };
 		ECF253DC250890B81AC479D9 /* OpalWatchMessage.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = OpalWatchMessage.swift; sourceTree = "<group>"; };
 		FC29005B54EEAC12C0D6B11A /* OpalWatchSession.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = OpalWatchSession.swift; sourceTree = "<group>"; };
+		FCDC9EE7BF465A48676FD2A2 /* OpalWatchRelay.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = OpalWatchRelay.swift; sourceTree = "<group>"; };
+		C421212D4EA53A235099C392 /* OpalWatchViews.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = OpalWatchViews.swift; sourceTree = "<group>"; };
 		0C28A5CCB66B6DFC8D0A82F8 /* Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		86B8B33F5AFCA845225B7C20 /* Assets.xcassets */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		907B7B119A4B2C1747473E31 /* OpalWatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = OpalWatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -346,6 +350,7 @@
 				E23DA7F3906A90701FF9BE3C /* OpalWatchLink.swift */,
 				0C28A5CCB66B6DFC8D0A82F8 /* Info.plist */,
 				86B8B33F5AFCA845225B7C20 /* Assets.xcassets */,
+				C421212D4EA53A235099C392 /* OpalWatchViews.swift */,
 			);
 			name = OpalWatch;
 			path = OpalWatch;
@@ -356,6 +361,7 @@
 			children = (
 				ECF253DC250890B81AC479D9 /* OpalWatchMessage.swift */,
 				FC29005B54EEAC12C0D6B11A /* OpalWatchSession.swift */,
+				FCDC9EE7BF465A48676FD2A2 /* OpalWatchRelay.swift */,
 			);
 			name = Watch;
 			path = Watch;
@@ -660,6 +666,7 @@
 				547448FBFBB282112FED8204 /* OpalHealthBridge.swift in Sources */,
 				737588763F5614A7B5370761 /* OpalWatchMessage.swift in Sources */,
 				C25914B7B0FFCDA9AFA1B8BC /* OpalWatchSession.swift in Sources */,
+				21FB894287147D843680FF04 /* OpalWatchRelay.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -682,6 +689,7 @@
 				C378FB4D7D8312C26F61F4CA /* OpalWatchApp.swift in Sources */,
 				E0BADC2680C8D9E65DC390C4 /* OpalWatchLink.swift in Sources */,
 				2F73DF523B4C6B7FCE5EFF75 /* OpalWatchMessage.swift in Sources */,
+				01A3C83A2E97290DF1FEDD52 /* OpalWatchViews.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

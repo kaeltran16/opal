@@ -1,4 +1,9 @@
-import 'package:flutter/foundation.dart' show debugPrint, kIsWeb;
+import 'dart:async';
+import 'dart:ui' show DartPluginRegistrant;
+
+import 'package:clock/clock.dart';
+import 'package:flutter/foundation.dart'
+    show TargetPlatform, debugPrint, defaultTargetPlatform, kIsWeb;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
@@ -8,7 +13,11 @@ import 'package:timezone/timezone.dart' as tz;
 
 import 'app.dart';
 import 'controllers/providers.dart';
+import 'controllers/today_controller.dart';
+import 'controllers/watch_log.dart';
+import 'controllers/widget_sync_controller.dart';
 import 'data/seed/seeder.dart';
+import 'services/services.dart' show bindWatchChannel;
 
 /// When true (set via `--dart-define=SEED_DATA=true`, e.g. the "dev (seeded)"
 /// launch config), the demo user's history is seeded. Defaults to false so real
@@ -52,10 +61,62 @@ Future<void> main() async {
     await seeder.seedDemoData();
   }
 
+  // the Watch logs through this engine while it runs (OpalWatchRelay); a
+  // write the headless engine made meanwhile reaches these streams by `changed`
+  if (!kIsWeb && defaultTargetPlatform == TargetPlatform.iOS) {
+    final db = container.read(loopDatabaseProvider);
+    final watch = container.read(watchLogProvider);
+    unawaited(bindWatchChannel(
+      log: watch.log,
+      undo: watch.undo,
+      onChanged: () => db.markTablesUpdated([
+        db.entries,
+        db.nutritionMeals,
+        db.goalsTable,
+        db.routines,
+        db.routineExercises,
+      ]),
+    ));
+  }
+
   runApp(
     UncontrolledProviderScope(
       container: container,
       child: const LoopApp(),
     ),
   );
+}
+
+/// Entrypoint of the headless engine OpalWatchRelay starts when a Watch message
+/// wakes the app and no app engine is running. It only logs: no UI, seeding,
+/// timezone or notification setup. After each change it pushes the rings
+/// widget itself, since `WidgetSyncController` lives in the app.
+@pragma('vm:entry-point')
+Future<void> watchMain() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  DartPluginRegistrant.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
+  final container = ProviderContainer(
+    overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+  );
+  final watch = container.read(watchLogProvider);
+  await bindWatchChannel(
+    log: watch.log,
+    undo: watch.undo,
+    afterChange: () => _pushWidget(container),
+  );
+}
+
+Future<void> _pushWidget(ProviderContainer container) async {
+  // listening keeps the auto-dispose today stream alive until it has a value
+  final today = container.listen(todayStateProvider.future, (_, _) {});
+  try {
+    final state = await today.read();
+    final currency = container.read(settingsRepositoryProvider).currency;
+    await container
+        .read(widgetSyncServiceProvider)
+        .sync(buildWidgetSnapshot(state.glance, currency, clock.now()));
+  } finally {
+    today.close();
+  }
 }

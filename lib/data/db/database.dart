@@ -150,9 +150,16 @@ class LoopDatabase extends _$LoopDatabase {
         },
       );
 
+  static const _busyTimeoutMs = 5000;
+
   static QueryExecutor _open() {
     return driftDatabase(
       name: 'loop_db',
+      // a Watch log can run in a second engine with its own connection; a
+      // writer that meets the other's lock waits instead of failing busy
+      native: DriftNativeOptions(
+        setup: (db) => db.execute('PRAGMA busy_timeout = $_busyTimeoutMs'),
+      ),
       web: DriftWebOptions(
         sqlite3Wasm: Uri.parse('sqlite3.wasm'),
         driftWorker: Uri.parse('drift_worker.dart.js'),

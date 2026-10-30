@@ -80,9 +80,7 @@ Future<AppliedAction> _apply(Ref ref, PalAction action) async {
     case LogMealAction():
       final est =
           MealEstimate(name: action.name, cal: action.cal, confidence: action.confidence);
-      final slot = (action.slot != null && action.slot!.trim().isNotEmpty)
-          ? action.slot!.trim()
-          : NutritionController.slotForHour(clock.now().hour);
+      final slot = mealSlotFor(action);
       return AppliedAction(
           mealId: await ref.read(nutritionRepositoryProvider).insert(
                 NutritionMeal(
@@ -98,6 +96,12 @@ Future<AppliedAction> _apply(Ref ref, PalAction action) async {
                 ),
               ));
   }
+}
+
+/// The slot a chat-logged meal lands in: Pal's, else the one for the time of day.
+String mealSlotFor(LogMealAction a) {
+  final slot = a.slot?.trim() ?? '';
+  return slot.isNotEmpty ? slot : NutritionController.slotForHour(clock.now().hour);
 }
 
 Entry _entryFor(LogEntryAction a) => Entry(

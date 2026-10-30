@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 /// Narrow secure-storage seam so the token store is unit-testable without a
@@ -9,8 +10,15 @@ abstract interface class TokenSecureStore {
 }
 
 /// Default [TokenSecureStore] backed by the platform keychain (in-memory on web).
+///
+/// Readable after the first unlock, not only while unlocked: a Watch log wakes
+/// the app in the background, usually with the phone locked in a pocket.
 class FlutterTokenSecureStore implements TokenSecureStore {
-  const FlutterTokenSecureStore([this._storage = const FlutterSecureStorage()]);
+  const FlutterTokenSecureStore([this._storage = FlutterTokenSecureStore._keychain]);
+
+  static const _keychain = FlutterSecureStorage(
+    iOptions: IOSOptions(accessibility: KeychainAccessibility.first_unlock),
+  );
   final FlutterSecureStorage _storage;
 
   @override
@@ -40,6 +48,10 @@ class DeviceTokenStore {
   // first launch fires several Pal calls at once; they must share one register.
   Future<String>? _inFlight;
 
+  // a keychain item keeps the accessibility it was written with, so a token
+  // saved before the store's options changed is written again, once per launch
+  bool _saved = false;
+
   Future<String> token() {
     final pending = _inFlight;
     if (pending != null) return pending;
@@ -51,10 +63,25 @@ class DeviceTokenStore {
 
   Future<String> _readOrRegister() async {
     final cached = await secure.read(_key);
-    if (cached != null && cached.isNotEmpty) return cached;
+    if (cached != null && cached.isNotEmpty) {
+      if (!_saved) await _resave(cached);
+      return cached;
+    }
     final fresh = await register(deviceId);
     await secure.write(_key, fresh);
+    _saved = true;
     return fresh;
+  }
+
+  // the token was read, so a failed re-save must not fail the call; the next
+  // call tries again
+  Future<void> _resave(String token) async {
+    try {
+      await secure.write(_key, token);
+      _saved = true;
+    } catch (e) {
+      debugPrint('DeviceTokenStore: re-saving the token failed: $e');
+    }
   }
 
   /// Drops the cached token so the next [token] call re-registers (used after a 401).

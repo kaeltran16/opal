@@ -2,8 +2,8 @@
 //  OpalWatchApp.swift
 //  OpalWatch
 //
-//  Placeholder home screen until Pal logging lands: a button that pings the
-//  iPhone, so a TestFlight build can show the WatchConnectivity link works.
+//  Pal logging on the Watch: say something, the iPhone logs it through Pal,
+//  and the result comes back with Undo. Screens are in OpalWatchViews.
 //
 
 import SwiftUI
@@ -14,23 +14,7 @@ struct OpalWatchApp: App {
 
   var body: some Scene {
     WindowGroup {
-      HomeView(link: link)
-    }
-  }
-}
-
-struct HomeView: View {
-  @ObservedObject var link: OpalWatchLink
-
-  var body: some View {
-    VStack(spacing: 8) {
-      Text("Opal")
-        .font(.title3.bold())
-      Button("Ping iPhone") { link.ping() }
-      Text(link.status)
-        .font(.footnote)
-        .foregroundStyle(.secondary)
-        .multilineTextAlignment(.center)
+      PalView(link: link)
     }
   }
 }

@@ -76,9 +76,11 @@ health_group = group_at(runner_group, 'Health')
 add_source(project, health_group, 'OpalHealthBridge.swift', runner)
 
 # Phone end of the Watch link. The message keys are shared with OpalWatch below.
+# The relay hands Watch logs to Dart, starting a headless engine when needed.
 watch_link_group = group_at(runner_group, 'Watch')
 message_ref = add_source(project, watch_link_group, 'OpalWatchMessage.swift', runner)
 add_source(project, watch_link_group, 'OpalWatchSession.swift', runner)
+add_source(project, watch_link_group, 'OpalWatchRelay.swift', runner)
 
 # ---------------------------------------------------------------------------
 # B2 — create the OpalWidgets app-extension target (the Live Activity widget).
@@ -184,6 +186,7 @@ end
 watch_group = group_at(project.main_group, WATCH_NAME)
 add_source(project, watch_group, 'OpalWatchApp.swift', watch)
 add_source(project, watch_group, 'OpalWatchLink.swift', watch)
+add_source(project, watch_group, 'OpalWatchViews.swift', watch)
 # Shared message keys: member of BOTH targets.
 watch.source_build_phase.add_file_reference(message_ref) unless
   watch.source_build_phase.files_references.include?(message_ref)

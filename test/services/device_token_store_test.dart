@@ -4,11 +4,20 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:opal/services/pal/device_token_store.dart';
 
 class _FakeSecureStore implements TokenSecureStore {
+  _FakeSecureStore({this.writeFails = false});
+
+  final bool writeFails;
   final Map<String, String> _m = {};
+  int writes = 0;
+
   @override
   Future<String?> read(String key) async => _m[key];
   @override
-  Future<void> write(String key, String value) async => _m[key] = value;
+  Future<void> write(String key, String value) async {
+    writes++;
+    if (writeFails) throw StateError('keychain locked');
+    _m[key] = value;
+  }
   @override
   Future<void> delete(String key) async => _m.remove(key);
 }
@@ -87,5 +96,43 @@ void main() {
     await expectLater(store.token(), throwsStateError);
     expect(await store.token(), 'tok');
     expect(registerCalls, 2);
+  });
+
+  group('keychain accessibility', () {
+    DeviceTokenStore storeOn(_FakeSecureStore secure) => DeviceTokenStore(
+          secure: secure,
+          deviceId: 'd',
+          register: (_) async => 'fresh',
+        );
+
+    test('a token saved by an earlier launch is saved again once', () async {
+      final secure = _FakeSecureStore().._m['pal_device_token'] = 'old';
+      final store = storeOn(secure);
+
+      expect(await store.token(), 'old');
+      expect(await store.token(), 'old');
+
+      expect(secure.writes, 1);
+    });
+
+    test('a freshly registered token is saved once, not again on reuse', () async {
+      final secure = _FakeSecureStore();
+      final store = storeOn(secure);
+
+      expect(await store.token(), 'fresh');
+      expect(await store.token(), 'fresh');
+
+      expect(secure.writes, 1);
+    });
+
+    test('a failed re-save still returns the token and is retried', () async {
+      final secure = _FakeSecureStore(writeFails: true).._m['pal_device_token'] = 'old';
+      final store = storeOn(secure);
+
+      expect(await store.token(), 'old');
+      expect(await store.token(), 'old');
+
+      expect(secure.writes, 2);
+    });
   });
 }

@@ -29,6 +29,8 @@ import UIKit
       OpalIntentsBridge.shared.register(with: messenger)
       OpalWidgetSyncBridge.register(with: messenger)
       OpalHealthBridge.register(with: messenger)
+      // while this engine runs, Watch logs go through it, not a headless one
+      OpalWatchRelay.shared.attachApp(messenger)
 
       // flutter's MediaQuery has no Reduce Transparency flag, so GlassSurface
       // reads it here and hears about changes without an app restart.

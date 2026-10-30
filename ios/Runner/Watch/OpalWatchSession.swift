@@ -4,7 +4,8 @@
 //
 //  Phone end of the WatchConnectivity link. AppDelegate activates it at launch,
 //  so a `sendMessage` from the Watch that wakes the app in the background finds
-//  its delegate already in place. For now it only answers `ping`.
+//  its delegate already in place. Logs and undos go to OpalWatchRelay, which
+//  answers them in Dart.
 //
 
 import Foundation
@@ -47,10 +48,14 @@ final class OpalWatchSession: NSObject, WCSessionDelegate {
     replyHandler: @escaping ([String: Any]) -> Void
   ) {
     let type = message[OpalWatchMessage.typeKey] as? String
-    if type == OpalWatchMessage.ping {
-      replyHandler([OpalWatchMessage.typeKey: OpalWatchMessage.pong])
-    } else {
+    guard type == OpalWatchMessage.log || type == OpalWatchMessage.undo else {
       replyHandler([OpalWatchMessage.errorKey: "unknown message type: \(type ?? "none")"])
+      return
+    }
+    // WatchConnectivity calls back on a background queue; Flutter channels and
+    // the relay's state live on main
+    DispatchQueue.main.async {
+      OpalWatchRelay.shared.forward(message, reply: replyHandler)
     }
   }
 }
