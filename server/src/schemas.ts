@@ -138,23 +138,6 @@ export const routineBody = z.object({
   })),
 })
 
-const healthMetric = z.enum([
-  'steps', 'activeEnergy', 'exerciseMinutes', 'avgHeartRate', 'restingHeartRate', 'sleepMinutes',
-])
-export const healthIngestBody = z.object({
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),        // local day from the shortcut
-  // capturedAt is intentionally NOT accepted: the server stamps its own receive
-  // time, and nothing downstream reads it. keeps the iOS Shortcut from having to
-  // emit a strict ISO-8601 timestamp.
-  metrics: z
-    .record(healthMetric, z.object({ value: z.number().finite(), unit: z.string().min(1) }))
-    .refine((m) => Object.keys(m).length > 0, 'at least one metric required'),
-})
-
-export const healthDayQuery = z.object({
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-})
-
 // display-ready rows the app pushes for the iOS widget to read back; the widget
 // never computes a state, it walks the schedule of changes until local midnight.
 // strict throughout: a key the widget does not know (a fraction on money) is

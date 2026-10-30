@@ -377,16 +377,14 @@ Applied in `lib/theme/`. Each row names what was done.
    - An area with no goal set renders in neutral ink.
    - Nutrition, Sleep and Mood have no state rule yet, so they render in neutral ink and are
      never off track. Nutrition has no targets in the app, so its page shows meals and macros
-     without a target line until targets become a setting. Sleep waits on its data source
+     without a target line until targets become a setting. Sleep has no goal yet
      (decision 6). Mood is a reading, not a goal, and never takes a state colour.
    - The Areas tab's `N of M on track` counts only areas with a state rule (Money, Move,
      Routines today), so it reads `N of 3` until the others gain one.
 5. **Achievement mark.** Oura uses a crown at 85+. Opal needs its own mark; a check is the
    placeholder.
-6. **Sleep.** Sleep has no working data source yet. The app fetches `/v1/health/sleep`, but the
-   proxy serves no such route; the Shortcuts ingest accepts `sleepMinutes`, but only
-   `/v1/health/day` returns it. Until that is wired up, Sleep stays a vital card, not a ring.
-   It also has no goal and no state rule yet.
+6. **Sleep.** Sleep reads each night, with stages, from Apple Health through HealthKit. It
+   stays a vital card, not a ring, and has no goal and no state rule yet.
 
 ## Sources
 

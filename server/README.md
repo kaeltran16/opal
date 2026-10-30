@@ -1,11 +1,11 @@
 # Opal backend — Cloudflare Worker + D1
 
-The trusted backend for the Opal app, iOS widget, and Health Shortcut. It serves
+The trusted backend for the Opal app and iOS widget. It serves
 `https://opal.kael.life` from a single Cloudflare Worker with a D1 database.
 
 Two things it exists to hold that a client cannot: the **OpenRouter API key**, and
-the small amount of **server-side state** (device tokens, Pal memory, Health
-metrics, the widget snapshot).
+the small amount of **server-side state** (device tokens, Pal memory, the widget
+snapshot).
 
 ## Layout
 
@@ -105,8 +105,6 @@ and re-registers on a 401.
 | `/v1/memory` | GET, DELETE |
 | `/v1/memory/fact/:id` | DELETE |
 | `/v1/memory/refresh` | POST |
-| `/v1/health/ingest` | POST |
-| `/v1/health/day` | GET |
 | `/v1/widget/snapshot` | POST, GET |
 | `/v1/email/extract` | POST |
 

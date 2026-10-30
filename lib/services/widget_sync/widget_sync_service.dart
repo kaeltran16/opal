@@ -90,8 +90,8 @@ class NoopWidgetSyncService implements WidgetSyncService {
 /// HTTP-backed [WidgetSyncService]: POSTs the snapshot to the proxy, then asks
 /// the native side to reload WidgetKit so the widget re-fetches immediately.
 ///
-/// Shares the proxy's http client + device-token plumbing with [HttpPalService]
-/// and [HttpHealthService]. A failed push (network, non-2xx, missing native
+/// Shares the proxy's http client + device-token plumbing with [HttpPalService].
+/// A failed push (network, non-2xx, missing native
 /// bridge) is swallowed so it never breaks the app — the widget just keeps its
 /// last fetched snapshot until its next timeline refresh.
 class HttpWidgetSyncService implements WidgetSyncService {

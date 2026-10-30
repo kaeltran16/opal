@@ -1,14 +1,13 @@
 import { json, error, badRequest } from './http.js'
 import { parseOrigins, preflight, withCors } from './cors.js'
 import { extractBearer } from '../../src/auth.js'
-import { registerBody, healthIngestBody, healthDayQuery, widgetSnapshotBody } from '../../src/schemas.js'
+import { registerBody, widgetSnapshotBody } from '../../src/schemas.js'
 import {
   chatBody, parseBody, nutritionEstimateBody, reviewBody, insightsBody, suggestBody,
   postWorkoutBody, routineBody, agendaBody, suggestionsBody, memoryRefreshBody,
 } from '../../src/schemas.js'
 import { D1TokenStore } from './stores/tokens.js'
 import { D1MemoryStore } from './stores/memory.js'
-import { D1HealthStore } from './stores/health.js'
 import { D1WidgetStore } from './stores/widget.js'
 import { makePal, makeClient } from './pal-factory.js'
 import { OpenRouterError, type Pal, type TextCompleter } from '../../src/pal.js'
@@ -94,22 +93,6 @@ async function routeAuthed(
   if (factMatch && method === 'DELETE') {
     await memory.forgetFact(token, decodeURIComponent(factMatch[1]))
     return json(await memory.digest(token))
-  }
-
-  if (pathname === '/v1/health/ingest' && method === 'POST') {
-    const raw = await request.json().catch(() => null)
-    const parsed = healthIngestBody.safeParse(raw)
-    if (!parsed.success) return badRequest(parsed.error, raw)
-    const store = new D1HealthStore(env.DB)
-    const upserted = await store.upsert(parsed.data.date, parsed.data.metrics, new Date().toISOString())
-    return json({ upserted })
-  }
-
-  if (pathname === '/v1/health/day' && method === 'GET') {
-    const parsed = healthDayQuery.safeParse({ date: url.searchParams.get('date') })
-    if (!parsed.success) return error('bad_request', 'invalid query', 400)
-    const store = new D1HealthStore(env.DB)
-    return json({ date: parsed.data.date, metrics: await store.getDay(parsed.data.date) })
   }
 
   if (pathname === '/v1/widget/snapshot' && method === 'POST') {
